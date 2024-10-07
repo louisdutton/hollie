@@ -1,6 +1,6 @@
 #include "raylib.h"
 
-static const Color bg_colour = PURPLE;
+static const Color BG_COLOUR = PURPLE;
 static const int MOVE_SPEED = 2;
 
 static bool isPaused = false;
