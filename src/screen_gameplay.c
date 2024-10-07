@@ -3,20 +3,17 @@
 #include "screens.h"
 #include <stdio.h>
 
-static int finishScreen = 0;
-static bool isPaused = false;
-static Color bg_colour = PURPLE;
+static const Color bg_colour = PURPLE;
+static const int MOVE_SPEED = 2;
 
+static bool isPaused = false;
 static int x = 0;
 static int y = 0;
 static int width = 20;
 static int height = 20;
 
-static const int MOVE_SPEED = 2;
-
 // Gameplay Screen Initialization logic
 void InitGameplayScreen(void) {
-  finishScreen = 0;
   x = GetScreenWidth() / 2;
   y = GetScreenHeight() / 2;
 }
@@ -35,19 +32,12 @@ void UpdateGameplayScreen(void) {
       y -= MOVE_SPEED;
     if (IsKeyDown(KEY_S))
       y += MOVE_SPEED;
-
-    // Press enter or tap to change to ENDING screen
-    if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
-      finishScreen = 1;
-      PlaySound(fxCoin);
-    }
   }
 }
 
 // Gameplay Screen Draw logic
 void DrawGameplayScreen(void) {
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
-  Vector2 pos = {20, 10};
   DrawRectangle(x, y, width, height, WHITE);
   if (isPaused) {
     DrawText("PAUSED", 130, 220, 20, WHITE);
@@ -58,4 +48,4 @@ void DrawGameplayScreen(void) {
 void UnloadGameplayScreen(void) {}
 
 // Gameplay Screen should finish?
-int FinishGameplayScreen(void) { return finishScreen; }
+int FinishGameplayScreen(void) { return false; }
