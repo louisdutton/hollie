@@ -13,10 +13,7 @@ static int width = 20;
 static int height = 20;
 
 // Gameplay Screen Initialization logic
-void InitGameplayScreen(void) {
-  x = GetScreenWidth() / 2;
-  y = GetScreenHeight() / 2;
-}
+void InitGameplayScreen(void) {}
 
 // Gameplay Screen Update logic
 void UpdateGameplayScreen(void) {
