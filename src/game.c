@@ -9,7 +9,7 @@
 // Shared Variables Definition (global)
 // NOTE: Those variables are shared between modules through screens.h
 //----------------------------------------------------------------------------------
-GameScreen currentScreen = LOGO;
+GameScreen currentScreen = GAMEPLAY;
 Font font = {0};
 Music music = {0};
 Sound fxCoin = {0};
@@ -59,8 +59,8 @@ int main(void) {
   PlayMusicStream(music);
 
   // Setup and init first screen
-  currentScreen = LOGO;
-  InitLogoScreen();
+  currentScreen = GAMEPLAY;
+  /*InitLogoScreen();*/
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
@@ -331,7 +331,7 @@ static void UpdateDrawFrame(void) {
   if (onTransition)
     DrawTransition();
 
-  // DrawFPS(10, 10);
+  DrawFPS(10, 10);
 
   EndDrawing();
   //----------------------------------------------------------------------------------
