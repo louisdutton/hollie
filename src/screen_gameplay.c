@@ -46,7 +46,7 @@ void UpdateGameplayScreen(void) {
 
 // Gameplay Screen Draw logic
 void DrawGameplayScreen(void) {
-  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
+  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
   Vector2 pos = {20, 10};
   DrawRectangle(x, y, width, height, WHITE);
   if (isPaused) {
