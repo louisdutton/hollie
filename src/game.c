@@ -46,7 +46,7 @@ static void UpdateDrawFrame(void); // Update and draw one frame
 int main(void) {
   // Initialization
   //---------------------------------------------------------
-  InitWindow(screenWidth, screenHeight, "raylib game template");
+  InitWindow(screenWidth, screenHeight, "hollie");
 
   InitAudioDevice(); // Initialize audio device
 
