@@ -9,10 +9,10 @@ static Color bg_colour = PURPLE;
 
 static int x = 0;
 static int y = 0;
-static int width = 10;
-static int height = 10;
+static int width = 20;
+static int height = 20;
 
-static const int MOVE_SPEED = 5;
+static const int MOVE_SPEED = 2;
 
 // Gameplay Screen Initialization logic
 void InitGameplayScreen(void) {
