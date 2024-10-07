@@ -48,7 +48,6 @@ void UpdateGameplayScreen(void) {
 void DrawGameplayScreen(void) {
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
   Vector2 pos = {20, 10};
-  DrawTextEx(font, "GAMEPLAY SCREEN", pos, font.baseSize * 3.0f, 4, WHITE);
   DrawRectangle(x, y, width, height, WHITE);
   if (isPaused) {
     DrawText("PAUSED", 130, 220, 20, WHITE);
