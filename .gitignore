@@ -51,14 +51,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Visual Studio files
-[Dd]ebug/
-[Dd]ebug.DLL/
-[R]elease/
-[Rr]elease.DLL/
-*.user
-.vs
-
 # Clangd LSP
 .cache
 compile_commands.json
@@ -69,3 +61,5 @@ compile_commands.json
 # Android
 *apk*
 android.*
+
+.direnv
