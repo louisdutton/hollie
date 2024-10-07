@@ -6,22 +6,22 @@ PRODUCTVERSION  1,0,0,0
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
-	//BLOCK "080904E4" 	// English UK
-    BLOCK "040904E4"	// English US
+	  BLOCK "080904E4" 	// English UK
+	//BLOCK "040904E4"	// English US
     BEGIN
-	  VALUE "CompanyName", "raylib technologies"
-      VALUE "FileDescription", "raylib-game | A great game template to enjoy coding"
+	  VALUE "CompanyName", "Dutton Digital"
+      VALUE "FileDescription", "Hollie | A personal game"
       VALUE "FileVersion", "1.0"
-      VALUE "InternalName", "raylib-game"
-      VALUE "LegalCopyright", "(c) 2022 raylib technologies (@raylibtech)"
+      VALUE "InternalName", "hollie"
+      VALUE "LegalCopyright", "(c) 2024 Dutton Digital"
       //VALUE "OriginalFilename", "raylib_app.exe"
-      VALUE "ProductName", "raylib-game"
+      VALUE "ProductName", "hollie"
       VALUE "ProductVersion", "1.0"
     END
   END
   BLOCK "VarFileInfo"
   BEGIN
-	//VALUE "Translation", 0x809, 1252	// English UK
-    VALUE "Translation", 0x409, 1252	// English US
+	  VALUE "Translation", 0x809, 1252	// English UK
+    //VALUE "Translation", 0x409, 1252	// English US
   END
 END
