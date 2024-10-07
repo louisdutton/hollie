@@ -1,7 +1,4 @@
 #include "raylib.h"
-#include "raymath.h"
-#include "screens.h"
-#include <stdio.h>
 
 static const Color bg_colour = PURPLE;
 static const int MOVE_SPEED = 2;
