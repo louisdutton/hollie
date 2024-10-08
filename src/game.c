@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "screens.h" // NOTE: Declares global (extern) variables and screens functions
+#include <stdlib.h>
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
@@ -9,24 +10,25 @@
 #define SCREEN_HEIGHT 450
 
 // globals
-GameScreen current_screen = GAMEPLAY;
+GameScreen current_screen = TITLE;
 Font font = {0};
 Music music = {0};
 Sound fx_coin = {0};
 
 // screen transitions
 static float trans_alpha = 0.0f;
-static bool on_transition = false;
-static bool trans_fade_out = false;
+static bool is_transitioning = false;
+static bool trans_has_fade = false;
 static int trans_from_screen = -1;
 static GameScreen trans_to_screen = UNKNOWN;
 
 // local funcs
+static void init();                           // Init current screen
 static void change_to_screen(int screen);     // Change to screen, no transition
 static void transition_to_screen(int screen); // Request transition to screen
-static void update_transition(void);          // Update transition effect
-static void draw_transition(void); // Draw transition effect (full-screen rect)
-static void update_draw_frame(void); // Update and draw one frame
+static void draw_transition();                // Draw transition effect
+static void update_transition();              // Update transition effect
+static void update_draw_frame();              // Update and draw one frame
 
 //----------------------------------------------------------------------------------
 // Main entry point
@@ -35,7 +37,6 @@ int main(void) {
   // Initialization
   //---------------------------------------------------------
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "hollie");
-
   InitAudioDevice(); // Initialize audio device
 
   // Load global data (assets that must be available in all screens, i.e. font)
@@ -44,11 +45,10 @@ int main(void) {
   fx_coin = LoadSound("resources/coin.wav");
 
   SetMusicVolume(music, 1.0f);
-  /*PlayMusicStream(music);*/
+  PlayMusicStream(music);
 
   // Setup and init first screen
-  current_screen = GAMEPLAY;
-  init_gameplay_screen();
+  init();
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
@@ -151,8 +151,8 @@ static void change_to_screen(GameScreen screen) {
 
 // Request transition to next screen
 static void transition_to_screen(GameScreen screen) {
-  on_transition = true;
-  trans_fade_out = false;
+  is_transitioning = true;
+  trans_has_fade = false;
   trans_from_screen = current_screen;
   trans_to_screen = screen;
   trans_alpha = 0.0f;
@@ -160,7 +160,7 @@ static void transition_to_screen(GameScreen screen) {
 
 // Update transition effect (fade-in, fade-out)
 static void update_transition(void) {
-  if (!trans_fade_out) {
+  if (!trans_has_fade) {
     trans_alpha += 0.05f;
 
     // NOTE: Due to float internal representation, condition jumps on 1.0f
@@ -214,7 +214,7 @@ static void update_transition(void) {
       current_screen = trans_to_screen;
 
       // Activate fade out effect to next loaded screen
-      trans_fade_out = true;
+      trans_has_fade = true;
     }
   } else // Transition fade out logic
   {
@@ -222,11 +222,33 @@ static void update_transition(void) {
 
     if (trans_alpha < -0.01f) {
       trans_alpha = 0.0f;
-      trans_fade_out = false;
-      on_transition = false;
+      trans_has_fade = false;
+      is_transitioning = false;
       trans_from_screen = -1;
       trans_to_screen = UNKNOWN;
     }
+  }
+}
+
+static void init() {
+  switch (current_screen) {
+  case GAMEPLAY:
+    init_gameplay_screen();
+    break;
+  case LOGO:
+    init_logo_screen();
+    break;
+  case TITLE:
+    init_title_screen();
+    break;
+  case OPTIONS:
+    init_options_screen();
+    break;
+  case ENDING:
+    init_ending_screen();
+    break;
+  case UNKNOWN:
+    break;
   }
 }
 
@@ -242,7 +264,7 @@ static void update_draw_frame(void) {
   //----------------------------------------------------------------------------------
   UpdateMusicStream(music); // NOTE: Music keeps playing between screens
 
-  if (!on_transition) {
+  if (!is_transitioning) {
     switch (current_screen) {
     case LOGO: {
       UpdateLogoScreen();
@@ -316,7 +338,7 @@ static void update_draw_frame(void) {
   }
 
   // Draw full screen rectangle in front of everything
-  if (on_transition)
+  if (is_transitioning)
     draw_transition();
 
   DrawFPS(10, 10);
