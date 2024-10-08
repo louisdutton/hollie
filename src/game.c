@@ -1,10 +1,6 @@
 #include "raylib.h"
 #include "screens.h" // NOTE: Declares global (extern) variables and screens functions
 
-#if defined(PLATFORM_WEB)
-#include <emscripten/emscripten.h>
-#endif
-
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 450
 
@@ -21,22 +17,39 @@ static bool trans_has_fade = false;
 static GameScreen trans_from_screen = UNKNOWN;
 static GameScreen trans_to_screen = UNKNOWN;
 
-// local funcs
-static void init();                           // Init current screen
+// lifecycle
+static void init();    // Initialise game
+static void update();  // Update one frame
+static void draw();    // Draw one frame
+static void dispose(); // Safely dispose of game
+
 static void change_to_screen(int screen);     // Change to screen, no transition
 static void transition_to_screen(int screen); // Request transition to screen
 static void draw_transition();                // Draw transition effect
 static void update_transition();              // Update transition effect
-static void update_draw_frame();              // Update and draw one frame
 
 //----------------------------------------------------------------------------------
 // Main entry point
 //----------------------------------------------------------------------------------
 int main(void) {
-  // Initialization
-  //---------------------------------------------------------
+  init();
+
+  while (!WindowShouldClose()) // Detect window close button or ESC key
+  {
+    update();
+    draw();
+  }
+
+  dispose();
+
+  return 0;
+}
+
+// init resources
+static void init() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "hollie");
   InitAudioDevice(); // Initialize audio device
+  SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
 
   // Load global data (assets that must be available in all screens, i.e. font)
   font = LoadFont("resources/mecha.png");
@@ -47,24 +60,30 @@ int main(void) {
   PlayMusicStream(music);
 
   // Setup and init first screen
-  init();
-
-#if defined(PLATFORM_WEB)
-  emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
-#else
-  SetTargetFPS(60); // Set our game to run at 60 frames-per-second
-  //--------------------------------------------------------------------------------------
-
-  // Main game loop
-  while (!WindowShouldClose()) // Detect window close button or ESC key
-  {
-    update_draw_frame();
+  switch (current_screen) {
+  case GAMEPLAY:
+    init_gameplay_screen();
+    break;
+  case LOGO:
+    init_logo_screen();
+    break;
+  case TITLE:
+    init_title_screen();
+    break;
+  case OPTIONS:
+    init_options_screen();
+    break;
+  case ENDING:
+    init_ending_screen();
+    break;
+  case UNKNOWN:
+    break;
   }
-#endif
+}
 
-  // De-Initialization
-  //--------------------------------------------------------------------------------------
-  // Unload current screen data before closing
+// Safely dispose of all resources
+static void dispose() {
+  // screen
   switch (current_screen) {
   case LOGO:
     unload_logo_screen();
@@ -85,17 +104,13 @@ int main(void) {
     break;
   }
 
-  // Unload global data loaded
+  // globals
   UnloadFont(font);
   UnloadMusicStream(music);
   UnloadSound(fx_coin);
 
   CloseAudioDevice(); // Close audio context
-
-  CloseWindow(); // Close window and OpenGL context
-  //--------------------------------------------------------------------------------------
-
-  return 0;
+  CloseWindow();      // Close window and OpenGL context
 }
 
 //----------------------------------------------------------------------------------
@@ -229,28 +244,6 @@ static void update_transition(void) {
   }
 }
 
-static void init() {
-  switch (current_screen) {
-  case GAMEPLAY:
-    init_gameplay_screen();
-    break;
-  case LOGO:
-    init_logo_screen();
-    break;
-  case TITLE:
-    init_title_screen();
-    break;
-  case OPTIONS:
-    init_options_screen();
-    break;
-  case ENDING:
-    init_ending_screen();
-    break;
-  case UNKNOWN:
-    break;
-  }
-}
-
 // Draw transition effect (full-screen rectangle)
 static void draw_transition(void) {
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
@@ -258,7 +251,7 @@ static void draw_transition(void) {
 }
 
 // Update and draw game frame
-static void update_draw_frame(void) {
+static void update(void) {
   // Update
   //----------------------------------------------------------------------------------
   UpdateMusicStream(music); // NOTE: Music keeps playing between screens
@@ -309,12 +302,12 @@ static void update_draw_frame(void) {
   } else
     update_transition(); // Update transition (fade-in, fade-out)
   //----------------------------------------------------------------------------------
+}
 
-  // Draw
-  //----------------------------------------------------------------------------------
+static void draw() {
   BeginDrawing();
 
-  ClearBackground(RAYWHITE);
+  ClearBackground(SKYBLUE);
 
   switch (current_screen) {
   case LOGO:
@@ -343,5 +336,4 @@ static void update_draw_frame(void) {
   DrawFPS(10, 10);
 
   EndDrawing();
-  //----------------------------------------------------------------------------------
 }

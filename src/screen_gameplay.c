@@ -32,8 +32,6 @@ void update_gameplay_screen() {
 
 // Gameplay Screen Draw logic
 void draw_gameplay_screen() {
-  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
-
   BeginMode2D(camera);
 
   draw_player();
