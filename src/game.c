@@ -1,6 +1,5 @@
 #include "raylib.h"
 #include "screens.h" // NOTE: Declares global (extern) variables and screens functions
-#include <stdlib.h>
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
