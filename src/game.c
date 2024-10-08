@@ -56,7 +56,7 @@ int main(void) {
 
   // Setup and init first screen
   current_screen = GAMEPLAY;
-  InitGameplayScreen();
+  init_gameplay_screen();
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
@@ -85,7 +85,7 @@ int main(void) {
     UnloadOptionsScreen();
     break;
   case GAMEPLAY:
-    UnloadGameplayScreen();
+    unload_gameplay_screen();
     break;
   case ENDING:
     UnloadEndingScreen();
@@ -124,7 +124,7 @@ static void ChangeToScreen(GameScreen screen) {
     UnloadOptionsScreen();
     break;
   case GAMEPLAY:
-    UnloadGameplayScreen();
+    unload_gameplay_screen();
     break;
   case ENDING:
     UnloadEndingScreen();
@@ -145,7 +145,7 @@ static void ChangeToScreen(GameScreen screen) {
     InitOptionsScreen();
     break;
   case GAMEPLAY:
-    InitGameplayScreen();
+    init_gameplay_screen();
     break;
   case ENDING:
     InitEndingScreen();
@@ -189,7 +189,7 @@ static void UpdateTransition(void) {
         UnloadOptionsScreen();
         break;
       case GAMEPLAY:
-        UnloadGameplayScreen();
+        unload_gameplay_screen();
         break;
       case ENDING:
         UnloadEndingScreen();
@@ -210,7 +210,7 @@ static void UpdateTransition(void) {
         InitOptionsScreen();
         break;
       case GAMEPLAY:
-        InitGameplayScreen();
+        init_gameplay_screen();
         break;
       case ENDING:
         InitEndingScreen();
@@ -276,9 +276,9 @@ static void UpdateDrawFrame(void) {
 
     } break;
     case GAMEPLAY: {
-      UpdateGameplayScreen();
+      update_gameplay_screen();
 
-      if (FinishGameplayScreen() == 1)
+      if (finish_gameplay_screen() == 1)
         TransitionToScreen(ENDING);
       // else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
 
@@ -314,7 +314,7 @@ static void UpdateDrawFrame(void) {
     DrawOptionsScreen();
     break;
   case GAMEPLAY:
-    DrawGameplayScreen();
+    draw_gameplay_screen();
     break;
   case ENDING:
     DrawEndingScreen();

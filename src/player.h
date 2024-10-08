@@ -2,7 +2,7 @@
 
 extern Vector2 position;
 
-void InitPlayer();
-void UpdatePlayer();
-void DrawPlayer();
-void UnloadPlayer();
+void init_player();
+void update_player();
+void draw_player();
+void unload_player();

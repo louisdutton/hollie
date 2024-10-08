@@ -40,7 +40,7 @@ const char *anim_files[] = {
     "resources/characters/human/jump/base_jump_strip9.png",
 };
 
-void CalculateVelocity() {
+void calc_velocity() {
   Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)),
                    (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))};
   input = Vector2Normalize(input);
@@ -48,7 +48,7 @@ void CalculateVelocity() {
   velocity.y = input.y * MOVE_SPEED;
 }
 
-void CalculateState() {
+void calc_state() {
   if (velocity.x != 0 || velocity.y != 0) {
     current_anim = 1;
     is_flipped = velocity.x < 0;
@@ -57,12 +57,12 @@ void CalculateState() {
   }
 }
 
-void MoveAndCollide() {
+void move_and_collide() {
   position.x += velocity.x;
   position.y += velocity.y;
 }
 
-void Animate() {
+void animate() {
   frame_counter++;
 
   if (frame_counter > INTERVAL) {
@@ -74,20 +74,20 @@ void Animate() {
   }
 }
 
-void InitPlayer() {
+void init_player() {
   for (int i = 0; i < ANIM_COUNT; i++) {
     animations[i] = LoadTexture(anim_files[i]);
   }
 }
 
-void UpdatePlayer() {
-  CalculateVelocity();
-  CalculateState();
-  MoveAndCollide();
-  Animate();
+void update_player() {
+  calc_velocity();
+  calc_state();
+  move_and_collide();
+  animate();
 }
 
-void DrawPlayer() {
+void draw_player() {
   DrawRectangleLines(position.x - (float)width / 2,
                      position.y - (float)height / 2, width, height, WHITE);
   Vector2 tex_pos = position;
@@ -100,7 +100,7 @@ void DrawPlayer() {
   DrawTextureRec(animations[current_anim], tex_rect, tex_pos, player_colour);
 }
 
-void UnloadPlayer() {
+void unload_player() {
   for (int i = 0; i < ANIM_COUNT; i++) {
     UnloadTexture(animations[i]);
   }
