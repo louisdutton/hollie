@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include "raymath.h"
 
 // anim
 #define TARGET_FPS 60
@@ -30,6 +31,7 @@ static const int frame_counts[ANIM_COUNT] = {9, 8, 9};
 static int frame_counter = 0;
 static int frame = 0;
 static int current_anim = 0;
+static bool is_flipped = false;
 
 static bool is_paused = false;
 
@@ -45,30 +47,26 @@ void InitGameplayScreen(void) {
       LoadTexture("resources/characters/human/jump/base_jump_strip9.png");
 }
 
-// Gameplay Screen Update logic
-void UpdateGameplayScreen(void) {
-  // input
-  if (IsKeyPressed(KEY_P))
-    is_paused = !is_paused;
+void CalculateVelocity() {
+  velocity.x = (IsKeyDown(KEY_D) - IsKeyDown(KEY_A)) * MOVE_SPEED;
+  velocity.y = (IsKeyDown(KEY_S) - IsKeyDown(KEY_W)) * MOVE_SPEED;
+}
 
-  // calculate velocity
-  if (!is_paused) {
-    velocity.x = (IsKeyDown(KEY_D) - IsKeyDown(KEY_A)) * MOVE_SPEED;
-    velocity.y = (IsKeyDown(KEY_S) - IsKeyDown(KEY_W)) * MOVE_SPEED;
-  }
-
-  // apply velocity
-  position.x += velocity.x;
-  position.y += velocity.y;
-
-  // choose anim
+void CalculateState() {
   if (velocity.x != 0 || velocity.y != 0) {
     current_anim = 1;
+    is_flipped = velocity.x < 0;
   } else {
     current_anim = 0;
   }
+}
 
-  // anim
+void MoveAndCollide(void) {
+  position.x += velocity.x;
+  position.y += velocity.y;
+}
+
+void Animate(void) {
   frame_counter++;
 
   if (frame_counter > INTERVAL) {
@@ -77,6 +75,19 @@ void UpdateGameplayScreen(void) {
     if (frame > frame_counts[current_anim])
       frame = 0;
     rect.x = (float)frame * (float)FRAME_WIDTH;
+  }
+}
+
+// Gameplay Screen Update logic
+void UpdateGameplayScreen(void) {
+  if (IsKeyPressed(KEY_P))
+    is_paused = !is_paused;
+
+  if (!is_paused) {
+    CalculateVelocity();
+    CalculateState();
+    MoveAndCollide();
+    Animate();
   }
 }
 
@@ -90,7 +101,11 @@ void DrawGameplayScreen(void) {
   Vector2 tex_pos = position;
   tex_pos.x -= (float)FRAME_WIDTH / 2;
   tex_pos.y -= (float)FRAME_HEIGHT / 2;
-  DrawTextureRec(animations[current_anim], rect, tex_pos, player_colour);
+  Rectangle tex_rect = rect;
+  if (is_flipped) {
+    tex_rect.width *= -1;
+  }
+  DrawTextureRec(animations[current_anim], tex_rect, tex_pos, player_colour);
 
   if (is_paused) {
     DrawText("PAUSED", 130, 220, 20, WHITE);
