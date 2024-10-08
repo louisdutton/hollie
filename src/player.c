@@ -19,9 +19,9 @@ typedef enum PlayerState {
 } PlayerState;
 
 // player
+Vector2 position = {0, 0}; // exposed
 static unsigned int width = 20;
 static unsigned int height = 20;
-Vector2 position = {0, 0};
 static Vector2 velocity = {0, 0};
 static Color player_colour = WHITE;
 static Rectangle rect = {0, 0, FRAME_WIDTH, FRAME_HEIGHT};
@@ -34,13 +34,13 @@ static unsigned int frame = 0;
 static unsigned int current_anim = 0;
 static bool is_flipped = false;
 
-const char *anim_files[] = {
+static const char *anim_files[] = {
     "resources/characters/human/idle/base_idle_strip9.png",
     "resources/characters/human/run/base_run_strip8.png",
     "resources/characters/human/jump/base_jump_strip9.png",
 };
 
-void calc_velocity() {
+static void calc_velocity() {
   Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)),
                    (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))};
   input = Vector2Normalize(input);
@@ -48,7 +48,7 @@ void calc_velocity() {
   velocity.y = input.y * MOVE_SPEED;
 }
 
-void calc_state() {
+static void calc_state() {
   if (velocity.x != 0 || velocity.y != 0) {
     current_anim = RUN;
     is_flipped = velocity.x < 0;
@@ -57,12 +57,12 @@ void calc_state() {
   }
 }
 
-void move_and_collide() {
+static void move_and_collide() {
   position.x += velocity.x;
   position.y += velocity.y;
 }
 
-void animate() {
+static void animate() {
   frame_counter++;
 
   if (frame_counter > INTERVAL) {

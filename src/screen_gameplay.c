@@ -8,12 +8,17 @@ static bool is_paused = false;
 // camera
 static Camera2D camera = {.zoom = 1};
 
-// Gameplay Screen Initialization logic
-void init_gameplay_screen() { init_player(); }
-
-void camera_follow_target() {
+static void camera_follow_target() {
   camera.target.x = position.x - (float)GetScreenWidth() / 2;
   camera.target.y = position.y - (float)GetScreenHeight() / 2;
+}
+
+static void init_camera() { camera_follow_target(); }
+
+// Gameplay Screen Initialization logic
+void init_gameplay_screen() {
+  init_player();
+  init_camera();
 }
 
 // Gameplay Screen Update logic
