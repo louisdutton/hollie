@@ -1,6 +1,4 @@
 #include "player.h"
-#include "raylib.h"
-#include "raymath.h"
 
 // global
 static bool is_paused = false;

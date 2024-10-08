@@ -10,7 +10,7 @@
 #define SCREEN_HEIGHT 450
 
 // globals
-GameScreen current_screen = TITLE;
+GameScreen current_screen = GAMEPLAY;
 Font font = {0};
 Music music = {0};
 Sound fx_coin = {0};
@@ -19,7 +19,7 @@ Sound fx_coin = {0};
 static float trans_alpha = 0.0f;
 static bool is_transitioning = false;
 static bool trans_has_fade = false;
-static int trans_from_screen = -1;
+static GameScreen trans_from_screen = UNKNOWN;
 static GameScreen trans_to_screen = UNKNOWN;
 
 // local funcs

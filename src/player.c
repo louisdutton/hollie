@@ -31,7 +31,7 @@ static Texture2D animations[ANIM_COUNT] = {0};
 static const int frame_counts[ANIM_COUNT] = {9, 8, 9};
 static unsigned int frame_counter = 0;
 static unsigned int frame = 0;
-static unsigned int current_anim = 0;
+static PlayerState current_anim = 0;
 static bool is_flipped = false;
 
 static const char *anim_files[] = {
