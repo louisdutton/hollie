@@ -1,4 +1,5 @@
 #include "player.h"
+#include "raylib.h"
 
 // global
 static bool is_paused = false;
@@ -12,6 +13,14 @@ static void camera_follow_target() {
 }
 
 static void init_camera() { camera_follow_target(); }
+
+static void draw_grid(int size) {
+  for (int x = 0; x < 10; x++) {
+    for (int y = 0; y < 10; y++) {
+      DrawRectangleLines(x * size, y * size, size, size, WHITE);
+    }
+  }
+}
 
 // Gameplay Screen Initialization logic
 void init_gameplay_screen() {
@@ -35,6 +44,7 @@ void draw_gameplay_screen() {
   BeginMode2D(camera);
 
   draw_player();
+  draw_grid(16);
 
   EndMode2D();
 

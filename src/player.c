@@ -20,8 +20,8 @@ typedef enum PlayerState {
 
 // player
 Vector2 position = {0, 0}; // exposed
-static unsigned int width = 20;
-static unsigned int height = 20;
+static unsigned int width = 16;
+static unsigned int height = 16;
 static Vector2 velocity = {0, 0};
 static Color player_colour = WHITE;
 static Rectangle rect = {0, 0, FRAME_WIDTH, FRAME_HEIGHT};
