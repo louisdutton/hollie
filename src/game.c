@@ -5,31 +5,23 @@
 #include <emscripten/emscripten.h>
 #endif
 
-//----------------------------------------------------------------------------------
-// Shared Variables Definition (global)
-// NOTE: Those variables are shared between modules through screens.h
-//----------------------------------------------------------------------------------
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 450
+
+// globals
 GameScreen current_screen = GAMEPLAY;
 Font font = {0};
 Music music = {0};
 Sound fx_coin = {0};
 
-//----------------------------------------------------------------------------------
-// Local Variables Definition (local to this module)
-//----------------------------------------------------------------------------------
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 450
-
-// Required variables to manage screen transitions (fade-in, fade-out)
+// screen transitions
 static float trans_alpha = 0.0f;
 static bool on_transition = false;
 static bool trans_fade_out = false;
 static int trans_from_screen = -1;
 static GameScreen trans_to_screen = UNKNOWN;
 
-//----------------------------------------------------------------------------------
-// Local Functions Declaration
-//----------------------------------------------------------------------------------
+// local funcs
 static void change_to_screen(int screen);     // Change to screen, no transition
 static void transition_to_screen(int screen); // Request transition to screen
 static void update_transition(void);          // Update transition effect
