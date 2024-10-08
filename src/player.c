@@ -12,11 +12,11 @@
 #define FRAME_HEIGHT 64
 #define ANIM_COUNT 3
 
-typedef enum Animations {
+typedef enum PlayerState {
   IDLE,
   RUN,
   JUMP,
-} Animations;
+} PlayerState;
 
 // player
 static unsigned int width = 20;
@@ -50,10 +50,10 @@ void calc_velocity() {
 
 void calc_state() {
   if (velocity.x != 0 || velocity.y != 0) {
-    current_anim = 1;
+    current_anim = RUN;
     is_flipped = velocity.x < 0;
   } else {
-    current_anim = 0;
+    current_anim = IDLE;
   }
 }
 
