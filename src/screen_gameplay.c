@@ -1,18 +1,9 @@
+#include "camera.h"
 #include "player.h"
 #include "raylib.h"
 
 // global
 static bool is_paused = false;
-
-// camera
-static Camera2D camera = {.zoom = 2};
-
-static void camera_follow_target() {
-  camera.target.x = position.x - (float)GetScreenWidth() / 2 / camera.zoom;
-  camera.target.y = position.y - (float)GetScreenHeight() / 2 / camera.zoom;
-}
-
-static void init_camera() { camera_follow_target(); }
 
 static void draw_grid(int size) {
   for (int x = 0; x < 10; x++) {
@@ -35,7 +26,7 @@ void update_gameplay_screen() {
 
   if (!is_paused) {
     update_player();
-    camera_follow_target();
+    update_camera();
   }
 }
 
