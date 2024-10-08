@@ -4,6 +4,7 @@
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
+#include "raylib.h"
 typedef enum GameScreen {
   UNKNOWN = -1,
   LOGO = 0,
@@ -16,7 +17,7 @@ typedef enum GameScreen {
 //----------------------------------------------------------------------------------
 // Global Variables Declaration (shared by several modules)
 //----------------------------------------------------------------------------------
-extern GameScreen currentScreen;
+extern GameScreen current_screen;
 extern Font font;
 extern Music music;
 extern Sound fx_coin;
