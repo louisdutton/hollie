@@ -33,12 +33,14 @@ static int frame = 0;
 static int current_anim = 0;
 static bool is_flipped = false;
 
+// global
 static bool is_paused = false;
 
+// camera
+static Camera2D camera = {.zoom = 1};
+
 // Gameplay Screen Initialization logic
-void InitGameplayScreen(void) {
-  position.x = (float)GetScreenWidth() / 2;
-  position.y = (float)GetScreenHeight() / 2;
+void InitGameplayScreen() {
   animations[0] =
       LoadTexture("resources/characters/human/idle/base_idle_strip9.png");
   animations[1] =
@@ -64,12 +66,12 @@ void CalculateState() {
   }
 }
 
-void MoveAndCollide(void) {
+void MoveAndCollide() {
   position.x += velocity.x;
   position.y += velocity.y;
 }
 
-void Animate(void) {
+void Animate() {
   frame_counter++;
 
   if (frame_counter > INTERVAL) {
@@ -81,8 +83,13 @@ void Animate(void) {
   }
 }
 
+void CameraFollowTarget() {
+  camera.target.x = position.x - (float)GetScreenWidth() / 2;
+  camera.target.y = position.y - (float)GetScreenHeight() / 2;
+}
+
 // Gameplay Screen Update logic
-void UpdateGameplayScreen(void) {
+void UpdateGameplayScreen() {
   if (IsKeyPressed(KEY_P))
     is_paused = !is_paused;
 
@@ -91,13 +98,15 @@ void UpdateGameplayScreen(void) {
     CalculateState();
     MoveAndCollide();
     Animate();
+    CameraFollowTarget();
   }
 }
 
 // Gameplay Screen Draw logic
-void DrawGameplayScreen(void) {
+void DrawGameplayScreen() {
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
 
+  BeginMode2D(camera);
   // player
   DrawRectangleLines(position.x - (float)width / 2,
                      position.y - (float)height / 2, width, height, WHITE);
@@ -109,18 +118,21 @@ void DrawGameplayScreen(void) {
     tex_rect.width *= -1;
   }
   DrawTextureRec(animations[current_anim], tex_rect, tex_pos, player_colour);
+  EndMode2D();
 
   if (is_paused) {
-    DrawText("PAUSED", 130, 220, 20, WHITE);
+    int tx = GetScreenWidth() / 2 - 60;
+    int ty = GetScreenHeight() / 2 - 30;
+    DrawText("PAUSED", tx, ty, 20, WHITE);
   }
 }
 
 // Gameplay Screen Unload logic
-void UnloadGameplayScreen(void) {
+void UnloadGameplayScreen() {
   for (int i = 0; i < ANIM_COUNT; i++) {
     UnloadTexture(animations[i]);
   }
 }
 
 // Gameplay Screen should finish?
-int FinishGameplayScreen(void) { return 0; }
+int FinishGameplayScreen() { return 0; }
