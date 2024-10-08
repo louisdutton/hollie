@@ -5,7 +5,7 @@ static int framesCounter = 0;
 static int finishScreen = 0;
 
 // Options Screen Initialization logic
-void InitOptionsScreen(void) {
+void init_options_screen(void) {
   // TODO: Initialize OPTIONS screen variables here!
   framesCounter = 0;
   finishScreen = 0;
@@ -22,7 +22,7 @@ void DrawOptionsScreen(void) {
 }
 
 // Options Screen Unload logic
-void UnloadOptionsScreen(void) {
+void unload_options_screen(void) {
   // TODO: Unload OPTIONS screen variables here!
 }
 

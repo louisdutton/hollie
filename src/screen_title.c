@@ -9,7 +9,7 @@ typedef struct Screen {
 static Screen screen_title = {.finish_screen = 0, .frames_counter = 0};
 
 // Title Screen Initialization logic
-void InitTitleScreen(void) {
+void init_title_screen(void) {
   screen_title.frames_counter = 0;
   screen_title.finish_screen = 0;
 }
@@ -32,7 +32,7 @@ void DrawTitleScreen(void) {
 }
 
 // Title Screen Unload logic
-void UnloadTitleScreen(void) {}
+void unload_title_screen(void) {}
 
 // Title Screen should finish?
 int FinishTitleScreen(void) { return screen_title.finish_screen; }

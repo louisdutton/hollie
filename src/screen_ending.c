@@ -5,7 +5,7 @@ static int framesCounter = 0;
 static int finishScreen = 0;
 
 // Ending Screen Initialization logic
-void InitEndingScreen(void) {
+void init_ending_screen(void) {
   framesCounter = 0;
   finishScreen = 0;
 }
@@ -30,7 +30,7 @@ void DrawEndingScreen(void) {
 }
 
 // Ending Screen Unload logic
-void UnloadEndingScreen(void) {}
+void unload_ending_screen(void) {}
 
 // Ending Screen should finish?
 int FinishEndingScreen(void) { return finishScreen; }

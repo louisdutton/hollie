@@ -19,7 +19,7 @@ static int state = 0;      // Logo animation states
 static float alpha = 1.0f; // Useful for fading
 
 // Logo Screen Initialization logic
-void InitLogoScreen(void) {
+void init_logo_screen(void) {
   finishScreen = 0;
   framesCounter = 0;
   lettersCount = 0;
@@ -128,7 +128,7 @@ void DrawLogoScreen(void) {
 }
 
 // Logo Screen Unload logic
-void UnloadLogoScreen(void) {
+void unload_logo_screen(void) {
   // Unload LOGO screen variables here!
 }
 

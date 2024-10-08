@@ -29,28 +29,28 @@ extern "C" { // Prevents name mangling of functions
 //----------------------------------------------------------------------------------
 // Logo Screen Functions Declaration
 //----------------------------------------------------------------------------------
-void InitLogoScreen(void);
+void init_logo_screen(void);
 void UpdateLogoScreen(void);
 void DrawLogoScreen(void);
-void UnloadLogoScreen(void);
+void unload_logo_screen(void);
 int FinishLogoScreen(void);
 
 //----------------------------------------------------------------------------------
 // Title Screen Functions Declaration
 //----------------------------------------------------------------------------------
-void InitTitleScreen(void);
+void init_title_screen(void);
 void UpdateTitleScreen(void);
 void DrawTitleScreen(void);
-void UnloadTitleScreen(void);
+void unload_title_screen(void);
 int FinishTitleScreen(void);
 
 //----------------------------------------------------------------------------------
 // Options Screen Functions Declaration
 //----------------------------------------------------------------------------------
-void InitOptionsScreen(void);
+void init_options_screen(void);
 void UpdateOptionsScreen(void);
 void DrawOptionsScreen(void);
-void UnloadOptionsScreen(void);
+void unload_options_screen(void);
 int FinishOptionsScreen(void);
 
 //----------------------------------------------------------------------------------
@@ -65,10 +65,10 @@ int finish_gameplay_screen(void);
 //----------------------------------------------------------------------------------
 // Ending Screen Functions Declaration
 //----------------------------------------------------------------------------------
-void InitEndingScreen(void);
+void init_ending_screen(void);
 void UpdateEndingScreen(void);
 void DrawEndingScreen(void);
-void UnloadEndingScreen(void);
+void unload_ending_screen(void);
 int FinishEndingScreen(void);
 
 #ifdef __cplusplus
