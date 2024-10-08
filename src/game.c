@@ -5,7 +5,7 @@
 #define SCREEN_HEIGHT 450
 
 // globals
-GameScreen current_screen = GAMEPLAY;
+GameScreen screen = GAMEPLAY;
 Font font = {0};
 Music music = {0};
 Sound fx_coin = {0};
@@ -60,48 +60,26 @@ static void init() {
   PlayMusicStream(music);
 
   // Setup and init first screen
-  switch (current_screen) {
-  case GAMEPLAY:
-    init_gameplay_screen();
-    break;
-  case LOGO:
-    init_logo_screen();
-    break;
-  case TITLE:
-    init_title_screen();
-    break;
-  case OPTIONS:
-    init_options_screen();
-    break;
-  case ENDING:
-    init_ending_screen();
-    break;
-  case UNKNOWN:
-    break;
+  switch (screen) {
+    case GAMEPLAY: init_gameplay_screen(); break;
+    case LOGO: init_logo_screen(); break;
+    case TITLE: init_title_screen(); break;
+    case OPTIONS: init_options_screen(); break;
+    case ENDING: init_ending_screen(); break;
+    case UNKNOWN: break;
   }
 }
 
 // Safely dispose of all resources
 static void dispose() {
   // screen
-  switch (current_screen) {
-  case LOGO:
-    unload_logo_screen();
-    break;
-  case TITLE:
-    unload_title_screen();
-    break;
-  case OPTIONS:
-    unload_options_screen();
-    break;
-  case GAMEPLAY:
-    unload_gameplay_screen();
-    break;
-  case ENDING:
-    unload_ending_screen();
-    break;
-  default:
-    break;
+  switch (screen) {
+    case LOGO: unload_logo_screen(); break;
+    case TITLE: unload_title_screen(); break;
+    case OPTIONS: unload_options_screen(); break;
+    case GAMEPLAY: unload_gameplay_screen(); break;
+    case ENDING: unload_ending_screen(); break;
+    default: break;
   }
 
   // globals
@@ -119,55 +97,33 @@ static void dispose() {
 // Change to next screen, no transition
 static void change_to_screen(GameScreen screen) {
   // Unload current screen
-  switch (current_screen) {
-  case LOGO:
-    unload_logo_screen();
-    break;
-  case TITLE:
-    unload_title_screen();
-    break;
-  case OPTIONS:
-    unload_options_screen();
-    break;
-  case GAMEPLAY:
-    unload_gameplay_screen();
-    break;
-  case ENDING:
-    unload_ending_screen();
-    break;
-  default:
-    break;
+  switch (screen) {
+    case LOGO: unload_logo_screen(); break;
+    case TITLE: unload_title_screen(); break;
+    case OPTIONS: unload_options_screen(); break;
+    case GAMEPLAY: unload_gameplay_screen(); break;
+    case ENDING: unload_ending_screen(); break;
+    default: break;
   }
 
   // Init next screen
   switch (screen) {
-  case LOGO:
-    init_logo_screen();
-    break;
-  case TITLE:
-    init_title_screen();
-    break;
-  case OPTIONS:
-    init_options_screen();
-    break;
-  case GAMEPLAY:
-    init_gameplay_screen();
-    break;
-  case ENDING:
-    init_ending_screen();
-    break;
-  default:
-    break;
+    case LOGO: init_logo_screen(); break;
+    case TITLE: init_title_screen(); break;
+    case OPTIONS: init_options_screen(); break;
+    case GAMEPLAY: init_gameplay_screen(); break;
+    case ENDING: init_ending_screen(); break;
+    default: break;
   }
 
-  current_screen = screen;
+  screen = screen;
 }
 
 // Request transition to next screen
 static void transition_to_screen(GameScreen screen) {
   is_transitioning = true;
   trans_has_fade = false;
-  trans_from_screen = current_screen;
+  trans_from_screen = screen;
   trans_to_screen = screen;
   trans_alpha = 0.0f;
 }
@@ -185,47 +141,25 @@ static void update_transition(void) {
 
       // Unload current screen
       switch (trans_from_screen) {
-      case LOGO:
-        unload_logo_screen();
-        break;
-      case TITLE:
-        unload_title_screen();
-        break;
-      case OPTIONS:
-        unload_options_screen();
-        break;
-      case GAMEPLAY:
-        unload_gameplay_screen();
-        break;
-      case ENDING:
-        unload_ending_screen();
-        break;
-      default:
-        break;
+        case LOGO: unload_logo_screen(); break;
+        case TITLE: unload_title_screen(); break;
+        case OPTIONS: unload_options_screen(); break;
+        case GAMEPLAY: unload_gameplay_screen(); break;
+        case ENDING: unload_ending_screen(); break;
+        default: break;
       }
 
       // Load next screen
       switch (trans_to_screen) {
-      case LOGO:
-        init_logo_screen();
-        break;
-      case TITLE:
-        init_title_screen();
-        break;
-      case OPTIONS:
-        init_options_screen();
-        break;
-      case GAMEPLAY:
-        init_gameplay_screen();
-        break;
-      case ENDING:
-        init_ending_screen();
-        break;
-      default:
-        break;
+        case LOGO: init_logo_screen(); break;
+        case TITLE: init_title_screen(); break;
+        case OPTIONS: init_options_screen(); break;
+        case GAMEPLAY: init_gameplay_screen(); break;
+        case ENDING: init_ending_screen(); break;
+        default: break;
       }
 
-      current_screen = trans_to_screen;
+      screen = trans_to_screen;
 
       // Activate fade out effect to next loaded screen
       trans_has_fade = true;
@@ -246,62 +180,52 @@ static void update_transition(void) {
 
 // Draw transition effect (full-screen rectangle)
 static void draw_transition(void) {
-  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
-                Fade(BLACK, trans_alpha));
+  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, trans_alpha));
 }
 
 // Update and draw game frame
 static void update(void) {
-  // Update
-  //----------------------------------------------------------------------------------
   UpdateMusicStream(music); // NOTE: Music keeps playing between screens
 
   if (!is_transitioning) {
-    switch (current_screen) {
-    case LOGO: {
-      UpdateLogoScreen();
+    switch (screen) {
+      case LOGO:
+        UpdateLogoScreen();
+        if (FinishLogoScreen())
+          transition_to_screen(TITLE);
+        break;
+      case TITLE:
+        UpdateTitleScreen();
 
-      if (FinishLogoScreen())
-        transition_to_screen(TITLE);
+        if (FinishTitleScreen())
+          transition_to_screen(GAMEPLAY);
+        break;
+      case OPTIONS:
+        UpdateOptionsScreen();
 
-    } break;
-    case TITLE: {
-      UpdateTitleScreen();
+        if (FinishOptionsScreen()) {
+          transition_to_screen(TITLE);
+        }
+        break;
+      case GAMEPLAY:
+        update_gameplay_screen();
 
-      if (FinishTitleScreen() == 1)
-        transition_to_screen(OPTIONS);
-      else if (FinishTitleScreen() == 2)
-        transition_to_screen(GAMEPLAY);
+        if (finish_gameplay_screen() == 1) {
+          transition_to_screen(ENDING);
+        }
+        break;
+      case ENDING:
+        UpdateEndingScreen();
 
-    } break;
-    case OPTIONS: {
-      UpdateOptionsScreen();
-
-      if (FinishOptionsScreen())
-        transition_to_screen(TITLE);
-
-    } break;
-    case GAMEPLAY: {
-      update_gameplay_screen();
-
-      if (finish_gameplay_screen() == 1)
-        transition_to_screen(ENDING);
-      // else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
-
-    } break;
-    case ENDING: {
-      UpdateEndingScreen();
-
-      if (FinishEndingScreen() == 1)
-        transition_to_screen(TITLE);
-
-    } break;
-    default:
-      break;
+        if (FinishEndingScreen() == 1) {
+          transition_to_screen(TITLE);
+        }
+        break;
+      default: break;
     }
-  } else
+  } else {
     update_transition(); // Update transition (fade-in, fade-out)
-  //----------------------------------------------------------------------------------
+  }
 }
 
 static void draw() {
@@ -309,29 +233,19 @@ static void draw() {
 
   ClearBackground(SKYBLUE);
 
-  switch (current_screen) {
-  case LOGO:
-    DrawLogoScreen();
-    break;
-  case TITLE:
-    DrawTitleScreen();
-    break;
-  case OPTIONS:
-    DrawOptionsScreen();
-    break;
-  case GAMEPLAY:
-    draw_gameplay_screen();
-    break;
-  case ENDING:
-    DrawEndingScreen();
-    break;
-  default:
-    break;
+  switch (screen) {
+    case LOGO: DrawLogoScreen(); break;
+    case TITLE: DrawTitleScreen(); break;
+    case OPTIONS: DrawOptionsScreen(); break;
+    case GAMEPLAY: draw_gameplay_screen(); break;
+    case ENDING: DrawEndingScreen(); break;
+    default: break;
   }
 
   // Draw full screen rectangle in front of everything
-  if (is_transitioning)
+  if (is_transitioning) {
     draw_transition();
+  }
 
   DrawFPS(10, 10);
 

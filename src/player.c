@@ -27,7 +27,7 @@ static Color player_colour = WHITE;
 static Rectangle rect = {0, 0, FRAME_WIDTH, FRAME_HEIGHT};
 
 // anim
-static Texture2D animations[ANIM_COUNT] = {0};
+static Texture2D animations[ANIM_COUNT] = {};
 static const int frame_counts[ANIM_COUNT] = {9, 8, 9};
 static unsigned int frame_counter = 0;
 static unsigned int frame = 0;
@@ -41,8 +41,7 @@ static const char *anim_files[] = {
 };
 
 static void calc_velocity() {
-  Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)),
-                   (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))};
+  Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)), (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))};
   input = Vector2Normalize(input);
   velocity.x = input.x * MOVE_SPEED;
   velocity.y = input.y * MOVE_SPEED;
@@ -74,6 +73,23 @@ static void animate() {
   }
 }
 
+static void draw_bounds() {
+  float x = position.x - (float)width / 2;
+  float y = position.y - (float)height / 2;
+  DrawRectangleLines(x, y, width, height, WHITE);
+}
+
+static void draw_sprite() {
+  Vector2 tex_pos = position;
+  tex_pos.x -= (float)FRAME_WIDTH / 2;
+  tex_pos.y -= (float)FRAME_HEIGHT / 2;
+  Rectangle tex_rect = rect;
+  if (is_flipped) {
+    tex_rect.width *= -1;
+  }
+  DrawTextureRec(animations[current_anim], tex_rect, tex_pos, player_colour);
+}
+
 void init_player() {
   for (int i = 0; i < ANIM_COUNT; i++) {
     animations[i] = LoadTexture(anim_files[i]);
@@ -88,16 +104,8 @@ void update_player() {
 }
 
 void draw_player() {
-  DrawRectangleLines(position.x - (float)width / 2,
-                     position.y - (float)height / 2, width, height, WHITE);
-  Vector2 tex_pos = position;
-  tex_pos.x -= (float)FRAME_WIDTH / 2;
-  tex_pos.y -= (float)FRAME_HEIGHT / 2;
-  Rectangle tex_rect = rect;
-  if (is_flipped) {
-    tex_rect.width *= -1;
-  }
-  DrawTextureRec(animations[current_anim], tex_rect, tex_pos, player_colour);
+  draw_bounds();
+  draw_sprite();
 }
 
 void unload_player() {
