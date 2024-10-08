@@ -49,8 +49,11 @@ void draw_gameplay_screen() {
   EndMode2D();
 
   if (is_paused) {
-    int tx = GetScreenWidth() / 2 - 60;
-    int ty = GetScreenHeight() / 2 - 30;
+    int w = GetScreenWidth();
+    int h = GetRenderHeight();
+    DrawRectangle(0, 0, w, h, Fade(BLACK, 0.75f));
+    int tx = (float)w / 2 - 60;
+    int ty = (float)h / 2 - 30;
     DrawText("PAUSED", tx, ty, 20, WHITE);
   }
 }
