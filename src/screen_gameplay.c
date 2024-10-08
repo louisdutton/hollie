@@ -48,8 +48,11 @@ void InitGameplayScreen(void) {
 }
 
 void CalculateVelocity() {
-  velocity.x = (IsKeyDown(KEY_D) - IsKeyDown(KEY_A)) * MOVE_SPEED;
-  velocity.y = (IsKeyDown(KEY_S) - IsKeyDown(KEY_W)) * MOVE_SPEED;
+  Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)),
+                   (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))};
+  input = Vector2Normalize(input);
+  velocity.x = input.x * MOVE_SPEED;
+  velocity.y = input.y * MOVE_SPEED;
 }
 
 void CalculateState() {
