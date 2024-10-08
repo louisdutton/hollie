@@ -5,11 +5,11 @@
 static bool is_paused = false;
 
 // camera
-static Camera2D camera = {.zoom = 1};
+static Camera2D camera = {.zoom = 2};
 
 static void camera_follow_target() {
-  camera.target.x = position.x - (float)GetScreenWidth() / 2;
-  camera.target.y = position.y - (float)GetScreenHeight() / 2;
+  camera.target.x = position.x - (float)GetScreenWidth() / 2 / camera.zoom;
+  camera.target.y = position.y - (float)GetScreenHeight() / 2 / camera.zoom;
 }
 
 static void init_camera() { camera_follow_target(); }
