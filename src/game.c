@@ -13,7 +13,6 @@ GameScreen current_screen = GAMEPLAY;
 Font font = {0};
 Music music = {0};
 Sound fx_coin = {0};
-Texture2D player_sprite = {0};
 
 //----------------------------------------------------------------------------------
 // Local Variables Definition (local to this module)
@@ -51,14 +50,13 @@ int main(void) {
   font = LoadFont("resources/mecha.png");
   music = LoadMusicStream("resources/ambient.ogg");
   fx_coin = LoadSound("resources/coin.wav");
-  player_sprite = LoadTexture("resources/player.wav");
 
   SetMusicVolume(music, 1.0f);
   /*PlayMusicStream(music);*/
 
   // Setup and init first screen
   current_screen = GAMEPLAY;
-  /*InitLogoScreen();*/
+  InitGameplayScreen();
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop(UpdateDrawFrame, 60, 1);

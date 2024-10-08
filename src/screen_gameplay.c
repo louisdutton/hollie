@@ -9,8 +9,18 @@ static int y = 0;
 static int width = 20;
 static int height = 20;
 
+static Texture2D player_sprite = {0};
+static Color player_colour = WHITE;
+static float player_rotation;
+static Rectangle frame = {0, 0, 16, 16};
+static Rectangle destination = {0, 0, 16, 16};
+static Vector2 origin = {0, 0};
+
 // Gameplay Screen Initialization logic
-void InitGameplayScreen(void) {}
+void InitGameplayScreen(void) {
+  player_sprite =
+      LoadTexture("resources/characters/human/idle/base_idle_strip9.png");
+}
 
 // Gameplay Screen Update logic
 void UpdateGameplayScreen(void) {
@@ -32,14 +42,19 @@ void UpdateGameplayScreen(void) {
 // Gameplay Screen Draw logic
 void DrawGameplayScreen(void) {
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
-  DrawRectangle(x, y, width, height, WHITE);
+
+  // player
+  DrawRectangleLines(x, y, width, height, WHITE);
+  DrawTexturePro(player_sprite, frame, destination, origin, player_rotation,
+                 player_colour);
+
   if (isPaused) {
     DrawText("PAUSED", 130, 220, 20, WHITE);
   }
 }
 
 // Gameplay Screen Unload logic
-void UnloadGameplayScreen(void) {}
+void UnloadGameplayScreen(void) { UnloadTexture(player_sprite); }
 
 // Gameplay Screen should finish?
 int FinishGameplayScreen(void) { return false; }
