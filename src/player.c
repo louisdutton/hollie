@@ -19,8 +19,8 @@ typedef enum Animations {
 } Animations;
 
 // player
-static int width = 20;
-static int height = 20;
+static unsigned int width = 20;
+static unsigned int height = 20;
 Vector2 position = {0, 0};
 static Vector2 velocity = {0, 0};
 static Color player_colour = WHITE;
@@ -29,10 +29,16 @@ static Rectangle rect = {0, 0, FRAME_WIDTH, FRAME_HEIGHT};
 // anim
 static Texture2D animations[ANIM_COUNT] = {0};
 static const int frame_counts[ANIM_COUNT] = {9, 8, 9};
-static int frame_counter = 0;
-static int frame = 0;
-static int current_anim = 0;
+static unsigned int frame_counter = 0;
+static unsigned int frame = 0;
+static unsigned int current_anim = 0;
 static bool is_flipped = false;
+
+const char *anim_files[] = {
+    "resources/characters/human/idle/base_idle_strip9.png",
+    "resources/characters/human/run/base_run_strip8.png",
+    "resources/characters/human/jump/base_jump_strip9.png",
+};
 
 void CalculateVelocity() {
   Vector2 input = {(IsKeyDown(KEY_D) - IsKeyDown(KEY_A)),
@@ -69,12 +75,9 @@ void Animate() {
 }
 
 void InitPlayer() {
-  animations[0] =
-      LoadTexture("resources/characters/human/idle/base_idle_strip9.png");
-  animations[1] =
-      LoadTexture("resources/characters/human/run/base_run_strip8.png");
-  animations[2] =
-      LoadTexture("resources/characters/human/jump/base_jump_strip9.png");
+  for (int i = 0; i < ANIM_COUNT; i++) {
+    animations[i] = LoadTexture(anim_files[i]);
+  }
 }
 
 void UpdatePlayer() {
