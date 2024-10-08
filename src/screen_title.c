@@ -1,31 +1,29 @@
 #include "raylib.h"
 #include "screens.h"
 
-static int framesCounter = 0;
-static int finishScreen = 0;
+typedef struct Screen {
+  int frames_counter;
+  int finish_screen;
+} Screen;
+
+static Screen screen_title = {.finish_screen = 0, .frames_counter = 0};
 
 // Title Screen Initialization logic
 void InitTitleScreen(void) {
-  // TODO: Initialize TITLE screen variables here!
-  framesCounter = 0;
-  finishScreen = 0;
+  screen_title.frames_counter = 0;
+  screen_title.finish_screen = 0;
 }
 
 // Title Screen Update logic
 void UpdateTitleScreen(void) {
-  // TODO: Update TITLE screen variables here!
-
-  // Press enter or tap to change to GAMEPLAY screen
   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
-    // finishScreen = 1;   // OPTIONS
-    finishScreen = 2; // GAMEPLAY
-    PlaySound(fxCoin);
+    screen_title.finish_screen = 2; // GAMEPLAY
+    PlaySound(fx_coin);
   }
 }
 
 // Title Screen Draw logic
 void DrawTitleScreen(void) {
-  // TODO: Draw TITLE screen here!
   DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), GREEN);
   Vector2 pos = {20, 10};
   DrawTextEx(font, "TITLE SCREEN", pos, font.baseSize * 3.0f, 4, DARKGREEN);
@@ -34,9 +32,7 @@ void DrawTitleScreen(void) {
 }
 
 // Title Screen Unload logic
-void UnloadTitleScreen(void) {
-  // TODO: Unload TITLE screen variables here!
-}
+void UnloadTitleScreen(void) {}
 
 // Title Screen should finish?
-int FinishTitleScreen(void) { return finishScreen; }
+int FinishTitleScreen(void) { return screen_title.finish_screen; }
