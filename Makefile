@@ -8,9 +8,9 @@ PLATFORM              ?= PLATFORM_DESKTOP
 # Define project variables
 PROJECT_NAME          ?= hollie
 PROJECT_VERSION       ?= 1.0
-PROJECT_BUILD_PATH    ?= .
+PROJECT_BUILD_PATH    ?= ./src
 
-RAYLIB_SRC_PATH       ?= ../../raylib/src
+RAYLIB_SRC_PATH       ?= . # TODO
 
 # Locations of raylib.h and libraylib.a/libraylib.so
 # NOTE: Those variables are only used for PLATFORM_OS: LINUX, BSD
@@ -21,7 +21,7 @@ RAYLIB_LIB_PATH       ?= /usr/local/lib
 RAYLIB_LIBTYPE        ?= STATIC
 
 # Build mode for project: DEBUG or RELEASE
-BUILD_MODE            ?= RELEASE
+BUILD_MODE            ?= DEBUG
 
 # Use Wayland display server protocol on Linux desktop (by default it uses X11 windowing system)
 # NOTE: This variable is only used for PLATFORM_OS: LINUX
@@ -369,12 +369,14 @@ endif
 # Define source code object files required
 #------------------------------------------------------------------------------------------------
 PROJECT_SOURCE_FILES ?= \
-    game.c \
-    screen_logo.c \
-    screen_title.c \
-    screen_options.c \
-    screen_gameplay.c \
-    screen_ending.c
+	./src/camera.c \
+	./src/game.c \
+	./src/player.c \
+	./src/screen_ending.c \
+	./src/screen_gameplay.c \
+	./src/screen_logo.c \
+	./src/screen_options.c \
+	./src/screen_title.c
 
 # Define all object files from source files
 OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
@@ -458,3 +460,4 @@ endif
 clean_shell_cmd: SHELL=cmd
 clean_shell_cmd:
 	del *.o *.exe $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm /s
+
