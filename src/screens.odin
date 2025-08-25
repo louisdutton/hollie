@@ -20,6 +20,8 @@ draw_grid :: proc(size: i32) {
 init_gameplay_screen :: proc() {
 	init_player()
 	init_camera()
+	init_tilemap()
+	generate_test_map()
 }
 
 update_gameplay_screen :: proc() {
@@ -36,8 +38,8 @@ update_gameplay_screen :: proc() {
 draw_gameplay_screen :: proc() {
 	rl.BeginMode2D(camera)
 
+	draw_tilemap(camera)
 	draw_player()
-	draw_grid(16)
 
 	rl.EndMode2D()
 
@@ -53,6 +55,7 @@ draw_gameplay_screen :: proc() {
 
 unload_gameplay_screen :: proc() {
 	unload_player()
+	unload_tilemap()
 }
 
 finish_gameplay_screen :: proc() -> int {

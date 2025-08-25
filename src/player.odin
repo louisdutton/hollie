@@ -123,7 +123,7 @@ update_player :: proc() {
 }
 
 draw_player :: proc() {
-	draw_bounds()
+	// draw_bounds()
 	draw_sprite()
 }
 
