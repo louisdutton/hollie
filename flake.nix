@@ -30,6 +30,7 @@
 
               # tools
               nixd
+              clang
               alejandra
               gdb
             ];
