@@ -1,5 +1,5 @@
 {
-  description = "A Nix-flake-based C development environment";
+  description = "A Nix-flake-based Odin development environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
@@ -10,14 +10,16 @@
     supportedSystems = [
       "x86_64-linux"
       "aarch64-linux"
-      "x86_64-darwin"
-      "aarch64-darwin"
     ];
+
     forEachSupportedSystem = f:
       nixpkgs.lib.genAttrs supportedSystems (
         system:
           f {
-            pkgs = import nixpkgs {inherit system;};
+            pkgs = import nixpkgs {
+              inherit system;
+              config.allowUnfree = true;
+            };
           }
       );
   in {
@@ -25,18 +27,24 @@
       {pkgs}:
         with pkgs; {
           default = mkShell {
-            packages = [
+            nativeBuildInputs = [
+              odin
+              sdl3
               raylib
-
-              # tools
-              nixd
-              clang
-              alejandra
-              gdb
             ];
 
-            # force x11 on wayland
-            XDG_SESSION_TYPE = "x11";
+            packages = [
+              # tools
+              resvg
+              go-task
+              ffmpeg
+              claude-code
+
+              # language support
+              ols
+              nixd
+              alejandra
+            ];
           };
         }
     );
