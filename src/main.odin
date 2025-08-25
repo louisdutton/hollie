@@ -51,9 +51,9 @@ init_game :: proc() {
 	rl.SetTargetFPS(60)
 
 	// Load global assets
-	game_state.font = rl.LoadFont("resources/mecha.png")
-	game_state.music = rl.LoadMusicStream("resources/ambient.ogg")
-	game_state.fx_coin = rl.LoadSound("resources/coin.wav")
+	game_state.font = rl.LoadFont("res/font/mecha.png")
+	game_state.music = rl.LoadMusicStream("res/audio/music/ambient.ogg")
+	game_state.fx_coin = rl.LoadSound("res/audio/fx/coin.wav")
 
 	rl.SetMusicVolume(game_state.music, 1.0)
 	rl.PlayMusicStream(game_state.music)

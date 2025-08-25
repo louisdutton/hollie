@@ -50,9 +50,9 @@ player := struct {
 }
 
 anim_files := [ANIM_COUNT]string {
-	"resources/characters/human/idle/base_idle_strip9.png",
-	"resources/characters/human/run/base_run_strip8.png",
-	"resources/characters/human/jump/base_jump_strip9.png",
+	"res/art/characters/human/idle/base_idle_strip9.png",
+	"res/art/characters/human/run/base_run_strip8.png",
+	"res/art/characters/human/jump/base_jump_strip9.png",
 }
 
 calc_velocity :: proc() {
