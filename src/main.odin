@@ -5,17 +5,9 @@ import rl "vendor:raylib"
 SCREEN_WIDTH :: 800
 SCREEN_HEIGHT :: 450
 
-GameScreen :: enum {
-	UNKNOWN = -1,
-	TITLE = 0,
-	OPTIONS,
-	GAMEPLAY,
-	ENDING,
-}
-
 // Global state
 game_state := struct {
-	screen:            GameScreen,
+	scene:             Scene,
 	font:              rl.Font,
 	music:             rl.Music,
 	fx_coin:           rl.Sound,
@@ -24,10 +16,10 @@ game_state := struct {
 	trans_alpha:       f32,
 	is_transitioning:  bool,
 	trans_has_fade:    bool,
-	trans_from_screen: GameScreen,
-	trans_to_screen:   GameScreen,
+	trans_from_screen: Scene,
+	trans_to_screen:   Scene,
 } {
-	screen            = .GAMEPLAY,
+	scene             = .GAMEPLAY,
 	trans_alpha       = 0.0,
 	is_transitioning  = false,
 	trans_has_fade    = false,
@@ -36,16 +28,16 @@ game_state := struct {
 }
 
 main :: proc() {
-	init_game()
-	defer dispose_game()
+	init()
+	defer fini()
 
 	for !rl.WindowShouldClose() {
-		update_game()
-		draw_game()
+		update()
+		draw()
 	}
 }
 
-init_game :: proc() {
+init :: proc() {
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "hollie")
 	rl.InitAudioDevice()
 	rl.SetTargetFPS(60)
@@ -59,7 +51,7 @@ init_game :: proc() {
 	rl.PlayMusicStream(game_state.music)
 
 	// Initialize first screen
-	switch game_state.screen {
+	switch game_state.scene {
 	case .GAMEPLAY:
 		init_gameplay_screen()
 	case .TITLE:
@@ -73,9 +65,9 @@ init_game :: proc() {
 	}
 }
 
-dispose_game :: proc() {
+fini :: proc() {
 	// Unload current screen
-	switch game_state.screen {
+	switch game_state.scene {
 	case .TITLE:
 		unload_title_screen()
 	case .OPTIONS:
@@ -97,9 +89,9 @@ dispose_game :: proc() {
 	rl.CloseWindow()
 }
 
-change_to_screen :: proc(screen: GameScreen) {
+change_to_screen :: proc(screen: Scene) {
 	// Unload current screen
-	switch game_state.screen {
+	switch game_state.scene {
 	case .TITLE:
 		unload_title_screen()
 	case .OPTIONS:
@@ -126,13 +118,13 @@ change_to_screen :: proc(screen: GameScreen) {
 	// Do nothing
 	}
 
-	game_state.screen = screen
+	game_state.scene = screen
 }
 
-transition_to_screen :: proc(screen: GameScreen) {
+transition_to_screen :: proc(screen: Scene) {
 	game_state.is_transitioning = true
 	game_state.trans_has_fade = false
-	game_state.trans_from_screen = game_state.screen
+	game_state.trans_from_screen = game_state.scene
 	game_state.trans_to_screen = screen
 	game_state.trans_alpha = 0.0
 }
@@ -172,7 +164,7 @@ update_transition :: proc() {
 			// Do nothing
 			}
 
-			game_state.screen = game_state.trans_to_screen
+			game_state.scene = game_state.trans_to_screen
 			game_state.trans_has_fade = true
 		}
 	} else {
@@ -198,11 +190,11 @@ draw_transition :: proc() {
 	)
 }
 
-update_game :: proc() {
+update :: proc() {
 	rl.UpdateMusicStream(game_state.music)
 
 	if !game_state.is_transitioning {
-		switch game_state.screen {
+		switch game_state.scene {
 		case .TITLE:
 			update_title_screen()
 			if finish_title_screen() {
@@ -231,13 +223,13 @@ update_game :: proc() {
 	}
 }
 
-draw_game :: proc() {
+draw :: proc() {
 	rl.BeginDrawing()
 	defer rl.EndDrawing()
 
 	rl.ClearBackground(rl.SKYBLUE)
 
-	switch game_state.screen {
+	switch game_state.scene {
 	case .TITLE:
 		draw_title_screen()
 	case .OPTIONS:
