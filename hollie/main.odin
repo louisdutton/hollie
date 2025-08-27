@@ -39,6 +39,7 @@ main :: proc() {
 }
 
 init :: proc() {
+	rl.SetWindowState({.WINDOW_RESIZABLE})
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "hollie")
 	rl.InitAudioDevice()
 	rl.SetTargetFPS(60)
