@@ -1,4 +1,4 @@
-package hollie
+package tilemap
 
 import "core:math"
 import rl "vendor:raylib"
@@ -12,9 +12,8 @@ TileType :: enum u16 {
 }
 
 Tile :: struct {
-	type:     TileType,
-	position: rl.Vector2,
-	solid:    bool,
+	type:  TileType,
+	solid: bool,
 }
 
 TileMap :: struct {
@@ -25,13 +24,14 @@ TileMap :: struct {
 	tile_size: int,
 }
 
+@(private)
 tilemap := TileMap {
 	width     = 50,
 	height    = 30,
 	tile_size = TILE_SIZE,
 }
 
-init_tilemap :: proc() {
+init :: proc() {
 	tilemap.tileset = rl.LoadTexture("res/art/tileset/spr_tileset_sunnysideworld_16px.png")
 
 	tilemap.tiles = make([]Tile, tilemap.width * tilemap.height)
@@ -40,9 +40,8 @@ init_tilemap :: proc() {
 		for x in 0 ..< tilemap.width {
 			index := y * tilemap.width + x
 			tilemap.tiles[index] = Tile {
-				type     = .GRASS_1,
-				position = {f32(x * tilemap.tile_size), f32(y * tilemap.tile_size)},
-				solid    = false,
+				type  = .GRASS_1,
+				solid = false,
 			}
 		}
 	}
@@ -54,13 +53,6 @@ get_tile :: proc(x, y: int) -> ^Tile {
 	}
 	index := y * tilemap.width + x
 	return &tilemap.tiles[index]
-}
-
-set_tile :: proc(x, y: int, tile_type: TileType, solid: bool = false) {
-	if tile := get_tile(x, y); tile != nil {
-		tile.type = tile_type
-		tile.solid = solid
-	}
 }
 
 get_tile_source_rect :: proc(tile_type: TileType) -> rl.Rectangle {
@@ -109,11 +101,7 @@ check_collision :: proc(rect: rl.Rectangle) -> bool {
 	return false
 }
 
-update_tilemap :: proc() {
-
-}
-
-draw_tilemap :: proc(camera: rl.Camera2D) {
+draw :: proc(camera: rl.Camera2D) {
 	screen_width := f32(rl.GetScreenWidth())
 	screen_height := f32(rl.GetScreenHeight())
 
@@ -126,14 +114,18 @@ draw_tilemap :: proc(camera: rl.Camera2D) {
 	end_y := min(tilemap.height, int(world_max.y / TILE_SIZE) + 2)
 
 	for y in start_y ..< end_y {
+		world_y := f32(y * tilemap.tile_size)
+
 		for x in start_x ..< end_x {
 			tile := get_tile(x, y)
 			if tile == nil do continue
 
+			world_x := f32(x * tilemap.tile_size)
+
 			source_rect := get_tile_source_rect(tile.type)
 			dest_rect := rl.Rectangle {
-				x      = tile.position.x,
-				y      = tile.position.y,
+				x      = world_x,
+				y      = world_y,
 				width  = TILE_SIZE,
 				height = TILE_SIZE,
 			}
@@ -143,7 +135,7 @@ draw_tilemap :: proc(camera: rl.Camera2D) {
 	}
 }
 
-unload_tilemap :: proc() {
+fini :: proc() {
 	if tilemap.tiles != nil {
 		delete(tilemap.tiles)
 	}

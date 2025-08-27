@@ -1,5 +1,6 @@
 package hollie
 
+import "tilemap"
 import rl "vendor:raylib"
 
 // Gameplay Screen
@@ -13,7 +14,7 @@ gameplay_state := struct {
 init_gameplay_screen :: proc() {
 	init_player()
 	init_camera()
-	init_tilemap()
+	tilemap.init()
 }
 
 update_gameplay_screen :: proc() {
@@ -30,7 +31,7 @@ update_gameplay_screen :: proc() {
 draw_gameplay_screen :: proc() {
 	rl.BeginMode2D(camera)
 
-	draw_tilemap(camera)
+	tilemap.draw(camera)
 	draw_player()
 
 	rl.EndMode2D()
@@ -47,7 +48,7 @@ draw_gameplay_screen :: proc() {
 
 unload_gameplay_screen :: proc() {
 	unload_player()
-	unload_tilemap()
+	tilemap.fini()
 }
 
 finish_gameplay_screen :: proc() -> int {
