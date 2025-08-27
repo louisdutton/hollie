@@ -1,5 +1,6 @@
 package hollie
 
+import "tween"
 import rl "vendor:raylib"
 
 SCREEN_WIDTH :: 800
@@ -89,108 +90,9 @@ fini :: proc() {
 	rl.CloseWindow()
 }
 
-change_to_screen :: proc(screen: Scene) {
-	// Unload current screen
-	switch game_state.scene {
-	case .TITLE:
-		unload_title_screen()
-	case .OPTIONS:
-		unload_options_screen()
-	case .GAMEPLAY:
-		unload_gameplay_screen()
-	case .ENDING:
-		unload_ending_screen()
-	case .UNKNOWN:
-	// Do nothing
-	}
-
-	// Init next screen
-	switch screen {
-	case .TITLE:
-		init_title_screen()
-	case .OPTIONS:
-		init_options_screen()
-	case .GAMEPLAY:
-		init_gameplay_screen()
-	case .ENDING:
-		init_ending_screen()
-	case .UNKNOWN:
-	// Do nothing
-	}
-
-	game_state.scene = screen
-}
-
-transition_to_screen :: proc(screen: Scene) {
-	game_state.is_transitioning = true
-	game_state.trans_has_fade = false
-	game_state.trans_from_screen = game_state.scene
-	game_state.trans_to_screen = screen
-	game_state.trans_alpha = 0.0
-}
-
-update_transition :: proc() {
-	if !game_state.trans_has_fade {
-		game_state.trans_alpha += 0.05
-
-		if game_state.trans_alpha > 1.01 {
-			game_state.trans_alpha = 1.0
-
-			// Unload current screen
-			switch game_state.trans_from_screen {
-			case .TITLE:
-				unload_title_screen()
-			case .OPTIONS:
-				unload_options_screen()
-			case .GAMEPLAY:
-				unload_gameplay_screen()
-			case .ENDING:
-				unload_ending_screen()
-			case .UNKNOWN:
-			// Do nothing
-			}
-
-			// Load next screen
-			switch game_state.trans_to_screen {
-			case .TITLE:
-				init_title_screen()
-			case .OPTIONS:
-				init_options_screen()
-			case .GAMEPLAY:
-				init_gameplay_screen()
-			case .ENDING:
-				init_ending_screen()
-			case .UNKNOWN:
-			// Do nothing
-			}
-
-			game_state.scene = game_state.trans_to_screen
-			game_state.trans_has_fade = true
-		}
-	} else {
-		game_state.trans_alpha -= 0.02
-
-		if game_state.trans_alpha < -0.01 {
-			game_state.trans_alpha = 0.0
-			game_state.trans_has_fade = false
-			game_state.is_transitioning = false
-			game_state.trans_from_screen = .UNKNOWN
-			game_state.trans_to_screen = .UNKNOWN
-		}
-	}
-}
-
-draw_transition :: proc() {
-	rl.DrawRectangle(
-		0,
-		0,
-		rl.GetScreenWidth(),
-		rl.GetScreenHeight(),
-		rl.Fade(rl.BLACK, game_state.trans_alpha),
-	)
-}
-
 update :: proc() {
+	dt := rl.GetFrameTime()
+	tween.update(dt)
 	rl.UpdateMusicStream(game_state.music)
 
 	if !game_state.is_transitioning {
@@ -198,28 +100,28 @@ update :: proc() {
 		case .TITLE:
 			update_title_screen()
 			if finish_title_screen() {
-				transition_to_screen(.GAMEPLAY)
+				transition_to_scene(.GAMEPLAY)
 			}
 		case .OPTIONS:
 			update_options_screen()
 			if finish_options_screen() {
-				transition_to_screen(.TITLE)
+				transition_to_scene(.TITLE)
 			}
 		case .GAMEPLAY:
 			update_gameplay_screen()
 			if finish_gameplay_screen() == 1 {
-				transition_to_screen(.ENDING)
+				transition_to_scene(.ENDING)
 			}
 		case .ENDING:
 			update_ending_screen()
 			if finish_ending_screen() == 1 {
-				transition_to_screen(.TITLE)
+				transition_to_scene(.TITLE)
 			}
 		case .UNKNOWN:
 		// Do nothing
 		}
 	} else {
-		update_transition()
+		update_scene_transition()
 	}
 }
 
@@ -243,7 +145,7 @@ draw :: proc() {
 	}
 
 	if game_state.is_transitioning {
-		draw_transition()
+		draw_scene_transition()
 	}
 
 	rl.DrawFPS(10, 10)

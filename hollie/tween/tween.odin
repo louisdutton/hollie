@@ -20,8 +20,8 @@ to :: #force_inline proc(
 }
 
 // updates all active tweens
-update :: #force_inline proc(dt: f64) {
-	ease.flux_update(&flux, dt)
+update :: #force_inline proc(dt: f32) {
+	ease.flux_update(&flux, f64(dt))
 }
 
 // clears all active tweens (does not de-allocate)
