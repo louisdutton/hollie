@@ -8,24 +8,12 @@ SCREEN_HEIGHT :: 450
 
 // Global state
 game_state := struct {
-	scene:             Scene,
-	font:              rl.Font,
-	music:             rl.Music,
-	fx_coin:           rl.Sound,
-
-	// Transition state
-	trans_alpha:       f32,
-	is_transitioning:  bool,
-	trans_has_fade:    bool,
-	trans_from_screen: Scene,
-	trans_to_screen:   Scene,
+	scene:   Scene,
+	font:    rl.Font,
+	music:   rl.Music,
+	fx_coin: rl.Sound,
 } {
-	scene             = .GAMEPLAY,
-	trans_alpha       = 0.0,
-	is_transitioning  = false,
-	trans_has_fade    = false,
-	trans_from_screen = .UNKNOWN,
-	trans_to_screen   = .UNKNOWN,
+	scene = .GAMEPLAY,
 }
 
 main :: proc() {
@@ -96,33 +84,17 @@ update :: proc() {
 	tween.update(dt)
 	rl.UpdateMusicStream(game_state.music)
 
-	if !game_state.is_transitioning {
-		switch game_state.scene {
-		case .TITLE:
-			update_title_screen()
-			if finish_title_screen() {
-				transition_to_scene(.GAMEPLAY)
-			}
-		case .OPTIONS:
-			update_options_screen()
-			if finish_options_screen() {
-				transition_to_scene(.TITLE)
-			}
-		case .GAMEPLAY:
-			update_gameplay_screen()
-			if finish_gameplay_screen() == 1 {
-				transition_to_scene(.ENDING)
-			}
-		case .ENDING:
-			update_ending_screen()
-			if finish_ending_screen() == 1 {
-				transition_to_scene(.TITLE)
-			}
-		case .UNKNOWN:
-		// Do nothing
-		}
-	} else {
-		update_scene_transition()
+	switch game_state.scene {
+	case .TITLE:
+		update_title_screen()
+	case .OPTIONS:
+		update_options_screen()
+	case .GAMEPLAY:
+		update_gameplay_screen()
+	case .ENDING:
+		update_ending_screen()
+	case .UNKNOWN:
+	// Do nothing
 	}
 }
 
@@ -143,10 +115,6 @@ draw :: proc() {
 		draw_ending_screen()
 	case .UNKNOWN:
 	// Do nothing
-	}
-
-	if game_state.is_transitioning {
-		draw_scene_transition()
 	}
 
 	rl.DrawFPS(10, 10)

@@ -14,6 +14,7 @@ gameplay_state := struct {
 init_gameplay_screen :: proc() {
 	init_player()
 	init_camera()
+	init_dialog()
 	tilemap.init()
 }
 
@@ -25,6 +26,7 @@ update_gameplay_screen :: proc() {
 	if !gameplay_state.is_paused {
 		update_player()
 		update_camera()
+		update_dialog()
 	}
 }
 

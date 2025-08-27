@@ -2,11 +2,20 @@ package hollie
 
 import "core:c"
 import "core:fmt"
+import "core:strings"
+import "core:unicode/utf8"
 import "renderer"
+import "tween"
 import rl "vendor:raylib"
 
-message := "Hi there, my name is Basil!"
-message_display := ""
+message := utf8.string_to_runes("Hi there, my name is Basil!")
+message_progress: f32 = 0.0
+
+init_dialog :: proc() {
+	tween.to(&message_progress, 1.0, .Linear)
+}
+
+update_dialog :: proc() {}
 
 draw_dialog :: proc() {
 	MARGIN_X :: 100
@@ -30,5 +39,8 @@ draw_dialog :: proc() {
 	renderer.draw_rect_rounded(img_x, bg_y + PADDING_Y, img_height, img_height, color = rl.SKYBLUE)
 
 	// message
-	renderer.draw_text(message, int(img_x + img_width) + PADDING_X, int(bg_y) + PADDING_Y)
+	// TODO: allocate once and mutate the string contents
+	str := utf8.runes_to_string(message[:int(message_progress * f32(len(message)))])
+	defer delete(str)
+	renderer.draw_text(str, int(img_x + img_width) + PADDING_X, int(bg_y) + PADDING_Y)
 }
