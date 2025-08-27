@@ -110,8 +110,8 @@ draw_sprite :: proc() {
 }
 
 init_player :: proc() {
-	for i in 0 ..< ANIM_COUNT {
-		player.animations[i] = rl.LoadTexture(cstring(raw_data(anim_files[i])))
+	for file, i in anim_files {
+		player.animations[i] = rl.LoadTexture(cstring(raw_data(file)))
 	}
 }
 

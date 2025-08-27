@@ -3,6 +3,7 @@ package hollie
 import rl "vendor:raylib"
 
 // Gameplay Screen
+@(private = "file")
 gameplay_state := struct {
 	is_paused: bool,
 } {
@@ -13,7 +14,6 @@ init_gameplay_screen :: proc() {
 	init_player()
 	init_camera()
 	init_tilemap()
-	generate_test_map()
 }
 
 update_gameplay_screen :: proc() {

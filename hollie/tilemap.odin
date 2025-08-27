@@ -9,21 +9,6 @@ TILESET_HEIGHT :: 50
 
 TileType :: enum u16 {
 	GRASS_1 = 192,
-	GRASS_2,
-	GRASS_3,
-	GRASS_4,
-	DIRT_1,
-	DIRT_2,
-	DIRT_3,
-	DIRT_4,
-	WATER_1,
-	WATER_2,
-	WATER_3,
-	WATER_4,
-	STONE_1,
-	STONE_2,
-	STONE_3,
-	STONE_4,
 }
 
 Tile :: struct {
@@ -154,16 +139,6 @@ draw_tilemap :: proc(camera: rl.Camera2D) {
 			}
 
 			rl.DrawTexturePro(tilemap.tileset, source_rect, dest_rect, {0, 0}, 0, rl.WHITE)
-		}
-	}
-}
-
-generate_test_map :: proc() {
-	for y in 0 ..< tilemap.height {
-		for x in 0 ..< tilemap.width {
-			// TODO: map generation logic
-
-			set_tile(x, y, .GRASS_1, false)
 		}
 	}
 }
