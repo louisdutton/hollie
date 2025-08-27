@@ -40,6 +40,9 @@
               ffmpeg
               claude-code
 
+              # debugging
+              gdb
+
               # language support
               ols
               nixd
