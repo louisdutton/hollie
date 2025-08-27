@@ -33,8 +33,10 @@ draw_gameplay_screen :: proc() {
 
 	tilemap.draw(camera)
 	draw_player()
-
 	rl.EndMode2D()
+
+	// ui
+	draw_dialog()
 
 	if gameplay_state.is_paused {
 		w := rl.GetScreenWidth()
