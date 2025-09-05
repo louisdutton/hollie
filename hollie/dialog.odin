@@ -20,8 +20,8 @@ update_dialog :: proc() {}
 draw_dialog :: proc() {
 	MARGIN_X :: 100
 	MARGIN_Y :: 10
-	PADDING_X :: 10
-	PADDING_Y :: 10
+	PADDING_X :: 15
+	PADDING_Y :: 15
 
 	screen_w := rl.GetScreenWidth()
 	screen_h := rl.GetScreenHeight()
@@ -30,17 +30,12 @@ draw_dialog :: proc() {
 	bg_height :: 200
 	bg_x := f32(MARGIN_X)
 	bg_y := f32(screen_h - bg_height - MARGIN_Y)
-	renderer.draw_rect_rounded(bg_x, bg_y, f32(screen_w - MARGIN_X * 2), bg_height)
-
-	// image
-	img_height :: bg_height - PADDING_Y * 2
-	img_width :: img_height
-	img_x := bg_x + PADDING_X
-	renderer.draw_rect_rounded(img_x, bg_y + PADDING_Y, img_height, img_height, color = rl.SKYBLUE)
+	renderer.draw_rect(bg_x, bg_y, f32(screen_w - MARGIN_X * 2), bg_height)
+	renderer.draw_rect_outline(bg_x, bg_y, f32(screen_w - MARGIN_X * 2), bg_height)
 
 	// message
 	// TODO: allocate once and mutate the string contents
 	str := utf8.runes_to_string(message[:int(message_progress * f32(len(message)))])
 	defer delete(str)
-	renderer.draw_text(str, int(img_x + img_width) + PADDING_X, int(bg_y) + PADDING_Y)
+	renderer.draw_text(str, MARGIN_X + PADDING_X, int(bg_y) + PADDING_Y)
 }

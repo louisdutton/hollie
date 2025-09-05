@@ -25,13 +25,14 @@ Roundness :: enum {
 	FULL,
 }
 
-draw_rect_rounded :: #force_inline proc(
-	x: f32,
-	y: f32,
-	w: f32,
-	h: f32,
-	roundness := Roundness.SMALL,
-	color := DEFAULT_BG_COLOR,
+draw_rect :: #force_inline proc(x, y, w, h: f32, color := DEFAULT_BG_COLOR) {
+	rl.DrawRectangleV({x, y}, {w, h}, color)
+}
+
+draw_rect_outline :: #force_inline proc(
+	x, y, w, h: f32,
+	thickness: f32 = 2,
+	color := DEFAULT_TEXT_COLOR,
 ) {
-	rl.DrawRectangleRounded({x, y, w, h}, ROUNDED_VARIANTS[roundness], ROUNDED_SEGMENTS, color)
+	rl.DrawRectangleLinesEx({x, y, w, h}, thickness, color)
 }
