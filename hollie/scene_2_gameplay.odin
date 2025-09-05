@@ -20,7 +20,13 @@ init_gameplay_screen :: proc() {
 
 update_gameplay_screen :: proc() {
 	if rl.IsKeyPressed(.P) {
-		gameplay_state.is_paused = !gameplay_state.is_paused
+		if gameplay_state.is_paused {
+			gameplay_state.is_paused = false
+			rl.SetMusicVolume(game_state.music, 1)
+		} else {
+			gameplay_state.is_paused = true
+			rl.SetMusicVolume(game_state.music, 0.2)
+		}
 	}
 
 	if !gameplay_state.is_paused {
