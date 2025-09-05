@@ -109,25 +109,25 @@ draw_sprite :: proc() {
 	rl.DrawTextureRec(player.animations[player.current_anim], tex_rect, tex_pos, player.color)
 }
 
-init_player :: proc() {
+player_init :: proc() {
 	for file, i in anim_files {
 		player.animations[i] = rl.LoadTexture(cstring(raw_data(file)))
 	}
 }
 
-update_player :: proc() {
+player_update :: proc() {
 	calc_velocity()
 	calc_state()
 	move_and_collide()
 	animate()
 }
 
-draw_player :: proc() {
+player_draw :: proc() {
 	// draw_bounds()
 	draw_sprite()
 }
 
-unload_player :: proc() {
+player_fini :: proc() {
 	for i in 0 ..< ANIM_COUNT {
 		rl.UnloadTexture(player.animations[i])
 	}

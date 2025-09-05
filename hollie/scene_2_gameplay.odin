@@ -12,7 +12,8 @@ gameplay_state := struct {
 }
 
 init_gameplay_screen :: proc() {
-	init_player()
+	enemy_init()
+	player_init()
 	init_camera()
 	init_dialog()
 	tilemap.init()
@@ -30,7 +31,8 @@ update_gameplay_screen :: proc() {
 	}
 
 	if !gameplay_state.is_paused {
-		update_player()
+		enemy_update()
+		player_update()
 		update_camera()
 		update_dialog()
 	}
@@ -40,7 +42,8 @@ draw_gameplay_screen :: proc() {
 	rl.BeginMode2D(camera)
 
 	tilemap.draw(camera)
-	draw_player()
+	enemy_draw()
+	player_draw()
 	rl.EndMode2D()
 
 	// ui
@@ -57,7 +60,8 @@ draw_gameplay_screen :: proc() {
 }
 
 unload_gameplay_screen :: proc() {
-	unload_player()
+	enemy_fini()
+	player_fini()
 	tilemap.fini()
 }
 
