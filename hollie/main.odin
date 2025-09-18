@@ -3,8 +3,19 @@ package hollie
 import "tween"
 import rl "vendor:raylib"
 
-SCREEN_WIDTH :: 800
-SCREEN_HEIGHT :: 450
+DESIGN_WIDTH :: 800
+DESIGN_HEIGHT :: 450
+
+get_screen_scale :: proc() -> f32 {
+	screen_width := f32(rl.GetScreenWidth())
+	screen_height := f32(rl.GetScreenHeight())
+
+	scale_x := screen_width / DESIGN_WIDTH
+	scale_y := screen_height / DESIGN_HEIGHT
+
+	// Use the smaller scale to maintain aspect ratio
+	return min(scale_x, scale_y)
+}
 
 // Global state
 game_state := struct {
@@ -28,7 +39,7 @@ main :: proc() {
 
 init :: proc() {
 	rl.SetWindowState({.WINDOW_RESIZABLE})
-	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "hollie")
+	rl.InitWindow(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
 	rl.InitAudioDevice()
 	rl.SetTargetFPS(60)
 
