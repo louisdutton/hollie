@@ -55,12 +55,9 @@ anim_files := [ANIM_COUNT]string {
 	"res/art/characters/human/jump/base_jump_strip9.png",
 }
 
+
 calc_velocity :: proc() {
-	input := rl.Vector2 {
-		f32(int(rl.IsKeyDown(.D)) - int(rl.IsKeyDown(.A))),
-		f32(int(rl.IsKeyDown(.S)) - int(rl.IsKeyDown(.W))),
-	}
-	input = rl.Vector2Normalize(input)
+	input := input_get_movement()
 	player.velocity.x = input.x * MOVE_SPEED
 	player.velocity.y = input.y * MOVE_SPEED
 }
