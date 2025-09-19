@@ -24,10 +24,10 @@ update_gameplay_screen :: proc() {
 	if rl.IsKeyPressed(.P) || rl.IsGamepadButtonPressed(PLAYER_1, .MIDDLE_RIGHT) {
 		if gameplay_state.is_paused {
 			gameplay_state.is_paused = false
-			rl.SetMusicVolume(game_state.music, 1)
+			music_set_volume(game_state.music, 1)
 		} else {
 			gameplay_state.is_paused = true
-			rl.SetMusicVolume(game_state.music, 0.2)
+			music_set_volume(game_state.music, 0.2)
 		}
 	}
 

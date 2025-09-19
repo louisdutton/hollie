@@ -14,7 +14,7 @@ LevelResource :: struct {
 }
 
 Entity_Spawn :: struct {
-	position: rl.Vector2,
+	position: Vec2,
 	type:     Entity_Type,
 }
 
@@ -26,7 +26,7 @@ Entity_Type :: enum {
 LevelState :: struct {
 	current_bundle: ^LevelResource,
 	is_loaded:      bool,
-	level_music:    rl.Music,
+	level_music:    Music,
 }
 
 @(private)
@@ -40,9 +40,9 @@ level_init :: proc(res: ^LevelResource) {
 	level_state.current_bundle = res
 
 	if res.music_path != "" {
-		level_state.level_music = rl.LoadMusicStream(cstring(raw_data(res.music_path)))
-		rl.SetMusicVolume(level_state.level_music, 1.0)
-		rl.PlayMusicStream(level_state.level_music)
+		level_state.level_music = music_load(res.music_path)
+		music_set_volume(level_state.level_music, 1.0)
+		music_play(level_state.level_music)
 	}
 
 	tilemap.load_from_config(res.tilemap_config)
@@ -73,8 +73,8 @@ level_fini :: proc() {
 	if !level_state.is_loaded do return
 
 	if level_state.level_music.stream.buffer != nil {
-		rl.StopMusicStream(level_state.level_music)
-		rl.UnloadMusicStream(level_state.level_music)
+		music_stop(level_state.level_music)
+		music_unload(level_state.level_music)
 	}
 
 	tilemap.fini()
@@ -86,7 +86,7 @@ level_fini :: proc() {
 
 level_update :: proc() {
 	if level_state.is_loaded && level_state.level_music.stream.buffer != nil {
-		rl.UpdateMusicStream(level_state.level_music)
+		music_update(level_state.level_music)
 	}
 }
 

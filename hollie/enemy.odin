@@ -9,15 +9,15 @@ ENEMY_ANIM_COUNT :: 3
 ENEMY_SIZE :: 16
 
 Enemy :: struct {
-	position:       rl.Vector2,
+	position:       Vec2,
 	width:          u32,
 	height:         u32,
-	velocity:       rl.Vector2,
+	velocity:       Vec2,
 	color:          rl.Color,
 	anim_data:      Animator,
 	wait_timer:     f32,
 	move_timer:     f32,
-	move_direction: rl.Vector2,
+	move_direction: Vec2,
 }
 
 // enemy state
@@ -86,7 +86,7 @@ enemy_init :: proc() {
 	enemies = make([dynamic]Enemy)
 }
 
-enemy_spawn_at :: proc(position: rl.Vector2) {
+enemy_spawn_at :: proc(position: Vec2) {
 	enemy := Enemy {
 		position       = position,
 		width          = ENEMY_SIZE,

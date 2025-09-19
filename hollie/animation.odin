@@ -59,7 +59,7 @@ animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped
 	anim_data.is_flipped = flipped
 }
 
-animation_draw :: proc(anim_data: ^Animator, position: rl.Vector2, color: rl.Color) {
+animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {
 	tex_pos := position
 	tex_pos.x -= f32(FRAME_WIDTH) / 2
 	tex_pos.y -= f32(FRAME_HEIGHT) / 2

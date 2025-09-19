@@ -4,6 +4,8 @@ import "core:math"
 import "core:math/rand"
 import rl "vendor:raylib"
 
+Vec2 :: rl.Vector2
+
 TILE_SIZE :: 16
 TILESET_WIDTH :: 64
 TILESET_HEIGHT :: 50
@@ -143,11 +145,11 @@ get_tile_source_rect :: proc(tile_type: TileType) -> rl.Rectangle {
 	}
 }
 
-world_to_tile :: proc(world_pos: rl.Vector2) -> (int, int) {
+world_to_tile :: proc(world_pos: Vec2) -> (int, int) {
 	return int(world_pos.x / TILE_SIZE), int(world_pos.y / TILE_SIZE)
 }
 
-tile_to_world :: proc(tile_x, tile_y: int) -> rl.Vector2 {
+tile_to_world :: proc(tile_x, tile_y: int) -> Vec2 {
 	return {f32(tile_x * TILE_SIZE), f32(tile_y * TILE_SIZE)}
 }
 

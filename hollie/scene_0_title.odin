@@ -19,13 +19,13 @@ init_title_screen :: proc() {
 update_title_screen :: proc() {
 	if rl.IsKeyPressed(.ENTER) || rl.IsGestureDetected(.TAP) {
 		title_screen.finish_screen = 2 // GAMEPLAY
-		rl.PlaySound(game_state.fx_coin)
+		sound_play(game_state.fx_coin)
 	}
 }
 
 draw_title_screen :: proc() {
 	rl.DrawRectangle(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GREEN)
-	pos := rl.Vector2{20, 10}
+	pos := Vec2{20, 10}
 	rl.DrawTextEx(
 		game_state.font,
 		"TITLE SCREEN",

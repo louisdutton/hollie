@@ -3,6 +3,8 @@ package hollie
 import "tween"
 import rl "vendor:raylib"
 
+Vec2 :: rl.Vector2
+
 DESIGN_WIDTH :: 800
 DESIGN_HEIGHT :: 450
 
@@ -21,8 +23,8 @@ get_screen_scale :: proc() -> f32 {
 game_state := struct {
 	scene:   Scene,
 	font:    rl.Font,
-	music:   rl.Music,
-	fx_coin: rl.Sound,
+	music:   Music,
+	fx_coin: Sound,
 } {
 	scene = .GAMEPLAY,
 }
@@ -40,21 +42,21 @@ main :: proc() {
 init :: proc() {
 	rl.SetWindowState({.WINDOW_RESIZABLE})
 	rl.InitWindow(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
-	rl.InitAudioDevice()
+	audio_init()
 	rl.SetTargetFPS(60)
 
 	// Load global assets
 	game_state.font = rl.LoadFont("res/font/mecha.png")
-	game_state.music = rl.LoadMusicStream("res/audio/music/ambient.ogg")
-	game_state.fx_coin = rl.LoadSound("res/audio/fx/coin.wav")
+	game_state.music = music_load("res/audio/music/ambient.ogg")
+	game_state.fx_coin = sound_load("res/audio/fx/coin.wav")
 
-	rl.SetMusicVolume(game_state.music, 1.0)
-	rl.PlayMusicStream(game_state.music)
+	music_set_volume(game_state.music, 1.0)
+	music_play(game_state.music)
 
 	// Initialize first screen
 	switch game_state.scene {
 	case .GAMEPLAY:
-		rl.StopMusicStream(game_state.music)
+		music_stop(game_state.music)
 		init_gameplay_screen()
 	case .TITLE:
 		init_title_screen()
@@ -84,10 +86,10 @@ fini :: proc() {
 
 	// Unload global assets
 	rl.UnloadFont(game_state.font)
-	rl.UnloadMusicStream(game_state.music)
-	rl.UnloadSound(game_state.fx_coin)
+	music_unload(game_state.music)
+	sound_unload(game_state.fx_coin)
 
-	rl.CloseAudioDevice()
+	audio_close()
 	rl.CloseWindow()
 }
 
@@ -97,15 +99,15 @@ update :: proc() {
 
 	switch game_state.scene {
 	case .TITLE:
-		rl.UpdateMusicStream(game_state.music)
+		music_update(game_state.music)
 		update_title_screen()
 	case .OPTIONS:
-		rl.UpdateMusicStream(game_state.music)
+		music_update(game_state.music)
 		update_options_screen()
 	case .GAMEPLAY:
 		update_gameplay_screen()
 	case .ENDING:
-		rl.UpdateMusicStream(game_state.music)
+		music_update(game_state.music)
 		update_ending_screen()
 	case .UNKNOWN:
 	// Do nothing

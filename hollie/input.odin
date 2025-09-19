@@ -19,11 +19,11 @@ input_get_axis_y :: proc(deadzone: f32 = 0.2) -> f32 {
 }
 
 // returns the current movement input for player 1
-input_get_movement :: proc() -> (input: rl.Vector2) {
+input_get_movement :: proc() -> (input: Vec2) {
 	if rl.IsGamepadAvailable(PLAYER_1) {
-		input = rl.Vector2{input_get_axis_x(), input_get_axis_y()}
+		input = Vec2{input_get_axis_x(), input_get_axis_y()}
 	} else {
-		input = rl.Vector2 {
+		input = Vec2 {
 			f32(int(rl.IsKeyDown(.D)) - int(rl.IsKeyDown(.A))),
 			f32(int(rl.IsKeyDown(.S)) - int(rl.IsKeyDown(.W))),
 		}

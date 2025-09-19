@@ -8,15 +8,15 @@ ANIM_COUNT :: 4
 
 // Player state
 player := struct {
-	position:       rl.Vector2,
+	position:       Vec2,
 	width:          u32,
 	height:         u32,
-	velocity:       rl.Vector2,
+	velocity:       Vec2,
 	color:          rl.Color,
 	anim_data:      Animator,
 	is_attacking:   bool,
 	attack_timer:   u32,
-	last_direction: rl.Vector2, // Last movement direction with magnitude
+	last_direction: Vec2, // Last movement direction with magnitude
 } {
 	position = {256, 256},
 	width    = 16,
@@ -97,7 +97,7 @@ player_draw :: proc() {
 	animation_draw(&player.anim_data, player.position, player.color)
 }
 
-player_set_spawn_position :: proc(spawn_pos: rl.Vector2) {
+player_set_spawn_position :: proc(spawn_pos: Vec2) {
 	player.position = spawn_pos
 	animation_init(&player.anim_data, player_anim_files[:], player_frame_counts[:])
 }
