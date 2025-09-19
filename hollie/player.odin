@@ -8,14 +8,15 @@ ANIM_COUNT :: 4
 
 // Player state
 player := struct {
-	position:     rl.Vector2,
-	width:        u32,
-	height:       u32,
-	velocity:     rl.Vector2,
-	color:        rl.Color,
-	anim_data:    Animation,
-	is_attacking: bool,
-	attack_timer: u32,
+	position:      rl.Vector2,
+	width:         u32,
+	height:        u32,
+	velocity:      rl.Vector2,
+	color:         rl.Color,
+	anim_data:     Animation,
+	is_attacking:  bool,
+	attack_timer:  u32,
+	last_direction: rl.Vector2, // Last movement direction with magnitude
 } {
 	position = {0, 0},
 	width    = 16,
@@ -37,15 +38,22 @@ calc_velocity :: proc() {
 	input := input_get_movement()
 	player.velocity.x = input.x * MOVE_SPEED
 	player.velocity.y = input.y * MOVE_SPEED
+
+	// Update last direction only when there's meaningful movement
+	if linalg.length(player.velocity) > 0 {
+		player.last_direction = player.velocity
+	}
 }
 
 calc_state :: proc() {
+	is_flipped := player.last_direction.x < 0
+
 	if player.is_attacking {
-		animation_set_state(&player.anim_data, .ATTACK, player.velocity.x < 0)
+		animation_set_state(&player.anim_data, .ATTACK, is_flipped)
 	} else if player.velocity.x != 0 || player.velocity.y != 0 {
-		animation_set_state(&player.anim_data, .RUN, player.velocity.x < 0)
+		animation_set_state(&player.anim_data, .RUN, is_flipped)
 	} else {
-		animation_set_state(&player.anim_data, .IDLE, false)
+		animation_set_state(&player.anim_data, .IDLE, is_flipped)
 	}
 }
 
