@@ -3,19 +3,19 @@ package hollie
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-MOVE_SPEED :: 2
+MOVE_SPEED :: 1.5
 ANIM_COUNT :: 4
 
 // Player state
 player := struct {
-	position:      rl.Vector2,
-	width:         u32,
-	height:        u32,
-	velocity:      rl.Vector2,
-	color:         rl.Color,
-	anim_data:     Animation,
-	is_attacking:  bool,
-	attack_timer:  u32,
+	position:       rl.Vector2,
+	width:          u32,
+	height:         u32,
+	velocity:       rl.Vector2,
+	color:          rl.Color,
+	anim_data:      Animation,
+	is_attacking:   bool,
+	attack_timer:   u32,
 	last_direction: rl.Vector2, // Last movement direction with magnitude
 } {
 	position = {0, 0},
