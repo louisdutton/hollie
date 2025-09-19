@@ -18,7 +18,7 @@ player := struct {
 	attack_timer:   u32,
 	last_direction: rl.Vector2, // Last movement direction with magnitude
 } {
-	position = {0, 0},
+	position = {256, 256},
 	width    = 16,
 	height   = 16,
 	velocity = {0, 0},

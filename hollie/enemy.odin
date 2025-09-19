@@ -17,7 +17,7 @@ Enemy :: struct {
 
 // enemy state
 enemy := Enemy {
-	position = {0, 0},
+	position = {312, 256},
 	width    = 16,
 	height   = 16,
 	velocity = {0, 0},
