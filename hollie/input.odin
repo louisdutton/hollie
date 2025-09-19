@@ -31,3 +31,12 @@ input_get_movement :: proc() -> (input: rl.Vector2) {
 
 	return rl.Vector2Normalize(input)
 }
+
+// returns whether attack input is pressed for player 1
+input_get_attack :: proc() -> bool {
+	if rl.IsGamepadAvailable(PLAYER_1) {
+		return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_LEFT)
+	} else {
+		return rl.IsKeyPressed(.SPACE) // Space key for keyboard
+	}
+}

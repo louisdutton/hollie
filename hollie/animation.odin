@@ -12,6 +12,7 @@ AnimationState :: enum {
 	IDLE,
 	RUN,
 	JUMP,
+	ATTACK,
 }
 
 Animation :: struct {

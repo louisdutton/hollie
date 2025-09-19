@@ -4,16 +4,18 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 
 MOVE_SPEED :: 2
-ANIM_COUNT :: 3
+ANIM_COUNT :: 4
 
 // Player state
 player := struct {
-	position:  rl.Vector2,
-	width:     u32,
-	height:    u32,
-	velocity:  rl.Vector2,
-	color:     rl.Color,
-	anim_data: Animation,
+	position:     rl.Vector2,
+	width:        u32,
+	height:       u32,
+	velocity:     rl.Vector2,
+	color:        rl.Color,
+	anim_data:    Animation,
+	is_attacking: bool,
+	attack_timer: u32,
 } {
 	position = {0, 0},
 	width    = 16,
@@ -23,11 +25,12 @@ player := struct {
 }
 
 
-player_frame_counts := [ANIM_COUNT]int{9, 8, 9}
+player_frame_counts := [ANIM_COUNT]int{9, 8, 9, 10}
 player_anim_files := [ANIM_COUNT]string {
 	"res/art/characters/human/idle/base_idle_strip9.png",
 	"res/art/characters/human/run/base_run_strip8.png",
 	"res/art/characters/human/jump/base_jump_strip9.png",
+	"res/art/characters/human/attack/base_attack_strip10.png",
 }
 
 calc_velocity :: proc() {
@@ -37,7 +40,9 @@ calc_velocity :: proc() {
 }
 
 calc_state :: proc() {
-	if player.velocity.x != 0 || player.velocity.y != 0 {
+	if player.is_attacking {
+		animation_set_state(&player.anim_data, .ATTACK, player.velocity.x < 0)
+	} else if player.velocity.x != 0 || player.velocity.y != 0 {
 		animation_set_state(&player.anim_data, .RUN, player.velocity.x < 0)
 	} else {
 		animation_set_state(&player.anim_data, .IDLE, false)
@@ -47,6 +52,22 @@ calc_state :: proc() {
 move_and_collide :: proc() {
 	player.position.x += player.velocity.x
 	player.position.y += player.velocity.y
+}
+
+handle_attack :: proc() {
+	if input_get_attack() && !player.is_attacking {
+		player.is_attacking = true
+		player.attack_timer = 0
+	}
+
+	if player.is_attacking {
+		player.attack_timer += 1
+		// Attack animation duration: 10 frames * INTERVAL
+		if player.attack_timer >= 10 * INTERVAL {
+			player.is_attacking = false
+			player.attack_timer = 0
+		}
+	}
 }
 
 animate :: proc() {
@@ -68,6 +89,7 @@ player_init :: proc() {
 }
 
 player_update :: proc() {
+	handle_attack()
 	calc_velocity()
 	calc_state()
 	move_and_collide()
