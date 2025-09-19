@@ -39,6 +39,7 @@
               go-task
               ffmpeg
               claude-code
+              aseprite
 
               # debugging
               gdb
