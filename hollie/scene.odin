@@ -28,12 +28,16 @@ set_scene :: proc(screen: Scene) {
 	// Init next screen
 	switch screen {
 	case .TITLE:
+		rl.PlayMusicStream(game_state.music)
 		init_title_screen()
 	case .OPTIONS:
+		rl.PlayMusicStream(game_state.music)
 		init_options_screen()
 	case .GAMEPLAY:
+		rl.StopMusicStream(game_state.music)
 		init_gameplay_screen()
 	case .ENDING:
+		rl.PlayMusicStream(game_state.music)
 		init_ending_screen()
 	case .UNKNOWN:
 	// Do nothing

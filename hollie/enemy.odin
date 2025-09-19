@@ -1,28 +1,27 @@
 package hollie
 
 import "core:math/linalg"
+import "core:math/rand"
 import rl "vendor:raylib"
 
-ENEMY_MOVE_SPEED :: 2
+ENEMY_MOVE_SPEED :: 1
 ENEMY_ANIM_COUNT :: 3
+ENEMY_SIZE :: 16
 
 Enemy :: struct {
-	position:  rl.Vector2,
-	width:     u32,
-	height:    u32,
-	velocity:  rl.Vector2,
-	color:     rl.Color,
-	anim_data: Animation,
+	position:       rl.Vector2,
+	width:          u32,
+	height:         u32,
+	velocity:       rl.Vector2,
+	color:          rl.Color,
+	anim_data:      Animator,
+	wait_timer:     f32,
+	move_timer:     f32,
+	move_direction: rl.Vector2,
 }
 
 // enemy state
-enemy := Enemy {
-	position = {312, 256},
-	width    = 16,
-	height   = 16,
-	velocity = {0, 0},
-	color    = rl.WHITE,
-}
+enemies: [dynamic]Enemy
 
 enemy_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9}
 enemy_anim_files := [ENEMY_ANIM_COUNT]string {
@@ -31,12 +30,31 @@ enemy_anim_files := [ENEMY_ANIM_COUNT]string {
 	"res/art/characters/goblin/png/spr_jump_strip9.png",
 }
 
-enemy_calc_velocity :: proc() {
-	// TODO
-	enemy.velocity = {0, 0}
+// TODO: this can probably be simplified to a single timer
+enemy_calc_velocity :: proc(enemy: ^Enemy) {
+	dt := rl.GetFrameTime()
+
+	enemy.wait_timer -= dt
+	enemy.move_timer -= dt
+
+	if enemy.wait_timer <= 0 && enemy.move_timer <= 0 {
+		if rand.float32() < 0.3 {
+			enemy.wait_timer = rand.float32_range(0.5, 2.0)
+			enemy.velocity = {0, 0}
+		} else {
+			enemy.move_timer = rand.float32_range(1.0, 3.0)
+			angle := rand.float32_range(0, 2 * 3.14159)
+			enemy.move_direction = {linalg.cos(angle), linalg.sin(angle)}
+			enemy.velocity = enemy.move_direction * ENEMY_MOVE_SPEED
+		}
+	} else if enemy.move_timer > 0 {
+		enemy.velocity = enemy.move_direction * ENEMY_MOVE_SPEED
+	} else {
+		enemy.velocity = {0, 0}
+	}
 }
 
-enemy_calc_state :: proc() {
+enemy_calc_state :: proc(enemy: ^Enemy) {
 	if enemy.velocity.x != 0 || enemy.velocity.y != 0 {
 		animation_set_state(&enemy.anim_data, .RUN, enemy.velocity.x < 0)
 	} else {
@@ -44,41 +62,48 @@ enemy_calc_state :: proc() {
 	}
 }
 
-enemy_move_and_collide :: proc() {
+enemy_move_and_collide :: proc(enemy: ^Enemy) {
 	enemy.position.x += enemy.velocity.x
 	enemy.position.y += enemy.velocity.y
 }
 
-enemy_animate :: proc() {
-	animation_update(&enemy.anim_data)
-}
-
-enemy_draw_bounds :: proc() {
-	x := enemy.position.x - f32(enemy.width) / 2
-	y := enemy.position.y - f32(enemy.height) / 2
-	rl.DrawRectangleLines(i32(x), i32(y), i32(enemy.width), i32(enemy.height), rl.RED)
-}
-
-enemy_draw_sprite :: proc() {
-	animation_draw(&enemy.anim_data, enemy.position, enemy.color)
-}
-
-enemy_init :: proc() {
-	animation_init(&enemy.anim_data, enemy_anim_files[:], enemy_frame_counts[:])
-}
-
 enemy_update :: proc() {
-	enemy_calc_velocity()
-	enemy_calc_state()
-	enemy_move_and_collide()
-	enemy_animate()
+	for &enemy in enemies {
+		enemy_calc_velocity(&enemy)
+		enemy_calc_state(&enemy)
+		enemy_move_and_collide(&enemy)
+		animation_update(&enemy.anim_data)
+	}
 }
 
 enemy_draw :: proc() {
-	// draw_bounds()
-	enemy_draw_sprite()
+	for &enemy in enemies {
+		animation_draw(&enemy.anim_data, enemy.position, enemy.color)
+	}
+}
+
+enemy_init :: proc() {
+	enemies = make([dynamic]Enemy)
+}
+
+enemy_spawn_at :: proc(position: rl.Vector2) {
+	enemy := Enemy {
+		position       = position,
+		width          = ENEMY_SIZE,
+		height         = ENEMY_SIZE,
+		velocity       = {0, 0},
+		color          = rl.WHITE,
+		wait_timer     = rand.float32_range(0, 2.0),
+		move_timer     = 0,
+		move_direction = {0, 0},
+	}
+	animation_init(&enemy.anim_data, enemy_anim_files[:], enemy_frame_counts[:])
+	append(&enemies, enemy)
 }
 
 enemy_fini :: proc() {
-	animation_fini(&enemy.anim_data)
+	for &enemy in enemies {
+		animation_fini(&enemy.anim_data)
+	}
+	delete(enemies)
 }

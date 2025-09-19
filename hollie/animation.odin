@@ -15,7 +15,7 @@ AnimationState :: enum {
 	ATTACK,
 }
 
-Animation :: struct {
+Animator :: struct {
 	animations:    []rl.Texture2D,
 	frame_counts:  []int,
 	frame_counter: u32,
@@ -25,7 +25,7 @@ Animation :: struct {
 	rect:          rl.Rectangle,
 }
 
-animation_init :: proc(anim: ^Animation, anim_files: []string, frame_counts: []int) {
+animation_init :: proc(anim: ^Animator, anim_files: []string, frame_counts: []int) {
 	anim.animations = make([]rl.Texture2D, len(anim_files))
 	anim.frame_counts = make([]int, len(frame_counts))
 	copy(anim.frame_counts, frame_counts)
@@ -41,7 +41,7 @@ animation_init :: proc(anim: ^Animation, anim_files: []string, frame_counts: []i
 	anim.is_flipped = false
 }
 
-animation_update :: proc(anim_data: ^Animation) {
+animation_update :: proc(anim_data: ^Animator) {
 	anim_data.frame_counter += 1
 
 	if anim_data.frame_counter > INTERVAL {
@@ -54,12 +54,12 @@ animation_update :: proc(anim_data: ^Animation) {
 	}
 }
 
-animation_set_state :: proc(anim_data: ^Animation, state: AnimationState, flipped: bool) {
+animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped: bool) {
 	anim_data.current_anim = state
 	anim_data.is_flipped = flipped
 }
 
-animation_draw :: proc(anim_data: ^Animation, position: rl.Vector2, color: rl.Color) {
+animation_draw :: proc(anim_data: ^Animator, position: rl.Vector2, color: rl.Color) {
 	tex_pos := position
 	tex_pos.x -= f32(FRAME_WIDTH) / 2
 	tex_pos.y -= f32(FRAME_HEIGHT) / 2
@@ -70,7 +70,7 @@ animation_draw :: proc(anim_data: ^Animation, position: rl.Vector2, color: rl.Co
 	rl.DrawTextureRec(anim_data.animations[anim_data.current_anim], tex_rect, tex_pos, color)
 }
 
-animation_fini :: proc(anim_data: ^Animation) {
+animation_fini :: proc(anim_data: ^Animator) {
 	for i in 0 ..< len(anim_data.animations) {
 		rl.UnloadTexture(anim_data.animations[i])
 	}

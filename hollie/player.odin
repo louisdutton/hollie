@@ -13,7 +13,7 @@ player := struct {
 	height:         u32,
 	velocity:       rl.Vector2,
 	color:          rl.Color,
-	anim_data:      Animation,
+	anim_data:      Animator,
 	is_attacking:   bool,
 	attack_timer:   u32,
 	last_direction: rl.Vector2, // Last movement direction with magnitude
@@ -78,22 +78,10 @@ handle_attack :: proc() {
 	}
 }
 
-animate :: proc() {
-	animation_update(&player.anim_data)
-}
-
 draw_bounds :: proc() {
 	x := player.position.x - f32(player.width) / 2
 	y := player.position.y - f32(player.height) / 2
 	rl.DrawRectangleLines(i32(x), i32(y), i32(player.width), i32(player.height), rl.WHITE)
-}
-
-draw_sprite :: proc() {
-	animation_draw(&player.anim_data, player.position, player.color)
-}
-
-player_init :: proc() {
-	animation_init(&player.anim_data, player_anim_files[:], player_frame_counts[:])
 }
 
 player_update :: proc() {
@@ -101,14 +89,15 @@ player_update :: proc() {
 	calc_velocity()
 	calc_state()
 	move_and_collide()
-	animate()
+	animation_update(&player.anim_data)
 }
 
 player_draw :: proc() {
 	// draw_bounds()
-	draw_sprite()
+	animation_draw(&player.anim_data, player.position, player.color)
 }
 
-player_fini :: proc() {
-	animation_fini(&player.anim_data)
+player_set_spawn_position :: proc(spawn_pos: rl.Vector2) {
+	player.position = spawn_pos
+	animation_init(&player.anim_data, player_anim_files[:], player_frame_counts[:])
 }

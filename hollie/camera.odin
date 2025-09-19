@@ -26,15 +26,21 @@ camera_follow_target :: proc() {
 	scale := 2 * camera.zoom
 	x_offset := f32(rl.GetScreenWidth()) / scale
 	y_offset := f32(rl.GetScreenHeight()) / scale
+
+	max_x := camera_bounds.x + camera_bounds.width - x_offset * 2
+	max_y := camera_bounds.y + camera_bounds.height - y_offset * 2
+	min_x := camera_bounds.x
+	min_y := camera_bounds.y
+
 	camera.target.x = clamp(
 		math.lerp(camera.target.x, player.position.x - x_offset, CAMERA_SMOOTH),
-		0,
-		1000, // TODO
+		min_x,
+		max_x,
 	)
 	camera.target.y = clamp(
 		math.lerp(camera.target.y, player.position.y - y_offset, CAMERA_SMOOTH),
-		0,
-		1000, // TODO,
+		min_y,
+		max_y,
 	)
 }
 
@@ -64,4 +70,10 @@ update_camera_zoom :: proc() {
 
 was_window_resized :: #force_inline proc() -> bool {
 	return rl.IsWindowResized()
+}
+
+camera_bounds: rl.Rectangle
+
+set_camera_bounds :: proc(bounds: rl.Rectangle) {
+	camera_bounds = bounds
 }

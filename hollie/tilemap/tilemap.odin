@@ -39,6 +39,13 @@ tilemap := TileMap {
 	tile_size = TILE_SIZE,
 }
 
+TilemapResource :: struct {
+	width:        int,
+	height:       int,
+	tileset_path: string,
+	tile_data:    []TileType,
+}
+
 init :: proc() {
 	tilemap.tileset = rl.LoadTexture("res/art/tileset/spr_tileset_sunnysideworld_16px.png")
 
@@ -62,6 +69,52 @@ init :: proc() {
 			tilemap.tiles[index] = Tile {
 				type  = type,
 				solid = false,
+			}
+		}
+	}
+}
+
+load_from_config :: proc(config: TilemapResource) {
+	if tilemap.tiles != nil {
+		delete(tilemap.tiles)
+	}
+	if tilemap.tileset.id != 0 {
+		rl.UnloadTexture(tilemap.tileset)
+	}
+
+	tilemap.width = config.width
+	tilemap.height = config.height
+	tilemap.tileset = rl.LoadTexture(cstring(raw_data(config.tileset_path)))
+
+	tilemap.tiles = make([]Tile, tilemap.width * tilemap.height)
+
+	if len(config.tile_data) > 0 {
+		for i in 0 ..< min(len(config.tile_data), len(tilemap.tiles)) {
+			tilemap.tiles[i] = Tile {
+				type  = config.tile_data[i],
+				solid = false,
+			}
+		}
+	} else {
+		for y in 0 ..< tilemap.height {
+			for x in 0 ..< tilemap.width {
+				index := y * tilemap.width + x
+				type := rand.choice(
+					[]TileType {
+						.GRASS_1,
+						.GRASS_2,
+						.GRASS_3,
+						.GRASS_4,
+						.GRASS_5,
+						.GRASS_6,
+						.GRASS_7,
+						.GRASS_8,
+					},
+				)
+				tilemap.tiles[index] = Tile {
+					type  = type,
+					solid = false,
+				}
 			}
 		}
 	}

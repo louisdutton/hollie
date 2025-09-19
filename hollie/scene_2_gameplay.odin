@@ -6,17 +6,18 @@ import rl "vendor:raylib"
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	is_paused: bool,
+	is_paused:  bool,
+	test_level: LevelResource,
 } {
 	is_paused = false,
 }
 
 init_gameplay_screen :: proc() {
-	enemy_init()
-	player_init()
 	init_camera()
 	init_dialog()
-	tilemap.init()
+
+	gameplay_state.test_level = level_new()
+	level_init(&gameplay_state.test_level)
 }
 
 update_gameplay_screen :: proc() {
@@ -30,7 +31,12 @@ update_gameplay_screen :: proc() {
 		}
 	}
 
+	if rl.IsKeyPressed(.R) {
+		level_reload()
+	}
+
 	if !gameplay_state.is_paused {
+		level_update()
 		enemy_update()
 		player_update()
 		update_camera()
@@ -60,9 +66,7 @@ draw_gameplay_screen :: proc() {
 }
 
 unload_gameplay_screen :: proc() {
-	enemy_fini()
-	player_fini()
-	tilemap.fini()
+	level_fini()
 }
 
 finish_gameplay_screen :: proc() -> int {

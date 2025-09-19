@@ -54,6 +54,7 @@ init :: proc() {
 	// Initialize first screen
 	switch game_state.scene {
 	case .GAMEPLAY:
+		rl.StopMusicStream(game_state.music)
 		init_gameplay_screen()
 	case .TITLE:
 		init_title_screen()
@@ -93,16 +94,18 @@ fini :: proc() {
 update :: proc() {
 	dt := rl.GetFrameTime()
 	tween.update(dt)
-	rl.UpdateMusicStream(game_state.music)
 
 	switch game_state.scene {
 	case .TITLE:
+		rl.UpdateMusicStream(game_state.music)
 		update_title_screen()
 	case .OPTIONS:
+		rl.UpdateMusicStream(game_state.music)
 		update_options_screen()
 	case .GAMEPLAY:
 		update_gameplay_screen()
 	case .ENDING:
+		rl.UpdateMusicStream(game_state.music)
 		update_ending_screen()
 	case .UNKNOWN:
 	// Do nothing
