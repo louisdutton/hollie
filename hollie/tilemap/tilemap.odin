@@ -1,6 +1,7 @@
 package tilemap
 
 import "core:math"
+import "core:math/rand"
 import rl "vendor:raylib"
 
 TILE_SIZE :: 16
@@ -8,7 +9,14 @@ TILESET_WIDTH :: 64
 TILESET_HEIGHT :: 50
 
 TileType :: enum u16 {
-	GRASS_1 = 192,
+	GRASS_1 = 0,
+	GRASS_2,
+	GRASS_3,
+	GRASS_4 = 32,
+	GRASS_5,
+	GRASS_6,
+	GRASS_7 = 64,
+	GRASS_8,
 }
 
 Tile :: struct {
@@ -39,8 +47,20 @@ init :: proc() {
 	for y in 0 ..< tilemap.height {
 		for x in 0 ..< tilemap.width {
 			index := y * tilemap.width + x
+			type := rand.choice(
+				[]TileType {
+					.GRASS_1,
+					.GRASS_2,
+					.GRASS_3,
+					.GRASS_4,
+					.GRASS_5,
+					.GRASS_6,
+					.GRASS_7,
+					.GRASS_8,
+				},
+			)
 			tilemap.tiles[index] = Tile {
-				type  = .GRASS_1,
+				type  = type,
 				solid = false,
 			}
 		}
