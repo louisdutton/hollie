@@ -13,6 +13,7 @@ AnimationState :: enum {
 	RUN,
 	JUMP,
 	ATTACK,
+	ROLL,
 }
 
 Animator :: struct {
@@ -57,6 +58,12 @@ animation_update :: proc(anim_data: ^Animator) {
 animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped: bool) {
 	anim_data.current_anim = state
 	anim_data.is_flipped = flipped
+
+	// detect state change
+	if anim_data.current_anim != state {
+		anim_data.frame = 0
+		anim_data.frame_counter = 0
+	}
 }
 
 animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {

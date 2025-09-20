@@ -32,11 +32,21 @@ input_get_movement :: proc() -> (input: Vec2) {
 	return rl.Vector2Normalize(input)
 }
 
-// returns whether attack input is pressed for player 1
-input_get_attack :: proc() -> bool {
-	return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_LEFT) || rl.IsKeyPressed(.J)
+Player_Input :: enum {
+	Attack,
+	Accept,
+	Roll,
 }
 
-input_accept :: proc() -> bool {
-	return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_RIGHT) || rl.IsKeyPressed(.J)
+input_pressed :: proc(input: Player_Input) -> bool {
+	switch input {
+	case .Roll:
+		return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_TRIGGER_2) || rl.IsKeyPressed(.K)
+	case .Accept:
+		return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_RIGHT) || rl.IsKeyPressed(.J)
+	case .Attack:
+		return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_LEFT) || rl.IsKeyPressed(.J)
+	case:
+		return false
+	}
 }
