@@ -35,6 +35,12 @@ dialog_start :: proc(messages: []Dialog_Message) {
 	dialog_state.text_complete = false
 
 	if dialog_state.is_active {
+		tween.to(
+			&camera_base_zoom,
+			ZOOM_DIALOG,
+			.Quadratic_Out,
+			time.Duration(0.5 * f64(time.Second)),
+		)
 		_dialog_start_current_message()
 	}
 }
@@ -69,6 +75,12 @@ dialog_advance :: proc() {
 
 	if dialog_state.current_page >= len(dialog_state.messages) {
 		dialog_state.is_active = false
+		tween.to(
+			&camera_base_zoom,
+			ZOOM_DEFAULT,
+			.Quadratic_Out,
+			time.Duration(0.5 * f64(time.Second)),
+		)
 		if len(dialog_state.current_runes) > 0 {
 			delete(dialog_state.current_runes)
 			dialog_state.current_runes = {}

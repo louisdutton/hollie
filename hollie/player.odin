@@ -35,6 +35,11 @@ player_anim_files := [ANIM_COUNT]string {
 }
 
 calc_velocity :: proc() {
+	if dialog_is_active() {
+		player.velocity = {0, 0}
+		return
+	}
+
 	input := input_get_movement()
 	player.velocity.x = input.x * MOVE_SPEED
 	player.velocity.y = input.y * MOVE_SPEED
@@ -63,7 +68,7 @@ move_and_collide :: proc() {
 }
 
 handle_attack :: proc() {
-	if input_get_attack() && !player.is_attacking {
+	if input_get_attack() && !player.is_attacking && !dialog_is_active() {
 		player.is_attacking = true
 		player.attack_timer = 0
 	}

@@ -8,10 +8,11 @@ ZOOM_RATE :: 0.01
 ZOOM_DEFAULT :: 1.8
 ZOOM_MAX :: 10.0
 ZOOM_MIN :: 1.0
+ZOOM_DIALOG :: 3.0
 
 // Camera state
 camera := rl.Camera2D {
-	zoom = base_zoom,
+	zoom = camera_base_zoom,
 }
 
 // this is an internal value that should not be controlled directly by user input
@@ -19,8 +20,7 @@ camera := rl.Camera2D {
 screen_scale: f32 = 1.0
 
 // this is the user-controlled zoom value
-@(private = "file")
-base_zoom: f32 = ZOOM_DEFAULT
+camera_base_zoom: f32 = ZOOM_DEFAULT
 
 camera_follow_target :: proc() {
 	scale := 2 * camera.zoom
@@ -60,12 +60,12 @@ update_camera_zoom :: proc() {
 	}
 
 	if rl.IsKeyDown(.MINUS) {
-		base_zoom = max(base_zoom - ZOOM_RATE, ZOOM_MIN)
+		camera_base_zoom = max(camera_base_zoom - ZOOM_RATE, ZOOM_MIN)
 	} else if rl.IsKeyDown(.EQUAL) {
-		base_zoom = min(base_zoom + ZOOM_RATE, ZOOM_MAX)
+		camera_base_zoom = min(camera_base_zoom + ZOOM_RATE, ZOOM_MAX)
 	}
 
-	camera.zoom = base_zoom * screen_scale
+	camera.zoom = camera_base_zoom * screen_scale
 }
 
 was_window_resized :: #force_inline proc() -> bool {
