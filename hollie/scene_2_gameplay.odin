@@ -14,10 +14,18 @@ gameplay_state := struct {
 
 init_gameplay_screen :: proc() {
 	init_camera()
-	init_dialog()
+	dialog_init()
 
 	gameplay_state.test_level = level_new()
 	level_init(&gameplay_state.test_level)
+}
+
+// FIXME: putting this in stack memory causes uaf in dialog
+test_messages := []Dialog_Message {
+	{text = "Hi there Hollie! It's me, Basil!", speaker = "Basil"},
+	{text = "Greetings Basil.", speaker = "Hollie"},
+	{text = "Good luck on your journey.", speaker = "Basil"},
+	{text = "Thanks!", speaker = "Hollie"},
 }
 
 update_gameplay_screen :: proc() {
@@ -35,12 +43,16 @@ update_gameplay_screen :: proc() {
 		level_reload()
 	}
 
+	if rl.IsKeyPressed(.T) && !dialog_is_active() {
+		dialog_start(test_messages)
+	}
+
 	if !gameplay_state.is_paused {
 		level_update()
 		enemy_update()
 		player_update()
 		update_camera()
-		update_dialog()
+		dialog_update()
 	}
 }
 
@@ -53,7 +65,7 @@ draw_gameplay_screen :: proc() {
 	rl.EndMode2D()
 
 	// ui
-	draw_dialog()
+	dialog_draw()
 
 	if gameplay_state.is_paused {
 		w := rl.GetScreenWidth()

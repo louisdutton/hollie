@@ -34,5 +34,9 @@ input_get_movement :: proc() -> (input: Vec2) {
 
 // returns whether attack input is pressed for player 1
 input_get_attack :: proc() -> bool {
-	return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_LEFT) || rl.IsKeyPressed(.SPACE)
+	return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_LEFT) || rl.IsKeyPressed(.J)
+}
+
+input_accept :: proc() -> bool {
+	return rl.IsGamepadButtonPressed(PLAYER_1, .RIGHT_FACE_RIGHT) || rl.IsKeyPressed(.J)
 }

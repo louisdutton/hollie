@@ -1,17 +1,13 @@
 package renderer
 
-import "core:c"
-import "core:strings"
 import rl "vendor:raylib"
 
 DEFAULT_TEXT_COLOR :: rl.WHITE
 DEFAULT_TEXT_SIZE :: 20
 
 // TODO: map string to cstring
-draw_text :: proc(text: string, x: int, y: int) {
-	ctext := strings.clone_to_cstring(text)
-	defer delete(ctext)
-	rl.DrawText(ctext, c.int(x), c.int(y), DEFAULT_TEXT_SIZE, DEFAULT_TEXT_COLOR)
+draw_text :: proc(text: string, x, y: int) {
+	rl.DrawText(cstring(raw_data(text)), i32(x), i32(y), DEFAULT_TEXT_SIZE, DEFAULT_TEXT_COLOR)
 }
 
 DEFAULT_BG_COLOR :: rl.BLACK
