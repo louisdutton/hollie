@@ -13,6 +13,7 @@ Enemy :: struct {
 	width:          u32,
 	height:         u32,
 	velocity:       Vec2,
+	busy:           bool, // whether or not the character is currently locked in a dialog
 	color:          rl.Color,
 	anim_data:      Animator,
 	wait_timer:     f32,
@@ -32,6 +33,12 @@ enemy_anim_files := [ENEMY_ANIM_COUNT]string {
 
 // TODO: this can probably be simplified to a single timer
 enemy_calc_velocity :: proc(enemy: ^Enemy) {
+	// Don't move if dialog is active
+	if enemy.busy {
+		enemy.velocity = {0, 0}
+		return
+	}
+
 	dt := rl.GetFrameTime()
 
 	enemy.wait_timer -= dt
@@ -106,4 +113,20 @@ enemy_fini :: proc() {
 		animation_fini(&enemy.anim_data)
 	}
 	delete(enemies)
+}
+
+// Find the nearest enemy within interaction range
+enemy_find_nearest :: proc(position: Vec2, max_distance: f32) -> (^Enemy, bool) {
+	nearest_enemy: ^Enemy = nil
+	nearest_distance := max_distance
+
+	for &enemy in enemies {
+		distance := linalg.distance(position, enemy.position)
+		if distance < nearest_distance {
+			nearest_enemy = &enemy
+			nearest_distance = distance
+		}
+	}
+
+	return nearest_enemy, nearest_enemy != nil
 }

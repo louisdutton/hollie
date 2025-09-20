@@ -67,20 +67,32 @@ move_and_collide :: proc() {
 	player.position.y += player.velocity.y
 }
 
-handle_attack :: proc() {
+
+// FIXME: get this working in stack memory
+enemy_messages := []Dialog_Message {
+	{text = "Grr! What do you want, human?", speaker = "Goblin"},
+	{text = "I'm just passing through.", speaker = "Hollie"},
+	{text = "Well then, be on your way!", speaker = "Goblin"},
+}
+
+player_handle_input :: proc() {
+	if input_accept() && !dialog_is_active() {
+		// Try to interact with nearby enemy
+		INTERACTION_RANGE :: 40.0
+		enemy, found := enemy_find_nearest(player.position, INTERACTION_RANGE)
+
+		if found {
+			enemy.busy = true
+			dialog_start(enemy_messages)
+			return
+		}
+	}
+
 	if input_get_attack() && !player.is_attacking && !dialog_is_active() {
 		player.is_attacking = true
 		player.attack_timer = 0
 	}
 
-	if player.is_attacking {
-		player.attack_timer += 1
-		// Attack animation duration: 10 frames * INTERVAL
-		if player.attack_timer >= 10 * INTERVAL {
-			player.is_attacking = false
-			player.attack_timer = 0
-		}
-	}
 }
 
 draw_bounds :: proc() {
@@ -90,9 +102,21 @@ draw_bounds :: proc() {
 }
 
 player_update :: proc() {
-	handle_attack()
+	player_handle_input()
 	calc_velocity()
 	calc_state()
+
+	// attack timer
+	// TODO this can possibly be a tween
+	if player.is_attacking {
+		player.attack_timer += 1
+		// Attack animation duration: 10 frames * INTERVAL
+		if player.attack_timer >= 10 * INTERVAL {
+			player.is_attacking = false
+			player.attack_timer = 0
+		}
+	}
+
 	move_and_collide()
 	animation_update(&player.anim_data)
 }

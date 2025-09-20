@@ -85,6 +85,14 @@ dialog_advance :: proc() {
 			delete(dialog_state.current_runes)
 			dialog_state.current_runes = {}
 		}
+
+		// unlock dialog target
+		// TODO: this is crude, we should have a reference to the target
+		for &enemy in enemies {
+			if enemy.busy {
+				enemy.busy = false
+			}
+		}
 	} else {
 		if len(dialog_state.current_runes) > 0 {
 			delete(dialog_state.current_runes)
