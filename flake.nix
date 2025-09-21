@@ -35,9 +35,6 @@
 
             packages = [
               # tools
-              resvg
-              go-task
-              ffmpeg
               claude-code
               aseprite
 
