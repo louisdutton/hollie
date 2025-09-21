@@ -6,8 +6,13 @@ DEFAULT_TEXT_COLOR :: rl.WHITE
 DEFAULT_TEXT_SIZE :: 20
 
 // TODO: map string to cstring
-draw_text :: proc(text: string, x, y: int) {
-	rl.DrawText(cstring(raw_data(text)), i32(x), i32(y), DEFAULT_TEXT_SIZE, DEFAULT_TEXT_COLOR)
+draw_text :: proc(
+	text: string,
+	x, y: int,
+	size: i32 = DEFAULT_TEXT_SIZE,
+	color := DEFAULT_TEXT_COLOR,
+) {
+	rl.DrawText(cstring(raw_data(text)), i32(x), i32(y), size, color)
 }
 
 DEFAULT_BG_COLOR :: rl.BLACK

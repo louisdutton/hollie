@@ -1,6 +1,8 @@
 package hollie
 
+import "core:fmt"
 import "core:math/linalg"
+import "renderer"
 import rl "vendor:raylib"
 
 MOVE_SPEED :: 1.5
@@ -119,11 +121,6 @@ player_handle_input :: proc() {
 	}
 }
 
-draw_bounds :: proc() {
-	x := player.position.x - f32(player.width) / 2
-	y := player.position.y - f32(player.height) / 2
-	rl.DrawRectangleLines(i32(x), i32(y), i32(player.width), i32(player.height), rl.WHITE)
-}
 
 player_update :: proc() {
 	player_handle_input()
@@ -155,9 +152,27 @@ player_update :: proc() {
 	animation_update(&player.anim_data)
 }
 
+draw_bounds :: proc() {
+	x := player.position.x - f32(player.width) / 2
+	y := player.position.y - f32(player.height) / 2
+	renderer.draw_rect_outline(x, y, f32(player.width), f32(player.height), 1)
+}
+
 player_draw :: proc() {
-	// draw_bounds()
 	animation_draw(&player.anim_data, player.position, player.color)
+
+	// player debug info
+	when ODIN_DEBUG {
+		draw_bounds()
+		using player.anim_data
+		debug_text := fmt.tprint(current_anim)
+		renderer.draw_text(
+			debug_text,
+			int(player.position.x) - 10,
+			int(player.position.y) - 20,
+			size = 8,
+		)
+	}
 }
 
 player_set_spawn_position :: proc(spawn_pos: Vec2) {
