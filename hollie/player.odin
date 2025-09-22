@@ -11,17 +11,17 @@ ANIM_COUNT :: 5
 
 // Player state
 player := struct {
-	position:       Vec2,
-	width:          u32,
-	height:         u32,
-	velocity:       Vec2,
-	color:          rl.Color,
-	anim_data:      Animator,
-	is_attacking:   bool,
-	attack_timer:   u32,
-	is_rolling:     bool,
-	roll_timer:     u32,
-	last_direction: Vec2, // Last movement direction with magnitude
+	position:     Vec2,
+	width:        u32,
+	height:       u32,
+	velocity:     Vec2,
+	color:        rl.Color,
+	anim_data:    Animator,
+	is_attacking: bool,
+	attack_timer: u32,
+	is_rolling:   bool,
+	roll_timer:   u32,
+	is_flipped:   bool, // Persistent sprite flip state
 } {
 	position = {256, 256},
 	width    = 16,
@@ -46,36 +46,27 @@ calc_velocity :: proc() {
 		return
 	}
 
-	if player.is_rolling {
-		// During roll, maintain velocity in the roll direction
-		player.velocity = linalg.normalize(player.last_direction) * ROLL_SPEED
-	} else {
-		input := input_get_movement()
-		player.velocity.x = input.x * MOVE_SPEED
-		player.velocity.y = input.y * MOVE_SPEED
+	if player.is_rolling do return
 
-		// Update last direction only when there's meaningful horizontal movement
-		if abs(input.x) > 0 {
-			player.last_direction.x = input.x * MOVE_SPEED
-		}
+	input := input_get_movement()
+	player.velocity.x = input.x * MOVE_SPEED
+	player.velocity.y = input.y * MOVE_SPEED
 
-		if abs(input.y) > 0 {
-			player.last_direction.y = input.y * MOVE_SPEED
-		}
+	// Update sprite flip state when moving horizontally
+	if abs(input.x) > 0 {
+		player.is_flipped = input.x < 0
 	}
 }
 
 calc_state :: proc() {
-	is_flipped := player.last_direction.x < 0
-
 	if player.is_rolling {
-		animation_set_state(&player.anim_data, .ROLL, is_flipped)
+		animation_set_state(&player.anim_data, .ROLL, player.is_flipped)
 	} else if player.is_attacking {
-		animation_set_state(&player.anim_data, .ATTACK, is_flipped)
+		animation_set_state(&player.anim_data, .ATTACK, player.is_flipped)
 	} else if player.velocity.x != 0 || player.velocity.y != 0 {
-		animation_set_state(&player.anim_data, .RUN, is_flipped)
+		animation_set_state(&player.anim_data, .RUN, player.is_flipped)
 	} else {
-		animation_set_state(&player.anim_data, .IDLE, is_flipped)
+		animation_set_state(&player.anim_data, .IDLE, player.is_flipped)
 	}
 }
 
@@ -113,8 +104,9 @@ player_handle_input :: proc() {
 	}
 
 	if input_pressed(.Roll) && !player.is_rolling && !player.is_attacking {
-		// Can only roll if there's a movement direction
-		if linalg.length(player.last_direction) > 0 {
+		// Lock current velocity for roll (only roll if moving)
+		if linalg.length(player.velocity) > 0 {
+			player.velocity = linalg.normalize(player.velocity) * ROLL_SPEED
 			player.is_rolling = true
 			player.roll_timer = 0
 		}
