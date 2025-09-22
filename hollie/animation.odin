@@ -48,7 +48,7 @@ animation_update :: proc(anim_data: ^Animator) {
 	if anim_data.frame_counter > INTERVAL {
 		anim_data.frame_counter = 0
 		anim_data.frame += 1
-		if int(anim_data.frame) > anim_data.frame_counts[anim_data.current_anim] {
+		if int(anim_data.frame) >= anim_data.frame_counts[anim_data.current_anim] {
 			anim_data.frame = 0
 		}
 		anim_data.rect.x = f32(anim_data.frame) * f32(FRAME_WIDTH)
@@ -56,14 +56,14 @@ animation_update :: proc(anim_data: ^Animator) {
 }
 
 animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped: bool) {
-	anim_data.current_anim = state
-	anim_data.is_flipped = flipped
-
 	// detect state change
 	if anim_data.current_anim != state {
 		anim_data.frame = 0
 		anim_data.frame_counter = 0
 	}
+
+	anim_data.current_anim = state
+	anim_data.is_flipped = flipped
 }
 
 animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {
