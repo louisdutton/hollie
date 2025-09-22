@@ -8,6 +8,9 @@ import rl "vendor:raylib"
 MOVE_SPEED :: 1.5
 ROLL_SPEED :: 3.0
 ANIM_COUNT :: 5
+ATTACK_RANGE :: 32.0
+ATTACK_WIDTH :: 24.0
+ATTACK_HEIGHT :: 16.0
 
 // Player state
 player := struct {
@@ -73,6 +76,52 @@ calc_state :: proc() {
 move_and_collide :: proc() {
 	player.position.x += player.velocity.x
 	player.position.y += player.velocity.y
+}
+
+get_attack_rect :: proc() -> rl.Rectangle {
+	attack_offset_x: f32 = player.is_flipped ? -ATTACK_RANGE : ATTACK_RANGE
+	attack_x := player.position.x + attack_offset_x - ATTACK_WIDTH / 2
+	attack_y := player.position.y - ATTACK_HEIGHT / 2
+
+	return rl.Rectangle{attack_x, attack_y, ATTACK_WIDTH, ATTACK_HEIGHT}
+}
+
+get_player_rect :: proc() -> rl.Rectangle {
+	return rl.Rectangle {
+		player.position.x - f32(player.width) / 2,
+		player.position.y - f32(player.height) / 2,
+		f32(player.width),
+		f32(player.height),
+	}
+}
+
+get_enemy_rect :: proc(enemy: ^Enemy) -> rl.Rectangle {
+	return rl.Rectangle {
+		enemy.position.x - f32(enemy.width) / 2,
+		enemy.position.y - f32(enemy.height) / 2,
+		f32(enemy.width),
+		f32(enemy.height),
+	}
+}
+
+rects_intersect :: proc(rect1, rect2: rl.Rectangle) -> bool {
+	return rl.CheckCollisionRecs(rect1, rect2)
+}
+
+check_attack_hits :: proc() {
+	if !player.is_attacking do return
+
+	attack_rect := get_attack_rect()
+
+	for i := len(enemies) - 1; i >= 0; i -= 1 {
+		enemy := &enemies[i]
+		enemy_rect := get_enemy_rect(enemy)
+
+		if rects_intersect(attack_rect, enemy_rect) {
+			animation_fini(&enemy.anim_data)
+			unordered_remove(&enemies, i)
+		}
+	}
 }
 
 
@@ -141,6 +190,7 @@ player_update :: proc() {
 	}
 
 	move_and_collide()
+	check_attack_hits()
 	animation_update(&player.anim_data)
 }
 
@@ -156,6 +206,20 @@ player_draw :: proc() {
 	// player debug info
 	when ODIN_DEBUG {
 		draw_bounds()
+
+		// Draw attack rect when attacking
+		if player.is_attacking {
+			attack_rect := get_attack_rect()
+			renderer.draw_rect_outline(
+				attack_rect.x,
+				attack_rect.y,
+				attack_rect.width,
+				attack_rect.height,
+				2,
+				rl.RED,
+			)
+		}
+
 		using player.anim_data
 		debug_text := fmt.tprint(current_anim)
 		renderer.draw_text(

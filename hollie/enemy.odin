@@ -2,6 +2,7 @@ package hollie
 
 import "core:math/linalg"
 import "core:math/rand"
+import "renderer"
 import rl "vendor:raylib"
 
 ENEMY_MOVE_SPEED :: 1
@@ -86,6 +87,19 @@ enemy_update :: proc() {
 enemy_draw :: proc() {
 	for &enemy in enemies {
 		animation_draw(&enemy.anim_data, enemy.position, enemy.color)
+
+		// enemy debug info
+		when ODIN_DEBUG {
+			enemy_rect := get_enemy_rect(&enemy)
+			renderer.draw_rect_outline(
+				enemy_rect.x,
+				enemy_rect.y,
+				enemy_rect.width,
+				enemy_rect.height,
+				1,
+				rl.GREEN,
+			)
+		}
 	}
 }
 
