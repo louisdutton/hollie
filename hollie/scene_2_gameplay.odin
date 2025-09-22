@@ -1,7 +1,53 @@
 package hollie
 
+import "core:slice"
 import "tilemap"
 import rl "vendor:raylib"
+
+// Entity for y-sorting
+Entity_Type_For_Sorting :: enum {
+	PLAYER,
+	ENEMY,
+}
+
+Drawable_Entity :: struct {
+	position:    Vec2,
+	type:        Entity_Type_For_Sorting,
+	enemy_index: int, // only used for enemies
+}
+
+// TODO: this is pretty crude, player should be just another renderable target
+draw_entities_sorted :: proc() {
+	entities := make([dynamic]Drawable_Entity, 0, len(enemies) + 1)
+	defer delete(entities)
+
+	// Add player
+	append(&entities, Drawable_Entity{position = player.position, type = .PLAYER})
+
+	// Add enemies
+	for i in 0 ..< len(enemies) {
+		append(
+			&entities,
+			Drawable_Entity{position = enemies[i].position, type = .ENEMY, enemy_index = i},
+		)
+	}
+
+	// Sort by y position (entities with higher y values are drawn later/on top)
+	slice.sort_by(entities[:], proc(a, b: Drawable_Entity) -> bool {
+		return a.position.y < b.position.y
+	})
+
+	// Draw all entities in sorted order
+	for entity in entities {
+		switch entity.type {
+		case .PLAYER:
+			player_draw()
+		case .ENEMY:
+			enemy := &enemies[entity.enemy_index]
+			animation_draw(&enemy.anim_data, enemy.position, enemy.color)
+		}
+	}
+}
 
 // Gameplay Screen
 @(private = "file")
@@ -60,8 +106,7 @@ draw_gameplay_screen :: proc() {
 	rl.BeginMode2D(camera)
 
 	tilemap.draw(camera)
-	enemy_draw()
-	player_draw()
+	draw_entities_sorted()
 	rl.EndMode2D()
 
 	// ui
