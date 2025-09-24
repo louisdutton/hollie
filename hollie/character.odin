@@ -66,7 +66,10 @@ Character :: struct {
 	move_speed:    f32,
 	roll_speed:    f32,
 
-	// Attack properties
+	// Combat properties
+	health:        i32,
+	max_health:    i32,
+	attack_damage: i32,
 	attack_range:  f32,
 	attack_width:  f32,
 	attack_height: f32,
@@ -82,6 +85,12 @@ DEFAULT_ENEMY_MOVE_SPEED :: 1.0
 DEFAULT_ATTACK_RANGE :: 32.0
 DEFAULT_ATTACK_WIDTH :: 24.0
 DEFAULT_ATTACK_HEIGHT :: 16.0
+
+// Health constants
+DEFAULT_PLAYER_HEALTH :: 100
+DEFAULT_ENEMY_HEALTH :: 30
+DEFAULT_NPC_HEALTH :: 50
+DEFAULT_ATTACK_DAMAGE :: 20
 
 // Initialize character system
 character_system_init :: proc() {
@@ -116,6 +125,7 @@ character_create :: proc(
 		behaviors     = behaviors,
 		move_speed    = DEFAULT_MOVE_SPEED,
 		roll_speed    = DEFAULT_ROLL_SPEED,
+		attack_damage = DEFAULT_ATTACK_DAMAGE,
 		attack_range  = DEFAULT_ATTACK_RANGE,
 		attack_width  = DEFAULT_ATTACK_WIDTH,
 		attack_height = DEFAULT_ATTACK_HEIGHT,
@@ -125,9 +135,17 @@ character_create :: proc(
 	switch char_type {
 	case .ENEMY:
 		character.move_speed = DEFAULT_ENEMY_MOVE_SPEED
+		character.health = DEFAULT_ENEMY_HEALTH
+		character.max_health = DEFAULT_ENEMY_HEALTH
 		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
-	case .PLAYER: character.move_speed = DEFAULT_MOVE_SPEED
-	case .NPC: character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+	case .PLAYER:
+		character.move_speed = DEFAULT_MOVE_SPEED
+		character.health = DEFAULT_PLAYER_HEALTH
+		character.max_health = DEFAULT_PLAYER_HEALTH
+	case .NPC:
+		character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+		character.health = DEFAULT_NPC_HEALTH
+		character.max_health = DEFAULT_NPC_HEALTH
 	}
 
 	// Initialize animation
@@ -158,6 +176,7 @@ character_create_with_textures :: proc(
 		behaviors     = behaviors,
 		move_speed    = DEFAULT_MOVE_SPEED,
 		roll_speed    = DEFAULT_ROLL_SPEED,
+		attack_damage = DEFAULT_ATTACK_DAMAGE,
 		attack_range  = DEFAULT_ATTACK_RANGE,
 		attack_width  = DEFAULT_ATTACK_WIDTH,
 		attack_height = DEFAULT_ATTACK_HEIGHT,
@@ -167,9 +186,17 @@ character_create_with_textures :: proc(
 	switch char_type {
 	case .ENEMY:
 		character.move_speed = DEFAULT_ENEMY_MOVE_SPEED
+		character.health = DEFAULT_ENEMY_HEALTH
+		character.max_health = DEFAULT_ENEMY_HEALTH
 		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
-	case .PLAYER: character.move_speed = DEFAULT_MOVE_SPEED
-	case .NPC: character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+	case .PLAYER:
+		character.move_speed = DEFAULT_MOVE_SPEED
+		character.health = DEFAULT_PLAYER_HEALTH
+		character.max_health = DEFAULT_PLAYER_HEALTH
+	case .NPC:
+		character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+		character.health = DEFAULT_NPC_HEALTH
+		character.max_health = DEFAULT_NPC_HEALTH
 	}
 
 	// Initialize animation with pre-loaded textures
@@ -433,8 +460,14 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		target_rect := character_get_rect(target)
 
 		if character_rects_intersect(attack_rect, target_rect) {
-			character_destroy(target)
-			unordered_remove(&characters, i)
+			// Damage the target instead of instantly killing
+			target.health -= attacker.attack_damage
+
+			// Remove character if health drops to zero or below
+			if target.health <= 0 {
+				character_destroy(target)
+				unordered_remove(&characters, i)
+			}
 		}
 	}
 }
@@ -555,7 +588,7 @@ character_draw :: proc(character: ^Character) {
 
 		// Debug text
 		using character.anim_data
-		debug_text := fmt.tprint(current_anim, character.type)
+		debug_text := fmt.tprintf("%v %v HP:%d/%d", current_anim, character.type, character.health, character.max_health)
 		renderer.draw_text(
 			debug_text,
 			int(character.position.x) - 10,
