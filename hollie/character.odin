@@ -9,8 +9,8 @@ import rl "vendor:raylib"
 // Character types
 Character_Type :: enum {
 	PLAYER,
-	NPC,
-	ENEMY,
+	NPC,      // Friendly, can talk to
+	ENEMY,    // Hostile, can attack
 }
 
 // Behavior flags for different character capabilities
@@ -345,9 +345,7 @@ character_handle_player_input :: proc(character: ^Character) {
 			case Character_Race.SKELETON:
 				dialog_start(skeleton_messages)
 			case Character_Race.HUMAN:
-				if target.type == .ENEMY {
-					dialog_start(npc_human_messages)
-				}
+				dialog_start(npc_human_messages)
 			}
 		}
 	}
@@ -408,8 +406,12 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		if target == attacker do continue
 
 		// Only attack enemies if player, or attack player if enemy
+		// Players can only attack enemies, enemies can only attack players
+		// NPCs are friendly and cannot be attacked or attack
 		if (attacker.type == .PLAYER && target.type != .ENEMY) ||
-		   (attacker.type == .ENEMY && target.type != .PLAYER) {
+		   (attacker.type == .ENEMY && target.type != .PLAYER) ||
+		   (attacker.type == .NPC) ||  // NPCs don't attack
+		   (target.type == .NPC) {     // NPCs can't be attacked
 			continue
 		}
 
@@ -435,6 +437,9 @@ character_find_nearest_interactable :: proc(
 
 	for &character in characters {
 		if !(.IS_INTERACTABLE in character.behaviors) do continue
+
+		// Can only interact with NPCs (friendly), not enemies
+		if character.type != .NPC do continue
 
 		distance := linalg.distance(position, character.position)
 		if distance < nearest_distance {

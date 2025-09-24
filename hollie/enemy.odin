@@ -140,11 +140,10 @@ enemy_spawn_at :: proc(position: Vec2) {
 	race_idx := rand.int31() % 3
 	race := Character_Race(race_idx)
 
-	// Create enemy character with appropriate behaviors
-	enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
-
 	switch race {
 	case Character_Race.GOBLIN:
+		// Goblins are always hostile enemies
+		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
 		character_create(
 			position,
 			.ENEMY,
@@ -154,6 +153,8 @@ enemy_spawn_at :: proc(position: Vec2) {
 			goblin_frame_counts[:],
 		)
 	case Character_Race.SKELETON:
+		// Skeletons are always hostile enemies
+		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
 		character_create(
 			position,
 			.ENEMY,
@@ -163,6 +164,9 @@ enemy_spawn_at :: proc(position: Vec2) {
 			skeleton_frame_counts[:],
 		)
 	case Character_Race.HUMAN:
+		// Humans are always friendly NPCs
+		npc_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
+
 		// Randomly pick a human variant
 		variant_idx := rand.int31() % i32(len(human_variants))
 		variant := human_variants[variant_idx]
@@ -172,9 +176,9 @@ enemy_spawn_at :: proc(position: Vec2) {
 
 		character_create_with_textures(
 			position,
-			.ENEMY,
+			.NPC,  // Changed from .ENEMY to .NPC
 			Character_Race.HUMAN,
-			enemy_behaviors,
+			npc_behaviors,
 			composite_textures[:],
 			human_frame_counts[:],
 		)
@@ -183,10 +187,10 @@ enemy_spawn_at :: proc(position: Vec2) {
 
 // Convenience function to spawn specific race
 enemy_spawn_race_at :: proc(position: Vec2, race: Character_Race) {
-	enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
-
 	switch race {
 	case Character_Race.GOBLIN:
+		// Goblins are always hostile enemies
+		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
 		character_create(
 			position,
 			.ENEMY,
@@ -196,6 +200,8 @@ enemy_spawn_race_at :: proc(position: Vec2, race: Character_Race) {
 			goblin_frame_counts[:],
 		)
 	case Character_Race.SKELETON:
+		// Skeletons are always hostile enemies
+		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
 		character_create(
 			position,
 			.ENEMY,
@@ -205,6 +211,8 @@ enemy_spawn_race_at :: proc(position: Vec2, race: Character_Race) {
 			skeleton_frame_counts[:],
 		)
 	case Character_Race.HUMAN:
+		// Humans are always friendly NPCs
+		npc_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
 		variant_idx := rand.int31() % i32(len(human_variants))
 		variant := human_variants[variant_idx]
 
@@ -213,9 +221,9 @@ enemy_spawn_race_at :: proc(position: Vec2, race: Character_Race) {
 
 		character_create_with_textures(
 			position,
-			.ENEMY,
+			.NPC,  // Changed from .ENEMY to .NPC
 			Character_Race.HUMAN,
-			enemy_behaviors,
+			npc_behaviors,
 			composite_textures[:],
 			human_frame_counts[:],
 		)
