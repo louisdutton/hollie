@@ -88,9 +88,9 @@ dialog_advance :: proc() {
 
 		// unlock dialog target
 		// TODO: this is crude, we should have a reference to the target
-		for &enemy in enemies {
-			if enemy.busy {
-				enemy.busy = false
+		for &character in characters {
+			if character.state.is_busy {
+				character.state.is_busy = false
 			}
 		}
 	} else {

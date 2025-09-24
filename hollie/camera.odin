@@ -23,6 +23,10 @@ screen_scale: f32 = 1.0
 camera_base_zoom: f32 = ZOOM_DEFAULT
 
 camera_follow_target :: proc() {
+	// Get player character
+	player_char := character_get_player()
+	if player_char == nil do return
+
 	scale := 2 * camera.zoom
 	x_offset := f32(rl.GetScreenWidth()) / scale
 	y_offset := f32(rl.GetScreenHeight()) / scale
@@ -33,12 +37,12 @@ camera_follow_target :: proc() {
 	min_y := camera_bounds.y
 
 	camera.target.x = clamp(
-		math.lerp(camera.target.x, player.position.x - x_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.x, player_char.position.x - x_offset, CAMERA_SMOOTH),
 		min_x,
 		max_x,
 	)
 	camera.target.y = clamp(
-		math.lerp(camera.target.y, player.position.y - y_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.y, player_char.position.y - y_offset, CAMERA_SMOOTH),
 		min_y,
 		max_y,
 	)

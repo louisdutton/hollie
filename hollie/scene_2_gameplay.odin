@@ -16,19 +16,23 @@ Drawable_Entity :: struct {
 	enemy_index: int, // only used for enemies
 }
 
-// TODO: this is pretty crude, player should be just another renderable target
+// Draw all characters sorted by y position
 draw_entities_sorted :: proc() {
-	entities := make([dynamic]Drawable_Entity, 0, len(enemies) + 1)
+	entities := make([dynamic]Drawable_Entity, 0, len(characters))
 	defer delete(entities)
 
-	// Add player
-	append(&entities, Drawable_Entity{position = player.position, type = .PLAYER})
+	// Add all characters
+	for i in 0 ..< len(characters) {
+		character := &characters[i]
+		entity_type := Entity_Type_For_Sorting.PLAYER
+		switch character.type {
+		case .PLAYER: entity_type = .PLAYER
+		case .ENEMY, .NPC: entity_type = .ENEMY
+		}
 
-	// Add enemies
-	for i in 0 ..< len(enemies) {
 		append(
 			&entities,
-			Drawable_Entity{position = enemies[i].position, type = .ENEMY, enemy_index = i},
+			Drawable_Entity{position = character.position, type = entity_type, enemy_index = i},
 		)
 	}
 
@@ -39,13 +43,8 @@ draw_entities_sorted :: proc() {
 
 	// Draw all entities in sorted order
 	for entity in entities {
-		switch entity.type {
-		case .PLAYER:
-			player_draw()
-		case .ENEMY:
-			enemy := &enemies[entity.enemy_index]
-			animation_draw(&enemy.anim_data, enemy.position, enemy.color)
-		}
+		character := &characters[entity.enemy_index]
+		character_draw(character)
 	}
 }
 
@@ -61,6 +60,7 @@ gameplay_state := struct {
 init_gameplay_screen :: proc() {
 	init_camera()
 	dialog_init()
+	character_system_init()
 
 	gameplay_state.test_level = level_new()
 	level_init(&gameplay_state.test_level)
@@ -95,8 +95,7 @@ update_gameplay_screen :: proc() {
 
 	if !gameplay_state.is_paused {
 		level_update()
-		enemy_update()
-		player_update()
+		character_system_update() // Handles all characters (player, enemies, NPCs)
 		update_camera()
 		dialog_update()
 	}
@@ -124,6 +123,7 @@ draw_gameplay_screen :: proc() {
 
 unload_gameplay_screen :: proc() {
 	level_fini()
+	character_system_fini()
 }
 
 finish_gameplay_screen :: proc() -> int {

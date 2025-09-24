@@ -48,7 +48,6 @@ level_init :: proc(res: ^LevelResource) {
 	tilemap.load_from_config(res.tilemap_config)
 	set_camera_bounds(res.camera_bounds)
 
-	enemy_init()
 	for spawn in res.entities {
 		switch spawn.type {
 		case .Enemy:
@@ -78,7 +77,6 @@ level_fini :: proc() {
 	}
 
 	tilemap.fini()
-	enemy_fini()
 
 	level_state.current_bundle = nil
 	level_state.is_loaded = false
