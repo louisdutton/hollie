@@ -4,6 +4,7 @@ import rl "vendor:raylib"
 
 DEFAULT_TEXT_COLOR :: rl.WHITE
 DEFAULT_TEXT_SIZE :: 20
+DEFAULT_THICKNESS :: 1
 
 // TODO: map string to cstring
 draw_text :: proc(
@@ -32,7 +33,7 @@ draw_rect :: #force_inline proc(x, y, w, h: f32, color := DEFAULT_BG_COLOR) {
 
 draw_rect_outline :: #force_inline proc(
 	x, y, w, h: f32,
-	thickness: f32 = 2,
+	thickness: f32 = DEFAULT_THICKNESS,
 	color := DEFAULT_TEXT_COLOR,
 ) {
 	rl.DrawRectangleLinesEx({x, y, w, h}, thickness, color)
