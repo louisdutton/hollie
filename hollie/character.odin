@@ -303,8 +303,23 @@ character_calc_state :: proc(character: ^Character) {
 
 // Move character and handle collision
 character_move_and_collide :: proc(character: ^Character) {
-	character.position.x += character.velocity.x
-	character.position.y += character.velocity.y
+	new_x := character.position.x + character.velocity.x
+	new_y := character.position.y + character.velocity.y
+
+	// Apply bounds checking using the same bounds as camera
+	half_width := f32(character.width) / 2
+	half_height := f32(character.height) / 2
+
+	character.position.x = clamp(
+		new_x,
+		camera_bounds.x + half_width,
+		camera_bounds.x + camera_bounds.width - half_width,
+	)
+	character.position.y = clamp(
+		new_y,
+		camera_bounds.y + half_height,
+		camera_bounds.y + camera_bounds.height - half_height,
+	)
 }
 
 // Dialog messages for different character types
