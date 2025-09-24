@@ -28,6 +28,7 @@ Character_Behavior_Flag :: enum {
 Character_State :: struct {
 	is_attacking: bool,
 	attack_timer: u32,
+	attack_hit:   bool, // has this attack already hit a target
 	is_rolling:   bool,
 	roll_timer:   u32,
 	is_busy:      bool, // locked in dialog or other activity
@@ -398,6 +399,7 @@ character_handle_player_input :: proc(character: ^Character) {
 	   !character.state.is_rolling {
 		character.state.is_attacking = true
 		character.state.attack_timer = 0
+		character.state.attack_hit = false // Reset hit flag for new attack
 	}
 
 	if .CAN_ROLL in character.behaviors &&
@@ -422,6 +424,7 @@ character_update_timers :: proc(character: ^Character) {
 		if character.state.attack_timer >= 10 * INTERVAL {
 			character.state.is_attacking = false
 			character.state.attack_timer = 0
+			character.state.attack_hit = false // Reset hit flag when attack ends
 		}
 	}
 
@@ -440,6 +443,7 @@ character_update_timers :: proc(character: ^Character) {
 character_check_attack_hits :: proc(attacker: ^Character) {
 	if !attacker.state.is_attacking do return
 	if !(.CAN_ATTACK in attacker.behaviors) do return
+	if attacker.state.attack_hit do return // Already hit this attack cycle
 
 	attack_rect := character_get_attack_rect(attacker)
 
@@ -462,6 +466,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		if character_rects_intersect(attack_rect, target_rect) {
 			// Damage the target instead of instantly killing
 			target.health -= attacker.attack_damage
+			attacker.state.attack_hit = true // Mark that this attack has hit
 
 			// Remove character if health drops to zero or below
 			if target.health <= 0 {
