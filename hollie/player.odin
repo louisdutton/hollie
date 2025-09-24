@@ -18,6 +18,7 @@ player_anim_files := [PLAYER_ANIM_COUNT]string {
 // Player reference (now uses character system)
 player: ^Character
 
+
 player_set_spawn_position :: proc(spawn_pos: Vec2) {
 	if player != nil {
 		character_remove(player)
@@ -26,12 +27,15 @@ player_set_spawn_position :: proc(spawn_pos: Vec2) {
 	// Create player character with appropriate behaviors
 	player_behaviors := Character_Behavior_Flags{.CAN_MOVE, .CAN_ATTACK, .CAN_ROLL, .CAN_INTERACT}
 
-	player = character_create(
+	// Create composite textures (base + hair) - using longhair for player
+	composite_textures := create_composite_player_textures("longhair")
+
+	player = character_create_with_textures(
 		spawn_pos,
 		.PLAYER,
-		.HUMAN,
+		Character_Race.HUMAN,
 		player_behaviors,
-		player_anim_files[:],
+		composite_textures[:],
 		player_frame_counts[:],
 	)
 }

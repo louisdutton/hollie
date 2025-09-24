@@ -130,7 +130,51 @@ character_create :: proc(
 	case .NPC: character.move_speed = DEFAULT_MOVE_SPEED * 0.8
 	}
 
+	// Initialize animation
 	animation_init(&character.anim_data, anim_files, frame_counts)
+
+	append(&characters, character)
+
+	return &characters[len(characters) - 1]
+}
+
+// Create a character with pre-loaded textures (for composite humans)
+character_create_with_textures :: proc(
+	pos: Vec2,
+	char_type: Character_Type,
+	char_race: Character_Race,
+	behaviors: Character_Behavior_Flags,
+	textures: []rl.Texture2D,
+	frame_counts: []int,
+) -> ^Character {
+	character := Character {
+		position      = pos,
+		width         = 16,
+		height        = 16,
+		velocity      = {0, 0},
+		color         = rl.WHITE,
+		type          = char_type,
+		race          = char_race,
+		behaviors     = behaviors,
+		move_speed    = DEFAULT_MOVE_SPEED,
+		roll_speed    = DEFAULT_ROLL_SPEED,
+		attack_range  = DEFAULT_ATTACK_RANGE,
+		attack_width  = DEFAULT_ATTACK_WIDTH,
+		attack_height = DEFAULT_ATTACK_HEIGHT,
+	}
+
+	// Adjust defaults based on type
+	switch char_type {
+	case .ENEMY:
+		character.move_speed = DEFAULT_ENEMY_MOVE_SPEED
+		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
+	case .PLAYER: character.move_speed = DEFAULT_MOVE_SPEED
+	case .NPC: character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+	}
+
+	// Initialize animation with pre-loaded textures
+	animation_init_with_textures(&character.anim_data, textures, frame_counts)
+
 	append(&characters, character)
 
 	return &characters[len(characters) - 1]

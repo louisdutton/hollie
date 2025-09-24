@@ -42,6 +42,20 @@ animation_init :: proc(anim: ^Animator, anim_files: []string, frame_counts: []in
 	anim.is_flipped = false
 }
 
+// Initialize animation with pre-loaded textures
+animation_init_with_textures :: proc(anim: ^Animator, textures: []rl.Texture2D, frame_counts: []int) {
+	anim.animations = make([]rl.Texture2D, len(textures))
+	anim.frame_counts = make([]int, len(frame_counts))
+	copy(anim.frame_counts, frame_counts)
+	copy(anim.animations, textures)
+
+	anim.rect = {0, 0, FRAME_WIDTH, FRAME_HEIGHT}
+	anim.frame_counter = 0
+	anim.frame = 0
+	anim.current_anim = .IDLE
+	anim.is_flipped = false
+}
+
 animation_update :: proc(anim_data: ^Animator) {
 	anim_data.frame_counter += 1
 
