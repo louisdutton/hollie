@@ -29,6 +29,7 @@ player_set_spawn_position :: proc(spawn_pos: Vec2) {
 	player = character_create(
 		spawn_pos,
 		.PLAYER,
+		.HUMAN,
 		player_behaviors,
 		player_anim_files[:],
 		player_frame_counts[:],

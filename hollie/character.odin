@@ -52,6 +52,7 @@ Character :: struct {
 
 	// Type and behavior
 	type:          Character_Type,
+	race:          Character_Race, // What kind of character (goblin, skeleton, human)
 	behaviors:     Character_Behavior_Flags,
 
 	// Animation
@@ -99,6 +100,7 @@ character_system_fini :: proc() {
 character_create :: proc(
 	pos: Vec2,
 	char_type: Character_Type,
+	char_race: Character_Race,
 	behaviors: Character_Behavior_Flags,
 	anim_files: []string,
 	frame_counts: []int,
@@ -110,6 +112,7 @@ character_create :: proc(
 		velocity      = {0, 0},
 		color         = rl.WHITE,
 		type          = char_type,
+		race          = char_race,
 		behaviors     = behaviors,
 		move_speed    = DEFAULT_MOVE_SPEED,
 		roll_speed    = DEFAULT_ROLL_SPEED,
@@ -260,11 +263,23 @@ character_move_and_collide :: proc(character: ^Character) {
 	character.position.y += character.velocity.y
 }
 
-// FIXME: get this working in stack memory
-enemy_messages := []Dialog_Message {
+// Dialog messages for different character types
+goblin_messages := []Dialog_Message {
 	{text = "Grr! What do you want, human?", speaker = "Goblin"},
 	{text = "I'm just passing through.", speaker = "Hollie"},
 	{text = "Well then, be on your way!", speaker = "Goblin"},
+}
+
+skeleton_messages := []Dialog_Message {
+	{text = "*rattling bones* Who disturbs my rest?", speaker = "Skeleton"},
+	{text = "Sorry, I didn't mean to bother you.", speaker = "Hollie"},
+	{text = "*creaking* Very well... move along...", speaker = "Skeleton"},
+}
+
+npc_human_messages := []Dialog_Message {
+	{text = "Oh, hello there! Nice day, isn't it?", speaker = "Villager"},
+	{text = "Yes, it's quite lovely.", speaker = "Hollie"},
+	{text = "Safe travels, friend!", speaker = "Villager"},
 }
 
 // Handle player input
@@ -279,9 +294,16 @@ character_handle_player_input :: proc(character: ^Character) {
 
 		if found {
 			target.state.is_busy = true
-			// Start dialog based on character type
-			if target.type == .ENEMY {
-				dialog_start(enemy_messages)
+			// Start dialog based on character race
+			switch target.race {
+			case Character_Race.GOBLIN:
+				dialog_start(goblin_messages)
+			case Character_Race.SKELETON:
+				dialog_start(skeleton_messages)
+			case Character_Race.HUMAN:
+				if target.type == .ENEMY {
+					dialog_start(npc_human_messages)
+				}
 			}
 		}
 	}
