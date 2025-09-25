@@ -212,20 +212,29 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 	for y in 0 ..< height {
 		for x in 0 ..< width {
 			index := y * width + x
-			base_data[index] = rand.choice(
-				[]tilemap.TileType {
-					.SAND_1,
-					.SAND_2,
-					.SAND_3,
-				},
-			)
+			base_data[index] = rand.choice([]tilemap.TileType{.SAND_1, .SAND_2, .SAND_3})
 		}
 	}
 
-	// Create empty decorative layer (no decorations for sand level)
+	// Create decorative layer data (sparse sand decorations)
 	deco_data := make([]tilemap.TileType, width * height)
-	for i in 0 ..< width * height {
-		deco_data[i] = .EMPTY
+	for y in 0 ..< height {
+		for x in 0 ..< width {
+			index := y * width + x
+			// 10% chance for decorative tiles, 90% empty
+			if rand.float32() < 0.1 {
+				deco_data[index] = rand.choice(
+					[]tilemap.TileType {
+						.SAND_DEC_13,
+						.SAND_DEC_14,
+						.SAND_DEC_15,
+						.SAND_DEC_16,
+					},
+				)
+			} else {
+				deco_data[index] = .EMPTY
+			}
+		}
 	}
 
 	entities := make([dynamic]Entity_Spawn)

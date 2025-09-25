@@ -21,7 +21,7 @@ TileType :: enum u16 {
 	GRASS_7 = TILESET_COLS * 2,
 	GRASS_8,
 
-	// grass decorations (rows 8-11, columns 0-3)
+	// grass decorations 
 	GRASS_DEC_1 = TILESET_COLS * 8,
 	GRASS_DEC_2,
 	GRASS_DEC_3,
@@ -43,6 +43,12 @@ TileType :: enum u16 {
 	SAND_1 = 3,
 	SAND_2,
 	SAND_3,
+
+	// sand decorations
+	SAND_DEC_13 = TILESET_COLS * 12,
+	SAND_DEC_14,
+	SAND_DEC_15,
+	SAND_DEC_16,
 
 	// misc
 	EMPTY = 65535, // Special empty tile for decorative layer
