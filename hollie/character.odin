@@ -418,7 +418,7 @@ character_handle_player_input :: proc(character: ^Character) {
 		character.state.attack_timer = 0
 		character.state.attack_hit = false // Reset hit flag for new attack
 		// Play attack grunt sound
-		audio.sound_collection_play_random(game_state.grunt_attack)
+		audio.sound_play(game_state.sounds["grunt_attack"])
 	}
 
 	if .CAN_ROLL in character.behaviors &&
@@ -431,7 +431,7 @@ character_handle_player_input :: proc(character: ^Character) {
 			character.state.is_rolling = true
 			character.state.roll_timer = 0
 			// Play roll grunt sound
-			audio.sound_collection_play_random(game_state.grunt_roll)
+			audio.sound_play(game_state.sounds["grunt_roll"])
 		}
 	}
 }
@@ -514,11 +514,11 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			attacker.state.attack_hit = true // Mark that this attack has hit
 
 			// Play attack hit sound
-			audio.sound_collection_play_random(game_state.attack_hit)
+			audio.sound_play(game_state.sounds["attack_hit"])
 
 			// Play enemy hit sound if target is an enemy
 			if target.type == .ENEMY {
-				audio.sound_collection_play_random(game_state.enemy_hit)
+				audio.sound_play(game_state.sounds["enemy_hit"])
 			}
 
 			// Apply hit effects
@@ -533,7 +533,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			if target.health <= 0 {
 				// Play death sound for enemies
 				if target.type == .ENEMY {
-					audio.sound_play(game_state.enemy_death)
+					audio.sound_play(game_state.sounds["enemy_death"])
 				}
 				character_destroy(target)
 				unordered_remove(&characters, i)

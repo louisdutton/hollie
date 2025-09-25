@@ -22,14 +22,10 @@ get_screen_scale :: proc() -> f32 {
 
 // Global state
 game_state := struct {
-	scene:        Scene,
-	font:         rl.Font,
-	music:        audio.Music,
-	grunt_roll:   audio.Sound_Collection,
-	grunt_attack: audio.Sound_Collection,
-	attack_hit:   audio.Sound_Collection,
-	enemy_hit:    audio.Sound_Collection,
-	enemy_death:  audio.Sound,
+	scene:  Scene,
+	font:   rl.Font,
+	music:  audio.Music,
+	sounds: audio.Sound_Map,
 } {
 	scene = .GAMEPLAY,
 }
@@ -55,30 +51,32 @@ init :: proc() {
 	game_state.font = rl.LoadFont("res/font/mecha.png")
 	game_state.music = audio.music_init("res/audio/music/ambient.ogg")
 
-	game_state.grunt_roll = audio.sound_collection_init(
+	// Initialize sound map
+	game_state.sounds = make(audio.Sound_Map)
+
+	// Load sounds into the map
+	game_state.sounds["grunt_roll"] = audio.sound_init(
 		{
 			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
 			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
 		},
 	)
-	game_state.grunt_attack = audio.sound_collection_init(
+	game_state.sounds["grunt_attack"] = audio.sound_init(
 		{
 			"res/audio/fx/combat/whoosh-short-light.wav",
 			"res/audio/fx/impact/whoosh-arm-swing-01-wide.wav",
 		},
 	)
-	game_state.attack_hit = audio.sound_collection_init(
+	game_state.sounds["attack_hit"] = audio.sound_init(
 		{
 			"res/audio/fx/impact/punch-percussive-heavy-08.wav",
 			"res/audio/fx/impact/punch-percussive-heavy-09.wav",
 		},
 	)
-	game_state.enemy_hit = audio.sound_collection_init(
+	game_state.sounds["enemy_hit"] = audio.sound_init(
 		{"res/audio/fx/impact/punch-squelch-heavy-05.wav"},
 	)
-
-	// Load enemy death sound
-	game_state.enemy_death = audio.sound_init("res/audio/fx/impact/waterplosion.wav")
+	game_state.sounds["enemy_death"] = audio.sound_init({"res/audio/fx/impact/waterplosion.wav"})
 
 	audio.music_set_volume(game_state.music, 1.0)
 	audio.music_play(game_state.music)
@@ -117,11 +115,12 @@ fini :: proc() {
 	// Unload global assets
 	rl.UnloadFont(game_state.font)
 	audio.music_fini(game_state.music)
-	audio.sound_collection_fini(&game_state.grunt_roll)
-	audio.sound_collection_fini(&game_state.grunt_attack)
-	audio.sound_collection_fini(&game_state.attack_hit)
-	audio.sound_collection_fini(&game_state.enemy_hit)
-	audio.sound_fini(game_state.enemy_death)
+
+	// Cleanup sounds map
+	for key, &sound in game_state.sounds {
+		audio.sound_fini(&sound)
+	}
+	delete(game_state.sounds)
 
 	audio.fini()
 	rl.CloseWindow()
