@@ -43,7 +43,11 @@ animation_init :: proc(anim: ^Animator, anim_files: []string, frame_counts: []in
 }
 
 // Initialize animation with pre-loaded textures
-animation_init_with_textures :: proc(anim: ^Animator, textures: []rl.Texture2D, frame_counts: []int) {
+animation_init_with_textures :: proc(
+	anim: ^Animator,
+	textures: []rl.Texture2D,
+	frame_counts: []int,
+) {
 	anim.animations = make([]rl.Texture2D, len(textures))
 	anim.frame_counts = make([]int, len(frame_counts))
 	copy(anim.frame_counts, frame_counts)
@@ -89,6 +93,30 @@ animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {
 		tex_rect.width *= -1
 	}
 	rl.DrawTextureRec(anim_data.animations[anim_data.current_anim], tex_rect, tex_pos, color)
+}
+
+// Special draw function for hit flash effect using shader
+animation_draw_with_flash :: proc(
+	anim_data: ^Animator,
+	position: Vec2,
+	color: rl.Color,
+	flash_intensity: ^f32,
+) {
+	tex_pos := position
+	tex_pos.x -= f32(FRAME_WIDTH) / 2
+	tex_pos.y -= f32(FRAME_HEIGHT) / 2
+	tex_rect := anim_data.rect
+	if anim_data.is_flipped {
+		tex_rect.width *= -1
+	}
+
+	shader_draw_with_white_flash(
+		anim_data.animations[anim_data.current_anim],
+		tex_rect,
+		tex_pos,
+		color,
+		flash_intensity,
+	)
 }
 
 animation_fini :: proc(anim_data: ^Animator) {

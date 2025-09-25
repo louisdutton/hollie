@@ -9,8 +9,8 @@ import rl "vendor:raylib"
 // Character types
 Character_Type :: enum {
 	PLAYER,
-	NPC,      // Friendly, can talk to
-	ENEMY,    // Hostile, can attack
+	NPC, // Friendly, can talk to
+	ENEMY, // Hostile, can attack
 }
 
 // Behavior flags for different character capabilities
@@ -26,13 +26,18 @@ Character_Behavior_Flag :: enum {
 
 // Character states for behavior management
 Character_State :: struct {
-	is_attacking: bool,
-	attack_timer: u32,
-	attack_hit:   bool, // has this attack already hit a target
-	is_rolling:   bool,
-	roll_timer:   u32,
-	is_busy:      bool, // locked in dialog or other activity
-	is_flipped:   bool, // sprite flip state
+	is_attacking:       bool,
+	attack_timer:       u32,
+	attack_hit:         bool, // has this attack already hit a target
+	is_rolling:         bool,
+	roll_timer:         u32,
+	is_busy:            bool, // locked in dialog or other activity
+	is_flipped:         bool, // sprite flip state
+
+	// Hit effects
+	hit_flash_timer:    f32,
+	knockback_velocity: Vec2,
+	knockback_timer:    f32,
 }
 
 // AI state for NPCs and enemies
@@ -92,6 +97,11 @@ DEFAULT_PLAYER_HEALTH :: 100
 DEFAULT_ENEMY_HEALTH :: 30
 DEFAULT_NPC_HEALTH :: 50
 DEFAULT_ATTACK_DAMAGE :: 20
+
+// Hit effect constants
+HIT_FLASH_DURATION :: 0.2
+KNOCKBACK_FORCE :: 5.0
+KNOCKBACK_DURATION :: 0.3
 
 // Initialize character system
 character_system_init :: proc() {
@@ -251,6 +261,12 @@ character_rects_intersect :: proc(rect1, rect2: rl.Rectangle) -> bool {
 
 // Calculate velocity based on character type and behavior
 character_calc_velocity :: proc(character: ^Character) {
+	// Handle knockback first - it overrides normal movement
+	if character.state.knockback_timer > 0 {
+		character.velocity = character.state.knockback_velocity
+		return
+	}
+
 	if !(.CAN_MOVE in character.behaviors) {
 		character.velocity = {0, 0}
 		return
@@ -417,6 +433,8 @@ character_handle_player_input :: proc(character: ^Character) {
 
 // Update timers for character actions
 character_update_timers :: proc(character: ^Character) {
+	dt := rl.GetFrameTime()
+
 	// Attack timer
 	if character.state.is_attacking {
 		character.state.attack_timer += 1
@@ -435,6 +453,28 @@ character_update_timers :: proc(character: ^Character) {
 		if character.state.roll_timer >= 10 * INTERVAL {
 			character.state.is_rolling = false
 			character.state.roll_timer = 0
+		}
+	}
+
+	// Hit flash timer
+	if character.state.hit_flash_timer > 0 {
+		character.state.hit_flash_timer -= dt
+		if character.state.hit_flash_timer < 0 {
+			character.state.hit_flash_timer = 0
+		}
+	}
+
+	// Knockback timer
+	if character.state.knockback_timer > 0 {
+		character.state.knockback_timer -= dt
+		if character.state.knockback_timer <= 0 {
+			character.state.knockback_timer = 0
+			character.state.knockback_velocity = {0, 0}
+		} else {
+			// Apply friction to knockback
+			friction: f32 = 0.85
+			character.state.knockback_velocity.x *= friction
+			character.state.knockback_velocity.y *= friction
 		}
 	}
 }
@@ -456,8 +496,8 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		// NPCs are friendly and cannot be attacked or attack
 		if (attacker.type == .PLAYER && target.type != .ENEMY) ||
 		   (attacker.type == .ENEMY && target.type != .PLAYER) ||
-		   (attacker.type == .NPC) ||  // NPCs don't attack
-		   (target.type == .NPC) {     // NPCs can't be attacked
+		   (attacker.type == .NPC) ||
+		   (target.type == .NPC) { 	// NPCs don't attack// NPCs can't be attacked
 			continue
 		}
 
@@ -467,6 +507,14 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			// Damage the target instead of instantly killing
 			target.health -= attacker.attack_damage
 			attacker.state.attack_hit = true // Mark that this attack has hit
+
+			// Apply hit effects
+			target.state.hit_flash_timer = HIT_FLASH_DURATION
+
+			// Calculate knockback direction (from attacker to target)
+			knockback_dir := linalg.normalize(target.position - attacker.position)
+			target.state.knockback_velocity = knockback_dir * KNOCKBACK_FORCE
+			target.state.knockback_timer = KNOCKBACK_DURATION
 
 			// Remove character if health drops to zero or below
 			if target.health <= 0 {
@@ -556,7 +604,19 @@ character_system_update :: proc() {
 
 // Draw single character
 character_draw :: proc(character: ^Character) {
-	animation_draw(&character.anim_data, character.position, character.color)
+	if character.state.hit_flash_timer > 0 {
+		// Use shader-based white flash
+		flash_intensity := character.state.hit_flash_timer / HIT_FLASH_DURATION
+		animation_draw_with_flash(
+			&character.anim_data,
+			character.position,
+			character.color,
+			&flash_intensity,
+		)
+	} else {
+		// Normal drawing
+		animation_draw(&character.anim_data, character.position, character.color)
+	}
 
 	// Debug info
 	when ODIN_DEBUG {
@@ -593,7 +653,13 @@ character_draw :: proc(character: ^Character) {
 
 		// Debug text
 		using character.anim_data
-		debug_text := fmt.tprintf("%v %v HP:%d/%d", current_anim, character.type, character.health, character.max_health)
+		debug_text := fmt.tprintf(
+			"%v %v HP:%d/%d",
+			current_anim,
+			character.type,
+			character.health,
+			character.max_health,
+		)
 		renderer.draw_text(
 			debug_text,
 			int(character.position.x) - 10,

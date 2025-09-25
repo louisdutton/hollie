@@ -61,6 +61,7 @@ init_gameplay_screen :: proc() {
 	init_camera()
 	dialog_init()
 	character_system_init()
+	shader_init()
 
 	gameplay_state.test_level = level_new()
 	level_init(&gameplay_state.test_level)
@@ -122,6 +123,7 @@ draw_gameplay_screen :: proc() {
 }
 
 unload_gameplay_screen :: proc() {
+	shader_fini()
 	level_fini()
 	character_system_fini()
 }
