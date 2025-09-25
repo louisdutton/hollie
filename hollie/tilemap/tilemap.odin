@@ -213,6 +213,7 @@ draw :: proc(camera: rl.Camera2D) {
 fini :: proc() {
 	if tilemap.tiles != nil {
 		delete(tilemap.tiles)
+		tilemap.tiles = nil
 	}
 	rl.UnloadTexture(tilemap.tileset)
 }

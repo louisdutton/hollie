@@ -79,6 +79,13 @@ level_fini :: proc() {
 
 	tilemap.fini()
 
+	// Clear characters for level unload/reload
+	for &character in characters {
+		character_destroy(&character)
+	}
+	clear(&characters)
+	player = nil
+
 	level_state.current_bundle = nil
 	level_state.is_loaded = false
 }
