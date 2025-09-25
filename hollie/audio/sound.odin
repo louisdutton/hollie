@@ -16,7 +16,9 @@ sound_fini :: proc(sound: Sound) {
 	rl.UnloadSound(sound)
 }
 
-sound_play :: proc(sound: Sound) {
+sound_play :: proc(sound: Sound, volume: f32 = 0.5, pitch: f32 = 1.0) {
+	rl.SetSoundVolume(sound, volume)
+	rl.SetSoundPitch(sound, pitch + rand.float32_range(-0.1, 0.1))
 	rl.PlaySound(sound)
 }
 
