@@ -530,6 +530,10 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 
 			// Remove character if health drops to zero or below
 			if target.health <= 0 {
+				// Play death sound for enemies
+				if target.type == .ENEMY {
+					sound_play(game_state.enemy_death)
+				}
 				character_destroy(target)
 				unordered_remove(&characters, i)
 			}

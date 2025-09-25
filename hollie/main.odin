@@ -28,6 +28,7 @@ game_state := struct {
 	grunt_attack:    Sound_Collection,
 	attack_hit:      Sound_Collection,
 	enemy_hit:       Sound_Collection,
+	enemy_death:     Sound,
 } {
 	scene = .GAMEPLAY,
 }
@@ -86,6 +87,9 @@ init :: proc() {
 	game_state.attack_hit = sound_collection_create(attack_hit_paths)
 	game_state.enemy_hit = sound_collection_create(enemy_hit_paths)
 
+	// Load enemy death sound
+	game_state.enemy_death = sound_load("res/audio/fx/impact/waterplosion.wav")
+
 	music_set_volume(game_state.music, 1.0)
 	music_play(game_state.music)
 
@@ -127,6 +131,7 @@ fini :: proc() {
 	sound_collection_destroy(&game_state.grunt_attack)
 	sound_collection_destroy(&game_state.attack_hit)
 	sound_collection_destroy(&game_state.enemy_hit)
+	sound_unload(game_state.enemy_death)
 
 	audio_close()
 	rl.CloseWindow()
