@@ -269,15 +269,15 @@ character_rects_intersect :: proc(rect1, rect2: rl.Rectangle) -> bool {
 
 // Calculate velocity based on character type and behavior
 character_calc_velocity :: proc(character: ^Character) {
-	// Stop all movement when dying
-	if character.state.is_dying {
-		character.velocity = {0, 0}
+	// Handle knockback first - it overrides normal movement, even during death
+	if character.state.knockback_timer > 0 {
+		character.velocity = character.state.knockback_velocity
 		return
 	}
 
-	// Handle knockback first - it overrides normal movement
-	if character.state.knockback_timer > 0 {
-		character.velocity = character.state.knockback_velocity
+	// Stop all movement when dying (except knockback which is handled above)
+	if character.state.is_dying {
+		character.velocity = {0, 0}
 		return
 	}
 
@@ -468,6 +468,28 @@ character_handle_player_input :: proc(character: ^Character) {
 character_update_timers :: proc(character: ^Character) {
 	dt := rl.GetFrameTime()
 
+	// Hit flash timer (always process)
+	if character.state.hit_flash_timer > 0 {
+		character.state.hit_flash_timer -= dt
+		if character.state.hit_flash_timer < 0 {
+			character.state.hit_flash_timer = 0
+		}
+	}
+
+	// Knockback timer (always process, even when dying)
+	if character.state.knockback_timer > 0 {
+		character.state.knockback_timer -= dt
+		if character.state.knockback_timer <= 0 {
+			character.state.knockback_timer = 0
+			character.state.knockback_velocity = {0, 0}
+		} else {
+			// Apply friction to knockback
+			friction: f32 = 0.85
+			character.state.knockback_velocity.x *= friction
+			character.state.knockback_velocity.y *= friction
+		}
+	}
+
 	// Death timer
 	if character.state.is_dying {
 		character.state.death_timer += 1
@@ -496,28 +518,6 @@ character_update_timers :: proc(character: ^Character) {
 		if character.state.roll_timer >= 10 * INTERVAL {
 			character.state.is_rolling = false
 			character.state.roll_timer = 0
-		}
-	}
-
-	// Hit flash timer
-	if character.state.hit_flash_timer > 0 {
-		character.state.hit_flash_timer -= dt
-		if character.state.hit_flash_timer < 0 {
-			character.state.hit_flash_timer = 0
-		}
-	}
-
-	// Knockback timer
-	if character.state.knockback_timer > 0 {
-		character.state.knockback_timer -= dt
-		if character.state.knockback_timer <= 0 {
-			character.state.knockback_timer = 0
-			character.state.knockback_velocity = {0, 0}
-		} else {
-			// Apply friction to knockback
-			friction: f32 = 0.85
-			character.state.knockback_velocity.x *= friction
-			character.state.knockback_velocity.y *= friction
 		}
 	}
 }
@@ -567,6 +567,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 
 			// Calculate knockback direction (from attacker to target)
 			knockback_dir := linalg.normalize(target.position - attacker.position)
+
 			target.state.knockback_velocity = knockback_dir * KNOCKBACK_FORCE
 			target.state.knockback_timer = KNOCKBACK_DURATION
 
@@ -579,11 +580,9 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 				// Start dying sequence
 				target.state.is_dying = true
 				target.state.death_timer = 0
-				// Stop all other actions
+				// Stop all other actions but keep knockback
 				target.state.is_attacking = false
 				target.state.is_rolling = false
-				target.state.knockback_timer = 0
-				target.state.knockback_velocity = {0, 0}
 			}
 		}
 	}
