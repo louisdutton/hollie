@@ -54,39 +54,27 @@ init :: proc() {
 	game_state.font = rl.LoadFont("res/font/mecha.png")
 	game_state.music = audio.music_init("res/audio/music/ambient.ogg")
 
-	// Load grunt sounds - using first few Meghan Christian grunts for roll and attack
-	roll_grunt_paths := []string {
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_3_meghan.wav",
-	}
-
-	attack_grunt_paths := []string {
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_4_meghan.wav",
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_5_meghan.wav",
-		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_6_meghan.wav",
-	}
-
-	game_state.grunt_roll = audio.sound_collection_init(roll_grunt_paths)
-	game_state.grunt_attack = audio.sound_collection_init(attack_grunt_paths)
-
-	// Load attack collision/hit sounds
-	attack_hit_paths := []string {
-		"res/audio/fx/impact/punch-clean-heavy-10.wav",
-		"res/audio/fx/impact/punch-designed-heavy-23.wav",
-		"res/audio/fx/impact/punch-designed-heavy-74.wav",
-		"res/audio/fx/impact/hit-short-04.wav",
-	}
-
-	// Load enemy hit sounds (damage/pain sounds)
-	enemy_hit_paths := []string {
-		"res/audio/fx/voices/damage/female/Meghan Christian/damage_1_meghan.wav",
-		"res/audio/fx/voices/damage/female/Meghan Christian/damage_2_meghan.wav",
-		"res/audio/fx/voices/damage/female/Meghan Christian/damage_3_meghan.wav",
-	}
-
-	game_state.attack_hit = audio.sound_collection_init(attack_hit_paths)
-	game_state.enemy_hit = audio.sound_collection_init(enemy_hit_paths)
+	game_state.grunt_roll = audio.sound_collection_init(
+		{
+			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
+			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
+		},
+	)
+	game_state.grunt_attack = audio.sound_collection_init(
+		{
+			"res/audio/fx/combat/whoosh-short-light.wav",
+			"res/audio/fx/impact/whoosh-arm-swing-01-wide.wav",
+		},
+	)
+	game_state.attack_hit = audio.sound_collection_init(
+		{
+			"res/audio/fx/impact/punch-percussive-heavy-08.wav",
+			"res/audio/fx/impact/punch-percussive-heavy-09.wav",
+		},
+	)
+	game_state.enemy_hit = audio.sound_collection_init(
+		{"res/audio/fx/impact/punch-squelch-heavy-05.wav"},
+	)
 
 	// Load enemy death sound
 	game_state.enemy_death = audio.sound_init("res/audio/fx/impact/waterplosion.wav")
