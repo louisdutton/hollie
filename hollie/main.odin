@@ -1,5 +1,6 @@
 package hollie
 
+import "audio"
 import "tween"
 import rl "vendor:raylib"
 
@@ -23,12 +24,12 @@ get_screen_scale :: proc() -> f32 {
 game_state := struct {
 	scene:        Scene,
 	font:         rl.Font,
-	music:        Music,
-	grunt_roll:      Sound_Collection,
-	grunt_attack:    Sound_Collection,
-	attack_hit:      Sound_Collection,
-	enemy_hit:       Sound_Collection,
-	enemy_death:     Sound,
+	music:        audio.Music,
+	grunt_roll:   audio.Sound_Collection,
+	grunt_attack: audio.Sound_Collection,
+	attack_hit:   audio.Sound_Collection,
+	enemy_hit:    audio.Sound_Collection,
+	enemy_death:  audio.Sound,
 } {
 	scene = .GAMEPLAY,
 }
@@ -46,12 +47,12 @@ main :: proc() {
 init :: proc() {
 	rl.SetWindowState({.WINDOW_RESIZABLE})
 	rl.InitWindow(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
-	audio_init()
+	audio.init()
 	rl.SetTargetFPS(60)
 
 	// Load global assets
 	game_state.font = rl.LoadFont("res/font/mecha.png")
-	game_state.music = music_load("res/audio/music/ambient.ogg")
+	game_state.music = audio.music_init("res/audio/music/ambient.ogg")
 
 	// Load grunt sounds - using first few Meghan Christian grunts for roll and attack
 	roll_grunt_paths := []string {
@@ -66,8 +67,8 @@ init :: proc() {
 		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_6_meghan.wav",
 	}
 
-	game_state.grunt_roll = sound_collection_create(roll_grunt_paths)
-	game_state.grunt_attack = sound_collection_create(attack_grunt_paths)
+	game_state.grunt_roll = audio.sound_collection_init(roll_grunt_paths)
+	game_state.grunt_attack = audio.sound_collection_init(attack_grunt_paths)
 
 	// Load attack collision/hit sounds
 	attack_hit_paths := []string {
@@ -84,19 +85,19 @@ init :: proc() {
 		"res/audio/fx/voices/damage/female/Meghan Christian/damage_3_meghan.wav",
 	}
 
-	game_state.attack_hit = sound_collection_create(attack_hit_paths)
-	game_state.enemy_hit = sound_collection_create(enemy_hit_paths)
+	game_state.attack_hit = audio.sound_collection_init(attack_hit_paths)
+	game_state.enemy_hit = audio.sound_collection_init(enemy_hit_paths)
 
 	// Load enemy death sound
-	game_state.enemy_death = sound_load("res/audio/fx/impact/waterplosion.wav")
+	game_state.enemy_death = audio.sound_init("res/audio/fx/impact/waterplosion.wav")
 
-	music_set_volume(game_state.music, 1.0)
-	music_play(game_state.music)
+	audio.music_set_volume(game_state.music, 1.0)
+	audio.music_play(game_state.music)
 
 	// Initialize first screen
 	switch game_state.scene {
 	case .GAMEPLAY:
-		music_stop(game_state.music)
+		audio.music_stop(game_state.music)
 		init_gameplay_screen()
 	case .TITLE:
 		init_title_screen()
@@ -126,14 +127,14 @@ fini :: proc() {
 
 	// Unload global assets
 	rl.UnloadFont(game_state.font)
-	music_unload(game_state.music)
-	sound_collection_destroy(&game_state.grunt_roll)
-	sound_collection_destroy(&game_state.grunt_attack)
-	sound_collection_destroy(&game_state.attack_hit)
-	sound_collection_destroy(&game_state.enemy_hit)
-	sound_unload(game_state.enemy_death)
+	audio.music_fini(game_state.music)
+	audio.sound_collection_fini(&game_state.grunt_roll)
+	audio.sound_collection_fini(&game_state.grunt_attack)
+	audio.sound_collection_fini(&game_state.attack_hit)
+	audio.sound_collection_fini(&game_state.enemy_hit)
+	audio.sound_fini(game_state.enemy_death)
 
-	audio_close()
+	audio.fini()
 	rl.CloseWindow()
 }
 
@@ -143,15 +144,15 @@ update :: proc() {
 
 	switch game_state.scene {
 	case .TITLE:
-		music_update(game_state.music)
+		audio.music_update(game_state.music)
 		update_title_screen()
 	case .OPTIONS:
-		music_update(game_state.music)
+		audio.music_update(game_state.music)
 		update_options_screen()
 	case .GAMEPLAY:
 		update_gameplay_screen()
 	case .ENDING:
-		music_update(game_state.music)
+		audio.music_update(game_state.music)
 		update_ending_screen()
 	case .UNKNOWN:
 	// Do nothing

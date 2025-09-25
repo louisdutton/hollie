@@ -1,6 +1,6 @@
 package hollie
 
-import rl "vendor:raylib"
+import "audio"
 
 Scene :: enum {
 	UNKNOWN = -1,
@@ -28,16 +28,16 @@ set_scene :: proc(screen: Scene) {
 	// Init next screen
 	switch screen {
 	case .TITLE:
-		music_play(game_state.music)
+		audio.music_play(game_state.music)
 		init_title_screen()
 	case .OPTIONS:
-		music_play(game_state.music)
+		audio.music_play(game_state.music)
 		init_options_screen()
 	case .GAMEPLAY:
-		music_stop(game_state.music)
+		audio.music_stop(game_state.music)
 		init_gameplay_screen()
 	case .ENDING:
-		music_play(game_state.music)
+		audio.music_play(game_state.music)
 		init_ending_screen()
 	case .UNKNOWN:
 	// Do nothing

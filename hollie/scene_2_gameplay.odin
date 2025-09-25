@@ -1,5 +1,6 @@
 package hollie
 
+import "audio"
 import "core:slice"
 import "tilemap"
 import rl "vendor:raylib"
@@ -79,10 +80,10 @@ update_gameplay_screen :: proc() {
 	if rl.IsKeyPressed(.P) || rl.IsGamepadButtonPressed(PLAYER_1, .MIDDLE_RIGHT) {
 		if gameplay_state.is_paused {
 			gameplay_state.is_paused = false
-			music_set_volume(game_state.music, 1)
+			audio.music_set_volume(game_state.music, 1)
 		} else {
 			gameplay_state.is_paused = true
-			music_set_volume(game_state.music, 0.2)
+			audio.music_set_volume(game_state.music, 0.2)
 		}
 	}
 
