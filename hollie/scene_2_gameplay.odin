@@ -2,7 +2,9 @@ package hollie
 
 import "audio"
 import "core:slice"
+import "core:time"
 import "tilemap"
+import "tween"
 import rl "vendor:raylib"
 
 // Entity for y-sorting
@@ -52,13 +54,20 @@ draw_entities_sorted :: proc() {
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	is_paused:     bool,
-	grass_level:   LevelResource,
-	sand_level:    LevelResource,
-	current_level: int, // 0 = grass, 1 = sand
+	is_paused:              bool,
+	grass_level:            LevelResource,
+	sand_level:             LevelResource,
+	current_level:          int, // 0 = grass, 1 = sand
+	is_transitioning:       bool,
+	transition_opacity:     f32,
+	pending_level:          int,
+	pending_player_pos:     Vec2,
 } {
-	is_paused = false,
+	is_paused     = false,
 	current_level = 0,
+	is_transitioning = false,
+	transition_opacity = 0.0,
+	pending_level = -1,
 }
 
 init_gameplay_screen :: proc() {
@@ -100,21 +109,54 @@ update_gameplay_screen :: proc() {
 		dialog_start(test_messages)
 	}
 
-	// Level switching with Left/Right arrow keys
-	if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressed(.RIGHT) {
-		if rl.IsKeyPressed(.LEFT) && gameplay_state.current_level > 0 {
-			gameplay_state.current_level -= 1
-		} else if rl.IsKeyPressed(.RIGHT) && gameplay_state.current_level < 1 {
-			gameplay_state.current_level += 1
-		}
+	// Check for level transitions based on player position
+	current_player := character_get_player()
+	if current_player != nil && !gameplay_state.is_transitioning {
+		player_pos := current_player.position
+		level_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
 
-		// Load the appropriate level
+		// Transition to sand level (right side) - trigger just before camera bounds
+		if gameplay_state.current_level == 0 && player_pos.x >= 785 {
+			gameplay_state.is_transitioning = true
+			gameplay_state.pending_level = 1
+			gameplay_state.pending_player_pos = {50, player_pos.y}
+			tween.to(&gameplay_state.transition_opacity, 1.0, .Quadratic_Out, 300 * time.Millisecond)
+		} else if gameplay_state.current_level == 1 && player_pos.x <= 15 {
+			// Transition to grass level (left side) - trigger near left edge
+			gameplay_state.is_transitioning = true
+			gameplay_state.pending_level = 0
+			gameplay_state.pending_player_pos = {level_width - 60, player_pos.y}
+			tween.to(&gameplay_state.transition_opacity, 1.0, .Quadratic_Out, 300 * time.Millisecond)
+		}
+	}
+
+	// Handle transition state - switch level at peak opacity
+	if gameplay_state.is_transitioning && gameplay_state.transition_opacity >= 0.99 && gameplay_state.pending_level >= 0 {
+		gameplay_state.current_level = gameplay_state.pending_level
+
+		// Load appropriate level
 		switch gameplay_state.current_level {
 		case 0:
 			level_init(&gameplay_state.grass_level)
 		case 1:
 			level_init(&gameplay_state.sand_level)
 		}
+
+		// Position player
+		transition_player := character_get_player()
+		if transition_player != nil {
+			transition_player.position = gameplay_state.pending_player_pos
+		}
+		gameplay_state.pending_level = -1
+
+		// Start fade out
+		tween.to(&gameplay_state.transition_opacity, 0.0, .Quadratic_In, 300 * time.Millisecond)
+	}
+
+	// End transition when fade out completes
+	if gameplay_state.is_transitioning && gameplay_state.transition_opacity <= 0.01 && gameplay_state.pending_level < 0 {
+		gameplay_state.is_transitioning = false
+		gameplay_state.transition_opacity = 0.0
 	}
 
 	if !gameplay_state.is_paused {
@@ -137,6 +179,14 @@ draw_gameplay_screen :: proc() {
 	// ui
 	level_draw_name()
 	dialog_draw()
+
+	// Draw transition overlay
+	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
+		w := rl.GetScreenWidth()
+		h := rl.GetRenderHeight()
+		alpha := u8(gameplay_state.transition_opacity * 255)
+		rl.DrawRectangle(0, 0, w, h, rl.Color{0, 0, 0, alpha})
+	}
 
 	if gameplay_state.is_paused {
 		w := rl.GetScreenWidth()
