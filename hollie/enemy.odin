@@ -6,7 +6,7 @@ import "core:math/rand"
 import "renderer"
 import rl "vendor:raylib"
 
-ENEMY_ANIM_COUNT :: 3
+ENEMY_ANIM_COUNT :: 4
 
 // Character race/type for NPCs and enemies
 Character_Race :: enum {
@@ -16,18 +16,20 @@ Character_Race :: enum {
 }
 
 // Animation data for different races
-goblin_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9}
+goblin_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9, 13}
 goblin_anim_files := [ENEMY_ANIM_COUNT]string {
 	"res/art/characters/goblin/png/spr_idle_strip9.png",
 	"res/art/characters/goblin/png/spr_run_strip8.png",
 	"res/art/characters/goblin/png/spr_jump_strip9.png",
+	"res/art/characters/goblin/png/spr_death_strip13.png",
 }
 
-skeleton_frame_counts := [ENEMY_ANIM_COUNT]int{6, 8, 10}
+skeleton_frame_counts := [ENEMY_ANIM_COUNT]int{6, 8, 10, 10}
 skeleton_anim_files := [ENEMY_ANIM_COUNT]string {
 	"res/art/characters/skeleton/png/skeleton_idle_strip6.png",
 	"res/art/characters/skeleton/png/skeleton_walk_strip8.png",
 	"res/art/characters/skeleton/png/skeleton_jump_strip10.png",
+	"res/art/characters/skeleton/png/skeleton_death_strip10.png",
 }
 
 // Using different human variations for variety (excluding base which is just the body)
@@ -39,20 +41,22 @@ human_variants := []string {
 	"shorthair",
 	"spikeyhair",
 }
-human_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9}
+human_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9, 13}
 
-// Create composite human textures by combining base + hair variant (for NPCs - 3 animations)
+// Create composite human textures by combining base + hair variant (for NPCs - 4 animations)
 create_composite_human_textures :: proc(variant: string) -> [ENEMY_ANIM_COUNT]rl.Texture2D {
 	base_files := [ENEMY_ANIM_COUNT]string{
 		"res/art/characters/human/idle/base_idle_strip9.png",
 		"res/art/characters/human/run/base_run_strip8.png",
 		"res/art/characters/human/jump/base_jump_strip9.png",
+		"res/art/characters/human/death/base_death_strip13.png",
 	}
 
 	hair_files := [ENEMY_ANIM_COUNT]string{
 		fmt.tprintf("res/art/characters/human/idle/%s_idle_strip9.png", variant),
 		fmt.tprintf("res/art/characters/human/run/%s_run_strip8.png", variant),
 		fmt.tprintf("res/art/characters/human/jump/%s_jump_strip9.png", variant),
+		fmt.tprintf("res/art/characters/human/death/%s_death_strip13.png", variant),
 	}
 
 	composite_textures: [ENEMY_ANIM_COUNT]rl.Texture2D
@@ -86,27 +90,29 @@ create_composite_human_textures :: proc(variant: string) -> [ENEMY_ANIM_COUNT]rl
 	return composite_textures
 }
 
-// Create composite human textures for player (5 animations including attack/roll)
-create_composite_player_textures :: proc(variant: string) -> [5]rl.Texture2D {
-	base_files := [5]string{
+// Create composite human textures for player (6 animations including death/attack/roll)
+create_composite_player_textures :: proc(variant: string) -> [6]rl.Texture2D {
+	base_files := [6]string{
 		"res/art/characters/human/idle/base_idle_strip9.png",
 		"res/art/characters/human/run/base_run_strip8.png",
 		"res/art/characters/human/jump/base_jump_strip9.png",
+		"res/art/characters/human/death/base_death_strip13.png",
 		"res/art/characters/human/attack/base_attack_strip10.png",
 		"res/art/characters/human/roll/base_roll_strip10.png",
 	}
 
-	hair_files := [5]string{
+	hair_files := [6]string{
 		fmt.tprintf("res/art/characters/human/idle/%s_idle_strip9.png", variant),
 		fmt.tprintf("res/art/characters/human/run/%s_run_strip8.png", variant),
 		fmt.tprintf("res/art/characters/human/jump/%s_jump_strip9.png", variant),
+		fmt.tprintf("res/art/characters/human/death/%s_death_strip13.png", variant),
 		fmt.tprintf("res/art/characters/human/attack/%s_attack_strip10.png", variant),
 		fmt.tprintf("res/art/characters/human/roll/%s_roll_strip10.png", variant),
 	}
 
-	composite_textures: [5]rl.Texture2D
+	composite_textures: [6]rl.Texture2D
 
-	for i in 0..<5 {
+	for i in 0..<6 {
 		// Load base and hair textures
 		base_texture := rl.LoadTexture(cstring(raw_data(base_files[i])))
 		hair_texture := rl.LoadTexture(cstring(raw_data(hair_files[i])))

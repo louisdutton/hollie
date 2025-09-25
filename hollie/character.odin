@@ -34,6 +34,8 @@ Character_State :: struct {
 	roll_timer:         u32,
 	is_busy:            bool, // locked in dialog or other activity
 	is_flipped:         bool, // sprite flip state
+	is_dying:           bool, // playing death animation
+	death_timer:        u32,  // timer for death animation duration
 
 	// Hit effects
 	hit_flash_timer:    f32,
@@ -103,6 +105,9 @@ DEFAULT_ATTACK_DAMAGE :: 10
 HIT_FLASH_DURATION :: 0.2
 KNOCKBACK_FORCE :: 5.0
 KNOCKBACK_DURATION :: 0.3
+
+// Death animation constants
+DEATH_ANIMATION_DURATION :: 13 * INTERVAL  // 13 frames for goblin/human death
 
 // Initialize character system
 character_system_init :: proc() {
@@ -262,6 +267,12 @@ character_rects_intersect :: proc(rect1, rect2: rl.Rectangle) -> bool {
 
 // Calculate velocity based on character type and behavior
 character_calc_velocity :: proc(character: ^Character) {
+	// Stop all movement when dying
+	if character.state.is_dying {
+		character.velocity = {0, 0}
+		return
+	}
+
 	// Handle knockback first - it overrides normal movement
 	if character.state.knockback_timer > 0 {
 		character.velocity = character.state.knockback_velocity
@@ -335,7 +346,9 @@ character_calc_ai_velocity :: proc(character: ^Character) {
 
 // Calculate animation state based on character behavior
 character_calc_state :: proc(character: ^Character) {
-	if character.state.is_rolling {
+	if character.state.is_dying {
+		animation_set_state(&character.anim_data, .DEATH, character.state.is_flipped)
+	} else if character.state.is_rolling {
 		animation_set_state(&character.anim_data, .ROLL, character.state.is_flipped)
 	} else if character.state.is_attacking {
 		animation_set_state(&character.anim_data, .ATTACK, character.state.is_flipped)
@@ -440,6 +453,16 @@ character_handle_player_input :: proc(character: ^Character) {
 character_update_timers :: proc(character: ^Character) {
 	dt := rl.GetFrameTime()
 
+	// Death timer
+	if character.state.is_dying {
+		character.state.death_timer += 1
+		// Death animation completed - character will be removed after this function
+		if character.state.death_timer >= DEATH_ANIMATION_DURATION {
+			// Keep dying state - actual removal happens in character_system_update
+		}
+		return // Skip other timers while dying
+	}
+
 	// Attack timer
 	if character.state.is_attacking {
 		character.state.attack_timer += 1
@@ -489,6 +512,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 	if !attacker.state.is_attacking do return
 	if !(.CAN_ATTACK in attacker.behaviors) do return
 	if attacker.state.attack_hit do return // Already hit this attack cycle
+	if attacker.state.is_dying do return // Can't attack while dying
 
 	attack_rect := character_get_attack_rect(attacker)
 
@@ -499,10 +523,12 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		// Only attack enemies if player, or attack player if enemy
 		// Players can only attack enemies, enemies can only attack players
 		// NPCs are friendly and cannot be attacked or attack
+		// Can't attack dying characters
 		if (attacker.type == .PLAYER && target.type != .ENEMY) ||
 		   (attacker.type == .ENEMY && target.type != .PLAYER) ||
 		   (attacker.type == .NPC) ||
-		   (target.type == .NPC) { 	// NPCs don't attack// NPCs can't be attacked
+		   (target.type == .NPC) ||
+		   (target.state.is_dying) { 	// NPCs don't attack// NPCs can't be attacked// Can't attack dying enemies
 			continue
 		}
 
@@ -529,14 +555,20 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			target.state.knockback_velocity = knockback_dir * KNOCKBACK_FORCE
 			target.state.knockback_timer = KNOCKBACK_DURATION
 
-			// Remove character if health drops to zero or below
+			// Start death sequence if health drops to zero or below
 			if target.health <= 0 {
 				// Play death sound for enemies
 				if target.type == .ENEMY {
 					audio.sound_play(game_state.sounds["enemy_death"])
 				}
-				character_destroy(target)
-				unordered_remove(&characters, i)
+				// Start dying sequence
+				target.state.is_dying = true
+				target.state.death_timer = 0
+				// Stop all other actions
+				target.state.is_attacking = false
+				target.state.is_rolling = false
+				target.state.knockback_timer = 0
+				target.state.knockback_velocity = {0, 0}
 			}
 		}
 	}
@@ -558,6 +590,9 @@ character_find_nearest_interactable :: proc(
 
 		// Can only interact with NPCs (friendly), not enemies
 		if character.type != .NPC do continue
+
+		// Can't interact with dying characters
+		if character.state.is_dying do continue
 
 		distance := linalg.distance(position, character.position)
 		if distance < nearest_distance {
@@ -614,8 +649,20 @@ character_update :: proc(character: ^Character) {
 
 // Update all characters
 character_system_update :: proc() {
+	// Update all characters first
 	for &character in characters {
 		character_update(&character)
+	}
+
+	// Remove dead characters that have finished their death animation
+	for i := len(characters) - 1; i >= 0; i -= 1 {
+		character := &characters[i]
+		if character.state.is_dying && character.state.death_timer >= DEATH_ANIMATION_DURATION {
+			// Create particle explosion at death location
+			particle_create_explosion(character.position)
+			character_destroy(character)
+			unordered_remove(&characters, i)
+		}
 	}
 }
 

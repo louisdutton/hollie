@@ -12,6 +12,7 @@ AnimationState :: enum {
 	IDLE,
 	RUN,
 	JUMP,
+	DEATH,
 	ATTACK,
 	ROLL,
 }

@@ -62,6 +62,7 @@ init_gameplay_screen :: proc() {
 	init_camera()
 	dialog_init()
 	character_system_init()
+	particle_system_init()
 	shader_init()
 
 	gameplay_state.test_level = level_new()
@@ -98,6 +99,7 @@ update_gameplay_screen :: proc() {
 	if !gameplay_state.is_paused {
 		level_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
+		particle_system_update()
 		update_camera()
 		dialog_update()
 	}
@@ -108,6 +110,7 @@ draw_gameplay_screen :: proc() {
 
 	tilemap.draw(camera)
 	draw_entities_sorted()
+	particle_system_draw()
 	rl.EndMode2D()
 
 	// ui
@@ -127,6 +130,7 @@ unload_gameplay_screen :: proc() {
 	shader_fini()
 	level_fini()
 	character_system_fini()
+	particle_system_fini()
 }
 
 finish_gameplay_screen :: proc() -> int {

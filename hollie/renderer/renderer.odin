@@ -38,3 +38,7 @@ draw_rect_outline :: #force_inline proc(
 ) {
 	rl.DrawRectangleLinesEx({x, y, w, h}, thickness, color)
 }
+
+draw_circle :: #force_inline proc(x, y, radius: f32, color := DEFAULT_TEXT_COLOR) {
+	rl.DrawCircleV({x, y}, radius, color)
+}
