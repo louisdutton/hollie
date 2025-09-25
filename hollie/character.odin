@@ -36,7 +36,7 @@ Character_State :: struct {
 	is_busy:            bool, // locked in dialog or other activity
 	is_flipped:         bool, // sprite flip state
 	is_dying:           bool, // playing death animation
-	death_timer:        u32,  // timer for death animation duration
+	death_timer:        u32, // timer for death animation duration
 
 	// Hit effects
 	hit_flash_timer:    f32,
@@ -89,12 +89,13 @@ Character :: struct {
 characters: [dynamic]Character
 
 // Constants
-DEFAULT_MOVE_SPEED :: 1.5
+DEFAULT_MOVE_SPEED :: 0.5
 DEFAULT_ROLL_SPEED :: 3.0
-DEFAULT_ENEMY_MOVE_SPEED :: 1.0
-DEFAULT_ATTACK_RANGE :: 32.0
-DEFAULT_ATTACK_WIDTH :: 24.0
-DEFAULT_ATTACK_HEIGHT :: 16.0
+DEFAULT_ENEMY_MOVE_SPEED :: 0.5
+DEFAULT_PLAYER_MOVE_SPEED :: 1.5
+DEFAULT_ATTACK_RANGE :: 20.0
+DEFAULT_ATTACK_WIDTH :: 20.0
+DEFAULT_ATTACK_HEIGHT :: 20.0
 
 // Health constants
 DEFAULT_PLAYER_HEALTH :: 100
@@ -108,7 +109,7 @@ KNOCKBACK_FORCE :: 5.0
 KNOCKBACK_DURATION :: 0.3
 
 // Death animation constants
-DEATH_ANIMATION_DURATION :: 13 * INTERVAL  // 13 frames for goblin/human death
+DEATH_ANIMATION_DURATION :: 13 * INTERVAL // 13 frames for goblin/human death
 
 // Initialize character system
 character_system_init :: proc() {
@@ -157,11 +158,11 @@ character_create :: proc(
 		character.max_health = DEFAULT_ENEMY_HEALTH
 		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
 	case .PLAYER:
-		character.move_speed = DEFAULT_MOVE_SPEED
+		character.move_speed = DEFAULT_PLAYER_MOVE_SPEED
 		character.health = DEFAULT_PLAYER_HEALTH
 		character.max_health = DEFAULT_PLAYER_HEALTH
 	case .NPC:
-		character.move_speed = DEFAULT_MOVE_SPEED * 0.8
+		character.move_speed = DEFAULT_MOVE_SPEED
 		character.health = DEFAULT_NPC_HEALTH
 		character.max_health = DEFAULT_NPC_HEALTH
 	}
@@ -208,7 +209,7 @@ character_create_with_textures :: proc(
 		character.max_health = DEFAULT_ENEMY_HEALTH
 		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
 	case .PLAYER:
-		character.move_speed = DEFAULT_MOVE_SPEED
+		character.move_speed = DEFAULT_PLAYER_MOVE_SPEED
 		character.health = DEFAULT_PLAYER_HEALTH
 		character.max_health = DEFAULT_PLAYER_HEALTH
 	case .NPC:
