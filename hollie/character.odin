@@ -682,6 +682,20 @@ character_system_update :: proc() {
 
 // Draw single character
 character_draw :: proc(character: ^Character) {
+	// Draw elliptical shadow underneath character (20% opacity)
+	shadow_color := rl.Color{0, 0, 0, 48} // 20% opacity black (255 * 0.2 = 51)
+	shadow_offset_y: f32 = f32(character.height) / 2 // Position at bottom of character + 2 pixels
+	shadow_radius_h := f32(character.width) * 0.4 // Horizontal radius - slightly smaller than character
+	shadow_radius_v := f32(character.height) * 0.2 // Vertical radius - much smaller for elliptical shape
+
+	renderer.draw_ellipse(
+		character.position.x,
+		character.position.y + shadow_offset_y,
+		shadow_radius_h,
+		shadow_radius_v,
+		shadow_color,
+	)
+
 	if character.state.hit_flash_timer > 0 {
 		// Use shader-based white flash
 		flash_intensity := character.state.hit_flash_timer / HIT_FLASH_DURATION

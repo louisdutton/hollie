@@ -42,3 +42,7 @@ draw_rect_outline :: #force_inline proc(
 draw_circle :: #force_inline proc(x, y, radius: f32, color := DEFAULT_TEXT_COLOR) {
 	rl.DrawCircleV({x, y}, radius, color)
 }
+
+draw_ellipse :: #force_inline proc(x, y, radius_h, radius_v: f32, color := DEFAULT_TEXT_COLOR) {
+	rl.DrawEllipse(i32(x), i32(y), radius_h, radius_v, color)
+}
