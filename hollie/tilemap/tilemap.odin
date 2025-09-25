@@ -19,6 +19,9 @@ TileType :: enum u16 {
 	GRASS_6,
 	GRASS_7 = 64,
 	GRASS_8,
+	SAND_1 = 3,
+	SAND_2,
+	SAND_3,
 }
 
 Tile :: struct {

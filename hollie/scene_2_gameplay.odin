@@ -52,10 +52,13 @@ draw_entities_sorted :: proc() {
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	is_paused:  bool,
-	test_level: LevelResource,
+	is_paused:     bool,
+	grass_level:   LevelResource,
+	sand_level:    LevelResource,
+	current_level: int, // 0 = grass, 1 = sand
 } {
 	is_paused = false,
+	current_level = 0,
 }
 
 init_gameplay_screen :: proc() {
@@ -65,8 +68,9 @@ init_gameplay_screen :: proc() {
 	particle_system_init()
 	shader_init()
 
-	gameplay_state.test_level = level_new()
-	level_init(&gameplay_state.test_level)
+	gameplay_state.grass_level = level_new()
+	gameplay_state.sand_level = level_new_sand()
+	level_init(&gameplay_state.grass_level)
 }
 
 // FIXME: putting this in stack memory causes uaf in dialog
@@ -94,6 +98,23 @@ update_gameplay_screen :: proc() {
 
 	if rl.IsKeyPressed(.T) && !dialog_is_active() {
 		dialog_start(test_messages)
+	}
+
+	// Level switching with Left/Right arrow keys
+	if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressed(.RIGHT) {
+		if rl.IsKeyPressed(.LEFT) && gameplay_state.current_level > 0 {
+			gameplay_state.current_level -= 1
+		} else if rl.IsKeyPressed(.RIGHT) && gameplay_state.current_level < 1 {
+			gameplay_state.current_level += 1
+		}
+
+		// Load the appropriate level
+		switch gameplay_state.current_level {
+		case 0:
+			level_init(&gameplay_state.grass_level)
+		case 1:
+			level_init(&gameplay_state.sand_level)
+		}
 	}
 
 	if !gameplay_state.is_paused {

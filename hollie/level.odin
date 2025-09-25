@@ -164,6 +164,45 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 	}
 }
 
+level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
+	tile_data := make([]tilemap.TileType, width * height)
+
+	for y in 0 ..< height {
+		for x in 0 ..< width {
+			index := y * width + x
+			tile_data[index] = rand.choice(
+				[]tilemap.TileType {
+					.SAND_1,
+					.SAND_2,
+					.SAND_3,
+				},
+			)
+		}
+	}
+
+	entities := make([dynamic]Entity_Spawn)
+	append(&entities, Entity_Spawn{{256, 256}, .Player})
+	for i in 0 ..< 10 {
+		x := rand.float32_range(128, 384)
+		y := rand.float32_range(128, 384)
+		append(&entities, Entity_Spawn{{x, y}, .Enemy})
+	}
+
+	return LevelResource {
+		id = "desert",
+		name = "Desert Sands",
+		tilemap_config = tilemap.TilemapResource {
+			width = width,
+			height = height,
+			tileset_path = "res/art/tileset/spr_tileset_sunnysideworld_16px.png",
+			tile_data = tile_data,
+		},
+		entities = entities,
+		music_path = "res/audio/music/ambient.ogg",
+		camera_bounds = {0, 0, 50 * 16, 30 * 16},
+	}
+}
+
 level_draw_name :: proc() {
 	if !level_state.is_loaded || level_state.current_bundle == nil do return
 	if level_state.level_name_opacity <= 0.01 do return
