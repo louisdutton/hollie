@@ -30,6 +30,7 @@ Character_State :: struct {
 	is_attacking:       bool,
 	attack_timer:       u32,
 	attack_hit:         bool, // has this attack already hit a target
+	attack_direction:   Vec2, // direction locked when attack started
 	is_rolling:         bool,
 	roll_timer:         u32,
 	is_busy:            bool, // locked in dialog or other activity
@@ -252,10 +253,10 @@ character_get_rect :: proc(character: ^Character) -> rl.Rectangle {
 
 // Get attack rectangle
 character_get_attack_rect :: proc(character: ^Character) -> rl.Rectangle {
-	attack_offset_x: f32 =
-		character.state.is_flipped ? -character.attack_range : character.attack_range
-	attack_x := character.position.x + attack_offset_x - character.attack_width / 2
-	attack_y := character.position.y - character.attack_height / 2
+	// Use the stored attack direction to position the attack
+	attack_offset := character.state.attack_direction * character.attack_range
+	attack_x := character.position.x + attack_offset.x - character.attack_width / 2
+	attack_y := character.position.y + attack_offset.y - character.attack_height / 2
 
 	return rl.Rectangle{attack_x, attack_y, character.attack_width, character.attack_height}
 }
@@ -351,7 +352,9 @@ character_calc_state :: proc(character: ^Character) {
 	} else if character.state.is_rolling {
 		animation_set_state(&character.anim_data, .ROLL, character.state.is_flipped)
 	} else if character.state.is_attacking {
-		animation_set_state(&character.anim_data, .ATTACK, character.state.is_flipped)
+		// Use attack direction to determine sprite flip for attack animation
+		attack_flip := character.state.attack_direction.x < 0
+		animation_set_state(&character.anim_data, .ATTACK, attack_flip)
 	} else if character.velocity.x != 0 || character.velocity.y != 0 {
 		animation_set_state(&character.anim_data, .RUN, character.velocity.x < 0)
 	} else {
@@ -430,6 +433,17 @@ character_handle_player_input :: proc(character: ^Character) {
 		character.state.is_attacking = true
 		character.state.attack_timer = 0
 		character.state.attack_hit = false // Reset hit flag for new attack
+
+		// Lock attack direction based on current movement or facing
+		input := input_get_movement()
+		if linalg.length(input) > 0 {
+			// Use current movement direction
+			character.state.attack_direction = linalg.normalize(input)
+		} else {
+			// Use current facing direction if not moving
+			character.state.attack_direction = Vec2{character.state.is_flipped ? -1 : 1, 0}
+		}
+
 		// Play attack grunt sound
 		audio.sound_play(game_state.sounds["grunt_attack"])
 	}
