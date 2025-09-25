@@ -45,6 +45,7 @@ main :: proc() {
 }
 
 init :: proc() {
+	rl.SetTraceLogLevel(.WARNING)
 	rl.SetWindowState({.WINDOW_RESIZABLE})
 	rl.InitWindow(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
 	audio.init()
