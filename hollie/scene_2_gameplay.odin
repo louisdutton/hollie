@@ -114,6 +114,7 @@ draw_gameplay_screen :: proc() {
 	rl.EndMode2D()
 
 	// ui
+	level_draw_name()
 	dialog_draw()
 
 	if gameplay_state.is_paused {

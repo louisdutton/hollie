@@ -2,7 +2,10 @@ package hollie
 
 import "audio"
 import "core:math/rand"
+import "core:time"
+import "renderer"
 import "tilemap"
+import "tween"
 import rl "vendor:raylib"
 
 LevelResource :: struct {
@@ -25,9 +28,11 @@ Entity_Type :: enum {
 }
 
 LevelState :: struct {
-	current_bundle: ^LevelResource,
-	is_loaded:      bool,
-	level_music:    audio.Music,
+	current_bundle:           ^LevelResource,
+	is_loaded:                bool,
+	level_music:              audio.Music,
+	level_name_opacity:       f32,
+	level_name_display_timer: f32,
 }
 
 @(private)
@@ -59,6 +64,11 @@ level_init :: proc(res: ^LevelResource) {
 	}
 
 	level_state.is_loaded = true
+
+	// Start level name fade-in effect
+	level_state.level_name_opacity = 0.0
+	level_state.level_name_display_timer = 0.0
+	tween.to(&level_state.level_name_opacity, 1.0, .Quadratic_Out, 500 * time.Millisecond)
 }
 
 level_reload :: proc() {
@@ -94,6 +104,19 @@ level_update :: proc() {
 	if level_state.is_loaded && level_state.level_music.stream.buffer != nil {
 		audio.music_update(level_state.level_music)
 	}
+
+	// Update level name display timer and fade out after 3 seconds
+	if level_state.is_loaded && level_state.level_name_opacity > 0.0 {
+		level_state.level_name_display_timer += rl.GetFrameTime()
+
+		// Start fading out after 2.5 seconds (0.5s fade in + 2s display)
+		if level_state.level_name_display_timer > 2.5 && level_state.level_name_opacity > 0.01 {
+			// Only start fade-out tween if we haven't already
+			if level_state.level_name_opacity >= 0.99 {
+				tween.to(&level_state.level_name_opacity, 0.0, .Quadratic_In, time.Second)
+			}
+		}
+	}
 }
 
 // returns an example level
@@ -127,8 +150,8 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 	}
 
 	return LevelResource {
-		id = "example",
-		name = "Example",
+		id = "olivewood",
+		name = "Olivewood",
 		tilemap_config = tilemap.TilemapResource {
 			width = width,
 			height = height,
@@ -139,4 +162,26 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		music_path = "res/audio/music/ambient.ogg",
 		camera_bounds = {0, 0, 50 * 16, 30 * 16},
 	}
+}
+
+level_draw_name :: proc() {
+	if !level_state.is_loaded || level_state.current_bundle == nil do return
+	if level_state.level_name_opacity <= 0.01 do return
+
+	level_name := level_state.current_bundle.name
+	if level_name == "" do return
+
+	// Calculate text size and position for centering at top of screen
+	text_size: i32 = 48
+	text_width := rl.MeasureText(cstring(raw_data(level_name)), text_size)
+
+	screen_width := f32(rl.GetScreenWidth())
+	x := (screen_width - f32(text_width)) / 2
+	y: f32 = 50
+
+	// Create color with opacity for fade effect
+	alpha := u8(level_state.level_name_opacity * 255)
+	color := rl.Color{255, 255, 255, alpha}
+
+	renderer.draw_text(level_name, int(x), int(y), text_size, color)
 }
