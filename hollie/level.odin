@@ -224,12 +224,7 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 			// 10% chance for decorative tiles, 90% empty
 			if rand.float32() < 0.1 {
 				deco_data[index] = rand.choice(
-					[]tilemap.TileType {
-						.SAND_DEC_13,
-						.SAND_DEC_14,
-						.SAND_DEC_15,
-						.SAND_DEC_16,
-					},
+					[]tilemap.TileType{.SAND_DEC_13, .SAND_DEC_14, .SAND_DEC_15, .SAND_DEC_16},
 				)
 			} else {
 				deco_data[index] = .EMPTY
@@ -247,7 +242,7 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 
 	return LevelResource {
 		id = "desert",
-		name = "Desert Sands",
+		name = "Blisterwind",
 		tilemap_config = tilemap.TilemapResource {
 			width = width,
 			height = height,
