@@ -19,7 +19,6 @@ init_title_screen :: proc() {
 update_title_screen :: proc() {
 	if rl.IsKeyPressed(.ENTER) || rl.IsGestureDetected(.TAP) {
 		title_screen.finish_screen = 2 // GAMEPLAY
-		sound_play(game_state.fx_coin)
 	}
 }
 

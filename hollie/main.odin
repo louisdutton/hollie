@@ -21,10 +21,13 @@ get_screen_scale :: proc() -> f32 {
 
 // Global state
 game_state := struct {
-	scene:   Scene,
-	font:    rl.Font,
-	music:   Music,
-	fx_coin: Sound,
+	scene:        Scene,
+	font:         rl.Font,
+	music:        Music,
+	grunt_roll:      Sound_Collection,
+	grunt_attack:    Sound_Collection,
+	attack_hit:      Sound_Collection,
+	enemy_hit:       Sound_Collection,
 } {
 	scene = .GAMEPLAY,
 }
@@ -48,7 +51,40 @@ init :: proc() {
 	// Load global assets
 	game_state.font = rl.LoadFont("res/font/mecha.png")
 	game_state.music = music_load("res/audio/music/ambient.ogg")
-	game_state.fx_coin = sound_load("res/audio/fx/coin.wav")
+
+	// Load grunt sounds - using first few Meghan Christian grunts for roll and attack
+	roll_grunt_paths := []string {
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_3_meghan.wav",
+	}
+
+	attack_grunt_paths := []string {
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_4_meghan.wav",
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_5_meghan.wav",
+		"res/audio/fx/voices/grunting/female/meghan-christian/grunting_6_meghan.wav",
+	}
+
+	game_state.grunt_roll = sound_collection_create(roll_grunt_paths)
+	game_state.grunt_attack = sound_collection_create(attack_grunt_paths)
+
+	// Load attack collision/hit sounds
+	attack_hit_paths := []string {
+		"res/audio/fx/impact/punch-clean-heavy-10.wav",
+		"res/audio/fx/impact/punch-designed-heavy-23.wav",
+		"res/audio/fx/impact/punch-designed-heavy-74.wav",
+		"res/audio/fx/impact/hit-short-04.wav",
+	}
+
+	// Load enemy hit sounds (damage/pain sounds)
+	enemy_hit_paths := []string {
+		"res/audio/fx/voices/damage/female/Meghan Christian/damage_1_meghan.wav",
+		"res/audio/fx/voices/damage/female/Meghan Christian/damage_2_meghan.wav",
+		"res/audio/fx/voices/damage/female/Meghan Christian/damage_3_meghan.wav",
+	}
+
+	game_state.attack_hit = sound_collection_create(attack_hit_paths)
+	game_state.enemy_hit = sound_collection_create(enemy_hit_paths)
 
 	music_set_volume(game_state.music, 1.0)
 	music_play(game_state.music)
@@ -87,7 +123,10 @@ fini :: proc() {
 	// Unload global assets
 	rl.UnloadFont(game_state.font)
 	music_unload(game_state.music)
-	sound_unload(game_state.fx_coin)
+	sound_collection_destroy(&game_state.grunt_roll)
+	sound_collection_destroy(&game_state.grunt_attack)
+	sound_collection_destroy(&game_state.attack_hit)
+	sound_collection_destroy(&game_state.enemy_hit)
 
 	audio_close()
 	rl.CloseWindow()

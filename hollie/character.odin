@@ -416,6 +416,8 @@ character_handle_player_input :: proc(character: ^Character) {
 		character.state.is_attacking = true
 		character.state.attack_timer = 0
 		character.state.attack_hit = false // Reset hit flag for new attack
+		// Play attack grunt sound
+		sound_collection_play_random(game_state.grunt_attack)
 	}
 
 	if .CAN_ROLL in character.behaviors &&
@@ -427,6 +429,8 @@ character_handle_player_input :: proc(character: ^Character) {
 			character.velocity = linalg.normalize(character.velocity) * character.roll_speed
 			character.state.is_rolling = true
 			character.state.roll_timer = 0
+			// Play roll grunt sound
+			sound_collection_play_random(game_state.grunt_roll)
 		}
 	}
 }
@@ -507,6 +511,14 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			// Damage the target instead of instantly killing
 			target.health -= attacker.attack_damage
 			attacker.state.attack_hit = true // Mark that this attack has hit
+
+			// Play attack hit sound
+			sound_collection_play_random(game_state.attack_hit)
+
+			// Play enemy hit sound if target is an enemy
+			if target.type == .ENEMY {
+				sound_collection_play_random(game_state.enemy_hit)
+			}
 
 			// Apply hit effects
 			target.state.hit_flash_timer = HIT_FLASH_DURATION
