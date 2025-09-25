@@ -57,7 +57,14 @@ level_init :: proc(res: ^LevelResource) {
 	for spawn in res.entities {
 		switch spawn.type {
 		case .Enemy:
-			enemy_spawn_at(spawn.position)
+			// Check level ID to spawn appropriate enemy type
+			if res.id == "olivewood" {
+				enemy_spawn_race_at(spawn.position, .GOBLIN)
+			} else if res.id == "desert" {
+				enemy_spawn_race_at(spawn.position, .SKELETON)
+			} else {
+				enemy_spawn_at(spawn.position) // Default behavior for other levels
+			}
 		case .Player:
 			player_set_spawn_position(spawn.position)
 		}
