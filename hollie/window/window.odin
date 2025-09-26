@@ -46,3 +46,25 @@ get_screen_scale :: proc(x, y: int) -> f32 {
 	// Use the smaller scale to maintain aspect ratio
 	return min(scale_x, scale_y)
 }
+
+// Dynamic design dimensions based on window aspect ratio
+// These return scaled reference dimensions, not actual pixel dimensions
+get_design_width :: proc() -> i32 {
+	window_width := f32(get_screen_width())
+	window_height := f32(get_screen_height())
+	window_aspect := window_width / window_height
+
+	// Keep design height fixed at 450, adjust width to match window aspect
+	return i32(450.0 * window_aspect)
+}
+
+get_design_height :: proc() -> i32 {
+	return 450
+}
+
+// Get the actual UI scale factor
+get_ui_scale :: proc() -> f32 {
+	base_height: f32 = 450.0
+	current_height := f32(get_screen_height())
+	return current_height / base_height
+}

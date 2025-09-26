@@ -131,8 +131,8 @@ dialog_draw :: proc() {
 	SPEAKER_OFFSET :: 25
 
 	// Use design resolution for consistent UI layout
-	design_w := DESIGN_WIDTH
-	design_h := DESIGN_HEIGHT
+	design_w := f32(design_width)
+	design_h := f32(design_height)
 
 	bg_height :: 200
 	bg_x := f32(MARGIN_X)
@@ -166,7 +166,7 @@ dialog_draw :: proc() {
 		}
 
 		text_w := rl.MeasureText(cstring(raw_data(continue_text)), 20)
-		continue_x := design_w - MARGIN_X - PADDING_X - int(text_w)
+		continue_x := int(design_width) - MARGIN_X - PADDING_X - int(text_w)
 		continue_y := int(bg_y) + bg_height - PADDING_Y - 20
 
 		renderer.draw_text(continue_text, continue_x, continue_y)

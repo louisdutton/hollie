@@ -267,8 +267,7 @@ level_draw_name :: proc() {
 	text_size := 48
 	text_width := ui_measure_text(level_name, text_size)
 
-	_ = DESIGN_WIDTH
-	x := (DESIGN_WIDTH - text_width) / 2
+	x := (int(design_width) - text_width) / 2
 	y := 50
 
 	// Create color with opacity for fade effect

@@ -27,7 +27,7 @@ draw_title_screen :: proc() {
 	ui_begin()
 	defer ui_end()
 
-	renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.GREEN)
+	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.GREEN)
 
 	pos := Vec2{20, 10}
 	renderer.draw_text_ex(

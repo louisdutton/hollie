@@ -209,10 +209,10 @@ finish_gameplay_screen :: proc() -> int {
 draw_pause_overlay :: proc() {
 	if !gameplay_state.is_paused do return
 
-	renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.fade(renderer.BLACK, 0.75))
+	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.fade(renderer.BLACK, 0.75))
 
-	design_w := f32(DESIGN_WIDTH)
-	design_h := f32(DESIGN_HEIGHT)
+	design_w := f32(design_width)
+	design_h := f32(design_height)
 	tx := i32(design_w / 2 - 60)
 	ty := i32(design_h / 2 - 30)
 	renderer.draw_text("PAUSED", int(tx), int(ty), 20, renderer.WHITE)
@@ -221,6 +221,6 @@ draw_pause_overlay :: proc() {
 draw_transition_overlay :: proc() {
 	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
 		alpha := u8(gameplay_state.transition_opacity * 255)
-		renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.Colour{0, 0, 0, alpha})
+		renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{0, 0, 0, alpha})
 	}
 }

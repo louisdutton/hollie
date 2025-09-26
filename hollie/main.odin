@@ -7,10 +7,10 @@ import "window"
 
 Vec2 :: renderer.Vec2
 
-DESIGN_WIDTH :: 800
-DESIGN_HEIGHT :: 450
-
 // Global state
+design_width: i32
+design_height: i32
+
 game_state := struct {
 	scene:  Scene,
 	font:   renderer.Font,
@@ -31,7 +31,12 @@ main :: proc() {
 }
 
 init :: proc() {
-	window.init(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
+	window.init(800, 450, "hollie")
+
+	// Set design dimensions based on actual screen
+	design_width = window.get_design_width()
+	design_height = window.get_design_height()
+
 	audio.init()
 
 	// Load global assets
@@ -103,6 +108,12 @@ fini :: proc() {
 }
 
 update :: proc() {
+	// Update design dimensions if window was resized
+	if window.is_resized() {
+		design_width = window.get_design_width()
+		design_height = window.get_design_height()
+	}
+
 	dt := window.get_frame_time()
 	tween.update(dt)
 
