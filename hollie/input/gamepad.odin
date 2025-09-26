@@ -20,13 +20,13 @@ get_gamepad_axis_movement :: proc(gamepad: i32, axis: GamepadAxis) -> f32 {
 }
 
 @(private)
-get_axis_x :: proc(deadzone: f32 = 0.2) -> f32 {
+gamepad_axis_x :: proc(deadzone: f32 = 0.2) -> f32 {
 	value := get_gamepad_axis_movement(PLAYER_1, .LEFT_X)
 	return abs(value) >= deadzone ? value : 0
 }
 
 @(private)
-get_axis_y :: proc(deadzone: f32 = 0.2) -> f32 {
+gamepad_axis_y :: proc(deadzone: f32 = 0.2) -> f32 {
 	value := get_gamepad_axis_movement(PLAYER_1, .LEFT_Y)
 	return abs(value) >= deadzone ? value : 0
 }

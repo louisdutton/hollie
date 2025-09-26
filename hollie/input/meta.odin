@@ -4,16 +4,10 @@ import "../renderer"
 
 // returns the current movement input for player 1
 get_movement :: proc() -> (input: renderer.Vec2) {
-	if is_gamepad_available(PLAYER_1) {
-		input = renderer.Vec2{get_axis_x(), get_axis_y()}
-	} else {
-		input = renderer.Vec2 {
-			f32(int(is_key_down(.D)) - int(is_key_down(.A))),
-			f32(int(is_key_down(.S)) - int(is_key_down(.W))),
-		}
-	}
+	key_x := f32(int(is_key_down(.D)) - int(is_key_down(.A)))
+	key_y := f32(int(is_key_down(.S)) - int(is_key_down(.W)))
 
-	return vector2_normalize(input)
+	return vector2_normalize({key_x + gamepad_axis_x(), key_y + gamepad_axis_y()})
 }
 
 Player_Input :: enum {
