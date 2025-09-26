@@ -184,7 +184,7 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 
 	entities := make([dynamic]Entity_Spawn)
 	append(&entities, Entity_Spawn{{256, 256}, .Player})
-	for i in 0 ..< 10 {
+	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)
 		append(&entities, Entity_Spawn{{x, y}, .Enemy})
@@ -234,7 +234,7 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 
 	entities := make([dynamic]Entity_Spawn)
 	append(&entities, Entity_Spawn{{256, 256}, .Player})
-	for i in 0 ..< 10 {
+	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)
 		append(&entities, Entity_Spawn{{x, y}, .Enemy})
@@ -267,7 +267,7 @@ level_draw_name :: proc() {
 	text_size := 48
 	text_width := ui_measure_text(level_name, text_size)
 
-	design_width := DESIGN_WIDTH
+	_ = DESIGN_WIDTH
 	x := (DESIGN_WIDTH - text_width) / 2
 	y := 50
 

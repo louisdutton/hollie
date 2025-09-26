@@ -1,6 +1,5 @@
 package tilemap
 
-import "core:math"
 import "core:math/rand"
 import rl "vendor:raylib"
 

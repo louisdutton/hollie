@@ -37,7 +37,7 @@ particle_system_fini :: proc() {
 particle_create_explosion :: proc(position: Vec2) {
 	PARTICLE_COUNT :: 15
 
-	for i in 0..<PARTICLE_COUNT {
+	for _ in 0..<PARTICLE_COUNT {
 		// Random direction and speed
 		angle := rand.float32() * 2 * 3.14159
 		speed := rand.float32_range(50.0, 120.0)

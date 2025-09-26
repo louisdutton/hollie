@@ -1,7 +1,6 @@
 package hollie
 
 import rl "vendor:raylib"
-import "window"
 
 ui_begin :: proc() {
 	rl.BeginMode2D({zoom = screen_scale})

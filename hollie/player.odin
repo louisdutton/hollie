@@ -1,9 +1,5 @@
 package hollie
 
-import "core:fmt"
-import "core:math/linalg"
-import "renderer"
-import rl "vendor:raylib"
 
 PLAYER_ANIM_COUNT :: 6
 player_frame_counts := [PLAYER_ANIM_COUNT]int{9, 8, 9, 13, 10, 10}

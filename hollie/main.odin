@@ -93,7 +93,7 @@ fini :: proc() {
 	audio.music_fini(game_state.music)
 
 	// Cleanup sounds map
-	for key, &sound in game_state.sounds {
+	for _, &sound in game_state.sounds {
 		audio.sound_fini(&sound)
 	}
 	delete(game_state.sounds)

@@ -50,7 +50,7 @@ camera_follow_target :: proc() {
 }
 
 camera_init :: proc() {
-	screen_scale := window.get_screen_scale(DESIGN_WIDTH, DESIGN_HEIGHT)
+	_ = window.get_screen_scale(DESIGN_WIDTH, DESIGN_HEIGHT)
 	camera_update()
 }
 

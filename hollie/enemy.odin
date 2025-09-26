@@ -1,9 +1,7 @@
 package hollie
 
 import "core:fmt"
-import "core:math/linalg"
 import "core:math/rand"
-import "renderer"
 import rl "vendor:raylib"
 
 ENEMY_ANIM_COUNT :: 4
