@@ -3,6 +3,7 @@ package hollie
 import "audio"
 import "core:slice"
 import "core:time"
+import "input"
 import "renderer"
 import "tilemap"
 import "tween"
@@ -80,7 +81,7 @@ test_messages := []Dialog_Message {
 }
 
 update_gameplay_screen :: proc() {
-	if is_key_pressed(.P) || is_gamepad_button_pressed(PLAYER_1, .MIDDLE_RIGHT) {
+	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(input.PLAYER_1, .MIDDLE_RIGHT) {
 		if gameplay_state.is_paused {
 			gameplay_state.is_paused = false
 			audio.music_set_volume(game_state.music, 1)
@@ -90,11 +91,11 @@ update_gameplay_screen :: proc() {
 		}
 	}
 
-	if is_key_pressed(.R) {
+	if input.is_key_pressed(.R) {
 		level_reload()
 	}
 
-	if is_key_pressed(.T) && !dialog_is_active() {
+	if input.is_key_pressed(.T) && !dialog_is_active() {
 		dialog_start(test_messages)
 	}
 

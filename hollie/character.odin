@@ -4,6 +4,7 @@ import "audio"
 import "core:fmt"
 import "core:math/linalg"
 import "core:math/rand"
+import "input"
 import "renderer"
 import rl "vendor:raylib"
 
@@ -312,7 +313,7 @@ character_calc_velocity :: proc(character: ^Character) {
 
 // Calculate player velocity from input
 character_calc_player_velocity :: proc(character: ^Character) {
-	input := input_get_movement()
+	input := input.get_movement()
 	character.velocity.x = input.x * character.move_speed
 	character.velocity.y = input.y * character.move_speed
 
@@ -408,7 +409,7 @@ character_handle_player_input :: proc(character: ^Character) {
 	if character.type != .PLAYER do return
 	if dialog_is_active() do return
 
-	if input_pressed(.Accept) {
+	if input.is_pressed(.Accept) {
 		// Try to interact with nearby character
 		INTERACTION_RANGE :: 40.0
 		target, found := character_find_nearest_interactable(character.position, INTERACTION_RANGE)
@@ -428,7 +429,7 @@ character_handle_player_input :: proc(character: ^Character) {
 	}
 
 	if .CAN_ATTACK in character.behaviors &&
-	   input_pressed(.Attack) &&
+	   input.is_pressed(.Attack) &&
 	   !character.state.is_attacking &&
 	   !character.state.is_rolling {
 		character.state.is_attacking = true
@@ -436,7 +437,7 @@ character_handle_player_input :: proc(character: ^Character) {
 		character.state.attack_hit = false // Reset hit flag for new attack
 
 		// Lock attack direction based on current movement or facing
-		input := input_get_movement()
+		input := input.get_movement()
 		if linalg.length(input) > 0 {
 			// Use current movement direction
 			character.state.attack_direction = linalg.normalize(input)
@@ -450,7 +451,7 @@ character_handle_player_input :: proc(character: ^Character) {
 	}
 
 	if .CAN_ROLL in character.behaviors &&
-	   input_pressed(.Roll) &&
+	   input.is_pressed(.Roll) &&
 	   !character.state.is_rolling &&
 	   !character.state.is_attacking {
 		// Lock current velocity for roll (only roll if moving)

@@ -1,5 +1,6 @@
 package hollie
 
+import "input"
 import "renderer"
 
 // Title Screen
@@ -17,7 +18,7 @@ init_title_screen :: proc() {
 }
 
 update_title_screen :: proc() {
-	if is_key_pressed(.ENTER) {
+	if input.is_key_pressed(.ENTER) {
 		title_screen.finish_screen = 2 // GAMEPLAY
 	}
 }

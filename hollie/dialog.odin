@@ -2,6 +2,7 @@ package hollie
 
 import "core:time"
 import "core:unicode/utf8"
+import "input"
 import "renderer"
 import "tween"
 import rl "vendor:raylib"
@@ -106,7 +107,7 @@ dialog_update :: proc() {
 	if !dialog_state.is_active do return
 
 	if dialog_state.text_complete {
-		if input_pressed(.Accept) do dialog_advance()
+		if input.is_pressed(.Accept) do dialog_advance()
 	} else {
 		if dialog_state.message_progress >= 1.0 {
 			dialog_state.text_complete = true
