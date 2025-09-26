@@ -88,11 +88,6 @@ init :: proc() {
 		init_gameplay_screen()
 	case .TITLE:
 		init_title_screen()
-	case .OPTIONS:
-		init_options_screen()
-	case .ENDING:
-		init_ending_screen()
-	case .UNKNOWN:
 	// Do nothing
 	}
 }
@@ -102,14 +97,8 @@ fini :: proc() {
 	switch game_state.scene {
 	case .TITLE:
 		unload_title_screen()
-	case .OPTIONS:
-		unload_options_screen()
 	case .GAMEPLAY:
 		unload_gameplay_screen()
-	case .ENDING:
-		unload_ending_screen()
-	case .UNKNOWN:
-	// Do nothing
 	}
 
 	// Unload global assets
@@ -134,16 +123,8 @@ update :: proc() {
 	case .TITLE:
 		audio.music_update(game_state.music)
 		update_title_screen()
-	case .OPTIONS:
-		audio.music_update(game_state.music)
-		update_options_screen()
 	case .GAMEPLAY:
 		update_gameplay_screen()
-	case .ENDING:
-		audio.music_update(game_state.music)
-		update_ending_screen()
-	case .UNKNOWN:
-	// Do nothing
 	}
 }
 
@@ -156,14 +137,8 @@ draw :: proc() {
 	switch game_state.scene {
 	case .TITLE:
 		draw_title_screen()
-	case .OPTIONS:
-		draw_options_screen()
 	case .GAMEPLAY:
 		draw_gameplay_screen()
-	case .ENDING:
-		draw_ending_screen()
-	case .UNKNOWN:
-	// Do nothing
 	}
 
 	rl.DrawFPS(10, 10)

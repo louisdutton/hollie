@@ -1,5 +1,6 @@
 package hollie
 
+import "renderer"
 import rl "vendor:raylib"
 
 // Title Screen
@@ -24,8 +25,13 @@ update_title_screen :: proc() {
 
 draw_title_screen :: proc() {
 	rl.DrawRectangle(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GREEN)
+
+	// Use unified UI rendering
+	ui_begin()
+	defer ui_end()
+
 	pos := Vec2{20, 10}
-	rl.DrawTextEx(
+	renderer.draw_text_ex(
 		game_state.font,
 		"TITLE SCREEN",
 		pos,
@@ -33,7 +39,7 @@ draw_title_screen :: proc() {
 		4,
 		rl.DARKGREEN,
 	)
-	rl.DrawText("PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN", 120, 220, 20, rl.DARKGREEN)
+	renderer.draw_text("PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN", 120, 220, 20, rl.DARKGREEN)
 }
 
 unload_title_screen :: proc() {}

@@ -129,14 +129,15 @@ dialog_draw :: proc() {
 	PADDING_Y :: 15
 	SPEAKER_OFFSET :: 25
 
-	screen_w := rl.GetScreenWidth()
-	screen_h := rl.GetScreenHeight()
+	// Use design resolution for consistent UI layout
+	design_w := DESIGN_WIDTH
+	design_h := DESIGN_HEIGHT
 
 	bg_height :: 200
 	bg_x := f32(MARGIN_X)
-	bg_y := f32(screen_h - bg_height - MARGIN_Y)
-	renderer.draw_rect(bg_x, bg_y, f32(screen_w - MARGIN_X * 2), bg_height)
-	renderer.draw_rect_outline(bg_x, bg_y, f32(screen_w - MARGIN_X * 2), bg_height)
+	bg_y := f32(design_h - bg_height - MARGIN_Y)
+	renderer.draw_rect(bg_x, bg_y, f32(design_w - MARGIN_X * 2), bg_height)
+	renderer.draw_rect_outline(bg_x, bg_y, f32(design_w - MARGIN_X * 2), bg_height)
 
 	current_msg := dialog_state.messages[dialog_state.current_page]
 
@@ -164,9 +165,9 @@ dialog_draw :: proc() {
 		}
 
 		text_w := rl.MeasureText(cstring(raw_data(continue_text)), 20)
-		continue_x := screen_w - MARGIN_X - PADDING_X - text_w
+		continue_x := design_w - MARGIN_X - PADDING_X - int(text_w)
 		continue_y := int(bg_y) + bg_height - PADDING_Y - 20
 
-		renderer.draw_text(continue_text, int(continue_x), continue_y)
+		renderer.draw_text(continue_text, continue_x, continue_y)
 	}
 }

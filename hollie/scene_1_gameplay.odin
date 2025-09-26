@@ -7,15 +7,10 @@ import "tilemap"
 import "tween"
 import rl "vendor:raylib"
 
-// Entity for y-sorting
-Entity_Type_For_Sorting :: enum {
-	PLAYER,
-	ENEMY,
-}
 
 Drawable_Entity :: struct {
 	position:    Vec2,
-	type:        Entity_Type_For_Sorting,
+	type:        Character_Type,
 	enemy_index: int, // only used for enemies
 }
 
@@ -27,15 +22,10 @@ draw_entities_sorted :: proc() {
 	// Add all characters
 	for i in 0 ..< len(characters) {
 		character := &characters[i]
-		entity_type := Entity_Type_For_Sorting.PLAYER
-		switch character.type {
-		case .PLAYER: entity_type = .PLAYER
-		case .ENEMY, .NPC: entity_type = .ENEMY
-		}
 
 		append(
 			&entities,
-			Drawable_Entity{position = character.position, type = entity_type, enemy_index = i},
+			Drawable_Entity{position = character.position, type = character.type, enemy_index = i},
 		)
 	}
 
@@ -54,20 +44,20 @@ draw_entities_sorted :: proc() {
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	is_paused:              bool,
-	grass_level:            LevelResource,
-	sand_level:             LevelResource,
-	current_level:          int, // 0 = grass, 1 = sand
-	is_transitioning:       bool,
-	transition_opacity:     f32,
-	pending_level:          int,
-	pending_player_pos:     Vec2,
+	is_paused:          bool,
+	grass_level:        LevelResource,
+	sand_level:         LevelResource,
+	current_level:      int, // 0 = grass, 1 = sand
+	is_transitioning:   bool,
+	transition_opacity: f32,
+	pending_level:      int,
+	pending_player_pos: Vec2,
 } {
-	is_paused     = false,
-	current_level = 0,
-	is_transitioning = false,
+	is_paused          = false,
+	current_level      = 0,
+	is_transitioning   = false,
 	transition_opacity = 0.0,
-	pending_level = -1,
+	pending_level      = -1,
 }
 
 init_gameplay_screen :: proc() {
@@ -120,18 +110,30 @@ update_gameplay_screen :: proc() {
 			gameplay_state.is_transitioning = true
 			gameplay_state.pending_level = 1
 			gameplay_state.pending_player_pos = {50, player_pos.y}
-			tween.to(&gameplay_state.transition_opacity, 1.0, .Quadratic_Out, 300 * time.Millisecond)
+			tween.to(
+				&gameplay_state.transition_opacity,
+				1.0,
+				.Quadratic_Out,
+				300 * time.Millisecond,
+			)
 		} else if gameplay_state.current_level == 1 && player_pos.x <= 15 {
 			// Transition to grass level (left side) - trigger near left edge
 			gameplay_state.is_transitioning = true
 			gameplay_state.pending_level = 0
 			gameplay_state.pending_player_pos = {level_width - 60, player_pos.y}
-			tween.to(&gameplay_state.transition_opacity, 1.0, .Quadratic_Out, 300 * time.Millisecond)
+			tween.to(
+				&gameplay_state.transition_opacity,
+				1.0,
+				.Quadratic_Out,
+				300 * time.Millisecond,
+			)
 		}
 	}
 
 	// Handle transition state - switch level at peak opacity
-	if gameplay_state.is_transitioning && gameplay_state.transition_opacity >= 0.99 && gameplay_state.pending_level >= 0 {
+	if gameplay_state.is_transitioning &&
+	   gameplay_state.transition_opacity >= 0.99 &&
+	   gameplay_state.pending_level >= 0 {
 		gameplay_state.current_level = gameplay_state.pending_level
 
 		// Load appropriate level
@@ -154,7 +156,9 @@ update_gameplay_screen :: proc() {
 	}
 
 	// End transition when fade out completes
-	if gameplay_state.is_transitioning && gameplay_state.transition_opacity <= 0.01 && gameplay_state.pending_level < 0 {
+	if gameplay_state.is_transitioning &&
+	   gameplay_state.transition_opacity <= 0.01 &&
+	   gameplay_state.pending_level < 0 {
 		gameplay_state.is_transitioning = false
 		gameplay_state.transition_opacity = 0.0
 	}
@@ -169,32 +173,25 @@ update_gameplay_screen :: proc() {
 }
 
 draw_gameplay_screen :: proc() {
-	rl.BeginMode2D(camera)
+	// world
+	{
+		rl.BeginMode2D(camera)
+		defer rl.EndMode2D()
 
-	tilemap.draw(camera)
-	draw_entities_sorted()
-	particle_system_draw()
-	rl.EndMode2D()
-
-	// ui
-	level_draw_name()
-	dialog_draw()
-
-	// Draw transition overlay
-	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
-		w := rl.GetScreenWidth()
-		h := rl.GetRenderHeight()
-		alpha := u8(gameplay_state.transition_opacity * 255)
-		rl.DrawRectangle(0, 0, w, h, rl.Color{0, 0, 0, alpha})
+		tilemap.draw(camera)
+		draw_entities_sorted()
+		particle_system_draw()
 	}
 
-	if gameplay_state.is_paused {
-		w := rl.GetScreenWidth()
-		h := rl.GetRenderHeight()
-		rl.DrawRectangle(0, 0, w, h, rl.Fade(rl.BLACK, 0.75))
-		tx := w / 2 - 60
-		ty := h / 2 - 30
-		rl.DrawText("PAUSED", tx, ty, 20, rl.WHITE)
+	// ui
+	{
+		ui_begin()
+		defer ui_end()
+
+		level_draw_name()
+		dialog_draw()
+		draw_transition_overlay()
+		draw_pause_overlay()
 	}
 }
 
@@ -207,4 +204,25 @@ unload_gameplay_screen :: proc() {
 
 finish_gameplay_screen :: proc() -> int {
 	return 0
+}
+
+draw_pause_overlay :: proc() {
+	if !gameplay_state.is_paused do return
+
+	rl.DrawRectangle(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, rl.Fade(rl.BLACK, 0.75))
+
+	design_w := f32(DESIGN_WIDTH)
+	design_h := f32(DESIGN_HEIGHT)
+	tx := i32(design_w / 2 - 60)
+	ty := i32(design_h / 2 - 30)
+	rl.DrawText("PAUSED", tx, ty, 20, rl.WHITE)
+}
+
+draw_transition_overlay :: proc() {
+	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
+		w := rl.GetScreenWidth()
+		h := rl.GetRenderHeight()
+		alpha := u8(gameplay_state.transition_opacity * 255)
+		rl.DrawRectangle(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, rl.Color{0, 0, 0, alpha})
+	}
 }

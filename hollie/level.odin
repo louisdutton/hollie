@@ -263,17 +263,17 @@ level_draw_name :: proc() {
 	level_name := level_state.current_bundle.name
 	if level_name == "" do return
 
-	// Calculate text size and position for centering at top of screen
-	text_size: i32 = 48
-	text_width := rl.MeasureText(cstring(raw_data(level_name)), text_size)
+	// Calculate text size and position for centering using design resolution
+	text_size := 48
+	text_width := ui_measure_text(level_name, text_size)
 
-	screen_width := f32(rl.GetScreenWidth())
-	x := (screen_width - f32(text_width)) / 2
-	y: f32 = 50
+	design_width := DESIGN_WIDTH
+	x := (DESIGN_WIDTH - text_width) / 2
+	y := 50
 
 	// Create color with opacity for fade effect
 	alpha := u8(level_state.level_name_opacity * 255)
 	color := rl.Color{255, 255, 255, alpha}
 
-	renderer.draw_text(level_name, int(x), int(y), text_size, color)
+	renderer.draw_text(level_name, x, y, text_size, color)
 }
