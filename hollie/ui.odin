@@ -1,13 +1,10 @@
 package hollie
 
 import rl "vendor:raylib"
+import "window"
 
-// Unified UI rendering with consistent scaling
 ui_begin :: proc() {
-	ui_camera := rl.Camera2D {
-		zoom = get_screen_scale(),
-	}
-	rl.BeginMode2D(ui_camera)
+	rl.BeginMode2D({zoom = screen_scale})
 }
 
 ui_end :: proc() {

@@ -3,10 +3,9 @@ package hollie
 import "audio"
 import "core:slice"
 import "core:time"
+import "renderer"
 import "tilemap"
 import "tween"
-import rl "vendor:raylib"
-
 
 Drawable_Entity :: struct {
 	position:    Vec2,
@@ -61,7 +60,7 @@ gameplay_state := struct {
 }
 
 init_gameplay_screen :: proc() {
-	init_camera()
+	camera_init()
 	dialog_init()
 	character_system_init()
 	particle_system_init()
@@ -81,7 +80,7 @@ test_messages := []Dialog_Message {
 }
 
 update_gameplay_screen :: proc() {
-	if rl.IsKeyPressed(.P) || rl.IsGamepadButtonPressed(PLAYER_1, .MIDDLE_RIGHT) {
+	if is_key_pressed(.P) || is_gamepad_button_pressed(PLAYER_1, .MIDDLE_RIGHT) {
 		if gameplay_state.is_paused {
 			gameplay_state.is_paused = false
 			audio.music_set_volume(game_state.music, 1)
@@ -91,11 +90,11 @@ update_gameplay_screen :: proc() {
 		}
 	}
 
-	if rl.IsKeyPressed(.R) {
+	if is_key_pressed(.R) {
 		level_reload()
 	}
 
-	if rl.IsKeyPressed(.T) && !dialog_is_active() {
+	if is_key_pressed(.T) && !dialog_is_active() {
 		dialog_start(test_messages)
 	}
 
@@ -167,7 +166,7 @@ update_gameplay_screen :: proc() {
 		level_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
 		particle_system_update()
-		update_camera()
+		camera_update()
 		dialog_update()
 	}
 }
@@ -175,8 +174,8 @@ update_gameplay_screen :: proc() {
 draw_gameplay_screen :: proc() {
 	// world
 	{
-		rl.BeginMode2D(camera)
-		defer rl.EndMode2D()
+		renderer.begin_mode_2d(camera)
+		defer renderer.end_mode_2d()
 
 		tilemap.draw(camera)
 		draw_entities_sorted()
@@ -209,20 +208,18 @@ finish_gameplay_screen :: proc() -> int {
 draw_pause_overlay :: proc() {
 	if !gameplay_state.is_paused do return
 
-	rl.DrawRectangle(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, rl.Fade(rl.BLACK, 0.75))
+	renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.fade(renderer.BLACK, 0.75))
 
 	design_w := f32(DESIGN_WIDTH)
 	design_h := f32(DESIGN_HEIGHT)
 	tx := i32(design_w / 2 - 60)
 	ty := i32(design_h / 2 - 30)
-	rl.DrawText("PAUSED", tx, ty, 20, rl.WHITE)
+	renderer.draw_text("PAUSED", int(tx), int(ty), 20, renderer.WHITE)
 }
 
 draw_transition_overlay :: proc() {
 	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
-		w := rl.GetScreenWidth()
-		h := rl.GetRenderHeight()
 		alpha := u8(gameplay_state.transition_opacity * 255)
-		rl.DrawRectangle(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, rl.Color{0, 0, 0, alpha})
+		renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.Colour{0, 0, 0, alpha})
 	}
 }

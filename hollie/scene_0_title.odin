@@ -1,7 +1,6 @@
 package hollie
 
 import "renderer"
-import rl "vendor:raylib"
 
 // Title Screen
 title_screen := struct {
@@ -18,17 +17,16 @@ init_title_screen :: proc() {
 }
 
 update_title_screen :: proc() {
-	if rl.IsKeyPressed(.ENTER) || rl.IsGestureDetected(.TAP) {
+	if is_key_pressed(.ENTER) {
 		title_screen.finish_screen = 2 // GAMEPLAY
 	}
 }
 
 draw_title_screen :: proc() {
-	rl.DrawRectangle(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GREEN)
-
-	// Use unified UI rendering
 	ui_begin()
 	defer ui_end()
+
+	renderer.draw_rect_i(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, renderer.GREEN)
 
 	pos := Vec2{20, 10}
 	renderer.draw_text_ex(
@@ -37,9 +35,15 @@ draw_title_screen :: proc() {
 		pos,
 		f32(game_state.font.baseSize) * 3.0,
 		4,
-		rl.DARKGREEN,
+		renderer.DARKGREEN,
 	)
-	renderer.draw_text("PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN", 120, 220, 20, rl.DARKGREEN)
+	renderer.draw_text(
+		"PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN",
+		120,
+		220,
+		20,
+		renderer.DARKGREEN,
+	)
 }
 
 unload_title_screen :: proc() {}

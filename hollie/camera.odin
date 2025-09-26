@@ -2,6 +2,7 @@ package hollie
 
 import "core:math"
 import rl "vendor:raylib"
+import "window"
 
 CAMERA_SMOOTH: f32 : 0.1
 ZOOM_RATE :: 0.01
@@ -11,12 +12,12 @@ ZOOM_MIN :: 1.0
 ZOOM_DIALOG :: 3.0
 
 // Camera state
+camera_bounds: rl.Rectangle
 camera := rl.Camera2D {
 	zoom = camera_base_zoom,
 }
 
 // this is an internal value that should not be controlled directly by user input
-@(private = "file")
 screen_scale: f32 = 1.0
 
 // this is the user-controlled zoom value
@@ -48,19 +49,19 @@ camera_follow_target :: proc() {
 	)
 }
 
-init_camera :: proc() {
-	screen_scale := get_screen_scale()
-	update_camera()
+camera_init :: proc() {
+	screen_scale := window.get_screen_scale(DESIGN_WIDTH, DESIGN_HEIGHT)
+	camera_update()
 }
 
-update_camera :: proc() {
-	update_camera_zoom()
+camera_update :: proc() {
+	camera_update_zoom()
 	camera_follow_target()
 }
 
-update_camera_zoom :: proc() {
-	if was_window_resized() {
-		screen_scale = get_screen_scale()
+camera_update_zoom :: proc() {
+	if window.is_resized() {
+		screen_scale = window.get_screen_scale(DESIGN_WIDTH, DESIGN_HEIGHT)
 	}
 
 	if rl.IsKeyDown(.MINUS) {
@@ -72,12 +73,6 @@ update_camera_zoom :: proc() {
 	camera.zoom = camera_base_zoom * screen_scale
 }
 
-was_window_resized :: #force_inline proc() -> bool {
-	return rl.IsWindowResized()
-}
-
-camera_bounds: rl.Rectangle
-
-set_camera_bounds :: proc(bounds: rl.Rectangle) {
+camera_set_bounds :: proc(bounds: rl.Rectangle) {
 	camera_bounds = bounds
 }

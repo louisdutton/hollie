@@ -1,29 +1,19 @@
 package hollie
 
 import "audio"
+import "renderer"
 import "tween"
-import rl "vendor:raylib"
+import "window"
 
-Vec2 :: rl.Vector2
+Vec2 :: renderer.Vec2
 
 DESIGN_WIDTH :: 800
 DESIGN_HEIGHT :: 450
 
-get_screen_scale :: proc() -> f32 {
-	screen_width := f32(rl.GetScreenWidth())
-	screen_height := f32(rl.GetScreenHeight())
-
-	scale_x := screen_width / DESIGN_WIDTH
-	scale_y := screen_height / DESIGN_HEIGHT
-
-	// Use the smaller scale to maintain aspect ratio
-	return min(scale_x, scale_y)
-}
-
 // Global state
 game_state := struct {
 	scene:  Scene,
-	font:   rl.Font,
+	font:   renderer.Font,
 	music:  audio.Music,
 	sounds: audio.Sound_Map,
 } {
@@ -34,21 +24,18 @@ main :: proc() {
 	init()
 	defer fini()
 
-	for !rl.WindowShouldClose() {
+	for !window.should_close() {
 		update()
 		draw()
 	}
 }
 
 init :: proc() {
-	rl.SetTraceLogLevel(.WARNING)
-	rl.SetWindowState({.WINDOW_RESIZABLE})
-	rl.InitWindow(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
+	window.init(DESIGN_WIDTH, DESIGN_HEIGHT, "hollie")
 	audio.init()
-	rl.SetTargetFPS(60)
 
 	// Load global assets
-	game_state.font = rl.LoadFont("res/font/mecha.png")
+	game_state.font = renderer.load_font("res/font/mecha.png")
 	game_state.music = audio.music_init("res/audio/music/ambient.ogg")
 
 	// Initialize sound map
@@ -102,7 +89,7 @@ fini :: proc() {
 	}
 
 	// Unload global assets
-	rl.UnloadFont(game_state.font)
+	renderer.unload_font(game_state.font)
 	audio.music_fini(game_state.music)
 
 	// Cleanup sounds map
@@ -112,11 +99,11 @@ fini :: proc() {
 	delete(game_state.sounds)
 
 	audio.fini()
-	rl.CloseWindow()
+	window.fini()
 }
 
 update :: proc() {
-	dt := rl.GetFrameTime()
+	dt := window.get_frame_time()
 	tween.update(dt)
 
 	switch game_state.scene {
@@ -129,10 +116,10 @@ update :: proc() {
 }
 
 draw :: proc() {
-	rl.BeginDrawing()
-	defer rl.EndDrawing()
+	renderer.begin_drawing()
+	defer renderer.end_drawing()
 
-	rl.ClearBackground(rl.SKYBLUE)
+	renderer.clear_background()
 
 	switch game_state.scene {
 	case .TITLE:
@@ -141,5 +128,5 @@ draw :: proc() {
 		draw_gameplay_screen()
 	}
 
-	rl.DrawFPS(10, 10)
+	renderer.draw_fps(10, 10)
 }

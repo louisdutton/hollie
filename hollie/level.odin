@@ -52,7 +52,7 @@ level_init :: proc(res: ^LevelResource) {
 	}
 
 	tilemap.load_from_config(res.tilemap_config)
-	set_camera_bounds(res.camera_bounds)
+	camera_set_bounds(res.camera_bounds)
 
 	for spawn in res.entities {
 		switch spawn.type {
