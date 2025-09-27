@@ -128,57 +128,72 @@ level_update :: proc() {
 
 // returns an example level
 level_new :: proc(width := 50, height := 30) -> LevelResource {
+	// Try to load tilemap from file
+	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/olivewood.map"))
+	if !map_ok {
+		// Fallback to procedural generation if file loading fails
+		cfg := tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32}
 
-	// Create base layer data
-	base_data := make([]tilemap.TileType, width * height)
-	for y in 0 ..< height {
-		for x in 0 ..< width {
-			index := y * width + x
-			base_data[index] = rand.choice(
-				[]tilemap.TileType {
-					.GRASS_1,
-					.GRASS_2,
-					.GRASS_3,
-					.GRASS_4,
-					.GRASS_5,
-					.GRASS_6,
-					.GRASS_7,
-					.GRASS_8,
-				},
-			)
-		}
-	}
-
-	// Create decorative layer data (sparse decorations)
-	deco_data := make([]tilemap.TileType, width * height)
-	for y in 0 ..< height {
-		for x in 0 ..< width {
-			index := y * width + x
-			// 10% chance for decorative tiles, 90% empty
-			if rand.float32() < 0.1 {
-				deco_data[index] = rand.choice(
+		// Create base layer data
+		base_data := make([]tilemap.TileType, width * height)
+		for y in 0 ..< height {
+			for x in 0 ..< width {
+				index := y * width + x
+				base_data[index] = rand.choice(
 					[]tilemap.TileType {
-						.GRASS_DEC_1,
-						.GRASS_DEC_2,
-						.GRASS_DEC_3,
-						.GRASS_DEC_4,
-						.GRASS_DEC_5,
-						.GRASS_DEC_6,
-						.GRASS_DEC_7,
-						.GRASS_DEC_8,
-						.GRASS_DEC_9,
-						.GRASS_DEC_10,
-						.GRASS_DEC_11,
-						.GRASS_DEC_12,
-						.GRASS_DEC_13,
-						.GRASS_DEC_14,
-						.GRASS_DEC_15,
-						.GRASS_DEC_16,
+						.GRASS_1,
+						.GRASS_2,
+						.GRASS_3,
+						.GRASS_4,
+						.GRASS_5,
+						.GRASS_6,
+						.GRASS_7,
+						.GRASS_8,
 					},
 				)
-			} else {
-				deco_data[index] = .EMPTY
 			}
+		}
+
+		// Create decorative layer data (sparse decorations)
+		deco_data := make([]tilemap.TileType, width * height)
+		for y in 0 ..< height {
+			for x in 0 ..< width {
+				index := y * width + x
+				// 10% chance for decorative tiles, 90% empty
+				if rand.float32() < 0.1 {
+					deco_data[index] = rand.choice(
+						[]tilemap.TileType {
+							.GRASS_DEC_1,
+							.GRASS_DEC_2,
+							.GRASS_DEC_3,
+							.GRASS_DEC_4,
+							.GRASS_DEC_5,
+							.GRASS_DEC_6,
+							.GRASS_DEC_7,
+							.GRASS_DEC_8,
+							.GRASS_DEC_9,
+							.GRASS_DEC_10,
+							.GRASS_DEC_11,
+							.GRASS_DEC_12,
+							.GRASS_DEC_13,
+							.GRASS_DEC_14,
+							.GRASS_DEC_15,
+							.GRASS_DEC_16,
+						},
+					)
+				} else {
+					deco_data[index] = .EMPTY
+				}
+			}
+		}
+
+		tilemap_config = tilemap.TilemapResource {
+			width = width,
+			height = height,
+			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
+			base_data = base_data,
+			deco_data = deco_data,
+			config = cfg,
 		}
 	}
 
@@ -193,42 +208,52 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 	return LevelResource {
 		id = "olivewood",
 		name = "Olivewood",
+		tilemap_config = tilemap_config,
+		entities = entities,
+		music_path = asset_path("audio/music/ambient.ogg"),
+		camera_bounds = {0, 0, f32(tilemap_config.width * tilemap_config.config.tile_size), f32(tilemap_config.height * tilemap_config.config.tile_size)},
+	}
+}
+
+level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
+	// Try to load tilemap from file
+	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/desert.map"))
+	if !map_ok {
+		// Fallback to procedural generation if file loading fails
+		cfg := tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32}
+
+		// Create base layer data
+		base_data := make([]tilemap.TileType, width * height)
+		for y in 0 ..< height {
+			for x in 0 ..< width {
+				index := y * width + x
+				base_data[index] = rand.choice([]tilemap.TileType{.SAND_1, .SAND_2, .SAND_3})
+			}
+		}
+
+		// Create decorative layer data (sparse sand decorations)
+		deco_data := make([]tilemap.TileType, width * height)
+		for y in 0 ..< height {
+			for x in 0 ..< width {
+				index := y * width + x
+				// 10% chance for decorative tiles, 90% empty
+				if rand.float32() < 0.1 {
+					deco_data[index] = rand.choice(
+						[]tilemap.TileType{.SAND_DEC_13, .SAND_DEC_14, .SAND_DEC_15, .SAND_DEC_16},
+					)
+				} else {
+					deco_data[index] = .EMPTY
+				}
+			}
+		}
+
 		tilemap_config = tilemap.TilemapResource {
 			width = width,
 			height = height,
 			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data = base_data,
 			deco_data = deco_data,
-		},
-		entities = entities,
-		music_path = asset_path("audio/music/ambient.ogg"),
-		camera_bounds = {0, 0, 50 * 16, 30 * 16},
-	}
-}
-
-level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
-	// Create base layer data
-	base_data := make([]tilemap.TileType, width * height)
-	for y in 0 ..< height {
-		for x in 0 ..< width {
-			index := y * width + x
-			base_data[index] = rand.choice([]tilemap.TileType{.SAND_1, .SAND_2, .SAND_3})
-		}
-	}
-
-	// Create decorative layer data (sparse sand decorations)
-	deco_data := make([]tilemap.TileType, width * height)
-	for y in 0 ..< height {
-		for x in 0 ..< width {
-			index := y * width + x
-			// 10% chance for decorative tiles, 90% empty
-			if rand.float32() < 0.1 {
-				deco_data[index] = rand.choice(
-					[]tilemap.TileType{.SAND_DEC_13, .SAND_DEC_14, .SAND_DEC_15, .SAND_DEC_16},
-				)
-			} else {
-				deco_data[index] = .EMPTY
-			}
+			config = cfg,
 		}
 	}
 
@@ -243,16 +268,10 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 	return LevelResource {
 		id = "desert",
 		name = "Blisterwind",
-		tilemap_config = tilemap.TilemapResource {
-			width = width,
-			height = height,
-			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
-			base_data = base_data,
-			deco_data = deco_data,
-		},
+		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset_path("audio/music/ambient.ogg"),
-		camera_bounds = {0, 0, 50 * 16, 30 * 16},
+		camera_bounds = {0, 0, f32(tilemap_config.width * tilemap_config.config.tile_size), f32(tilemap_config.height * tilemap_config.config.tile_size)},
 	}
 }
 

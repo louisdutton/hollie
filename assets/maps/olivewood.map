@@ -1,0 +1,13 @@
+# Olivewood Level Map
+[config]
+width=50
+height=30
+tileset_path=art/tileset/spr_tileset_sunnysideworld_16px.png
+tile_size=16
+tileset_cols=32
+
+# Base layer data (will be auto-generated if empty)
+[base_data]
+
+# Decorative layer data (will be auto-generated if empty)
+[deco_data]
