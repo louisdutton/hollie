@@ -9,7 +9,7 @@ Vec2 :: rl.Vector2
 Color :: rl.Color
 Rectangle :: rl.Rectangle
 
-/// GUI context for managing state
+// GUI context for managing state
 Context :: struct {
 	ui_scale: f32,
 	camera:   rl.Camera2D,
@@ -18,31 +18,33 @@ Context :: struct {
 @(private)
 ctx := Context{}
 
-/// Initialize GUI context
+// Initialize GUI context
 init :: proc() {
 	ctx.ui_scale = window.get_ui_scale()
-	ctx.camera = rl.Camera2D{zoom = ctx.ui_scale}
+	ctx.camera = rl.Camera2D {
+		zoom = ctx.ui_scale,
+	}
 }
 
-/// Begin GUI rendering - call before drawing any GUI elements
+// Begin GUI rendering - call before drawing any GUI elements
 begin :: proc() {
 	ctx.ui_scale = window.get_ui_scale()
 	ctx.camera.zoom = ctx.ui_scale
 	renderer.begin_mode_2d(ctx.camera)
 }
 
-/// End GUI rendering - call after drawing all GUI elements
+// End GUI rendering - call after drawing all GUI elements
 end :: proc() {
 	renderer.end_mode_2d()
 }
 
-/// Transform raw mouse position to GUI coordinate space
+// Transform raw mouse position to GUI coordinate space
 get_mouse_pos :: proc() -> Vec2 {
 	raw_mouse := rl.GetMousePosition()
 	return rl.GetScreenToWorld2D(raw_mouse, ctx.camera)
 }
 
-/// Draw a button and return true if clicked
+// Draw a button and return true if clicked
 button :: proc(rect: Rectangle, text: string) -> bool {
 	mouse_pos := get_mouse_pos()
 	hovered := rl.CheckCollisionPointRec(mouse_pos, rect)
@@ -67,7 +69,7 @@ button :: proc(rect: Rectangle, text: string) -> bool {
 	return pressed
 }
 
-/// Draw a panel background with title bar
+// Draw a panel background with title bar
 panel :: proc(rect: Rectangle, title: string) {
 	// Panel background
 	rl.DrawRectangleRec(rect, Color{240, 240, 240, 255})
@@ -82,12 +84,12 @@ panel :: proc(rect: Rectangle, title: string) {
 	rl.DrawText(cstring(raw_data(title)), i32(rect.x + 5), i32(rect.y + 5), 16, rl.BLACK)
 }
 
-/// Draw a label
+// Draw a label
 label :: proc(rect: Rectangle, text: string) {
-	rl.DrawText(cstring(raw_data(text)), i32(rect.x), i32(rect.y + 2), 16, rl.BLACK)
+	renderer.draw_text(text, int(rect.x), int(rect.y) + 2)
 }
 
-/// Draw a slider and return true if value changed
+// Draw a slider and return true if value changed
 slider :: proc(rect: Rectangle, label_text: string, value: ^f32, min_val, max_val: f32) -> bool {
 	mouse_pos := get_mouse_pos()
 	changed := false
@@ -131,7 +133,7 @@ slider :: proc(rect: Rectangle, label_text: string, value: ^f32, min_val, max_va
 	return changed
 }
 
-/// Draw a checkbox and return true if state changed
+// Draw a checkbox and return true if state changed
 checkbox :: proc(rect: Rectangle, label_text: string, checked: ^bool) -> bool {
 	mouse_pos := get_mouse_pos()
 	hovered := rl.CheckCollisionPointRec(mouse_pos, rect)
@@ -151,68 +153,36 @@ checkbox :: proc(rect: Rectangle, label_text: string, checked: ^bool) -> bool {
 		check_color := rl.DARKGREEN
 		margin: f32 = 3
 		rl.DrawRectangleRec(
-			Rectangle{rect.x + margin, rect.y + margin, rect.width - 2 * margin, rect.height - 2 * margin},
+			Rectangle {
+				rect.x + margin,
+				rect.y + margin,
+				rect.width - 2 * margin,
+				rect.height - 2 * margin,
+			},
 			check_color,
 		)
 	}
 
 	// Draw label
 	if len(label_text) > 0 {
-		rl.DrawText(cstring(raw_data(label_text)), i32(rect.x + rect.width + 5), i32(rect.y + 2), 16, rl.BLACK)
+		rl.DrawText(
+			cstring(raw_data(label_text)),
+			i32(rect.x + rect.width + 5),
+			i32(rect.y + 2),
+			16,
+			rl.BLACK,
+		)
 	}
 
 	return clicked
 }
 
-/// Draw a text input field
-text_input :: proc(rect: Rectangle, text: ^string, max_length: int) -> bool {
-	mouse_pos := get_mouse_pos()
-	hovered := rl.CheckCollisionPointRec(mouse_pos, rect)
-	changed := false
-
-	// Simple text input (placeholder implementation)
-	// In a full implementation, you'd handle cursor, selection, etc.
-
-	// Draw background
-	color := hovered ? rl.WHITE : Color{250, 250, 250, 255}
-	rl.DrawRectangleRec(rect, color)
-	rl.DrawRectangleLinesEx(rect, 1, rl.BLACK)
-
-	// Draw text
-	if len(text^) > 0 {
-		rl.DrawText(cstring(raw_data(text^)), i32(rect.x + 5), i32(rect.y + 5), 16, rl.BLACK)
-	}
-
-	return changed
-}
-
-/// Draw a separator line
+// Draw a separator line
 separator :: proc(rect: Rectangle) {
 	rl.DrawRectangleRec(rect, rl.GRAY)
 }
 
-/// Draw a colored rectangle
+// Draw a colored rectangle
 colored_rect :: proc(rect: Rectangle, color: Color) {
 	rl.DrawRectangleRec(rect, color)
-}
-
-/// Draw a progress bar
-progress_bar :: proc(rect: Rectangle, progress: f32, bg_color := rl.LIGHTGRAY, fg_color := rl.BLUE) {
-	// Clamp progress to 0-1 range
-	clamped_progress := max(0, min(progress, 1))
-
-	// Draw background
-	rl.DrawRectangleRec(rect, bg_color)
-	rl.DrawRectangleLinesEx(rect, 1, rl.BLACK)
-
-	// Draw progress fill
-	if clamped_progress > 0 {
-		fill_rect := Rectangle{
-			rect.x,
-			rect.y,
-			rect.width * clamped_progress,
-			rect.height,
-		}
-		rl.DrawRectangleRec(fill_rect, fg_color)
-	}
 }

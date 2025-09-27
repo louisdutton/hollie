@@ -19,13 +19,11 @@ Player_Input :: enum {
 // Returns true if the provided input was just pressed
 is_pressed :: proc(input: Player_Input) -> bool {
 	switch input {
-	case .Roll:
-		return is_gamepad_button_pressed(PLAYER_1, .RIGHT_TRIGGER_2) || is_key_pressed(.K)
+	case .Roll: return is_gamepad_button_pressed(PLAYER_1, .RIGHT_TRIGGER_2) || is_key_pressed(.K)
 	case .Accept:
 		return is_gamepad_button_pressed(PLAYER_1, .RIGHT_FACE_RIGHT) || is_key_pressed(.J)
 	case .Attack:
 		return is_gamepad_button_pressed(PLAYER_1, .RIGHT_FACE_LEFT) || is_key_pressed(.J)
-	case:
-		return false
+	case: return false
 	}
 }

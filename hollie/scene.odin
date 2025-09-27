@@ -10,10 +10,8 @@ Scene :: enum {
 set_scene :: proc(screen: Scene) {
 	// Unload current screen
 	switch game.scene {
-	case .TITLE:
-		unload_title_screen()
-	case .GAMEPLAY:
-		unload_gameplay_screen()
+	case .TITLE: unload_title_screen()
+	case .GAMEPLAY: unload_gameplay_screen()
 	}
 
 	// Init next screen

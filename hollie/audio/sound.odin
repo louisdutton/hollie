@@ -32,7 +32,9 @@ sound_play :: proc(sound: Sound) {
 	sample := rand.choice(sound.sounds)
 	pitch := 1.0 + rand.float32_range(-sound.pitch_variation, sound.pitch_variation)
 
-	rl.SetSoundVolume(sample, sound.volume)
+	// Apply global SFX volume setting
+	effective_volume := sound.volume * get_effective_sfx_volume()
+	rl.SetSoundVolume(sample, effective_volume)
 	rl.SetSoundPitch(sample, pitch)
 	rl.PlaySound(sample)
 }

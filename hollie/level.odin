@@ -56,17 +56,15 @@ level_init :: proc(res: ^LevelResource) {
 
 	for spawn in res.entities {
 		switch spawn.type {
-		case .Enemy:
-			// Check level ID to spawn appropriate enemy type
-			if res.id == "olivewood" {
-				enemy_spawn_race_at(spawn.position, .GOBLIN)
-			} else if res.id == "desert" {
-				enemy_spawn_race_at(spawn.position, .SKELETON)
-			} else {
-				enemy_spawn_at(spawn.position) // Default behavior for other levels
-			}
-		case .Player:
-			player_set_spawn_position(spawn.position)
+		case .Enemy: // Check level ID to spawn appropriate enemy type
+				if res.id == "olivewood" {
+					enemy_spawn_race_at(spawn.position, .GOBLIN)
+				} else if res.id == "desert" {
+					enemy_spawn_race_at(spawn.position, .SKELETON)
+				} else {
+					enemy_spawn_at(spawn.position) // Default behavior for other levels
+				}
+		case .Player: player_set_spawn_position(spawn.position)
 		}
 	}
 
@@ -132,7 +130,10 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/olivewood.map"))
 	if !map_ok {
 		// Fallback to procedural generation if file loading fails
-		cfg := tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32}
+		cfg := tilemap.TilemapConfig {
+			tile_size    = 16,
+			tileset_cols = 32,
+		}
 
 		// Create base layer data
 		base_data := make([]tilemap.TileType, width * height)
@@ -188,12 +189,12 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		}
 
 		tilemap_config = tilemap.TilemapResource {
-			width = width,
-			height = height,
+			width        = width,
+			height       = height,
 			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
-			base_data = base_data,
-			deco_data = deco_data,
-			config = cfg,
+			base_data    = base_data,
+			deco_data    = deco_data,
+			config       = cfg,
 		}
 	}
 
@@ -211,7 +212,12 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset_path("audio/music/ambient.ogg"),
-		camera_bounds = {0, 0, f32(tilemap_config.width * tilemap_config.config.tile_size), f32(tilemap_config.height * tilemap_config.config.tile_size)},
+		camera_bounds = {
+			0,
+			0,
+			f32(tilemap_config.width * tilemap_config.config.tile_size),
+			f32(tilemap_config.height * tilemap_config.config.tile_size),
+		},
 	}
 }
 
@@ -220,7 +226,10 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/desert.map"))
 	if !map_ok {
 		// Fallback to procedural generation if file loading fails
-		cfg := tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32}
+		cfg := tilemap.TilemapConfig {
+			tile_size    = 16,
+			tileset_cols = 32,
+		}
 
 		// Create base layer data
 		base_data := make([]tilemap.TileType, width * height)
@@ -248,12 +257,12 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		}
 
 		tilemap_config = tilemap.TilemapResource {
-			width = width,
-			height = height,
+			width        = width,
+			height       = height,
 			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
-			base_data = base_data,
-			deco_data = deco_data,
-			config = cfg,
+			base_data    = base_data,
+			deco_data    = deco_data,
+			config       = cfg,
 		}
 	}
 
@@ -271,7 +280,12 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset_path("audio/music/ambient.ogg"),
-		camera_bounds = {0, 0, f32(tilemap_config.width * tilemap_config.config.tile_size), f32(tilemap_config.height * tilemap_config.config.tile_size)},
+		camera_bounds = {
+			0,
+			0,
+			f32(tilemap_config.width * tilemap_config.config.tile_size),
+			f32(tilemap_config.height * tilemap_config.config.tile_size),
+		},
 	}
 }
 

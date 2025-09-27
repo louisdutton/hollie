@@ -73,7 +73,7 @@ init :: proc() {
 	)
 	game.sounds["enemy_death"] = audio.sound_init({asset_path("audio/fx/impact/waterplosion.wav")})
 
-	audio.music_set_volume(game.music, 1.0)
+	audio.music_set_volume(game.music, audio.get_effective_music_volume())
 	audio.music_play(game.music)
 
 	// Initialize first screen
@@ -81,29 +81,19 @@ init :: proc() {
 	case .GAMEPLAY:
 		audio.music_stop(game.music)
 		init_gameplay_screen()
-	case .TITLE:
-		init_title_screen()
-	// Do nothing
+	case .TITLE: init_title_screen()
 	}
 }
 
 fini :: proc() {
-	// Unload current screen
 	switch game.scene {
-	case .TITLE:
-		unload_title_screen()
-	case .GAMEPLAY:
-		unload_gameplay_screen()
+	case .TITLE: unload_title_screen()
+	case .GAMEPLAY: unload_gameplay_screen()
 	}
 
-	// Unload global assets
 	renderer.unload_font(game.font)
 	audio.music_fini(game.music)
-
-	// Cleanup sounds map
-	for _, &sound in game.sounds {
-		audio.sound_fini(&sound)
-	}
+	for _, &sound in game.sounds do audio.sound_fini(&sound)
 	delete(game.sounds)
 
 	audio.fini()
@@ -111,7 +101,6 @@ fini :: proc() {
 }
 
 update :: proc() {
-	// Update design dimensions if window was resized
 	if window.is_resized() {
 		design_width = window.get_design_width()
 		design_height = window.get_design_height()
@@ -124,8 +113,7 @@ update :: proc() {
 	case .TITLE:
 		audio.music_update(game.music)
 		update_title_screen()
-	case .GAMEPLAY:
-		update_gameplay_screen()
+	case .GAMEPLAY: update_gameplay_screen()
 	}
 }
 
@@ -136,10 +124,8 @@ draw :: proc() {
 	renderer.clear_background()
 
 	switch game.scene {
-	case .TITLE:
-		draw_title_screen()
-	case .GAMEPLAY:
-		draw_gameplay_screen()
+	case .TITLE: draw_title_screen()
+	case .GAMEPLAY: draw_gameplay_screen()
 	}
 
 	renderer.draw_fps(10, 10)

@@ -48,7 +48,3 @@ draw_title_screen :: proc() {
 }
 
 unload_title_screen :: proc() {}
-
-finish_title_screen :: proc() -> bool {
-	return title_screen.finish_screen != 0
-}

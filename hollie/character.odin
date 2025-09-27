@@ -301,12 +301,10 @@ character_calc_velocity :: proc(character: ^Character) {
 	}
 
 	switch character.type {
-	case .PLAYER:
-		character_calc_player_velocity(character)
-	case .ENEMY, .NPC:
-		if .HAS_AI in character.behaviors {
-			character_calc_ai_velocity(character)
-		}
+	case .PLAYER: character_calc_player_velocity(character)
+	case .ENEMY, .NPC: if .HAS_AI in character.behaviors {
+				character_calc_ai_velocity(character)
+			}
 	}
 }
 
@@ -417,12 +415,9 @@ character_handle_player_input :: proc(character: ^Character) {
 			target.state.is_busy = true
 			// Start dialog based on character race
 			switch target.race {
-			case Character_Race.GOBLIN:
-				dialog_start(goblin_messages)
-			case Character_Race.SKELETON:
-				dialog_start(skeleton_messages)
-			case Character_Race.HUMAN:
-				dialog_start(npc_human_messages)
+			case Character_Race.GOBLIN: dialog_start(goblin_messages)
+			case Character_Race.SKELETON: dialog_start(skeleton_messages)
+			case Character_Race.HUMAN: dialog_start(npc_human_messages)
 			}
 		}
 	}

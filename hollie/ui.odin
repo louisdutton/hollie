@@ -3,8 +3,8 @@ package hollie
 import rl "vendor:raylib"
 import "window"
 
+// Ensure ui scale is proportional to window size
 ui_begin :: proc() {
-	// Use the UI scale from window module
 	ui_scale := window.get_ui_scale()
 	rl.BeginMode2D({zoom = ui_scale})
 }
