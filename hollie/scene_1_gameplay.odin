@@ -15,29 +15,14 @@ Drawable_Entity :: struct {
 }
 
 // Draw all characters sorted by y position
+// we can potentially avoid double iteration with a custom sort
 draw_entities_sorted :: proc() {
-	entities := make([dynamic]Drawable_Entity, 0, len(characters))
-	defer delete(entities)
-
-	// Add all characters
-	for i in 0 ..< len(characters) {
-		character := &characters[i]
-
-		append(
-			&entities,
-			Drawable_Entity{position = character.position, type = character.type, enemy_index = i},
-		)
-	}
-
-	// Sort by y position (entities with higher y values are drawn later/on top)
-	slice.sort_by(entities[:], proc(a, b: Drawable_Entity) -> bool {
+	slice.sort_by(characters[:], proc(a, b: Character) -> bool {
 		return a.position.y < b.position.y
 	})
 
-	// Draw all entities in sorted order
-	for entity in entities {
-		character := &characters[entity.enemy_index]
-		character_draw(character)
+	for &character in characters {
+		character_draw(&character)
 	}
 }
 

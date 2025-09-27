@@ -663,19 +663,13 @@ character_update :: proc(character: ^Character) {
 
 // Update all characters
 character_system_update :: proc() {
-	// Update all characters first
-	for &character in characters {
+	for &character, idx in characters {
 		character_update(&character)
-	}
 
-	// Remove dead characters that have finished their death animation
-	for i := len(characters) - 1; i >= 0; i -= 1 {
-		character := &characters[i]
 		if character.state.is_dying && character.state.death_timer >= DEATH_ANIMATION_DURATION {
-			// Create particle explosion at death location
 			particle_create_explosion(character.position)
-			character_destroy(character)
-			unordered_remove(&characters, i)
+			character_destroy(&character)
+			unordered_remove(&characters, idx)
 		}
 	}
 }
