@@ -2,6 +2,7 @@ package main
 
 import "../"
 import "../../"
+import "../../gui"
 import "../../input"
 import "../../renderer"
 import "../../window"
@@ -46,17 +47,19 @@ editor_state := Editor {
 
 /// Initialize the tilemap editor
 editor_init :: proc() {
+	gui.init()
+
 	// Try to load tilemap from file first
 	res, map_ok := tilemap.load_tilemap_from_file(hollie.asset_path("maps/default.map"))
 	if !map_ok {
 		// Fallback to hardcoded default if file loading fails
 		res = tilemap.TilemapResource {
-			width        = 50,
-			height       = 30,
+			width = 50,
+			height = 30,
 			tileset_path = hollie.asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
-			base_data    = {},
-			deco_data    = {},
-			config       = tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32},
+			base_data = {},
+			deco_data = {},
+			config = tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32},
 		}
 	}
 
@@ -199,7 +202,8 @@ handle_ui_input :: proc() {
 	}
 
 	// Save with Ctrl+S
-	if (input.is_key_down(.LEFT_CONTROL) || input.is_key_down(.RIGHT_CONTROL)) && input.is_key_pressed(.S) {
+	if (input.is_key_down(.LEFT_CONTROL) || input.is_key_down(.RIGHT_CONTROL)) &&
+	   input.is_key_pressed(.S) {
 		save_current_tilemap()
 	}
 
@@ -303,7 +307,10 @@ draw_layer_overlay :: proc() {
 		overlay_color := renderer.Colour{0, 255, 0, 32}
 		screen_min := rl.GetWorldToScreen2D({0, 0}, editor_state.camera)
 		screen_max := rl.GetWorldToScreen2D(
-			{f32(tilemap.get_tilemap_width() * tilemap.get_tile_size()), f32(tilemap.get_tilemap_height() * tilemap.get_tile_size())},
+			{
+				f32(tilemap.get_tilemap_width() * tilemap.get_tile_size()),
+				f32(tilemap.get_tilemap_height() * tilemap.get_tile_size()),
+			},
 			editor_state.camera,
 		)
 
@@ -331,7 +338,10 @@ draw_cursor :: proc() {
 			x := tile_x + dx
 			y := tile_y + dy
 
-			if x >= 0 && x < tilemap.get_tilemap_width() && y >= 0 && y < tilemap.get_tilemap_height() {
+			if x >= 0 &&
+			   x < tilemap.get_tilemap_width() &&
+			   y >= 0 &&
+			   y < tilemap.get_tilemap_height() {
 				world_x := f32(x * tilemap.get_tile_size())
 				world_y := f32(y * tilemap.get_tile_size())
 
@@ -534,11 +544,7 @@ draw_tile_section :: proc(
 		}
 
 		// Handle click with transformed mouse coordinates
-		raw_mouse := rl.GetMousePosition()
-		ui_camera := rl.Camera2D {
-			zoom = window.get_ui_scale(),
-		}
-		mouse_pos := rl.GetScreenToWorld2D(raw_mouse, ui_camera)
+		mouse_pos := gui.get_mouse_pos()
 		if rl.CheckCollisionPointRec(mouse_pos, tile_rect) && rl.IsMouseButtonPressed(.LEFT) {
 			editor_state.selected_tile = tile_type
 		}

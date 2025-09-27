@@ -1,7 +1,6 @@
 package hollie
 
 import "audio"
-import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 import "renderer"

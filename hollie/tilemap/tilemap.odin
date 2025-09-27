@@ -230,7 +230,7 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 	lines := strings.split_lines(content)
 	defer delete(lines)
 
-	res := TilemapResource{
+	res := TilemapResource {
 		config = TilemapConfig{tile_size = 16, tileset_cols = 32},
 	}
 
@@ -262,24 +262,19 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 			value := strings.trim_space(parts[1])
 
 			switch key {
-			case "width":
-				if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
-					res.width = parsed_value
-				}
-			case "height":
-				if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
-					res.height = parsed_value
-				}
-			case "tileset_path":
-				res.tileset_path = value
-			case "tile_size":
-				if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
-					res.config.tile_size = parsed_value
-				}
-			case "tileset_cols":
-				if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
-					res.config.tileset_cols = parsed_value
-				}
+			case "width": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+						res.width = parsed_value
+					}
+			case "height": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+						res.height = parsed_value
+					}
+			case "tileset_path": res.tileset_path = value
+			case "tile_size": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+						res.config.tile_size = parsed_value
+					}
+			case "tileset_cols": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+						res.config.tileset_cols = parsed_value
+					}
 			}
 
 		case "base_data":
@@ -330,7 +325,10 @@ save_tilemap_to_file :: proc(path: string) -> bool {
 	strings.write_string(&builder, "[config]\n")
 	strings.write_string(&builder, fmt.tprintf("width=%d\n", tilemap.width))
 	strings.write_string(&builder, fmt.tprintf("height=%d\n", tilemap.height))
-	strings.write_string(&builder, fmt.tprintf("tileset_path=%s\n", "art/tileset/spr_tileset_sunnysideworld_16px.png"))
+	strings.write_string(
+		&builder,
+		fmt.tprintf("tileset_path=%s\n", "art/tileset/spr_tileset_sunnysideworld_16px.png"),
+	)
 	strings.write_string(&builder, fmt.tprintf("tile_size=%d\n", config.tile_size))
 	strings.write_string(&builder, fmt.tprintf("tileset_cols=%d\n", config.tileset_cols))
 	strings.write_string(&builder, "\n")
@@ -469,4 +467,18 @@ fini :: proc() {
 		tilemap.deco_tiles = nil
 	}
 	rl.UnloadTexture(tilemap.tileset)
+}
+
+/// Reset tilemap state for testing
+reset_for_testing :: proc() {
+	if tilemap.base_tiles != nil {
+		delete(tilemap.base_tiles)
+		tilemap.base_tiles = nil
+	}
+	if tilemap.deco_tiles != nil {
+		delete(tilemap.deco_tiles)
+		tilemap.deco_tiles = nil
+	}
+	tilemap.width = 0
+	tilemap.height = 0
 }
