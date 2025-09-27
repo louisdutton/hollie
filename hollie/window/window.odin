@@ -5,7 +5,7 @@ import rl "vendor:raylib"
 // Window management functions
 init :: proc(width, height: i32, title: string) {
 	rl.SetTraceLogLevel(.WARNING)
-	rl.SetConfigFlags({.FULLSCREEN_MODE})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(width, height, cstring(raw_data(title)))
 	rl.SetTargetFPS(60)
 }
@@ -62,7 +62,6 @@ get_design_height :: proc() -> i32 {
 	return 450
 }
 
-// Get the actual UI scale factor
 get_ui_scale :: proc() -> f32 {
 	base_height: f32 = 450.0
 	current_height := f32(get_screen_height())
