@@ -46,6 +46,9 @@
               nixd
               alejandra
             ];
+
+            # GALLIUM_HUD = "fps,cpu";
+            XDG_SESSION_TYPE = "x11"; # wayland can't handle fullscreen
           };
         }
     );

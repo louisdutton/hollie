@@ -5,7 +5,7 @@ import rl "vendor:raylib"
 // Window management functions
 init :: proc(width, height: i32, title: string) {
 	rl.SetTraceLogLevel(.WARNING)
-	rl.SetWindowState({.WINDOW_RESIZABLE})
+	rl.SetConfigFlags({.FULLSCREEN_MODE})
 	rl.InitWindow(width, height, cstring(raw_data(title)))
 	rl.SetTargetFPS(60)
 }
