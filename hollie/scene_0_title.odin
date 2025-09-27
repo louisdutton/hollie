@@ -31,10 +31,10 @@ draw_title_screen :: proc() {
 
 	pos := Vec2{20, 10}
 	renderer.draw_text_ex(
-		game_state.font,
+		game.font,
 		"TITLE SCREEN",
 		pos,
-		f32(game_state.font.baseSize) * 3.0,
+		f32(game.font.baseSize) * 3.0,
 		4,
 		renderer.DARKGREEN,
 	)

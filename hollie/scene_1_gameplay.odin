@@ -69,10 +69,10 @@ update_gameplay_screen :: proc() {
 	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(input.PLAYER_1, .MIDDLE_RIGHT) {
 		if gameplay_state.is_paused {
 			gameplay_state.is_paused = false
-			audio.music_set_volume(game_state.music, 1)
+			audio.music_set_volume(game.music, 1)
 		} else {
 			gameplay_state.is_paused = true
-			audio.music_set_volume(game_state.music, 0.2)
+			audio.music_set_volume(game.music, 0.2)
 		}
 	}
 
@@ -138,6 +138,7 @@ update_gameplay_screen :: proc() {
 
 		// Start fade out
 		tween.to(&gameplay_state.transition_opacity, 0.0, .Quadratic_In, 300 * time.Millisecond)
+		audio.music_play(game.music)
 	}
 
 	// End transition when fade out completes

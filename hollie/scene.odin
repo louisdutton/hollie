@@ -9,7 +9,7 @@ Scene :: enum {
 
 set_scene :: proc(screen: Scene) {
 	// Unload current screen
-	switch game_state.scene {
+	switch game.scene {
 	case .TITLE:
 		unload_title_screen()
 	case .GAMEPLAY:
@@ -19,12 +19,12 @@ set_scene :: proc(screen: Scene) {
 	// Init next screen
 	switch screen {
 	case .TITLE:
-		audio.music_play(game_state.music)
+		audio.music_play(game.music)
 		init_title_screen()
 	case .GAMEPLAY:
-		audio.music_stop(game_state.music)
+		audio.music_stop(game.music)
 		init_gameplay_screen()
 	}
 
-	game_state.scene = screen
+	game.scene = screen
 }

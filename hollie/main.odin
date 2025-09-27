@@ -20,7 +20,7 @@ design_width: i32
 design_height: i32
 asset_base_path := os.get_env("RES_ROOT")
 
-game_state := struct {
+game := struct {
 	scene:  Scene,
 	font:   renderer.Font,
 	music:  audio.Music,
@@ -47,42 +47,40 @@ init :: proc() {
 
 	audio.init()
 
-	game_state.font = renderer.load_font(asset_path("font/mecha.png"))
-	game_state.music = audio.music_init(asset_path("audio/music/ambient.ogg"))
+	game.font = renderer.load_font(asset_path("font/mecha.png"))
+	game.music = audio.music_init(asset_path("audio/music/ambient.ogg"))
 
-	game_state.sounds = make(audio.Sound_Map)
-	game_state.sounds["grunt_roll"] = audio.sound_init(
+	game.sounds = make(audio.Sound_Map)
+	game.sounds["grunt_roll"] = audio.sound_init(
 		{
 			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav"),
 			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav"),
 		},
 	)
-	game_state.sounds["grunt_attack"] = audio.sound_init(
+	game.sounds["grunt_attack"] = audio.sound_init(
 		{
 			asset_path("audio/fx/combat/whoosh-short-light.wav"),
 			asset_path("audio/fx/impact/whoosh-arm-swing-01-wide.wav"),
 		},
 	)
-	game_state.sounds["attack_hit"] = audio.sound_init(
+	game.sounds["attack_hit"] = audio.sound_init(
 		{
 			asset_path("audio/fx/impact/punch-percussive-heavy-08.wav"),
 			asset_path("audio/fx/impact/punch-percussive-heavy-09.wav"),
 		},
 	)
-	game_state.sounds["enemy_hit"] = audio.sound_init(
+	game.sounds["enemy_hit"] = audio.sound_init(
 		{asset_path("audio/fx/impact/punch-squelch-heavy-05.wav")},
 	)
-	game_state.sounds["enemy_death"] = audio.sound_init(
-		{asset_path("audio/fx/impact/waterplosion.wav")},
-	)
+	game.sounds["enemy_death"] = audio.sound_init({asset_path("audio/fx/impact/waterplosion.wav")})
 
-	audio.music_set_volume(game_state.music, 1.0)
-	audio.music_play(game_state.music)
+	audio.music_set_volume(game.music, 1.0)
+	audio.music_play(game.music)
 
 	// Initialize first screen
-	switch game_state.scene {
+	switch game.scene {
 	case .GAMEPLAY:
-		audio.music_stop(game_state.music)
+		audio.music_stop(game.music)
 		init_gameplay_screen()
 	case .TITLE:
 		init_title_screen()
@@ -92,7 +90,7 @@ init :: proc() {
 
 fini :: proc() {
 	// Unload current screen
-	switch game_state.scene {
+	switch game.scene {
 	case .TITLE:
 		unload_title_screen()
 	case .GAMEPLAY:
@@ -100,14 +98,14 @@ fini :: proc() {
 	}
 
 	// Unload global assets
-	renderer.unload_font(game_state.font)
-	audio.music_fini(game_state.music)
+	renderer.unload_font(game.font)
+	audio.music_fini(game.music)
 
 	// Cleanup sounds map
-	for _, &sound in game_state.sounds {
+	for _, &sound in game.sounds {
 		audio.sound_fini(&sound)
 	}
-	delete(game_state.sounds)
+	delete(game.sounds)
 
 	audio.fini()
 	window.fini()
@@ -123,9 +121,9 @@ update :: proc() {
 	dt := window.get_frame_time()
 	tween.update(dt)
 
-	switch game_state.scene {
+	switch game.scene {
 	case .TITLE:
-		audio.music_update(game_state.music)
+		audio.music_update(game.music)
 		update_title_screen()
 	case .GAMEPLAY:
 		update_gameplay_screen()
@@ -138,7 +136,7 @@ draw :: proc() {
 
 	renderer.clear_background()
 
-	switch game_state.scene {
+	switch game.scene {
 	case .TITLE:
 		draw_title_screen()
 	case .GAMEPLAY:
