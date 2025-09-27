@@ -196,12 +196,12 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap.TilemapResource {
 			width = width,
 			height = height,
-			tileset_path = "res/art/tileset/spr_tileset_sunnysideworld_16px.png",
+			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data = base_data,
 			deco_data = deco_data,
 		},
 		entities = entities,
-		music_path = "res/audio/music/ambient.ogg",
+		music_path = asset_path("audio/music/ambient.ogg"),
 		camera_bounds = {0, 0, 50 * 16, 30 * 16},
 	}
 }
@@ -246,12 +246,12 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap.TilemapResource {
 			width = width,
 			height = height,
-			tileset_path = "res/art/tileset/spr_tileset_sunnysideworld_16px.png",
+			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data = base_data,
 			deco_data = deco_data,
 		},
 		entities = entities,
-		music_path = "res/audio/music/ambient.ogg",
+		music_path = asset_path("audio/music/ambient.ogg"),
 		camera_bounds = {0, 0, 50 * 16, 30 * 16},
 	}
 }

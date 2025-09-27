@@ -82,40 +82,6 @@ TilemapResource :: struct {
 	deco_data:    []TileType,
 }
 
-init :: proc() {
-	tilemap.tileset = rl.LoadTexture("res/art/tileset/spr_tileset_sunnysideworld_16px.png")
-
-	tilemap.base_tiles = make([]Tile, tilemap.width * tilemap.height)
-	tilemap.deco_tiles = make([]Tile, tilemap.width * tilemap.height)
-
-	for y in 0 ..< tilemap.height {
-		for x in 0 ..< tilemap.width {
-			index := y * tilemap.width + x
-			type := rand.choice(
-				[]TileType {
-					.GRASS_1,
-					.GRASS_2,
-					.GRASS_3,
-					.GRASS_4,
-					.GRASS_5,
-					.GRASS_6,
-					.GRASS_7,
-					.GRASS_8,
-				},
-			)
-			tilemap.base_tiles[index] = Tile {
-				type  = type,
-				solid = false,
-			}
-			// Initialize deco tiles as empty
-			tilemap.deco_tiles[index] = Tile {
-				type  = .EMPTY,
-				solid = false,
-			}
-		}
-	}
-}
-
 load_from_config :: proc(config: TilemapResource) {
 	if tilemap.base_tiles != nil {
 		delete(tilemap.base_tiles)

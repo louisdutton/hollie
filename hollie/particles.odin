@@ -37,30 +37,27 @@ particle_system_fini :: proc() {
 particle_create_explosion :: proc(position: Vec2) {
 	PARTICLE_COUNT :: 15
 
-	for _ in 0..<PARTICLE_COUNT {
+	for _ in 0 ..< PARTICLE_COUNT {
 		// Random direction and speed
 		angle := rand.float32() * 2 * 3.14159
 		speed := rand.float32_range(50.0, 120.0)
-		velocity := Vec2{
-			linalg.cos(angle) * speed,
-			linalg.sin(angle) * speed,
-		}
+		velocity := Vec2{linalg.cos(angle) * speed, linalg.sin(angle) * speed}
 
 		// Random particle properties
 		lifetime := rand.float32_range(0.3, 0.8)
 		size := rand.float32_range(2.0, 6.0)
 
 		// Random dust/debris colors (browns, grays, yellows)
-		color_variants := []rl.Color{
-			{139, 116, 84, 255},   // Brown
-			{160, 160, 160, 255},  // Gray
-			{205, 186, 89, 255},   // Sandy yellow
-			{101, 67, 33, 255},    // Dark brown
-			{188, 158, 130, 255},  // Light brown
+		color_variants := []rl.Color {
+			{139, 116, 84, 255}, // Brown
+			{160, 160, 160, 255}, // Gray
+			{205, 186, 89, 255}, // Sandy yellow
+			{101, 67, 33, 255}, // Dark brown
+			{188, 158, 130, 255}, // Light brown
 		}
 		color := color_variants[rand.int31() % i32(len(color_variants))]
 
-		particle := Particle{
+		particle := Particle {
 			position     = position,
 			velocity     = velocity,
 			lifetime     = lifetime,
@@ -86,8 +83,8 @@ particle_system_update :: proc() {
 		particle.position.y += particle.velocity.y * dt
 
 		// Apply gravity and friction
-		particle.velocity.y += 200.0 * dt  // Gravity
-		particle.velocity.x *= 0.98        // Air friction
+		particle.velocity.y += 200.0 * dt // Gravity
+		particle.velocity.x *= 0.98 // Air friction
 		particle.velocity.y *= 0.98
 
 		// Update lifetime
@@ -109,11 +106,6 @@ particle_system_draw :: proc() {
 		color.a = u8(f32(color.a) * alpha_factor)
 
 		// Draw particle as a small circle
-		renderer.draw_circle(
-			particle.position.x,
-			particle.position.y,
-			particle.size,
-			color
-		)
+		renderer.draw_circle(particle.position.x, particle.position.y, particle.size, color)
 	}
 }

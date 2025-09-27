@@ -6,7 +6,10 @@ import rl "vendor:raylib"
 white_flash_shader: rl.Shader
 
 shader_init :: proc() {
-	white_flash_shader = rl.LoadShader(nil, "res/shaders/white_flash.frag")
+	white_flash_shader = rl.LoadShader(
+		nil,
+		cstring(raw_data(asset_path("shaders/white_flash.frag"))),
+	)
 }
 
 shader_fini :: proc() {

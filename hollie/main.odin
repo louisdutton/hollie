@@ -1,15 +1,24 @@
 package hollie
 
 import "audio"
+import "core:fmt"
+import "core:os"
+import "core:path/filepath"
 import "renderer"
 import "tween"
 import "window"
 
 Vec2 :: renderer.Vec2
 
+/// Returns the full path to an asset file
+asset_path :: proc(relative_path: string) -> string {
+	return filepath.join({asset_base_path, relative_path})
+}
+
 // Global state
 design_width: i32
 design_height: i32
+asset_base_path := os.get_env("RES_ROOT")
 
 game_state := struct {
 	scene:  Scene,
@@ -33,42 +42,39 @@ main :: proc() {
 init :: proc() {
 	window.init(800, 450, "hollie")
 
-	// Set design dimensions based on actual screen
 	design_width = window.get_design_width()
 	design_height = window.get_design_height()
 
 	audio.init()
 
-	// Load global assets
-	game_state.font = renderer.load_font("res/font/mecha.png")
-	game_state.music = audio.music_init("res/audio/music/ambient.ogg")
+	game_state.font = renderer.load_font(asset_path("font/mecha.png"))
+	game_state.music = audio.music_init(asset_path("audio/music/ambient.ogg"))
 
-	// Initialize sound map
 	game_state.sounds = make(audio.Sound_Map)
-
-	// Load sounds into the map
 	game_state.sounds["grunt_roll"] = audio.sound_init(
 		{
-			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
-			"res/audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
+			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav"),
+			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav"),
 		},
 	)
 	game_state.sounds["grunt_attack"] = audio.sound_init(
 		{
-			"res/audio/fx/combat/whoosh-short-light.wav",
-			"res/audio/fx/impact/whoosh-arm-swing-01-wide.wav",
+			asset_path("audio/fx/combat/whoosh-short-light.wav"),
+			asset_path("audio/fx/impact/whoosh-arm-swing-01-wide.wav"),
 		},
 	)
 	game_state.sounds["attack_hit"] = audio.sound_init(
 		{
-			"res/audio/fx/impact/punch-percussive-heavy-08.wav",
-			"res/audio/fx/impact/punch-percussive-heavy-09.wav",
+			asset_path("audio/fx/impact/punch-percussive-heavy-08.wav"),
+			asset_path("audio/fx/impact/punch-percussive-heavy-09.wav"),
 		},
 	)
 	game_state.sounds["enemy_hit"] = audio.sound_init(
-		{"res/audio/fx/impact/punch-squelch-heavy-05.wav"},
+		{asset_path("audio/fx/impact/punch-squelch-heavy-05.wav")},
 	)
-	game_state.sounds["enemy_death"] = audio.sound_init({"res/audio/fx/impact/waterplosion.wav"})
+	game_state.sounds["enemy_death"] = audio.sound_init(
+		{asset_path("audio/fx/impact/waterplosion.wav")},
+	)
 
 	audio.music_set_volume(game_state.music, 1.0)
 	audio.music_play(game_state.music)
