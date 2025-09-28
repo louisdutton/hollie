@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import "audio"
 import "core:os"
 import "core:path/filepath"
@@ -9,30 +10,28 @@ import "window"
 
 Vec2 :: renderer.Vec2
 
-/// Returns the full path to an asset file
-asset_path :: proc(relative_path: string) -> string {
-	return filepath.join({asset_base_path, relative_path})
-}
-
 // Global state
 design_width: i32
 design_height: i32
-asset_base_path := os.get_env("RES_ROOT")
 
-game := struct {
-	scene:  Scene,
-	font:   renderer.Font,
-	music:  audio.Music,
-	sounds: audio.Sound_Map,
-} {
-	scene = .GAMEPLAY,
+Game_State :: struct {
+	scene:   Scene,
+	font:    renderer.Font,
+	music:   audio.Music,
+	sounds:  audio.Sound_Map,
+	running: bool,
+}
+
+game: Game_State = {
+	scene   = .GAMEPLAY,
+	running = true,
 }
 
 main :: proc() {
 	init()
 	defer fini()
 
-	for !window.should_close() {
+	for game.running {
 		update()
 		draw()
 	}
@@ -46,33 +45,9 @@ init :: proc() {
 
 	audio.init()
 
-	game.font = renderer.load_font(asset_path("font/mecha.png"))
-	game.music = audio.music_init(asset_path("audio/music/ambient.ogg"))
-
-	game.sounds = make(audio.Sound_Map)
-	game.sounds["grunt_roll"] = audio.sound_init(
-		{
-			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav"),
-			asset_path("audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav"),
-		},
-	)
-	game.sounds["grunt_attack"] = audio.sound_init(
-		{
-			asset_path("audio/fx/combat/whoosh-short-light.wav"),
-			asset_path("audio/fx/impact/whoosh-arm-swing-01-wide.wav"),
-		},
-	)
-	game.sounds["attack_hit"] = audio.sound_init(
-		{
-			asset_path("audio/fx/impact/punch-percussive-heavy-08.wav"),
-			asset_path("audio/fx/impact/punch-percussive-heavy-09.wav"),
-		},
-	)
-	game.sounds["enemy_hit"] = audio.sound_init(
-		{asset_path("audio/fx/impact/punch-squelch-heavy-05.wav")},
-	)
-	game.sounds["enemy_death"] = audio.sound_init({asset_path("audio/fx/impact/waterplosion.wav")})
-
+	game.font = renderer.load_font(asset.path("font/mecha.png"))
+	game.music = audio.music_init(asset.path("audio/music/ambient.ogg"))
+	game.sounds = audio.sound_init()
 	audio.music_set_volume(game.music, audio.get_effective_music_volume())
 	audio.music_play(game.music)
 
@@ -93,8 +68,6 @@ fini :: proc() {
 
 	renderer.unload_font(game.font)
 	audio.music_fini(game.music)
-	for _, &sound in game.sounds do audio.sound_fini(&sound)
-	delete(game.sounds)
 
 	audio.fini()
 	window.fini()

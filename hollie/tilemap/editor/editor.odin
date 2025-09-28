@@ -2,6 +2,7 @@ package main
 
 import "../"
 import "../../"
+import "../../asset"
 import "../../gui"
 import "../../input"
 import "../../renderer"
@@ -50,13 +51,13 @@ editor_init :: proc() {
 	gui.init()
 
 	// Try to load tilemap from file first
-	res, map_ok := tilemap.load_tilemap_from_file(hollie.asset_path("maps/default.map"))
+	res, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/default.map"))
 	if !map_ok {
 		// Fallback to hardcoded default if file loading fails
 		res = tilemap.TilemapResource {
 			width = 50,
 			height = 30,
-			tileset_path = hollie.asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
+			tileset_path = asset.path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data = {},
 			deco_data = {},
 			config = tilemap.TilemapConfig{tile_size = 16, tileset_cols = 32},
@@ -218,7 +219,7 @@ handle_ui_input :: proc() {
 
 /// Save the current tilemap to file
 save_current_tilemap :: proc() {
-	full_path := hollie.asset_path(editor_state.current_file_path)
+	full_path := asset.path(editor_state.current_file_path)
 	if tilemap.save_tilemap_to_file(full_path) {
 		fmt.println("Tilemap saved to:", full_path)
 	} else {

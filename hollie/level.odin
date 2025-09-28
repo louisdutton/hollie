@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import "audio"
 import "core:math/rand"
 import "core:time"
@@ -127,7 +128,7 @@ level_update :: proc() {
 // returns an example level
 level_new :: proc(width := 50, height := 30) -> LevelResource {
 	// Try to load tilemap from file
-	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/olivewood.map"))
+	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/olivewood.map"))
 	if !map_ok {
 		// Fallback to procedural generation if file loading fails
 		cfg := tilemap.TilemapConfig {
@@ -191,7 +192,7 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap.TilemapResource {
 			width        = width,
 			height       = height,
-			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
+			tileset_path = asset.path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data    = base_data,
 			deco_data    = deco_data,
 			config       = cfg,
@@ -211,7 +212,7 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		name = "Olivewood",
 		tilemap_config = tilemap_config,
 		entities = entities,
-		music_path = asset_path("audio/music/ambient.ogg"),
+		music_path = asset.path("audio/music/ambient.ogg"),
 		camera_bounds = {
 			0,
 			0,
@@ -223,7 +224,7 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 
 level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 	// Try to load tilemap from file
-	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset_path("maps/desert.map"))
+	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/desert.map"))
 	if !map_ok {
 		// Fallback to procedural generation if file loading fails
 		cfg := tilemap.TilemapConfig {
@@ -259,7 +260,7 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		tilemap_config = tilemap.TilemapResource {
 			width        = width,
 			height       = height,
-			tileset_path = asset_path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
+			tileset_path = asset.path("art/tileset/spr_tileset_sunnysideworld_16px.png"),
 			base_data    = base_data,
 			deco_data    = deco_data,
 			config       = cfg,
@@ -279,7 +280,7 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		name = "Blisterwind",
 		tilemap_config = tilemap_config,
 		entities = entities,
-		music_path = asset_path("audio/music/ambient.ogg"),
+		music_path = asset.path("audio/music/ambient.ogg"),
 		camera_bounds = {
 			0,
 			0,
