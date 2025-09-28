@@ -4,6 +4,7 @@ import "asset"
 import "audio"
 import "core:os"
 import "core:path/filepath"
+import "input"
 import "renderer"
 import "tween"
 import "window"
@@ -74,6 +75,10 @@ fini :: proc() {
 }
 
 update :: proc() {
+	if input.is_key_pressed(.BACKSPACE) {
+		game.running = false
+	}
+
 	if window.is_resized() {
 		design_width = window.get_design_width()
 		design_height = window.get_design_height()
