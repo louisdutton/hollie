@@ -65,7 +65,7 @@ level_init :: proc(res: ^LevelResource) {
 				} else {
 					enemy_spawn_at(spawn.position) // Default behavior for other levels
 				}
-		case .Player: player_set_spawn_position(spawn.position)
+		case .Player: player_spawn_at(spawn.position)
 		}
 	}
 
@@ -100,7 +100,6 @@ level_fini :: proc() {
 		character_destroy(&character)
 	}
 	clear(&characters)
-	player = nil
 
 	level_state.current_bundle = nil
 	level_state.is_loaded = false

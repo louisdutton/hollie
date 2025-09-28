@@ -41,16 +41,18 @@ human_variants := []string {
 	"spikeyhair",
 }
 human_frame_counts := [ENEMY_ANIM_COUNT]int{9, 8, 9, 13}
+human_base_sprites := [6]string {
+	asset.path("art/characters/human/idle/base_idle_strip9.png"),
+	asset.path("art/characters/human/run/base_run_strip8.png"),
+	asset.path("art/characters/human/jump/base_jump_strip9.png"),
+	asset.path("art/characters/human/death/base_death_strip13.png"),
+	asset.path("art/characters/human/attack/base_attack_strip10.png"),
+	asset.path("art/characters/human/roll/base_roll_strip10.png"),
+}
+
 
 // Create composite human textures by combining base + hair variant (for NPCs - 4 animations)
 create_composite_human_textures :: proc(variant: string) -> [ENEMY_ANIM_COUNT]rl.Texture2D {
-	base_files := [ENEMY_ANIM_COUNT]string {
-		asset.path("art/characters/human/idle/base_idle_strip9.png"),
-		asset.path("art/characters/human/run/base_run_strip8.png"),
-		asset.path("art/characters/human/jump/base_jump_strip9.png"),
-		asset.path("art/characters/human/death/base_death_strip13.png"),
-	}
-
 	hair_files := [ENEMY_ANIM_COUNT]string {
 		asset.path(fmt.tprintf("art/characters/human/idle/%s_idle_strip9.png", variant)),
 		asset.path(fmt.tprintf("art/characters/human/run/%s_run_strip8.png", variant)),
@@ -62,7 +64,7 @@ create_composite_human_textures :: proc(variant: string) -> [ENEMY_ANIM_COUNT]rl
 
 	for i in 0 ..< ENEMY_ANIM_COUNT {
 		// Load base and hair textures
-		base_texture := rl.LoadTexture(cstring(raw_data(base_files[i])))
+		base_texture := rl.LoadTexture(cstring(raw_data(human_base_sprites[i])))
 		hair_texture := rl.LoadTexture(cstring(raw_data(hair_files[i])))
 
 		// Create render texture for compositing
@@ -91,15 +93,6 @@ create_composite_human_textures :: proc(variant: string) -> [ENEMY_ANIM_COUNT]rl
 
 // Create composite human textures for player (6 animations including death/attack/roll)
 create_composite_player_textures :: proc(variant: string) -> [6]rl.Texture2D {
-	base_files := [6]string {
-		asset.path("art/characters/human/idle/base_idle_strip9.png"),
-		asset.path("art/characters/human/run/base_run_strip8.png"),
-		asset.path("art/characters/human/jump/base_jump_strip9.png"),
-		asset.path("art/characters/human/death/base_death_strip13.png"),
-		asset.path("art/characters/human/attack/base_attack_strip10.png"),
-		asset.path("art/characters/human/roll/base_roll_strip10.png"),
-	}
-
 	hair_files := [6]string {
 		asset.path(fmt.tprintf("art/characters/human/idle/%s_idle_strip9.png", variant)),
 		asset.path(fmt.tprintf("art/characters/human/run/%s_run_strip8.png", variant)),
@@ -113,7 +106,7 @@ create_composite_player_textures :: proc(variant: string) -> [6]rl.Texture2D {
 
 	for i in 0 ..< 6 {
 		// Load base and hair textures
-		base_texture := rl.LoadTexture(cstring(raw_data(base_files[i])))
+		base_texture := rl.LoadTexture(cstring(raw_data(human_base_sprites[i])))
 		hair_texture := rl.LoadTexture(cstring(raw_data(hair_files[i])))
 
 		// Create render texture for compositing
@@ -141,49 +134,38 @@ create_composite_player_textures :: proc(variant: string) -> [6]rl.Texture2D {
 }
 
 enemy_spawn_at :: proc(position: Vec2) {
-	// Randomly choose character race
 	race_idx := rand.int31() % 3
 	race := Character_Race(race_idx)
 
 	switch race {
-	case Character_Race.GOBLIN:
-		// Goblins are always hostile enemies
-		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
+	case .GOBLIN:
 		character_create(
-			position,
-			.ENEMY,
-			Character_Race.GOBLIN,
-			enemy_behaviors,
-			goblin_anim_files[:],
-			goblin_frame_counts[:],
-		)
-	case Character_Race.SKELETON:
-		// Skeletons are always hostile enemies
-		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
+				position,
+				.ENEMY,
+				.GOBLIN,
+				{.CAN_MOVE, .HAS_AI},
+				goblin_anim_files[:],
+				goblin_frame_counts[:],
+			)
+	case .SKELETON:
 		character_create(
-			position,
-			.ENEMY,
-			Character_Race.SKELETON,
-			enemy_behaviors,
-			skeleton_anim_files[:],
-			skeleton_frame_counts[:],
-		)
-	case Character_Race.HUMAN:
-		// Humans are always friendly NPCs
-		npc_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
-
-		// Randomly pick a human variant
+				position,
+				.ENEMY,
+				Character_Race.SKELETON,
+				{.CAN_MOVE, .HAS_AI},
+				skeleton_anim_files[:],
+				skeleton_frame_counts[:],
+			)
+	case .HUMAN:
 		variant_idx := rand.int31() % i32(len(human_variants))
 		variant := human_variants[variant_idx]
-
-		// Create composite textures (base + hair)
 		composite_textures := create_composite_human_textures(variant)
 
 		character_create_with_textures(
 			position,
-			.NPC, // Changed from .ENEMY to .NPC
-			Character_Race.HUMAN,
-			npc_behaviors,
+			.NPC,
+			.HUMAN,
+			{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE},
 			composite_textures[:],
 			human_frame_counts[:],
 		)
@@ -193,30 +175,25 @@ enemy_spawn_at :: proc(position: Vec2) {
 // Convenience function to spawn specific race
 enemy_spawn_race_at :: proc(position: Vec2, race: Character_Race) {
 	switch race {
-	case Character_Race.GOBLIN:
-		// Goblins are always hostile enemies
-		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
+	case .GOBLIN:
 		character_create(
-			position,
-			.ENEMY,
-			Character_Race.GOBLIN,
-			enemy_behaviors,
-			goblin_anim_files[:],
-			goblin_frame_counts[:],
-		)
-	case Character_Race.SKELETON:
-		// Skeletons are always hostile enemies
-		enemy_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI}
+				position,
+				.ENEMY,
+				.GOBLIN,
+				{.CAN_MOVE, .HAS_AI},
+				goblin_anim_files[:],
+				goblin_frame_counts[:],
+			)
+	case .SKELETON:
 		character_create(
-			position,
-			.ENEMY,
-			Character_Race.SKELETON,
-			enemy_behaviors,
-			skeleton_anim_files[:],
-			skeleton_frame_counts[:],
-		)
-	case Character_Race.HUMAN:
-		// Humans are always friendly NPCs
+				position,
+				.ENEMY,
+				.SKELETON,
+				{.CAN_MOVE, .HAS_AI},
+				skeleton_anim_files[:],
+				skeleton_frame_counts[:],
+			)
+	case .HUMAN:
 		npc_behaviors := Character_Behavior_Flags{.CAN_MOVE, .HAS_AI, .IS_INTERACTABLE}
 		variant_idx := rand.int31() % i32(len(human_variants))
 		variant := human_variants[variant_idx]
