@@ -2,8 +2,6 @@ package hollie
 
 import "asset"
 import "audio"
-import "core:os"
-import "core:path/filepath"
 import "input"
 import "renderer"
 import "tween"

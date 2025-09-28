@@ -5,8 +5,7 @@ import rl "vendor:raylib"
 Vec2 :: rl.Vector2
 Colour :: rl.Color
 Font :: rl.Font
-Texture2D :: rl.Texture2D
-Rectangle :: rl.Rectangle
+Rect :: rl.Rectangle
 Camera2D :: rl.Camera2D
 
 begin_mode_2d :: #force_inline proc(camera: Camera2D) {

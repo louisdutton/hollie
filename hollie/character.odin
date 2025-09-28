@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import "audio"
 import "core:math/linalg"
 import "core:math/rand"
@@ -7,16 +8,21 @@ import "input"
 import "renderer"
 import rl "vendor:raylib"
 
-// Character types
-Character_Type :: enum {
-	PLAYER,
-	NPC, // Friendly, can talk to
-	ENEMY, // Hostile, can attack
-}
 
-// Behavior flags for different character capabilities
-Character_Behavior_Flags :: bit_set[Character_Behavior_Flag]
-Character_Behavior_Flag :: enum {
+// Character tags combining type, race, and behaviors
+Character_Tags :: bit_set[Character_Tag]
+Character_Tag :: enum {
+	// Type tags
+	PLAYER, // entity is player (exclusive)
+	NPC, // non-playable character
+	ENEMY, // hostile entity
+
+	// Race tags
+	GOBLIN,
+	SKELETON,
+	HUMAN,
+
+	// Behavior tags
 	CAN_MOVE,
 	CAN_ATTACK,
 	CAN_ROLL,
@@ -25,23 +31,47 @@ Character_Behavior_Flag :: enum {
 	IS_INTERACTABLE,
 }
 
+goblin_animations := [?]Animation {
+	{asset.path("art/characters/goblin/png/spr_idle_strip9.png"), 9},
+	{asset.path("art/characters/goblin/png/spr_run_strip8.png"), 8},
+	{asset.path("art/characters/goblin/png/spr_jump_strip9.png"), 9},
+	{asset.path("art/characters/goblin/png/spr_death_strip13.png"), 13},
+}
+
+skeleton_animations := [?]Animation {
+	{asset.path("art/characters/skeleton/png/skeleton_idle_strip6.png"), 6},
+	{asset.path("art/characters/skeleton/png/skeleton_walk_strip8.png"), 8},
+	{asset.path("art/characters/skeleton/png/skeleton_jump_strip10.png"), 10},
+	{asset.path("art/characters/skeleton/png/skeleton_death_strip10.png"), 10},
+}
+
+human_animations := [?]Animation {
+	{asset.path("art/characters/human/idle/base_idle_strip9.png"), 9},
+	{asset.path("art/characters/human/run/base_run_strip8.png"), 8},
+	{asset.path("art/characters/human/jump/base_jump_strip9.png"), 9},
+	{asset.path("art/characters/human/death/base_death_strip13.png"), 13},
+	{asset.path("art/characters/human/attack/base_attack_strip10.png"), 10},
+	{asset.path("art/characters/human/roll/base_roll_strip10.png"), 10},
+}
+
+ENEMY_ANIM_COUNT :: 4
+
 // Character states for behavior management
 Character_State :: struct {
-	is_attacking:       bool,
-	attack_timer:       u32,
-	attack_hit:         bool, // has this attack already hit a target
-	attack_direction:   Vec2, // direction locked when attack started
-	is_rolling:         bool,
-	roll_timer:         u32,
-	is_busy:            bool, // locked in dialog or other activity
-	is_flipped:         bool, // sprite flip state
-	is_dying:           bool, // playing death animation
-	death_timer:        u32, // timer for death animation duration
+	is_attacking:     bool,
+	attack_timer:     u32,
+	attack_hit:       bool, // has this attack already hit a target
+	attack_direction: Vec2, // direction locked when attack started
+	is_rolling:       bool,
+	roll_timer:       u32,
+	is_busy:          bool, // locked in dialog or other activity
+	is_flipped:       bool, // sprite flip state
+	is_dying:         bool, // playing death animation
+	death_timer:      u32, // timer for death animation duration
 
 	// Hit effects
-	hit_flash_timer:    f32,
-	knockback_velocity: Vec2,
-	knockback_timer:    f32,
+	hit_flash_timer:  f32,
+	knockback_timer:  f32,
 }
 
 // AI state for NPCs and enemies
@@ -58,12 +88,10 @@ Character :: struct {
 	width:         u32,
 	height:        u32,
 	velocity:      Vec2,
-	color:         rl.Color,
+	color:         renderer.Colour,
 
-	// Type and behavior
-	type:          Character_Type,
-	race:          Character_Race, // What kind of character (goblin, skeleton, human)
-	behaviors:     Character_Behavior_Flags,
+	// Character tags (type, race, and behaviors combined)
+	tags:          Character_Tags,
 
 	// Animation
 	anim_data:     Animator,
@@ -85,7 +113,7 @@ Character :: struct {
 	attack_height: f32,
 }
 
-// Character collections
+// Character collection
 characters: [dynamic]Character
 
 // Constants
@@ -105,8 +133,9 @@ DEFAULT_ATTACK_DAMAGE :: 10
 
 // Hit effect constants
 HIT_FLASH_DURATION :: 0.2
-KNOCKBACK_FORCE :: 5.0
-KNOCKBACK_DURATION :: 0.3
+KNOCKBACK_FORCE :: 5.0 // the magnitude of knockback
+KNOCKBACK_DURATION :: 0.3 // the duration of knockback in seconds
+KNOCKBACK_FRICTION: f32 = 0.85 // the decay of velocity during knockback
 
 // Death animation constants
 DEATH_ANIMATION_DURATION :: 13 * INTERVAL // 13 frames for goblin/human death
@@ -125,23 +154,14 @@ character_system_fini :: proc() {
 }
 
 // Create a new character
-character_create :: proc(
-	pos: Vec2,
-	char_type: Character_Type,
-	char_race: Character_Race,
-	behaviors: Character_Behavior_Flags,
-	anim_files: []string,
-	frame_counts: []int,
-) -> ^Character {
+character_create :: proc(pos: Vec2, tags: Character_Tags, animations: []Animation) -> ^Character {
 	character := Character {
 		position      = pos,
 		width         = 16,
 		height        = 16,
 		velocity      = {0, 0},
-		color         = rl.WHITE,
-		type          = char_type,
-		race          = char_race,
-		behaviors     = behaviors,
+		color         = renderer.WHITE,
+		tags          = tags,
 		move_speed    = DEFAULT_MOVE_SPEED,
 		roll_speed    = DEFAULT_ROLL_SPEED,
 		attack_damage = DEFAULT_ATTACK_DAMAGE,
@@ -151,80 +171,29 @@ character_create :: proc(
 	}
 
 	// Adjust defaults based on type
-	switch char_type {
-	case .ENEMY:
+	if .ENEMY in tags {
 		character.move_speed = DEFAULT_ENEMY_MOVE_SPEED
 		character.health = DEFAULT_ENEMY_HEALTH
 		character.max_health = DEFAULT_ENEMY_HEALTH
 		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
-	case .PLAYER:
+	} else if .PLAYER in tags {
 		character.move_speed = DEFAULT_PLAYER_MOVE_SPEED
 		character.health = DEFAULT_PLAYER_HEALTH
 		character.max_health = DEFAULT_PLAYER_HEALTH
-	case .NPC:
+	} else if .NPC in tags {
 		character.move_speed = DEFAULT_MOVE_SPEED
 		character.health = DEFAULT_NPC_HEALTH
 		character.max_health = DEFAULT_NPC_HEALTH
 	}
 
 	// Initialize animation
-	animation_init(&character.anim_data, anim_files, frame_counts)
+	animation_init(&character.anim_data, animations)
 
 	append(&characters, character)
 
 	return &characters[len(characters) - 1]
 }
 
-// Create a character with pre-loaded textures (for composite humans)
-character_create_with_textures :: proc(
-	pos: Vec2,
-	char_type: Character_Type,
-	char_race: Character_Race,
-	behaviors: Character_Behavior_Flags,
-	textures: []rl.Texture2D,
-	frame_counts: []int,
-) -> ^Character {
-	character := Character {
-		position      = pos,
-		width         = 16,
-		height        = 16,
-		velocity      = {0, 0},
-		color         = rl.WHITE,
-		type          = char_type,
-		race          = char_race,
-		behaviors     = behaviors,
-		move_speed    = DEFAULT_MOVE_SPEED,
-		roll_speed    = DEFAULT_ROLL_SPEED,
-		attack_damage = DEFAULT_ATTACK_DAMAGE,
-		attack_range  = DEFAULT_ATTACK_RANGE,
-		attack_width  = DEFAULT_ATTACK_WIDTH,
-		attack_height = DEFAULT_ATTACK_HEIGHT,
-	}
-
-	// Adjust defaults based on type
-	switch char_type {
-	case .ENEMY:
-		character.move_speed = DEFAULT_ENEMY_MOVE_SPEED
-		character.health = DEFAULT_ENEMY_HEALTH
-		character.max_health = DEFAULT_ENEMY_HEALTH
-		character.ai_state.wait_timer = rand.float32_range(0, 2.0)
-	case .PLAYER:
-		character.move_speed = DEFAULT_PLAYER_MOVE_SPEED
-		character.health = DEFAULT_PLAYER_HEALTH
-		character.max_health = DEFAULT_PLAYER_HEALTH
-	case .NPC:
-		character.move_speed = DEFAULT_MOVE_SPEED * 0.8
-		character.health = DEFAULT_NPC_HEALTH
-		character.max_health = DEFAULT_NPC_HEALTH
-	}
-
-	// Initialize animation with pre-loaded textures
-	animation_init_with_textures(&character.anim_data, textures, frame_counts)
-
-	append(&characters, character)
-
-	return &characters[len(characters) - 1]
-}
 
 // Destroy a character
 character_destroy :: proc(character: ^Character) {
@@ -242,77 +211,79 @@ character_remove :: proc(character: ^Character) {
 	}
 }
 
-// Get character rectangle for collision
-character_get_rect :: proc(character: ^Character) -> rl.Rectangle {
-	return rl.Rectangle {
-		character.position.x - f32(character.width) / 2,
-		character.position.y - f32(character.height) / 2,
-		f32(character.width),
-		f32(character.height),
+
+// Unified character creation function
+character_spawn :: proc(pos: Vec2, tags: Character_Tags, variant: string = "") -> ^Character {
+	if .GOBLIN in tags {
+		return character_create(pos, tags, goblin_animations[:])
+	} else if .SKELETON in tags {
+		return character_create(pos, tags, skeleton_animations[:])
+	} else if .HUMAN in tags {
+		// For now, just use base human animations (no hair variants)
+		return character_create(pos, tags, human_animations[:])
 	}
+
+	// Fallback (should never reach here)
+	return character_create(pos, tags, goblin_animations[:])
+}
+
+// Get character rectangle for collision
+character_get_rect :: proc(character: ^Character) -> renderer.Rect {
+	w := f32(character.width)
+	h := f32(character.height)
+	return renderer.Rect{character.position.x - w / 2, character.position.y - h / 2, w, h}
 }
 
 // Get attack rectangle
-character_get_attack_rect :: proc(character: ^Character) -> rl.Rectangle {
-	// Use the stored attack direction to position the attack
+character_get_attack_rect :: proc(character: ^Character) -> renderer.Rect {
 	attack_offset := character.state.attack_direction * character.attack_range
 	attack_x := character.position.x + attack_offset.x - character.attack_width / 2
 	attack_y := character.position.y + attack_offset.y - character.attack_height / 2
 
-	return rl.Rectangle{attack_x, attack_y, character.attack_width, character.attack_height}
+	return renderer.Rect{attack_x, attack_y, character.attack_width, character.attack_height}
 }
 
 // Check collision between two rectangles
-character_rects_intersect :: proc(rect1, rect2: rl.Rectangle) -> bool {
-	return rl.CheckCollisionRecs(rect1, rect2)
+character_rects_intersect :: proc(a, b: renderer.Rect) -> bool {
+	return(
+		a.x < b.x + b.width &&
+		a.x + a.width > b.x &&
+		a.y < b.y + b.height &&
+		a.y + a.height > b.y \
+	)
 }
 
 // Calculate velocity based on character type and behavior
 character_calc_velocity :: proc(character: ^Character) {
-	// Handle knockback first - it overrides normal movement, even during death
+	if character.state.is_rolling do return
+
 	if character.state.knockback_timer > 0 {
-		character.velocity = character.state.knockback_velocity
+		character.velocity *= KNOCKBACK_FRICTION
 		return
 	}
 
-	// Stop all movement when dying (except knockback which is handled above)
-	if character.state.is_dying {
+	// handle states where movement is disabled
+	if character.state.is_dying ||
+	   .CAN_MOVE not_in character.tags ||
+	   character.state.is_busy ||
+	   (dialog_is_active() && .PLAYER in character.tags) ||
+	   character.state.is_rolling {
 		character.velocity = {0, 0}
 		return
 	}
 
-	if !(.CAN_MOVE in character.behaviors) {
-		character.velocity = {0, 0}
-		return
-	}
-
-	if dialog_is_active() && character.type == .PLAYER {
-		character.velocity = {0, 0}
-		return
-	}
-
-	if character.state.is_busy {
-		character.velocity = {0, 0}
-		return
-	}
-
-	if character.state.is_rolling {
-		return // Keep current velocity during roll
-	}
-
-	switch character.type {
-	case .PLAYER: character_calc_player_velocity(character)
-	case .ENEMY, .NPC: if .HAS_AI in character.behaviors {
-				character_calc_ai_velocity(character)
-			}
+	if .PLAYER in character.tags {
+		character_calc_player_velocity(character)
+	} else if (Character_Tags{.ENEMY, .HAS_AI} <= character.tags) ||
+	   (Character_Tags{.NPC, .HAS_AI} <= character.tags) {
+		character_calc_ai_velocity(character)
 	}
 }
 
 // Calculate player velocity from input
 character_calc_player_velocity :: proc(character: ^Character) {
 	input := input.get_movement()
-	character.velocity.x = input.x * character.move_speed
-	character.velocity.y = input.y * character.move_speed
+	character.velocity = input * character.move_speed
 
 	// Update sprite flip state when moving horizontally
 	if abs(input.x) > 0 {
@@ -363,20 +334,19 @@ character_calc_state :: proc(character: ^Character) {
 
 // Move character and handle collision
 character_move_and_collide :: proc(character: ^Character) {
-	new_x := character.position.x + character.velocity.x
-	new_y := character.position.y + character.velocity.y
+	next := character.position + character.velocity
 
 	// Apply bounds checking using the same bounds as camera
 	half_width := f32(character.width) / 2
 	half_height := f32(character.height) / 2
 
 	character.position.x = clamp(
-		new_x,
+		next.x,
 		camera_bounds.x + half_width,
 		camera_bounds.x + camera_bounds.width - half_width,
 	)
 	character.position.y = clamp(
-		new_y,
+		next.y,
 		camera_bounds.y + half_height,
 		camera_bounds.y + camera_bounds.height - half_height,
 	)
@@ -403,8 +373,7 @@ npc_human_messages := []Dialog_Message {
 
 // Handle player input
 character_handle_player_input :: proc(character: ^Character) {
-	if character.type != .PLAYER do return
-	if dialog_is_active() do return
+	if .PLAYER not_in character.tags || dialog_is_active() do return
 
 	if input.is_pressed(.Accept) {
 		// Try to interact with nearby character
@@ -414,15 +383,17 @@ character_handle_player_input :: proc(character: ^Character) {
 		if found {
 			target.state.is_busy = true
 			// Start dialog based on character race
-			switch target.race {
-			case Character_Race.GOBLIN: dialog_start(goblin_messages)
-			case Character_Race.SKELETON: dialog_start(skeleton_messages)
-			case Character_Race.HUMAN: dialog_start(npc_human_messages)
+			if .GOBLIN in target.tags {
+				dialog_start(goblin_messages)
+			} else if .SKELETON in target.tags {
+				dialog_start(skeleton_messages)
+			} else if .HUMAN in target.tags {
+				dialog_start(npc_human_messages)
 			}
 		}
 	}
 
-	if .CAN_ATTACK in character.behaviors &&
+	if .CAN_ATTACK in character.tags &&
 	   input.is_pressed(.Attack) &&
 	   !character.state.is_attacking &&
 	   !character.state.is_rolling {
@@ -444,7 +415,7 @@ character_handle_player_input :: proc(character: ^Character) {
 		audio.sound_play(game.sounds["grunt_attack"])
 	}
 
-	if .CAN_ROLL in character.behaviors &&
+	if .CAN_ROLL in character.tags &&
 	   input.is_pressed(.Roll) &&
 	   !character.state.is_rolling &&
 	   !character.state.is_attacking {
@@ -473,16 +444,7 @@ character_update_timers :: proc(character: ^Character) {
 
 	// Knockback timer (always process, even when dying)
 	if character.state.knockback_timer > 0 {
-		character.state.knockback_timer -= dt
-		if character.state.knockback_timer <= 0 {
-			character.state.knockback_timer = 0
-			character.state.knockback_velocity = {0, 0}
-		} else {
-			// Apply friction to knockback
-			friction: f32 = 0.85
-			character.state.knockback_velocity.x *= friction
-			character.state.knockback_velocity.y *= friction
-		}
+		character.state.knockback_timer = max(character.state.knockback_timer - dt, 0)
 	}
 
 	// Death timer
@@ -520,7 +482,7 @@ character_update_timers :: proc(character: ^Character) {
 // Check if character's attack hits other characters
 character_check_attack_hits :: proc(attacker: ^Character) {
 	if !attacker.state.is_attacking do return
-	if !(.CAN_ATTACK in attacker.behaviors) do return
+	if !(.CAN_ATTACK in attacker.tags) do return
 	if attacker.state.attack_hit do return // Already hit this attack cycle
 	if attacker.state.is_dying do return // Can't attack while dying
 
@@ -534,11 +496,11 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 		// Players can only attack enemies, enemies can only attack players
 		// NPCs are friendly and cannot be attacked or attack
 		// Can't attack dying characters
-		if (attacker.type == .PLAYER && target.type != .ENEMY) ||
-		   (attacker.type == .ENEMY && target.type != .PLAYER) ||
-		   (attacker.type == .NPC) ||
-		   (target.type == .NPC) ||
-		   (target.state.is_dying) { 	// NPCs don't attack// NPCs can't be attacked// Can't attack dying enemies
+		if (.PLAYER in attacker.tags && .ENEMY not_in target.tags) ||
+		   (.ENEMY in attacker.tags && .PLAYER not_in target.tags) ||
+		   (.NPC in attacker.tags) ||
+		   (.NPC in target.tags) ||
+		   (target.state.is_dying) {
 			continue
 		}
 
@@ -553,7 +515,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			audio.sound_play(game.sounds["attack_hit"])
 
 			// Play enemy hit sound if target is an enemy
-			if target.type == .ENEMY {
+			if .ENEMY in target.tags {
 				audio.sound_play(game.sounds["enemy_hit"])
 			}
 
@@ -563,13 +525,13 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 			// Calculate knockback direction (from attacker to target)
 			knockback_dir := linalg.normalize(target.position - attacker.position)
 
-			target.state.knockback_velocity = knockback_dir * KNOCKBACK_FORCE
+			target.velocity = knockback_dir * KNOCKBACK_FORCE
 			target.state.knockback_timer = KNOCKBACK_DURATION
 
 			// Start death sequence if health drops to zero or below
 			if target.health <= 0 {
 				// Play death sound for enemies
-				if target.type == .ENEMY {
+				if .ENEMY in target.tags {
 					audio.sound_play(game.sounds["enemy_death"])
 				}
 				// Start dying sequence
@@ -595,12 +557,8 @@ character_find_nearest_interactable :: proc(
 	nearest_distance := max_distance
 
 	for &character in characters {
-		if !(.IS_INTERACTABLE in character.behaviors) do continue
-
-		// Can only interact with NPCs (friendly), not enemies
-		if character.type != .NPC do continue
-
-		// Can't interact with dying characters
+		// Can only interact with NPCs that are interactable and not dying
+		if !(Character_Tags{.NPC, .IS_INTERACTABLE} <= character.tags) do continue
 		if character.state.is_dying do continue
 
 		distance := linalg.distance(position, character.position)
@@ -614,9 +572,9 @@ character_find_nearest_interactable :: proc(
 }
 
 // Find nearest character of a specific type
-character_find_nearest_of_type :: proc(
+character_find_nearest_with_tag :: proc(
 	position: Vec2,
-	char_type: Character_Type,
+	tag: Character_Tag,
 	max_distance: f32,
 ) -> (
 	^Character,
@@ -626,7 +584,7 @@ character_find_nearest_of_type :: proc(
 	nearest_distance := max_distance
 
 	for &character in characters {
-		if character.type != char_type do continue
+		if !(tag in character.tags) do continue
 
 		distance := linalg.distance(position, character.position)
 		if distance < nearest_distance {
@@ -640,18 +598,14 @@ character_find_nearest_of_type :: proc(
 
 // Update single character
 character_update :: proc(character: ^Character) {
-	if character.type == .PLAYER {
-		character_handle_player_input(character)
-	}
+	if .PLAYER in character.tags do character_handle_player_input(character)
 
 	character_calc_velocity(character)
 	character_calc_state(character)
 	character_move_and_collide(character)
 	character_update_timers(character)
 
-	if .CAN_ATTACK in character.behaviors {
-		character_check_attack_hits(character)
-	}
+	if .CAN_ATTACK in character.tags do character_check_attack_hits(character)
 
 	animation_update(&character.anim_data)
 }
@@ -672,7 +626,7 @@ character_system_update :: proc() {
 // Draw single character
 character_draw :: proc(character: ^Character) {
 	// Draw elliptical shadow underneath character (20% opacity)
-	shadow_color := rl.Color{0, 0, 0, 48} // 20% opacity black (255 * 0.2 = 51)
+	shadow_color := renderer.Colour{0, 0, 0, 48} // 20% opacity black (255 * 0.2 = 51)
 	shadow_offset_y: f32 = f32(character.height) / 2 // Position at bottom of character + 2 pixels
 	shadow_radius_h := f32(character.width) * 0.4 // Horizontal radius - slightly smaller than character
 	shadow_radius_v := f32(character.height) * 0.2 // Vertical radius - much smaller for elliptical shape
@@ -686,7 +640,6 @@ character_draw :: proc(character: ^Character) {
 	)
 
 	if character.state.hit_flash_timer > 0 {
-		// Use shader-based white flash
 		flash_intensity := character.state.hit_flash_timer / HIT_FLASH_DURATION
 		animation_draw_with_flash(
 			&character.anim_data,
@@ -695,32 +648,23 @@ character_draw :: proc(character: ^Character) {
 			&flash_intensity,
 		)
 	} else {
-		// Normal drawing
 		animation_draw(&character.anim_data, character.position, character.color)
 	}
 
 	// Debug info
 	when ODIN_DEBUG {
-		// Character bounds
 		char_rect := character_get_rect(character)
-		debug_color := rl.GREEN
-		switch character.type {
-		case .PLAYER: debug_color = rl.BLUE
-		case .ENEMY: debug_color = rl.RED
-		case .NPC: debug_color = rl.YELLOW
-		}
-
 		renderer.draw_rect_outline(
 			char_rect.x,
 			char_rect.y,
 			char_rect.width,
 			char_rect.height,
 			1,
-			debug_color,
+			renderer.WHITE,
 		)
 
 		// Attack rect when attacking
-		if character.state.is_attacking && .CAN_ATTACK in character.behaviors {
+		if character.state.is_attacking && .CAN_ATTACK in character.tags {
 			attack_rect := character_get_attack_rect(character)
 			renderer.draw_rect_outline(
 				attack_rect.x,
@@ -733,11 +677,9 @@ character_draw :: proc(character: ^Character) {
 		}
 
 		// Debug text
-		using character.anim_data
 		debug_text := fmt.tprintf(
-			"%v %v HP:%d/%d",
-			current_anim,
-			character.type,
+			"%v HP:%d/%d",
+			character.anim_data.current_anim,
 			character.health,
 			character.max_health,
 		)
@@ -752,28 +694,13 @@ character_draw :: proc(character: ^Character) {
 
 // Draw all characters
 character_system_draw :: proc() {
-	for &character in characters {
-		character_draw(&character)
-	}
-}
-
-// Get all characters of a specific type
-character_get_all_of_type :: proc(char_type: Character_Type) -> []^Character {
-	result := make([dynamic]^Character)
-
-	for &character in characters {
-		if character.type == char_type {
-			append(&result, &character)
-		}
-	}
-
-	return result[:]
+	for &character in characters do character_draw(&character)
 }
 
 // Get player character (convenience function)
 character_get_player :: proc() -> ^Character {
 	for &character in characters {
-		if character.type == .PLAYER {
+		if .PLAYER in character.tags {
 			return &character
 		}
 	}

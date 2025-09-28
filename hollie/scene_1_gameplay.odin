@@ -1,7 +1,6 @@
 package hollie
 
 import "audio"
-import "core:fmt"
 import "core:slice"
 import "core:time"
 import "gui"
@@ -9,13 +8,6 @@ import "input"
 import "renderer"
 import "tilemap"
 import "tween"
-import "window"
-
-Drawable_Entity :: struct {
-	position:    Vec2,
-	type:        Character_Type,
-	enemy_index: int, // only used for enemies
-}
 
 // Draw all characters sorted by y position
 // we can potentially avoid double iteration with a custom sort
