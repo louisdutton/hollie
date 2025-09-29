@@ -54,6 +54,15 @@ human_animations := [?]Animation {
 	{asset.path("art/characters/human/roll/base_roll_strip10.png"), 10},
 }
 
+player_animations := [?]Animation {
+	{asset.path("art/characters/player/idle.png"), 9},
+	{asset.path("art/characters/player/run.png"), 8},
+	{asset.path("art/characters/player/jump.png"), 9},
+	{asset.path("art/characters/player/death.png"), 13},
+	{asset.path("art/characters/player/attack.png"), 10},
+	{asset.path("art/characters/player/roll.png"), 10},
+}
+
 ENEMY_ANIM_COUNT :: 4
 
 // Character states for behavior management
@@ -219,8 +228,12 @@ character_spawn :: proc(pos: Vec2, tags: Character_Tags, variant: string = "") -
 	} else if .SKELETON in tags {
 		return character_create(pos, tags, skeleton_animations[:])
 	} else if .HUMAN in tags {
-		// For now, just use base human animations (no hair variants)
-		return character_create(pos, tags, human_animations[:])
+		// Use player animations for player characters, human animations for NPCs
+		if .PLAYER in tags {
+			return character_create(pos, tags, player_animations[:])
+		} else {
+			return character_create(pos, tags, human_animations[:])
+		}
 	}
 
 	// Fallback (should never reach here)
