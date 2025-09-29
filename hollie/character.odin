@@ -349,19 +349,20 @@ character_calc_state :: proc(character: ^Character) {
 character_move_and_collide :: proc(character: ^Character) {
 	next := character.position + character.velocity
 
-	// Apply bounds checking using the same bounds as camera
+	// Apply bounds checking using room collision bounds
+	room_bounds := room_get_collision_bounds()
 	half_width := f32(character.width) / 2
 	half_height := f32(character.height) / 2
 
 	character.position.x = clamp(
 		next.x,
-		camera_bounds.x + half_width,
-		camera_bounds.x + camera_bounds.width - half_width,
+		room_bounds.x + half_width,
+		room_bounds.x + room_bounds.width - half_width,
 	)
 	character.position.y = clamp(
 		next.y,
-		camera_bounds.y + half_height,
-		camera_bounds.y + camera_bounds.height - half_height,
+		room_bounds.y + half_height,
+		room_bounds.y + room_bounds.height - half_height,
 	)
 }
 

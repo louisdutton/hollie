@@ -25,18 +25,18 @@ draw_entities_sorted :: proc() {
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	grass_level:        LevelResource,
-	sand_level:         LevelResource,
-	current_level:      int, // 0 = grass, 1 = sand
+	grass_room:         RoomResource,
+	sand_room:          RoomResource,
+	current_room:       int, // 0 = grass, 1 = sand
 	is_transitioning:   bool,
 	transition_opacity: f32,
-	pending_level:      int,
+	pending_room:      int,
 	pending_player_pos: Vec2,
 } {
-	current_level      = 0,
+	current_room      = 0,
 	is_transitioning   = false,
 	transition_opacity = 0.0,
-	pending_level      = -1,
+	pending_room      = -1,
 }
 
 init_gameplay_screen :: proc() {
@@ -47,9 +47,9 @@ init_gameplay_screen :: proc() {
 	shader_init()
 	gui.init()
 
-	gameplay_state.grass_level = level_new()
-	gameplay_state.sand_level = level_new_sand()
-	level_init(&gameplay_state.grass_level)
+	gameplay_state.grass_room = room_new()
+	gameplay_state.sand_room = room_new_sand()
+	room_init(&gameplay_state.grass_room)
 }
 
 // FIXME: putting this in stack memory causes uaf in dialog
@@ -70,7 +70,7 @@ update_gameplay_screen :: proc() {
 	pause_handle_input()
 
 	if input.is_key_pressed(.R) {
-		level_reload()
+		room_reload()
 	}
 
 	if input.is_key_pressed(.T) && !dialog_is_active() {
@@ -84,9 +84,9 @@ update_gameplay_screen :: proc() {
 		level_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
 
 		// Transition to sand level (right side) - trigger just before camera bounds
-		if gameplay_state.current_level == 0 && player_pos.x >= 785 {
+		if gameplay_state.current_room == 0 && player_pos.x >= 785 {
 			gameplay_state.is_transitioning = true
-			gameplay_state.pending_level = 1
+			gameplay_state.pending_room = 1
 			gameplay_state.pending_player_pos = {50, player_pos.y}
 			tween.to(
 				&gameplay_state.transition_opacity,
@@ -94,10 +94,10 @@ update_gameplay_screen :: proc() {
 				.Quadratic_Out,
 				300 * time.Millisecond,
 			)
-		} else if gameplay_state.current_level == 1 && player_pos.x <= 15 {
+		} else if gameplay_state.current_room == 1 && player_pos.x <= 15 {
 			// Transition to grass level (left side) - trigger near left edge
 			gameplay_state.is_transitioning = true
-			gameplay_state.pending_level = 0
+			gameplay_state.pending_room = 0
 			gameplay_state.pending_player_pos = {level_width - 60, player_pos.y}
 			tween.to(
 				&gameplay_state.transition_opacity,
@@ -111,13 +111,13 @@ update_gameplay_screen :: proc() {
 	// Handle transition state - switch level at peak opacity
 	if gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity >= 0.99 &&
-	   gameplay_state.pending_level >= 0 {
-		gameplay_state.current_level = gameplay_state.pending_level
+	   gameplay_state.pending_room >= 0 {
+		gameplay_state.current_room = gameplay_state.pending_room
 
 		// Load appropriate level
-		switch gameplay_state.current_level {
-		case 0: level_init(&gameplay_state.grass_level)
-		case 1: level_init(&gameplay_state.sand_level)
+		switch gameplay_state.current_room {
+		case 0: room_init(&gameplay_state.grass_room)
+		case 1: room_init(&gameplay_state.sand_room)
 		}
 
 		// Position player
@@ -125,7 +125,7 @@ update_gameplay_screen :: proc() {
 		if transition_player != nil {
 			transition_player.position = gameplay_state.pending_player_pos
 		}
-		gameplay_state.pending_level = -1
+		gameplay_state.pending_room = -1
 
 		// Start fade out
 		tween.to(&gameplay_state.transition_opacity, 0.0, .Quadratic_In, 300 * time.Millisecond)
@@ -135,13 +135,13 @@ update_gameplay_screen :: proc() {
 	// End transition when fade out completes
 	if gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity <= 0.01 &&
-	   gameplay_state.pending_level < 0 {
+	   gameplay_state.pending_room < 0 {
 		gameplay_state.is_transitioning = false
 		gameplay_state.transition_opacity = 0.0
 	}
 
 	if !pause_is_active() {
-		level_update()
+		room_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
 		particle_system_update()
 		camera_update()
@@ -165,7 +165,7 @@ draw_gameplay_screen :: proc() {
 		ui_begin()
 		defer ui_end()
 
-		level_draw_name()
+		room_draw_name()
 		dialog_draw()
 		draw_transition_overlay()
 
@@ -175,7 +175,7 @@ draw_gameplay_screen :: proc() {
 
 unload_gameplay_screen :: proc() {
 	shader_fini()
-	level_fini()
+	room_fini()
 	character_system_fini()
 	particle_system_fini()
 }

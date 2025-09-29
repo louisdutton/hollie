@@ -9,13 +9,22 @@ import "tilemap"
 import "tween"
 import rl "vendor:raylib"
 
-LevelResource :: struct {
-	id:             string,
-	name:           string,
-	tilemap_config: tilemap.TilemapResource,
-	entities:       [dynamic]Entity_Spawn,
-	music_path:     string,
-	camera_bounds:  rl.Rectangle,
+Door :: struct {
+	position:    Vec2,
+	size:        Vec2,
+	target_room: string,
+	target_door: string,
+}
+
+RoomResource :: struct {
+	id:               string,
+	name:             string,
+	tilemap_config:   tilemap.TilemapResource,
+	entities:         [dynamic]Entity_Spawn,
+	music_path:       string,
+	camera_bounds:    rl.Rectangle,
+	collision_bounds: rl.Rectangle,
+	doors:            [dynamic]Door,
 }
 
 Entity_Spawn :: struct {
@@ -28,32 +37,61 @@ Entity_Type :: enum {
 	Enemy,
 }
 
-LevelState :: struct {
-	current_bundle:           ^LevelResource,
-	is_loaded:                bool,
-	level_music:              audio.Music,
-	level_name_opacity:       f32,
-	level_name_display_timer: f32,
+RoomState :: struct {
+	current_bundle:          ^RoomResource,
+	is_loaded:               bool,
+	room_music:              audio.Music,
+	room_name_opacity:       f32,
+	room_name_display_timer: f32,
 }
 
 @(private)
-level_state := LevelState{}
+room_state := RoomState{}
 
-level_init :: proc(res: ^LevelResource) {
-	if level_state.is_loaded {
-		level_fini()
+@(private)
+room_collision_bounds: rl.Rectangle
+
+room_set_collision_bounds :: proc(bounds: rl.Rectangle) {
+	room_collision_bounds = bounds
+}
+
+room_get_collision_bounds :: proc() -> rl.Rectangle {
+	return room_collision_bounds
+}
+
+room_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
+	if !room_state.is_loaded || room_state.current_bundle == nil do return nil
+
+	for &door in room_state.current_bundle.doors {
+		door_rect := rl.Rectangle{door.position.x, door.position.y, door.size.x, door.size.y}
+		player_rect := rl.Rectangle{player_pos.x - 8, player_pos.y - 8, 16, 16}
+		if rl.CheckCollisionRecs(door_rect, player_rect) {
+			return &door
+		}
+	}
+	return nil
+}
+
+room_get_current :: proc() -> ^RoomResource {
+	return room_state.current_bundle
+}
+
+room_init :: proc(res: ^RoomResource) {
+	if room_state.is_loaded {
+		room_fini()
 	}
 
-	level_state.current_bundle = res
+	room_state.current_bundle = res
 
 	if res.music_path != "" {
-		level_state.level_music = audio.music_init(res.music_path)
-		audio.music_set_volume(level_state.level_music, 1.0)
-		audio.music_play(level_state.level_music)
+		room_state.room_music = audio.music_init(res.music_path)
+		audio.music_set_volume(room_state.room_music, 1.0)
+		audio.music_play(room_state.room_music)
 	}
 
 	tilemap.load_from_config(res.tilemap_config)
 	camera_set_bounds(res.camera_bounds)
+	room_set_collision_bounds(res.collision_bounds)
 
 	for spawn in res.entities {
 		switch spawn.type {
@@ -65,28 +103,28 @@ level_init :: proc(res: ^LevelResource) {
 		}
 	}
 
-	level_state.is_loaded = true
+	room_state.is_loaded = true
 
 	// Start level name fade-in effect
-	level_state.level_name_opacity = 0.0
-	level_state.level_name_display_timer = 0.0
-	tween.to(&level_state.level_name_opacity, 1.0, .Quadratic_Out, 500 * time.Millisecond)
+	room_state.room_name_opacity = 0.0
+	room_state.room_name_display_timer = 0.0
+	tween.to(&room_state.room_name_opacity, 1.0, .Quadratic_Out, 500 * time.Millisecond)
 }
 
-level_reload :: proc() {
-	if level_state.current_bundle != nil {
-		bundle := level_state.current_bundle
-		level_fini()
-		level_init(bundle)
+room_reload :: proc() {
+	if room_state.current_bundle != nil {
+		bundle := room_state.current_bundle
+		room_fini()
+		room_init(bundle)
 	}
 }
 
-level_fini :: proc() {
-	if !level_state.is_loaded do return
+room_fini :: proc() {
+	if !room_state.is_loaded do return
 
-	if level_state.level_music.stream.buffer != nil {
-		audio.music_stop(level_state.level_music)
-		audio.music_fini(level_state.level_music)
+	if room_state.room_music.stream.buffer != nil {
+		audio.music_stop(room_state.room_music)
+		audio.music_fini(room_state.room_music)
 	}
 
 	tilemap.fini()
@@ -97,31 +135,31 @@ level_fini :: proc() {
 	}
 	clear(&characters)
 
-	level_state.current_bundle = nil
-	level_state.is_loaded = false
+	room_state.current_bundle = nil
+	room_state.is_loaded = false
 }
 
-level_update :: proc() {
-	if level_state.is_loaded && level_state.level_music.stream.buffer != nil {
-		audio.music_update(level_state.level_music)
+room_update :: proc() {
+	if room_state.is_loaded && room_state.room_music.stream.buffer != nil {
+		audio.music_update(room_state.room_music)
 	}
 
 	// Update level name display timer and fade out after 3 seconds
-	if level_state.is_loaded && level_state.level_name_opacity > 0.0 {
-		level_state.level_name_display_timer += rl.GetFrameTime()
+	if room_state.is_loaded && room_state.room_name_opacity > 0.0 {
+		room_state.room_name_display_timer += rl.GetFrameTime()
 
 		// Start fading out after 2.5 seconds (0.5s fade in + 2s display)
-		if level_state.level_name_display_timer > 2.5 && level_state.level_name_opacity > 0.01 {
+		if room_state.room_name_display_timer > 2.5 && room_state.room_name_opacity > 0.01 {
 			// Only start fade-out tween if we haven't already
-			if level_state.level_name_opacity >= 0.99 {
-				tween.to(&level_state.level_name_opacity, 0.0, .Quadratic_In, time.Second)
+			if room_state.room_name_opacity >= 0.99 {
+				tween.to(&room_state.room_name_opacity, 0.0, .Quadratic_In, time.Second)
 			}
 		}
 	}
 }
 
 // returns an example level
-level_new :: proc(width := 50, height := 30) -> LevelResource {
+room_new :: proc(width := 50, height := 30) -> RoomResource {
 	// Try to load tilemap from file
 	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/olivewood.map"))
 	if !map_ok {
@@ -202,22 +240,31 @@ level_new :: proc(width := 50, height := 30) -> LevelResource {
 		append(&entities, Entity_Spawn{{x, y}, .Enemy})
 	}
 
-	return LevelResource {
+	camera_bounds := rl.Rectangle {
+		0,
+		0,
+		f32(tilemap_config.width * tilemap_config.config.tile_size),
+		f32(tilemap_config.height * tilemap_config.config.tile_size),
+	}
+
+	// Collision bounds are smaller than camera bounds for indoor feel
+	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
+
+	doors := make([dynamic]Door)
+
+	return RoomResource {
 		id = "olivewood",
 		name = "Olivewood",
 		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset.path("audio/music/ambient.ogg"),
-		camera_bounds = {
-			0,
-			0,
-			f32(tilemap_config.width * tilemap_config.config.tile_size),
-			f32(tilemap_config.height * tilemap_config.config.tile_size),
-		},
+		camera_bounds = camera_bounds,
+		collision_bounds = collision_bounds,
+		doors = doors,
 	}
 }
 
-level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
+room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 	// Try to load tilemap from file
 	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/desert.map"))
 	if !map_ok {
@@ -270,38 +317,47 @@ level_new_sand :: proc(width := 50, height := 30) -> LevelResource {
 		append(&entities, Entity_Spawn{{x, y}, .Enemy})
 	}
 
-	return LevelResource {
+	camera_bounds := rl.Rectangle {
+		0,
+		0,
+		f32(tilemap_config.width * tilemap_config.config.tile_size),
+		f32(tilemap_config.height * tilemap_config.config.tile_size),
+	}
+
+	// Collision bounds are smaller than camera bounds for indoor feel
+	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
+
+	doors := make([dynamic]Door)
+
+	return RoomResource {
 		id = "desert",
 		name = "Blisterwind",
 		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset.path("audio/music/ambient.ogg"),
-		camera_bounds = {
-			0,
-			0,
-			f32(tilemap_config.width * tilemap_config.config.tile_size),
-			f32(tilemap_config.height * tilemap_config.config.tile_size),
-		},
+		camera_bounds = camera_bounds,
+		collision_bounds = collision_bounds,
+		doors = doors,
 	}
 }
 
-level_draw_name :: proc() {
-	if !level_state.is_loaded || level_state.current_bundle == nil do return
-	if level_state.level_name_opacity <= 0.01 do return
+room_draw_name :: proc() {
+	if !room_state.is_loaded || room_state.current_bundle == nil do return
+	if room_state.room_name_opacity <= 0.01 do return
 
-	level_name := level_state.current_bundle.name
-	if level_name == "" do return
+	room_name := room_state.current_bundle.name
+	if room_name == "" do return
 
 	// Calculate text size and position for centering using design resolution
 	text_size := 48
-	text_width := ui_measure_text(level_name, text_size)
+	text_width := ui_measure_text(room_name, text_size)
 
 	x := (int(design_width) - text_width) / 2
 	y := 50
 
 	// Create color with opacity for fade effect
-	alpha := u8(level_state.level_name_opacity * 255)
+	alpha := u8(room_state.room_name_opacity * 255)
 	color := rl.Color{255, 255, 255, alpha}
 
-	renderer.draw_text(level_name, x, y, text_size, color)
+	renderer.draw_text(room_name, x, y, text_size, color)
 }

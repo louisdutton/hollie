@@ -28,6 +28,6 @@ end_drawing :: proc() {
 	rl.EndDrawing()
 }
 
-clear_background :: proc(colour := SKYBLUE) {
+clear_background :: proc(colour := BLACK) {
 	rl.ClearBackground(colour)
 }
