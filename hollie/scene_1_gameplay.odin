@@ -30,13 +30,13 @@ gameplay_state := struct {
 	current_room:       int, // 0 = grass, 1 = sand
 	is_transitioning:   bool,
 	transition_opacity: f32,
-	pending_room:      int,
+	pending_room:       int,
 	pending_player_pos: Vec2,
 } {
-	current_room      = 0,
+	current_room       = 0,
 	is_transitioning   = false,
 	transition_opacity = 0.0,
-	pending_room      = -1,
+	pending_room       = -1,
 }
 
 init_gameplay_screen :: proc() {
@@ -52,59 +52,16 @@ init_gameplay_screen :: proc() {
 	room_init(&gameplay_state.grass_room)
 }
 
-// FIXME: putting this in stack memory causes uaf in dialog
-test_messages := []Dialog_Message {
-	{text = "Hi there Hollie! It's me, Basil!", speaker = "Basil"},
-	{text = "Greetings Basil.", speaker = "Hollie"},
-	{text = "Good luck on your journey.", speaker = "Basil"},
-	{text = "Thanks!", speaker = "Hollie"},
-}
-
 update_gameplay_screen :: proc() {
-	// Handle pause toggle
 	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(input.PLAYER_1, .MIDDLE_RIGHT) {
 		pause_toggle()
 	}
 
-	// Handle pause menu navigation
 	pause_handle_input()
 
-	if input.is_key_pressed(.R) {
-		room_reload()
-	}
-
-	if input.is_key_pressed(.T) && !dialog_is_active() {
-		dialog_start(test_messages)
-	}
-
-	// Check for level transitions based on player position
-	current_player := character_get_player()
-	if current_player != nil && !gameplay_state.is_transitioning {
-		player_pos := current_player.position
-		level_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
-
-		// Transition to sand level (right side) - trigger just before camera bounds
-		if gameplay_state.current_room == 0 && player_pos.x >= 785 {
-			gameplay_state.is_transitioning = true
-			gameplay_state.pending_room = 1
-			gameplay_state.pending_player_pos = {50, player_pos.y}
-			tween.to(
-				&gameplay_state.transition_opacity,
-				1.0,
-				.Quadratic_Out,
-				300 * time.Millisecond,
-			)
-		} else if gameplay_state.current_room == 1 && player_pos.x <= 15 {
-			// Transition to grass level (left side) - trigger near left edge
-			gameplay_state.is_transitioning = true
-			gameplay_state.pending_room = 0
-			gameplay_state.pending_player_pos = {level_width - 60, player_pos.y}
-			tween.to(
-				&gameplay_state.transition_opacity,
-				1.0,
-				.Quadratic_Out,
-				300 * time.Millisecond,
-			)
+	when ODIN_DEBUG {
+		if input.is_key_pressed(.R) {
+			room_reload()
 		}
 	}
 
@@ -143,6 +100,32 @@ update_gameplay_screen :: proc() {
 	if !pause_is_active() {
 		room_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
+
+		// Check for door collisions with player
+		player := character_get_player()
+		if player != nil && !gameplay_state.is_transitioning {
+			door := room_check_door_collision(player.position)
+			if door != nil {
+				gameplay_state.is_transitioning = true
+
+				if door.target_room == "desert" {
+					gameplay_state.pending_room = 1
+					gameplay_state.pending_player_pos = {50, player.position.y}
+				} else if door.target_room == "olivewood" {
+					gameplay_state.pending_room = 0
+					room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
+					gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+				}
+
+				tween.to(
+					&gameplay_state.transition_opacity,
+					1.0,
+					.Quadratic_Out,
+					300 * time.Millisecond,
+				)
+			}
+		}
+
 		particle_system_update()
 		camera_update()
 		dialog_update()
@@ -158,6 +141,10 @@ draw_gameplay_screen :: proc() {
 		tilemap.draw(camera)
 		draw_entities_sorted()
 		particle_system_draw()
+
+		when ODIN_DEBUG {
+			room_draw_doors_debug()
+		}
 	}
 
 	// ui

@@ -2,12 +2,12 @@ package hollie
 
 import "asset"
 import "audio"
+import "core:fmt"
 import "core:math/linalg"
 import "core:math/rand"
 import "input"
 import "renderer"
 import rl "vendor:raylib"
-
 
 // Character tags combining type, race, and behaviors
 Character_Tags :: bit_set[Character_Tag]
@@ -257,7 +257,7 @@ character_get_attack_rect :: proc(character: ^Character) -> renderer.Rect {
 }
 
 // Check collision between two rectangles
-character_rects_intersect :: proc(a, b: renderer.Rect) -> bool {
+rects_intersect :: proc(a, b: renderer.Rect) -> bool {
 	return(
 		a.x < b.x + b.width &&
 		a.x + a.width > b.x &&
@@ -520,7 +520,7 @@ character_check_attack_hits :: proc(attacker: ^Character) {
 
 		target_rect := character_get_rect(target)
 
-		if character_rects_intersect(attack_rect, target_rect) {
+		if rects_intersect(attack_rect, target_rect) {
 			// Damage the target instead of instantly killing
 			target.health -= attacker.attack_damage
 			attacker.state.attack_hit = true // Mark that this attack has hit

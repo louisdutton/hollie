@@ -2,7 +2,9 @@ package hollie
 
 import "asset"
 import "audio"
+import "core:fmt"
 import "core:math/rand"
+import "core:strings"
 import "core:time"
 import "renderer"
 import "tilemap"
@@ -76,10 +78,38 @@ room_get_current :: proc() -> ^RoomResource {
 	return room_state.current_bundle
 }
 
-room_init :: proc(res: ^RoomResource) {
-	if room_state.is_loaded {
-		room_fini()
+room_draw_doors_debug :: proc() {
+	if !room_state.is_loaded || room_state.current_bundle == nil do return
+
+	player := character_get_player()
+
+	for &door in room_state.current_bundle.doors {
+		door_rect := renderer.Rect{door.position.x, door.position.y, door.size.x, door.size.y}
+		player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
+
+		outline_color := rects_intersect(door_rect, player_rect) ? renderer.GREEN : renderer.RED
+		door_color := renderer.fade(outline_color, 0.5)
+
+		renderer.draw_rect(door.position.x, door.position.y, door.size.x, door.size.y, door_color)
+		renderer.draw_rect_outline(
+			door.position.x,
+			door.position.y,
+			door.size.x,
+			door.size.y,
+			color = outline_color,
+		)
+
+		renderer.draw_text(
+			text = fmt.tprintf("%s", door.target_room),
+			x = int(door.position.x),
+			y = int(door.position.y - 20),
+			size = 12,
+		)
 	}
+}
+
+room_init :: proc(res: ^RoomResource) {
+	if room_state.is_loaded do room_fini()
 
 	room_state.current_bundle = res
 
@@ -251,6 +281,16 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
 
 	doors := make([dynamic]Door)
+	// Add a door to the desert room on the right side
+	append(
+		&doors,
+		Door {
+			position = {camera_bounds.width - 48, camera_bounds.height / 2 - 32},
+			size = {32, 64},
+			target_room = "desert",
+			target_door = "from_olivewood",
+		},
+	)
 
 	return RoomResource {
 		id = "olivewood",
@@ -328,6 +368,16 @@ room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
 
 	doors := make([dynamic]Door)
+	// Add a door back to the olivewood room on the left side
+	append(
+		&doors,
+		Door {
+			position = {16, camera_bounds.height / 2 - 32},
+			size = {32, 64},
+			target_room = "olivewood",
+			target_door = "from_desert",
+		},
+	)
 
 	return RoomResource {
 		id = "desert",
