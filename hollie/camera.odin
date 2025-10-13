@@ -88,3 +88,33 @@ camera_update_zoom :: proc() {
 camera_set_bounds :: proc(bounds: rl.Rectangle) {
 	camera_bounds = bounds
 }
+
+camera_snap_to_target :: proc() {
+	// Get both players and snap to their center point using new entity system
+	player1 := entity_get_player(.PLAYER_1)
+	player2 := entity_get_player(.PLAYER_2)
+
+	target_pos: Vec2
+	if player1 != nil && player2 != nil {
+		// Follow center point between both players
+		target_pos = (player1.position + player2.position) / 2
+	} else if player1 != nil {
+		target_pos = player1.position
+	} else if player2 != nil {
+		target_pos = player2.position
+	} else {
+		return
+	}
+
+	scale := 2 * camera.zoom
+	x_offset := f32(rl.GetScreenWidth()) / scale
+	y_offset := f32(rl.GetScreenHeight()) / scale
+
+	max_x := camera_bounds.x + camera_bounds.width - x_offset * 2
+	max_y := camera_bounds.y + camera_bounds.height - y_offset * 2
+	min_x := camera_bounds.x
+	min_y := camera_bounds.y
+
+	camera.target.x = clamp(target_pos.x - x_offset, min_x, max_x)
+	camera.target.y = clamp(target_pos.y - y_offset, min_y, max_y)
+}

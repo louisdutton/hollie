@@ -15,7 +15,8 @@ import rl "vendor:raylib"
 gameplay_state := struct {
 	grass_room:         RoomResource,
 	sand_room:          RoomResource,
-	current_room:       int, // 0 = grass, 1 = sand
+	small_room:         RoomResource,
+	current_room:       int, // 0 = grass, 1 = sand, 2 = small
 	is_transitioning:   bool,
 	transition_opacity: f32,
 	pending_room:       int,
@@ -38,6 +39,7 @@ init_gameplay_screen :: proc() {
 
 	gameplay_state.grass_room = room_new()
 	gameplay_state.sand_room = room_new_sand()
+	gameplay_state.small_room = room_new_small()
 	room_init(&gameplay_state.grass_room)
 }
 
@@ -65,6 +67,7 @@ update_gameplay_screen :: proc() {
 		switch gameplay_state.current_room {
 		case 0: room_init(&gameplay_state.grass_room)
 		case 1: room_init(&gameplay_state.sand_room)
+		case 2: room_init(&gameplay_state.small_room)
 		}
 
 		// Position both players
@@ -80,6 +83,9 @@ update_gameplay_screen :: proc() {
 			}
 		}
 		gameplay_state.pending_room = -1
+
+		// Snap camera to new player positions immediately (no lerping)
+		camera_snap_to_target()
 
 		// Start fade out
 		tween.to(&gameplay_state.transition_opacity, 0.0, .Quadratic_In, 300 * time.Millisecond)
@@ -114,8 +120,17 @@ update_gameplay_screen :: proc() {
 						gameplay_state.pending_player_pos = {50, player.position.y}
 					} else if door.target_room == "olivewood" {
 						gameplay_state.pending_room = 0
-						room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
-						gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+						if door.target_door == "from_small_room" {
+							// Coming from small room, place on left side
+							gameplay_state.pending_player_pos = {50, player.position.y}
+						} else {
+							// Coming from desert, place on right side
+							room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
+							gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+						}
+					} else if door.target_room == "small_room" {
+						gameplay_state.pending_room = 2
+						gameplay_state.pending_player_pos = {32, player.position.y}
 					}
 
 					tween.to(

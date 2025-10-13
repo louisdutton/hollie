@@ -4,7 +4,6 @@ import "../asset"
 import "../renderer"
 import "../window"
 import "core:fmt"
-import "core:math/rand"
 import "core:os"
 import "core:strconv"
 import "core:strings"
@@ -63,6 +62,23 @@ TileType :: enum u16 {
 	SAND_DEC_14,
 	SAND_DEC_15,
 	SAND_DEC_16,
+
+	// walls and structures
+	WALL_1 = 7,
+	WALL_2,
+	WALL_3,
+	WALL_TOP = 39,
+	WALL_BOTTOM,
+	WALL_LEFT,
+	WALL_RIGHT,
+	WALL_CORNER_TL = 71,
+	WALL_CORNER_TR,
+	WALL_CORNER_BL = 103,
+	WALL_CORNER_BR,
+
+	// doors
+	DOOR_HORIZONTAL = 11,
+	DOOR_VERTICAL = 43,
 }
 
 Tile :: struct {

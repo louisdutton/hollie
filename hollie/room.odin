@@ -40,14 +40,14 @@ RoomResource :: struct {
 }
 
 Entity_Spawn :: struct {
-	position:      Vec2,
-	type:          Entity_Type,
-	trigger_id:    int,        // For pressure plates and gates
-	gate_id:       int,        // For gates
-	requires_both: bool,       // For pressure plates
-	inverted:      bool,       // For gates
-	size:          Vec2,       // For gates, pressure plates
-	texture_path:  string,     // For holdable items
+	position:          Vec2,
+	type:              Entity_Type,
+	trigger_id:        int, // For pressure plates and gates
+	gate_id:           int, // For gates
+	requires_both:     bool, // For pressure plates
+	inverted:          bool, // For gates
+	size:              Vec2, // For gates, pressure plates
+	texture_path:      string, // For holdable items
 	required_triggers: [dynamic]int, // For gates - triggers that control this gate
 }
 
@@ -169,8 +169,7 @@ room_init :: proc(res: ^RoomResource) {
 			for trigger_id in spawn.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case .Holdable:
-			entity_create_holdable(spawn.position, spawn.texture_path)
+		case .Holdable: entity_create_holdable(spawn.position, spawn.texture_path)
 		}
 	}
 
@@ -312,40 +311,52 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 
 	// Add puzzle elements as entities
 	// Create two pressure plates that both players must stand on simultaneously
-	append(&entities, Entity_Spawn{
-		position = {150, 200},
-		type = .Pressure_Plate,
-		trigger_id = 1,
-		requires_both = false,
-		size = {32, 32},
-	})
-	append(&entities, Entity_Spawn{
-		position = {350, 200},
-		type = .Pressure_Plate,
-		trigger_id = 2,
-		requires_both = false,
-		size = {32, 32},
-	})
+	append(
+		&entities,
+		Entity_Spawn {
+			position = {150, 200},
+			type = .Pressure_Plate,
+			trigger_id = 1,
+			requires_both = false,
+			size = {32, 32},
+		},
+	)
+	append(
+		&entities,
+		Entity_Spawn {
+			position = {350, 200},
+			type = .Pressure_Plate,
+			trigger_id = 2,
+			requires_both = false,
+			size = {32, 32},
+		},
+	)
 
 	// Create a gate that blocks access to the upper area
 	required_triggers := make([dynamic]int)
 	append(&required_triggers, 1)
 	append(&required_triggers, 2)
-	append(&entities, Entity_Spawn{
-		position = {240, 150},
-		type = .Gate,
-		gate_id = 1,
-		inverted = false,
-		size = {64, 16},
-		required_triggers = required_triggers,
-	})
+	append(
+		&entities,
+		Entity_Spawn {
+			position = {240, 150},
+			type = .Gate,
+			gate_id = 1,
+			inverted = false,
+			size = {64, 16},
+			required_triggers = required_triggers,
+		},
+	)
 
 	// Create a holdable object that can be used on the pressure plates
-	append(&entities, Entity_Spawn{
-		position = {300, 300},
-		type = .Holdable,
-		texture_path = "res/art/elements/crops/wood.png",
-	})
+	append(
+		&entities,
+		Entity_Spawn {
+			position = {300, 300},
+			type = .Holdable,
+			texture_path = "res/art/elements/crops/wood.png",
+		},
+	)
 
 	camera_bounds := rl.Rectangle {
 		0,
@@ -354,8 +365,8 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 		f32(tilemap_config.height * tilemap_config.config.tile_size),
 	}
 
-	// Collision bounds are smaller than camera bounds for indoor feel
-	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
+	// Collision bounds match camera bounds (no padding)
+	collision_bounds := rl.Rectangle{0, 0, camera_bounds.width, camera_bounds.height}
 
 	doors := make([dynamic]Door)
 	// Add a door to the desert room on the right side
@@ -365,6 +376,16 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 			position = {camera_bounds.width - 48, camera_bounds.height / 2 - 32},
 			size = {32, 64},
 			target_room = "desert",
+			target_door = "from_olivewood",
+		},
+	)
+	// Add a door to the small room on the left side
+	append(
+		&doors,
+		Door {
+			position = {0, camera_bounds.height / 2 - 32},
+			size = {32, 64},
+			target_room = "small_room",
 			target_door = "from_olivewood",
 		},
 	)
@@ -442,8 +463,8 @@ room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 		f32(tilemap_config.height * tilemap_config.config.tile_size),
 	}
 
-	// Collision bounds are smaller than camera bounds for indoor feel
-	collision_bounds := rl.Rectangle{32, 32, camera_bounds.width - 64, camera_bounds.height - 64}
+	// Collision bounds match camera bounds (no padding)
+	collision_bounds := rl.Rectangle{0, 0, camera_bounds.width, camera_bounds.height}
 
 	doors := make([dynamic]Door)
 	// Add a door back to the olivewood room on the left side
@@ -460,6 +481,44 @@ room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 	return RoomResource {
 		id = "desert",
 		name = "Blisterwind",
+		tilemap_config = tilemap_config,
+		entities = entities,
+		music_path = asset.path("audio/music/ambient.ogg"),
+		camera_bounds = camera_bounds,
+		collision_bounds = collision_bounds,
+		doors = doors,
+	}
+}
+
+room_new_small :: proc() -> RoomResource {
+	tilemap_config, map_ok := tilemap.load_tilemap_from_file(asset.path("maps/room.map"))
+	assert(map_ok, "Failed to load small room map")
+
+	entities := make([dynamic]Entity_Spawn)
+	append(&entities, Entity_Spawn{position = {64, 64}, type = .Player}) // Player 1
+	append(&entities, Entity_Spawn{position = {80, 64}, type = .Player}) // Player 2
+
+	// Make camera bounds larger than the actual room to center it
+	room_width := f32(tilemap_config.width * tilemap_config.config.tile_size)
+	room_height := f32(tilemap_config.height * tilemap_config.config.tile_size)
+	camera_bounds := rl.Rectangle{-200, -150, room_width + 400, room_height + 300}
+
+	collision_bounds := rl.Rectangle{0, 0, room_width, room_height}
+
+	doors := make([dynamic]Door)
+	append(
+		&doors,
+		Door {
+			position = {room_width - 16, room_height / 2 - 32},
+			size = {32, 64},
+			target_room = "olivewood",
+			target_door = "from_small_room",
+		},
+	)
+
+	return RoomResource {
+		id = "small_room",
+		name = "???",
 		tilemap_config = tilemap_config,
 		entities = entities,
 		music_path = asset.path("audio/music/ambient.ogg"),
