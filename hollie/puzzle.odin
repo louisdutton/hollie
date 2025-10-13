@@ -247,7 +247,7 @@ puzzle_update :: proc() {
 	// Check which players are currently standing on pressure plates
 	for player in players {
 		player_id: Player_ID
-		switch player.player_index {
+		switch player.index {
 		case .PLAYER_1: player_id = .PLAYER_1
 		case .PLAYER_2: player_id = .PLAYER_2
 		}

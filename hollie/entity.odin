@@ -62,7 +62,7 @@ Player :: struct {
 	using movement:  Movement,
 	using combat:    Combat,
 	using anim_data: Animator,
-	player_index:    input.Player_Index,
+	index:           input.Player_Index,
 	carrying:        ^Holdable,
 }
 
@@ -130,7 +130,7 @@ entity_system_fini :: proc() {
 // Create entities
 entity_create_player :: proc(
 	pos: Vec2,
-	player_index: input.Player_Index,
+	index: input.Player_Index,
 	animations: []Animation,
 ) -> ^Player {
 	player := Player {
@@ -139,7 +139,7 @@ entity_create_player :: proc(
 		health = {current = 100, max = 100, is_dying = false},
 		movement = {move_speed = 100, roll_speed = 200, is_rolling = false},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
-		player_index = player_index,
+		index = index,
 	}
 
 	if len(animations) > 0 {
@@ -222,9 +222,9 @@ entity_get_players :: proc() -> [dynamic]^Player {
 	return players
 }
 
-entity_get_player :: proc(player_index: input.Player_Index) -> ^Player {
+entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 	for &entity in entities {
-		if player, ok := &entity.(Player); ok && player.player_index == player_index {
+		if player, ok := &entity.(Player); ok && player.index == index {
 			return player
 		}
 	}
@@ -367,7 +367,7 @@ entity_handle_input :: proc() {
 			if dialog_is_active() do continue
 
 			// Handle attack input
-			if input.is_pressed_for_player(.Attack, e.player_index) &&
+			if input.is_pressed_for_player(.Attack, e.index) &&
 			   !e.is_attacking &&
 			   !e.is_rolling {
 				e.is_attacking = true
@@ -375,7 +375,7 @@ entity_handle_input :: proc() {
 				e.attack_hit = false
 
 				// Lock attack direction based on current movement or facing
-				movement_input := input.get_movement_for_player(e.player_index)
+				movement_input := input.get_movement_for_player(e.index)
 				if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
 					// Use current movement direction
 					e.attack_direction = {movement_input.x, movement_input.y}
@@ -396,10 +396,10 @@ entity_handle_input :: proc() {
 			}
 
 			// Handle roll input
-			if input.is_pressed_for_player(.Roll, e.player_index) &&
+			if input.is_pressed_for_player(.Roll, e.index) &&
 			   !e.is_rolling &&
 			   !e.is_attacking {
-				movement_input := input.get_movement_for_player(e.player_index)
+				movement_input := input.get_movement_for_player(e.index)
 				// Only roll if moving
 				if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
 					length := math.sqrt(
@@ -415,7 +415,7 @@ entity_handle_input :: proc() {
 			}
 
 			// Handle pickup/drop input
-			if input.is_pressed_for_player(.Accept, e.player_index) &&
+			if input.is_pressed_for_player(.Accept, e.index) &&
 			   !e.is_attacking &&
 			   !e.is_rolling {
 				if e.carrying != nil {
@@ -509,7 +509,7 @@ entity_update_movement :: proc() {
 						e.velocity = e.velocity * 0.85 // Knockback friction
 					}
 				} else {
-					movement_input := input.get_movement_for_player(e.player_index)
+					movement_input := input.get_movement_for_player(e.index)
 					e.velocity = movement_input * e.move_speed
 
 					if abs(movement_input.x) > 0 {
@@ -809,8 +809,8 @@ entity_system_draw :: proc() {
 			}
 
 			// Draw player indicator
-			player_text := e.player_index == .PLAYER_1 ? "P1" : "P2"
-			player_color := e.player_index == .PLAYER_1 ? renderer.BLUE : renderer.RED
+			player_text := e.index == .PLAYER_1 ? "P1" : "P2"
+			player_color := e.index == .PLAYER_1 ? renderer.BLUE : renderer.RED
 			renderer.draw_text(
 				player_text,
 				int(e.position.x) - 8,
@@ -875,10 +875,15 @@ entity_system_draw :: proc() {
 				flash_intensity: f32 = 1.0
 
 				// Draw 8-directional outline using white flash shader
-				offsets := [8][2]f32{
-					{-1, -1}, {0, -1}, {1, -1},
-					{-1,  0},          {1,  0},
-					{-1,  1}, {0,  1}, {1,  1},
+				offsets := [8][2]f32 {
+					{-1, -1},
+					{0, -1},
+					{1, -1},
+					{-1, 0},
+					{1, 0},
+					{-1, 1},
+					{0, 1},
+					{1, 1},
 				}
 
 				texture_2d := rl.Texture2D(e.sprite_texture)
