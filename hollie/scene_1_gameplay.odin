@@ -1,7 +1,6 @@
 package hollie
 
 import "audio"
-import "core:slice"
 import "core:time"
 import "gui"
 import "input"
@@ -9,18 +8,6 @@ import "renderer"
 import "tilemap"
 import "tween"
 import rl "vendor:raylib"
-
-// Draw all characters sorted by y position
-// we can potentially avoid double iteration with a custom sort
-draw_entities_sorted :: proc() {
-	slice.sort_by(characters[:], proc(a, b: Character) -> bool {
-		return a.position.y < b.position.y
-	})
-
-	for &character in characters {
-		character_draw(&character)
-	}
-}
 
 
 // Gameplay Screen
@@ -43,7 +30,7 @@ gameplay_state := struct {
 init_gameplay_screen :: proc() {
 	camera_init()
 	dialog_init()
-	character_system_init()
+	entity_system_init() // Initialize union-based entities
 	particle_system_init()
 	shader_init()
 	gui.init()
@@ -81,8 +68,8 @@ update_gameplay_screen :: proc() {
 		}
 
 		// Position both players
-		player1 := character_get_player(.PLAYER_1)
-		player2 := character_get_player(.PLAYER_2)
+		player1 := entity_get_player(.PLAYER_1)
+		player2 := entity_get_player(.PLAYER_2)
 		if player1 != nil {
 			player1.position = gameplay_state.pending_player_pos
 		}
@@ -109,12 +96,12 @@ update_gameplay_screen :: proc() {
 
 	if !pause_is_active() {
 		room_update()
-		character_system_update() // Handles all characters (player, enemies, NPCs)
+		entity_system_update() // Handles all entities (players, enemies, NPCs, puzzles)
 		puzzle_update()
 
 		// Check for door collisions with any player
 		if !gameplay_state.is_transitioning {
-			players := character_get_players()
+			players := entity_get_players()
 			defer delete(players)
 
 			for player in players {
@@ -156,7 +143,7 @@ draw_gameplay_screen :: proc() {
 
 		tilemap.draw(camera)
 		room_draw_puzzle_elements() // Draw puzzle sprites in normal mode
-		draw_entities_sorted()
+		entity_system_draw() // Draw all entities with proper sorting
 		particle_system_draw()
 
 		when ODIN_DEBUG {
@@ -181,7 +168,7 @@ draw_gameplay_screen :: proc() {
 unload_gameplay_screen :: proc() {
 	shader_fini()
 	room_fini()
-	character_system_fini()
+	entity_system_fini() // Cleanup entities
 	particle_system_fini()
 	puzzle_fini()
 }

@@ -24,9 +24,9 @@ screen_scale: f32 = 1.0
 camera_base_zoom: f32 = ZOOM_DEFAULT
 
 camera_follow_target :: proc() {
-	// Get both players and follow their center point
-	player1 := character_get_player(.PLAYER_1)
-	player2 := character_get_player(.PLAYER_2)
+	// Get both players and follow their center point using new entity system
+	player1 := entity_get_player(.PLAYER_1)
+	player2 := entity_get_player(.PLAYER_2)
 
 	target_pos: Vec2
 	if player1 != nil && player2 != nil {

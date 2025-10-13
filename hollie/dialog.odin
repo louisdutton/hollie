@@ -88,12 +88,7 @@ dialog_advance :: proc() {
 		}
 
 		// unlock dialog target
-		// TODO: this is crude, we should have a reference to the target
-		for &character in characters {
-			if character.state.is_busy {
-				character.state.is_busy = false
-			}
-		}
+		// TODO: implement entity interaction unlocking
 	} else {
 		if len(dialog_state.current_runes) > 0 {
 			delete(dialog_state.current_runes)

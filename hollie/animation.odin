@@ -61,7 +61,7 @@ animation_update :: proc(anim_data: ^Animator) {
 	}
 }
 
-animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped: bool) {
+animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
 	// detect state change
 	if anim_data.current_anim != state {
 		anim_data.frame = 0
@@ -69,10 +69,9 @@ animation_set_state :: proc(anim_data: ^Animator, state: AnimationState, flipped
 	}
 
 	anim_data.current_anim = state
-	anim_data.is_flipped = flipped
 }
 
-animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {
+animation_draw :: proc(anim_data: ^Animator, position: Vec2) {
 	tex_pos := position
 	tex_pos.x -= f32(FRAME_WIDTH) / 2
 	tex_pos.y -= f32(FRAME_HEIGHT) / 2
@@ -80,7 +79,7 @@ animation_draw :: proc(anim_data: ^Animator, position: Vec2, color: rl.Color) {
 	if anim_data.is_flipped {
 		tex_rect.width *= -1
 	}
-	rl.DrawTextureRec(anim_data.animations[anim_data.current_anim], tex_rect, tex_pos, color)
+	rl.DrawTextureRec(anim_data.animations[anim_data.current_anim], tex_rect, tex_pos, rl.WHITE)
 }
 
 // Special draw function for hit flash effect using shader

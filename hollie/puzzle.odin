@@ -216,57 +216,67 @@ puzzle_update :: proc() {
 		}
 	}
 
-	// Handle pressure plate collision detection (continuous presence)
-	player1 := character_get_player(.PLAYER_1)
-	player2 := character_get_player(.PLAYER_2)
+	// Handle pressure plate collision detection using entities (continuous presence)
 
 	// Reset all pressure plates first
-	for &trigger in puzzle_system.triggers {
-		if trigger.type == .PRESSURE_PLATE {
-			trigger.activated_by = {}
-		}
+	pressure_plates := entity_get_pressure_plates()
+	defer delete(pressure_plates)
+
+	for plate in pressure_plates {
+		plate.activated_by = {}
+		plate.active = false
 	}
+
+	// Get all players using new entity system
+	players := entity_get_players()
+	defer delete(players)
 
 	// Check which players are currently standing on pressure plates
-	if player1 != nil {
-		for &trigger in puzzle_system.triggers {
-			if trigger.type == .PRESSURE_PLATE &&
-			   player1.position.x >= trigger.position.x &&
-			   player1.position.x <= trigger.position.x + trigger.size.x &&
-			   player1.position.y >= trigger.position.y &&
-			   player1.position.y <= trigger.position.y + trigger.size.y {
-				trigger.activated_by += {.PLAYER_1}
-			}
+	for player in players {
+		player_id: Player_ID
+		switch player.player_index {
+		case .PLAYER_1: player_id = .PLAYER_1
+		case .PLAYER_2: player_id = .PLAYER_2
 		}
-	}
 
-	if player2 != nil {
-		for &trigger in puzzle_system.triggers {
-			if trigger.type == .PRESSURE_PLATE &&
-			   player2.position.x >= trigger.position.x &&
-			   player2.position.x <= trigger.position.x + trigger.size.x &&
-			   player2.position.y >= trigger.position.y &&
-			   player2.position.y <= trigger.position.y + trigger.size.y {
-				trigger.activated_by += {.PLAYER_2}
+		// Check collision with all pressure plates using proper entity collision
+		player_entity := Entity(player^)
+		for plate in pressure_plates {
+			plate_entity := Entity(plate^)
+			if entity_check_collision(&player_entity, &plate_entity) {
+				plate.activated_by += {player_id}
 			}
 		}
 	}
 
 	// Update pressure plate active states
-	for &trigger in puzzle_system.triggers {
-		if trigger.type == .PRESSURE_PLATE {
-			puzzle_trigger_update_state(&trigger)
+	for plate in pressure_plates {
+		if plate.requires_both {
+			plate.active = card(plate.activated_by) == 2
+		} else {
+			plate.active = card(plate.activated_by) > 0
 		}
 	}
 
 	// Update gate states based on triggers
-	for &gate in puzzle_system.gates {
+	gates := entity_get_gates()
+	defer delete(gates)
+
+	for gate in gates {
 		gate_should_open := true
 
-		// Check if all required triggers are active
+		// Check if all required triggers (pressure plates) are active
 		for trigger_id in gate.required_triggers {
-			trigger := puzzle_get_trigger(trigger_id)
-			if trigger == nil || !trigger.active {
+			// Find the pressure plate with this trigger_id
+			trigger_active := false
+			for plate in pressure_plates {
+				if plate.trigger_id == trigger_id && plate.active {
+					trigger_active = true
+					break
+				}
+			}
+
+			if !trigger_active {
 				gate_should_open = false
 				break
 			}
@@ -281,15 +291,19 @@ puzzle_update :: proc() {
 	}
 }
 
-// Check if position collides with any closed gates
+// Check if position collides with any closed gates using union entities
 puzzle_check_gate_collision :: proc(position: Vec2, size: Vec2 = {16, 16}) -> bool {
-	for gate in puzzle_system.gates {
+	gates := entity_get_gates()
+	defer delete(gates)
+
+	for gate in gates {
 		if !gate.open {
+			gate_pos := gate.position + gate.collider.offset
 			// Check collision between position+size and gate
-			if position.x < gate.position.x + gate.size.x &&
-			   position.x + size.x > gate.position.x &&
-			   position.y < gate.position.y + gate.size.y &&
-			   position.y + size.y > gate.position.y {
+			if position.x < gate_pos.x + gate.collider.size.x &&
+			   position.x + size.x > gate_pos.x &&
+			   position.y < gate_pos.y + gate.collider.size.y &&
+			   position.y + size.y > gate_pos.y {
 				return true
 			}
 		}

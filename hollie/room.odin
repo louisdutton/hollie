@@ -11,6 +11,16 @@ import "tilemap"
 import "tween"
 import rl "vendor:raylib"
 
+// Check collision between two rectangles
+rects_intersect :: proc(a, b: renderer.Rect) -> bool {
+	return(
+		a.x < b.x + b.width &&
+		a.x + a.width > b.x &&
+		a.y < b.y + b.height &&
+		a.y + a.height > b.y \
+	)
+}
+
 Door :: struct {
 	position:    Vec2,
 	size:        Vec2,
@@ -81,7 +91,8 @@ room_get_current :: proc() -> ^RoomResource {
 room_draw_doors_debug :: proc() {
 	if !room_state.is_loaded || room_state.current_bundle == nil do return
 
-	players := character_get_players()
+	players := entity_get_players()
+	defer delete(players)
 
 	for &door in room_state.current_bundle.doors {
 		door_rect := renderer.Rect{door.position.x, door.position.y, door.size.x, door.size.y}
@@ -144,6 +155,7 @@ room_init :: proc(res: ^RoomResource) {
 		}
 	}
 
+
 	room_state.is_loaded = true
 
 	// Start level name fade-in effect
@@ -170,11 +182,8 @@ room_fini :: proc() {
 
 	tilemap.fini()
 
-	// Clear characters for level unload/reload
-	for &character in characters {
-		character_destroy(&character)
-	}
-	clear(&characters)
+	// Clear entities for level unload/reload
+	clear(&entities)
 
 	room_state.current_bundle = nil
 	room_state.is_loaded = false
@@ -428,18 +437,18 @@ room_draw_name :: proc() {
 	renderer.draw_text(room_name, x, y, text_size, color)
 }
 
-// Setup a basic puzzle for the olivewood room
+// Setup a basic puzzle for the olivewood room using union entities
 room_setup_basic_puzzle :: proc() {
 	// Create two pressure plates that both players must stand on simultaneously
-	puzzle_trigger_create(1, .PRESSURE_PLATE, {150, 200}, {32, 32}, false) // Individual activation
-	puzzle_trigger_create(2, .PRESSURE_PLATE, {350, 200}, {32, 32}, false) // Individual activation
+	_ = entity_create_pressure_plate({150, 200}, 1, false)
+	_ = entity_create_pressure_plate({350, 200}, 2, false)
 
 	// Create a gate that blocks access to the upper area
-	puzzle_gate_create(1, {240, 150}, {64, 16})
+	gate := entity_create_gate({240, 150}, {64, 16}, 1, false)
 
 	// Link both plates to control the gate - gate opens only when BOTH are active
-	puzzle_link_trigger_to_gate(1, 1)
-	puzzle_link_trigger_to_gate(2, 1)
+	append(&gate.required_triggers, 1)
+	append(&gate.required_triggers, 2)
 }
 
 // Draw puzzle elements with placeholder sprites
@@ -447,34 +456,38 @@ room_draw_puzzle_elements :: proc() {
 	if !room_state.is_loaded do return
 
 	// Draw pressure plates with simple circular sprites
-	for trigger in puzzle_system.triggers {
-		if trigger.type == .PRESSURE_PLATE {
-			center_x := trigger.position.x + trigger.size.x / 2
-			center_y := trigger.position.y + trigger.size.y / 2
-			radius := trigger.size.x / 2
+	pressure_plates := entity_get_pressure_plates()
+	defer delete(pressure_plates)
 
-			// Draw outline first (slightly larger darker circle)
-			renderer.draw_circle(center_x, center_y, radius + 2, renderer.BLACK)
+	for plate in pressure_plates {
+		center_x := plate.position.x
+		center_y := plate.position.y
+		radius := plate.collider.size.x / 2
 
-			// Draw base plate (always visible)
-			base_color := renderer.fade(renderer.WHITE, 0.8)
-			renderer.draw_circle(center_x, center_y, radius, base_color)
+		// Draw outline first (slightly larger darker circle)
+		renderer.draw_circle(center_x, center_y, radius + 2, renderer.BLACK)
 
-			// Draw activation indicator
-			if trigger.active {
-				active_color := renderer.fade(renderer.GREEN, 0.9)
-				renderer.draw_circle(center_x, center_y, radius / 2, active_color)
-			}
+		// Draw base plate (always visible)
+		base_color := renderer.fade(renderer.WHITE, 0.8)
+		renderer.draw_circle(center_x, center_y, radius, base_color)
+
+		// Draw activation indicator
+		if plate.active {
+			active_color := renderer.fade(renderer.GREEN, 0.9)
+			renderer.draw_circle(center_x, center_y, radius / 2, active_color)
 		}
 	}
 
 	// Draw gates with stone block sprites
-	for gate in puzzle_system.gates {
+	gates := entity_get_gates()
+	defer delete(gates)
+
+	for gate in gates {
 		if !gate.open {
 			// Draw stone blocks to represent the gate
 			block_size := f32(16)
-			blocks_x := int(gate.size.x / block_size)
-			blocks_y := int(gate.size.y / block_size)
+			blocks_x := int(gate.collider.size.x / block_size)
+			blocks_y := int(gate.collider.size.y / block_size)
 
 			for y in 0 ..< blocks_y {
 				for x in 0 ..< blocks_x {
