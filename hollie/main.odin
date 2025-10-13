@@ -22,7 +22,7 @@ Game_State :: struct {
 }
 
 game: Game_State = {
-	scene   = .GAMEPLAY,
+	scene   = .TITLE,
 	running = true,
 }
 
