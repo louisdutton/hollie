@@ -47,6 +47,7 @@ init_gameplay_screen :: proc() {
 	particle_system_init()
 	shader_init()
 	gui.init()
+	puzzle_init()
 
 	gameplay_state.grass_room = room_new()
 	gameplay_state.sand_room = room_new_sand()
@@ -109,6 +110,7 @@ update_gameplay_screen :: proc() {
 	if !pause_is_active() {
 		room_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
+		puzzle_update()
 
 		// Check for door collisions with any player
 		if !gameplay_state.is_transitioning {
@@ -153,11 +155,13 @@ draw_gameplay_screen :: proc() {
 		defer renderer.end_mode_2d()
 
 		tilemap.draw(camera)
+		room_draw_puzzle_elements() // Draw puzzle sprites in normal mode
 		draw_entities_sorted()
 		particle_system_draw()
 
 		when ODIN_DEBUG {
 			room_draw_doors_debug()
+			room_draw_puzzle_debug()
 		}
 	}
 
@@ -179,6 +183,7 @@ unload_gameplay_screen :: proc() {
 	room_fini()
 	character_system_fini()
 	particle_system_fini()
+	puzzle_fini()
 }
 
 

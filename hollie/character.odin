@@ -366,6 +366,12 @@ character_calc_state :: proc(character: ^Character) {
 character_move_and_collide :: proc(character: ^Character) {
 	next := character.position + character.velocity
 
+	// Check puzzle gate collision before moving
+	character_size := Vec2{f32(character.width), f32(character.height)}
+	if puzzle_check_gate_collision(next, character_size) {
+		return // Don't move if blocked by a gate
+	}
+
 	// Apply bounds checking using room collision bounds
 	room_bounds := room_get_collision_bounds()
 	half_width := f32(character.width) / 2

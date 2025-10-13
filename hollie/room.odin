@@ -304,6 +304,9 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 		},
 	)
 
+	// Setup basic 2-player puzzle: two pressure plates that open a gate
+	room_setup_basic_puzzle()
+
 	return RoomResource {
 		id = "olivewood",
 		name = "Olivewood",
@@ -423,4 +426,109 @@ room_draw_name :: proc() {
 	color := rl.Color{255, 255, 255, alpha}
 
 	renderer.draw_text(room_name, x, y, text_size, color)
+}
+
+// Setup a basic puzzle for the olivewood room
+room_setup_basic_puzzle :: proc() {
+	// Create two pressure plates that both players must stand on simultaneously
+	puzzle_trigger_create(1, .PRESSURE_PLATE, {150, 200}, {32, 32}, false) // Individual activation
+	puzzle_trigger_create(2, .PRESSURE_PLATE, {350, 200}, {32, 32}, false) // Individual activation
+
+	// Create a gate that blocks access to the upper area
+	puzzle_gate_create(1, {240, 150}, {64, 16})
+
+	// Link both plates to control the gate - gate opens only when BOTH are active
+	puzzle_link_trigger_to_gate(1, 1)
+	puzzle_link_trigger_to_gate(2, 1)
+}
+
+// Draw puzzle elements with placeholder sprites
+room_draw_puzzle_elements :: proc() {
+	if !room_state.is_loaded do return
+
+	// Draw pressure plates with simple circular sprites
+	for trigger in puzzle_system.triggers {
+		if trigger.type == .PRESSURE_PLATE {
+			center_x := trigger.position.x + trigger.size.x / 2
+			center_y := trigger.position.y + trigger.size.y / 2
+			radius := trigger.size.x / 2
+
+			// Draw outline first (slightly larger darker circle)
+			renderer.draw_circle(center_x, center_y, radius + 2, renderer.BLACK)
+
+			// Draw base plate (always visible)
+			base_color := renderer.fade(renderer.WHITE, 0.8)
+			renderer.draw_circle(center_x, center_y, radius, base_color)
+
+			// Draw activation indicator
+			if trigger.active {
+				active_color := renderer.fade(renderer.GREEN, 0.9)
+				renderer.draw_circle(center_x, center_y, radius / 2, active_color)
+			}
+		}
+	}
+
+	// Draw gates with stone block sprites
+	for gate in puzzle_system.gates {
+		if !gate.open {
+			// Draw stone blocks to represent the gate
+			block_size := f32(16)
+			blocks_x := int(gate.size.x / block_size)
+			blocks_y := int(gate.size.y / block_size)
+
+			for y in 0 ..< blocks_y {
+				for x in 0 ..< blocks_x {
+					block_x := gate.position.x + f32(x) * block_size
+					block_y := gate.position.y + f32(y) * block_size
+
+					// Alternating gray shades for texture
+					stone_color: renderer.Colour
+					if (x + y) % 2 == 0 {
+						stone_color = renderer.fade(renderer.WHITE, 0.7)
+					} else {
+						stone_color = renderer.fade(renderer.WHITE, 0.5)
+					}
+
+					renderer.draw_rect(block_x, block_y, block_size, block_size, stone_color)
+					renderer.draw_rect_outline(
+						block_x,
+						block_y,
+						block_size,
+						block_size,
+						color = renderer.BLACK,
+					)
+				}
+			}
+		}
+	}
+}
+
+// Draw puzzle debug info (debug mode only)
+room_draw_puzzle_debug :: proc() {
+	if !room_state.is_loaded do return
+
+	// Draw trigger collision boxes
+	for trigger in puzzle_system.triggers {
+		outline_color := trigger.active ? renderer.GREEN : renderer.RED
+		renderer.draw_rect_outline(
+			trigger.position.x,
+			trigger.position.y,
+			trigger.size.x,
+			trigger.size.y,
+			color = outline_color,
+		)
+	}
+
+	// Draw gate collision boxes
+	for gate in puzzle_system.gates {
+		if !gate.open {
+			renderer.draw_rect_outline(
+				gate.position.x,
+				gate.position.y,
+				gate.size.x,
+				gate.size.y,
+				color = renderer.RED,
+			)
+		}
+	}
 }
