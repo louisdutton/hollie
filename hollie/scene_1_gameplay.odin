@@ -166,6 +166,7 @@ draw_gameplay_screen :: proc() {
 }
 
 unload_gameplay_screen :: proc() {
+	pause_close()
 	shader_fini()
 	room_fini()
 	entity_system_fini() // Cleanup entities
