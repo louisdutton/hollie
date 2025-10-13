@@ -137,7 +137,7 @@ entity_create_player :: proc(
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 100, max = 100, is_dying = false},
-		movement = {move_speed = 100, roll_speed = 200},
+		movement = {move_speed = 80, roll_speed = 160},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
 		index = index,
 	}
