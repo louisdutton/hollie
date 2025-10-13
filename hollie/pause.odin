@@ -69,7 +69,7 @@ pause_handle_input :: proc() {
 
 	// Handle escape key to go back or close menu
 	if input.is_key_pressed(.ESCAPE) ||
-	   input.is_gamepad_button_pressed(input.PLAYER_1, .RIGHT_FACE_DOWN) {
+	   input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
 		switch pause_state.menu_state {
 		case .MAIN: pause_close()
 		case .OPTIONS, .AUDIO, .VISUAL, .CONTROLS:
@@ -81,26 +81,26 @@ pause_handle_input :: proc() {
 	}
 
 	// Handle gamepad navigation
-	if input.is_gamepad_available(input.PLAYER_1) {
+	if input.is_gamepad_available(.PLAYER_1) {
 		// Navigate up/down with D-pad or left stick
 		menu_count := pause_state.menu_item_counts[pause_state.menu_state]
 
-		if input.is_gamepad_button_pressed(input.PLAYER_1, .LEFT_FACE_UP) ||
-		   (input.get_gamepad_axis_movement(input.PLAYER_1, .LEFT_Y) < -0.5 &&
+		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP) ||
+		   (input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y) < -0.5 &&
 				   pause_gamepad_can_navigate()) {
 			pause_state.selected_index = (pause_state.selected_index - 1 + menu_count) % menu_count
 			pause_reset_navigation_timer()
 		}
 
-		if input.is_gamepad_button_pressed(input.PLAYER_1, .LEFT_FACE_DOWN) ||
-		   (input.get_gamepad_axis_movement(input.PLAYER_1, .LEFT_Y) > 0.5 &&
+		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN) ||
+		   (input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y) > 0.5 &&
 				   pause_gamepad_can_navigate()) {
 			pause_state.selected_index = (pause_state.selected_index + 1) % menu_count
 			pause_reset_navigation_timer()
 		}
 
 		// Select with A button
-		if input.is_gamepad_button_pressed(input.PLAYER_1, .RIGHT_FACE_RIGHT) {
+		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
 			pause_activate_selected_item()
 		}
 	}

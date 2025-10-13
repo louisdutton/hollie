@@ -5,6 +5,7 @@ import "audio"
 import "core:fmt"
 import "core:math/rand"
 import "core:time"
+import "input"
 import "renderer"
 import "tilemap"
 import "tween"
@@ -80,13 +81,21 @@ room_get_current :: proc() -> ^RoomResource {
 room_draw_doors_debug :: proc() {
 	if !room_state.is_loaded || room_state.current_bundle == nil do return
 
-	player := character_get_player()
+	players := character_get_players()
 
 	for &door in room_state.current_bundle.doors {
 		door_rect := renderer.Rect{door.position.x, door.position.y, door.size.x, door.size.y}
-		player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
 
-		outline_color := rects_intersect(door_rect, player_rect) ? renderer.GREEN : renderer.RED
+		is_intersection := false
+		for player in players {
+			player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
+			if rects_intersect(door_rect, player_rect) {
+				is_intersection = true
+				break
+			}
+		}
+
+		outline_color := is_intersection ? renderer.GREEN : renderer.RED
 		door_color := renderer.fade(outline_color, 0.5)
 
 		renderer.draw_rect(door.position.x, door.position.y, door.size.x, door.size.y, door_color)
@@ -122,13 +131,16 @@ room_init :: proc(res: ^RoomResource) {
 	camera_set_bounds(res.camera_bounds)
 	room_set_collision_bounds(res.collision_bounds)
 
+	player_spawn_count := 0
 	for spawn in res.entities {
 		switch spawn.type {
 		case .Enemy: switch res.id {
 				case "olivewood": enemy_spawn_race_at(spawn.position, .GOBLIN)
 				case "desert": enemy_spawn_race_at(spawn.position, .SKELETON)
 				}
-		case .Player: player_spawn_at(spawn.position)
+		case .Player:
+			player_spawn_at(spawn.position, input.Player_Index(player_spawn_count))
+			player_spawn_count += 1
 		}
 	}
 
@@ -262,7 +274,8 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 	}
 
 	entities := make([dynamic]Entity_Spawn)
-	append(&entities, Entity_Spawn{{256, 256}, .Player})
+	append(&entities, Entity_Spawn{{240, 256}, .Player}) // Player 1
+	append(&entities, Entity_Spawn{{272, 256}, .Player}) // Player 2
 	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)
@@ -349,7 +362,8 @@ room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 	}
 
 	entities := make([dynamic]Entity_Spawn)
-	append(&entities, Entity_Spawn{{256, 256}, .Player})
+	append(&entities, Entity_Spawn{{240, 256}, .Player}) // Player 1
+	append(&entities, Entity_Spawn{{272, 256}, .Player}) // Player 2
 	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)

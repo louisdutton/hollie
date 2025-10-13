@@ -24,9 +24,21 @@ screen_scale: f32 = 1.0
 camera_base_zoom: f32 = ZOOM_DEFAULT
 
 camera_follow_target :: proc() {
-	// Get player character
-	player_char := character_get_player()
-	if player_char == nil do return
+	// Get both players and follow their center point
+	player1 := character_get_player(.PLAYER_1)
+	player2 := character_get_player(.PLAYER_2)
+
+	target_pos: Vec2
+	if player1 != nil && player2 != nil {
+		// Follow center point between both players
+		target_pos = (player1.position + player2.position) / 2
+	} else if player1 != nil {
+		target_pos = player1.position
+	} else if player2 != nil {
+		target_pos = player2.position
+	} else {
+		return
+	}
 
 	scale := 2 * camera.zoom
 	x_offset := f32(rl.GetScreenWidth()) / scale
@@ -38,12 +50,12 @@ camera_follow_target :: proc() {
 	min_y := camera_bounds.y
 
 	camera.target.x = clamp(
-		math.lerp(camera.target.x, player_char.position.x - x_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.x, target_pos.x - x_offset, CAMERA_SMOOTH),
 		min_x,
 		max_x,
 	)
 	camera.target.y = clamp(
-		math.lerp(camera.target.y, player_char.position.y - y_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.y, target_pos.y - y_offset, CAMERA_SMOOTH),
 		min_y,
 		max_y,
 	)

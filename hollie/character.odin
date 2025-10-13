@@ -101,6 +101,9 @@ Character :: struct {
 	// Character tags (type, race, and behaviors combined)
 	tags:          Character_Tags,
 
+	// Player index
+	player_index:  Maybe(input.Player_Index),
+
 	// Animation
 	anim_data:     Animator,
 
@@ -162,7 +165,12 @@ character_system_fini :: proc() {
 }
 
 // Create a new character
-character_create :: proc(pos: Vec2, tags: Character_Tags, animations: []Animation) -> ^Character {
+character_create :: proc(
+	pos: Vec2,
+	tags: Character_Tags,
+	animations: []Animation,
+	player_id: Maybe(input.Player_Index) = nil,
+) -> ^Character {
 	character := Character {
 		position      = pos,
 		width         = 16,
@@ -170,6 +178,7 @@ character_create :: proc(pos: Vec2, tags: Character_Tags, animations: []Animatio
 		velocity      = {0, 0},
 		color         = renderer.WHITE,
 		tags          = tags,
+		player_index  = player_id,
 		move_speed    = DEFAULT_MOVE_SPEED,
 		roll_speed    = DEFAULT_ROLL_SPEED,
 		attack_damage = DEFAULT_ATTACK_DAMAGE,
@@ -221,22 +230,27 @@ character_remove :: proc(character: ^Character) {
 
 
 // Unified character creation function
-character_spawn :: proc(pos: Vec2, tags: Character_Tags, variant: string = "") -> ^Character {
+character_spawn :: proc(
+	pos: Vec2,
+	tags: Character_Tags,
+	variant: string = "",
+	player_id: Maybe(input.Player_Index) = nil,
+) -> ^Character {
 	if .GOBLIN in tags {
-		return character_create(pos, tags, goblin_animations[:])
+		return character_create(pos, tags, goblin_animations[:], player_id)
 	} else if .SKELETON in tags {
-		return character_create(pos, tags, skeleton_animations[:])
+		return character_create(pos, tags, skeleton_animations[:], player_id)
 	} else if .HUMAN in tags {
 		// Use player animations for player characters, human animations for NPCs
 		if .PLAYER in tags {
-			return character_create(pos, tags, player_animations[:])
+			return character_create(pos, tags, player_animations[:], player_id)
 		} else {
-			return character_create(pos, tags, human_animations[:])
+			return character_create(pos, tags, human_animations[:], player_id)
 		}
 	}
 
 	// Fallback (should never reach here)
-	return character_create(pos, tags, goblin_animations[:])
+	return character_create(pos, tags, goblin_animations[:], player_id)
 }
 
 // Get character rectangle for collision
@@ -294,13 +308,17 @@ character_calc_velocity :: proc(character: ^Character) {
 
 // Calculate player velocity from input
 character_calc_player_velocity :: proc(character: ^Character) {
-	input := input.get_movement()
-	character.velocity = input * character.move_speed
+	if idx, ok := character.player_index.?; ok {
+		movement_input := input.get_movement_for_player(idx)
+		character.velocity = movement_input * character.move_speed
 
-	// Update sprite flip state when moving horizontally
-	if abs(input.x) > 0 {
-		character.state.is_flipped = input.x < 0
+		// Update sprite flip state when moving horizontally
+		if abs(movement_input.x) > 0 {
+			character.state.is_flipped = movement_input.x < 0
+		}
 	}
+
+
 }
 
 // Calculate AI velocity (for enemies and NPCs)
@@ -388,59 +406,65 @@ npc_human_messages := []Dialog_Message {
 character_handle_player_input :: proc(character: ^Character) {
 	if .PLAYER not_in character.tags || dialog_is_active() do return
 
-	if input.is_pressed(.Accept) {
-		// Try to interact with nearby character
-		INTERACTION_RANGE :: 40.0
-		target, found := character_find_nearest_interactable(character.position, INTERACTION_RANGE)
+	if idx, ok := character.player_index.?; ok {
+		if input.is_pressed_for_player(.Accept, idx) {
+			// Try to interact with nearby character
+			INTERACTION_RANGE :: 40.0
+			target, found := character_find_nearest_interactable(
+				character.position,
+				INTERACTION_RANGE,
+			)
 
-		if found {
-			target.state.is_busy = true
-			// Start dialog based on character race
-			if .GOBLIN in target.tags {
-				dialog_start(goblin_messages)
-			} else if .SKELETON in target.tags {
-				dialog_start(skeleton_messages)
-			} else if .HUMAN in target.tags {
-				dialog_start(npc_human_messages)
+			if found {
+				target.state.is_busy = true
+				// Start dialog based on character race
+				if .GOBLIN in target.tags {
+					dialog_start(goblin_messages)
+				} else if .SKELETON in target.tags {
+					dialog_start(skeleton_messages)
+				} else if .HUMAN in target.tags {
+					dialog_start(npc_human_messages)
+				}
+			}
+		}
+
+		if .CAN_ATTACK in character.tags &&
+		   input.is_pressed_for_player(.Attack, idx) &&
+		   !character.state.is_attacking &&
+		   !character.state.is_rolling {
+			character.state.is_attacking = true
+			character.state.attack_timer = 0
+			character.state.attack_hit = false // Reset hit flag for new attack
+
+			// Lock attack direction based on current movement or facing
+			movement_input := input.get_movement_for_player(idx)
+			if linalg.length(movement_input) > 0 {
+				// Use current movement direction
+				character.state.attack_direction = linalg.normalize(movement_input)
+			} else {
+				// Use current facing direction if not moving
+				character.state.attack_direction = Vec2{character.state.is_flipped ? -1 : 1, 0}
+			}
+
+			// Play attack grunt sound
+			audio.sound_play(game.sounds["grunt_attack"])
+		}
+
+		if .CAN_ROLL in character.tags &&
+		   input.is_pressed_for_player(.Roll, idx) &&
+		   !character.state.is_rolling &&
+		   !character.state.is_attacking {
+			// Lock current velocity for roll (only roll if moving)
+			if linalg.length(character.velocity) > 0 {
+				character.velocity = linalg.normalize(character.velocity) * character.roll_speed
+				character.state.is_rolling = true
+				character.state.roll_timer = 0
+				// Play roll grunt sound
+				audio.sound_play(game.sounds["grunt_roll"])
 			}
 		}
 	}
 
-	if .CAN_ATTACK in character.tags &&
-	   input.is_pressed(.Attack) &&
-	   !character.state.is_attacking &&
-	   !character.state.is_rolling {
-		character.state.is_attacking = true
-		character.state.attack_timer = 0
-		character.state.attack_hit = false // Reset hit flag for new attack
-
-		// Lock attack direction based on current movement or facing
-		input := input.get_movement()
-		if linalg.length(input) > 0 {
-			// Use current movement direction
-			character.state.attack_direction = linalg.normalize(input)
-		} else {
-			// Use current facing direction if not moving
-			character.state.attack_direction = Vec2{character.state.is_flipped ? -1 : 1, 0}
-		}
-
-		// Play attack grunt sound
-		audio.sound_play(game.sounds["grunt_attack"])
-	}
-
-	if .CAN_ROLL in character.tags &&
-	   input.is_pressed(.Roll) &&
-	   !character.state.is_rolling &&
-	   !character.state.is_attacking {
-		// Lock current velocity for roll (only roll if moving)
-		if linalg.length(character.velocity) > 0 {
-			character.velocity = linalg.normalize(character.velocity) * character.roll_speed
-			character.state.is_rolling = true
-			character.state.roll_timer = 0
-			// Play roll grunt sound
-			audio.sound_play(game.sounds["grunt_roll"])
-		}
-	}
 }
 
 // Update timers for character actions
@@ -664,6 +688,21 @@ character_draw :: proc(character: ^Character) {
 		animation_draw(&character.anim_data, character.position, character.color)
 	}
 
+	// Draw player indicator above players
+	if .PLAYER in character.tags {
+		indicator_y := character.position.y - f32(character.height) - 12
+		player_text := character.player_index == .PLAYER_1 ? "P1" : "P2"
+		player_color := character.player_index == .PLAYER_1 ? renderer.BLUE : renderer.RED
+
+		renderer.draw_text(
+			player_text,
+			int(character.position.x) - 8,
+			int(indicator_y),
+			size = 10,
+			color = player_color,
+		)
+	}
+
 	// Debug info
 	when ODIN_DEBUG {
 		char_rect := character_get_rect(character)
@@ -710,12 +749,23 @@ character_system_draw :: proc() {
 	for &character in characters do character_draw(&character)
 }
 
-// Get player character (convenience function)
-character_get_player :: proc() -> ^Character {
+// Get specific player by ID
+character_get_player :: proc(index: input.Player_Index) -> ^Character {
 	for &character in characters {
-		if .PLAYER in character.tags {
+		if .PLAYER in character.tags && character.player_index == index {
 			return &character
 		}
 	}
 	return nil
+}
+
+// Get all players
+character_get_players :: proc() -> [dynamic]^Character {
+	players := make([dynamic]^Character)
+	for &character in characters {
+		if .PLAYER in character.tags {
+			append(&players, &character)
+		}
+	}
+	return players
 }

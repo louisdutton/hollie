@@ -54,7 +54,7 @@ init_gameplay_screen :: proc() {
 }
 
 update_gameplay_screen :: proc() {
-	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(input.PLAYER_1, .MIDDLE_RIGHT) {
+	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_RIGHT) {
 		pause_toggle()
 	}
 
@@ -79,10 +79,17 @@ update_gameplay_screen :: proc() {
 		case 1: room_init(&gameplay_state.sand_room)
 		}
 
-		// Position player
-		transition_player := character_get_player()
-		if transition_player != nil {
-			transition_player.position = gameplay_state.pending_player_pos
+		// Position both players
+		player1 := character_get_player(.PLAYER_1)
+		player2 := character_get_player(.PLAYER_2)
+		if player1 != nil {
+			player1.position = gameplay_state.pending_player_pos
+		}
+		if player2 != nil {
+			player2.position = {
+				gameplay_state.pending_player_pos.x + 32,
+				gameplay_state.pending_player_pos.y,
+			}
 		}
 		gameplay_state.pending_room = -1
 
@@ -103,28 +110,33 @@ update_gameplay_screen :: proc() {
 		room_update()
 		character_system_update() // Handles all characters (player, enemies, NPCs)
 
-		// Check for door collisions with player
-		player := character_get_player()
-		if player != nil && !gameplay_state.is_transitioning {
-			door := room_check_door_collision(player.position)
-			if door != nil {
-				gameplay_state.is_transitioning = true
+		// Check for door collisions with any player
+		if !gameplay_state.is_transitioning {
+			players := character_get_players()
+			defer delete(players)
 
-				if door.target_room == "desert" {
-					gameplay_state.pending_room = 1
-					gameplay_state.pending_player_pos = {50, player.position.y}
-				} else if door.target_room == "olivewood" {
-					gameplay_state.pending_room = 0
-					room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
-					gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+			for player in players {
+				door := room_check_door_collision(player.position)
+				if door != nil {
+					gameplay_state.is_transitioning = true
+
+					if door.target_room == "desert" {
+						gameplay_state.pending_room = 1
+						gameplay_state.pending_player_pos = {50, player.position.y}
+					} else if door.target_room == "olivewood" {
+						gameplay_state.pending_room = 0
+						room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
+						gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+					}
+
+					tween.to(
+						&gameplay_state.transition_opacity,
+						1.0,
+						.Quadratic_Out,
+						300 * time.Millisecond,
+					)
+					break
 				}
-
-				tween.to(
-					&gameplay_state.transition_opacity,
-					1.0,
-					.Quadratic_Out,
-					300 * time.Millisecond,
-				)
 			}
 		}
 

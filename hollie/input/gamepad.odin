@@ -2,31 +2,35 @@ package input
 
 import rl "vendor:raylib"
 
-GamepadButton :: rl.GamepadButton
-GamepadAxis :: rl.GamepadAxis
-
-PLAYER_1 :: 0
-
-is_gamepad_available :: proc(gamepad: i32) -> bool {
-	return rl.IsGamepadAvailable(gamepad)
+Gamepad_Button :: rl.GamepadButton
+Gamepad_Axis :: rl.GamepadAxis
+Player_Index :: enum {
+	PLAYER_1,
+	PLAYER_2,
 }
 
-is_gamepad_button_pressed :: proc(gamepad: i32, button: GamepadButton) -> bool {
-	return rl.IsGamepadButtonPressed(gamepad, button)
+JS_DEADZONE: f32 : 0.2 // the minimum joystick value for input to be registered
+
+is_gamepad_available :: proc(gamepad: Player_Index) -> bool {
+	return rl.IsGamepadAvailable(i32(gamepad))
 }
 
-get_gamepad_axis_movement :: proc(gamepad: i32, axis: GamepadAxis) -> f32 {
-	return rl.GetGamepadAxisMovement(gamepad, axis)
+is_gamepad_button_pressed :: proc(gamepad: Player_Index, button: Gamepad_Button) -> bool {
+	return rl.IsGamepadButtonPressed(i32(gamepad), button)
+}
+
+get_gamepad_axis_movement :: proc(gamepad: Player_Index, axis: Gamepad_Axis) -> f32 {
+	return rl.GetGamepadAxisMovement(i32(gamepad), axis)
 }
 
 @(private)
-gamepad_axis_x :: proc(deadzone: f32 = 0.2) -> f32 {
-	value := get_gamepad_axis_movement(PLAYER_1, .LEFT_X)
+gamepad_axis_x :: proc(gamepad: Player_Index = .PLAYER_1, deadzone := JS_DEADZONE) -> f32 {
+	value := get_gamepad_axis_movement(gamepad, .LEFT_X)
 	return abs(value) >= deadzone ? value : 0
 }
 
 @(private)
-gamepad_axis_y :: proc(deadzone: f32 = 0.2) -> f32 {
-	value := get_gamepad_axis_movement(PLAYER_1, .LEFT_Y)
+gamepad_axis_y :: proc(gamepad: Player_Index = .PLAYER_1, deadzone := JS_DEADZONE) -> f32 {
+	value := get_gamepad_axis_movement(gamepad, .LEFT_Y)
 	return abs(value) >= deadzone ? value : 0
 }
