@@ -62,7 +62,7 @@ camera_follow_target :: proc() {
 }
 
 camera_init :: proc() {
-	_ = window.get_screen_scale(int(design_width), int(design_height))
+	screen_scale = window.get_ui_scale()
 	camera_update()
 }
 
@@ -73,7 +73,7 @@ camera_update :: proc() {
 
 camera_update_zoom :: proc() {
 	if window.is_resized() {
-		screen_scale = window.get_screen_scale(int(design_width), int(design_height))
+		screen_scale = window.get_ui_scale()
 	}
 
 	if rl.IsKeyDown(.MINUS) {

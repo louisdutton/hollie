@@ -7,6 +7,7 @@ init :: proc(width, height: i32, title: string) {
 	rl.SetTraceLogLevel(.WARNING)
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(width, height, cstring(raw_data(title)))
+	rl.ToggleBorderlessWindowed()
 	rl.SetTargetFPS(60)
 }
 
