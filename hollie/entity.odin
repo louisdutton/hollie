@@ -134,10 +134,10 @@ entity_create_player :: proc(
 	animations: []Animation,
 ) -> ^Player {
 	player := Player {
-		transform = {position = pos, velocity = {0, 0}},
+		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 100, max = 100, is_dying = false},
-		movement = {move_speed = 100, roll_speed = 200, is_rolling = false},
+		movement = {move_speed = 100, roll_speed = 200},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
 		index = index,
 	}
@@ -152,12 +152,11 @@ entity_create_player :: proc(
 
 entity_create_enemy :: proc(pos: Vec2, race: NPC_Race, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
-		transform = {position = pos, velocity = {0, 0}},
+		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
-		health = {current = 50, max = 50, is_dying = false},
-		movement = {move_speed = 50, roll_speed = 100, is_rolling = false},
+		health = {current = 50, max = 50},
+		movement = {move_speed = 50, roll_speed = 100},
 		combat = {damage = 15, range = 24, attack_width = 24, attack_height = 24},
-		ai = {wait_timer = 0, move_timer = 0, move_direction = {0, 0}},
 	}
 
 	if len(animations) > 0 {
@@ -174,10 +173,9 @@ entity_create_pressure_plate :: proc(
 	requires_both: bool = false,
 ) -> ^Pressure_Plate {
 	plate := Pressure_Plate {
-		transform = {position = pos, velocity = {0, 0}},
+		transform = {position = pos},
 		collider = {size = {32, 32}, offset = {-16, -16}, solid = false},
 		trigger_id = trigger_id,
-		active = false,
 		requires_both = requires_both,
 	}
 
@@ -187,10 +185,9 @@ entity_create_pressure_plate :: proc(
 
 entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
 	gate := Gate {
-		transform = {position = pos, velocity = {0, 0}},
-		collider = {size = size, offset = {0, 0}, solid = true},
+		transform = {position = pos},
+		collider = {size = size, solid = true},
 		gate_id = gate_id,
-		open = false,
 		required_triggers = make([dynamic]int),
 		inverted = inverted,
 	}
@@ -201,9 +198,8 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 
 entity_create_holdable :: proc(pos: Vec2, texture_path: string) -> ^Holdable {
 	holdable := Holdable {
-		transform = {position = pos, velocity = {0, 0}},
-		collider = {size = {16, 16}, offset = {-8, -8}, solid = false},
-		held_by = nil,
+		transform = {position = pos},
+		collider = {size = {16, 16}, offset = {-8, -8}},
 		sprite_texture = renderer.load_texture(texture_path),
 	}
 
@@ -367,9 +363,7 @@ entity_handle_input :: proc() {
 			if dialog_is_active() do continue
 
 			// Handle attack input
-			if input.is_pressed_for_player(.Attack, e.index) &&
-			   !e.is_attacking &&
-			   !e.is_rolling {
+			if input.is_pressed_for_player(.Attack, e.index) && !e.is_attacking && !e.is_rolling {
 				e.is_attacking = true
 				e.attack_timer = 0
 				e.attack_hit = false
@@ -396,9 +390,7 @@ entity_handle_input :: proc() {
 			}
 
 			// Handle roll input
-			if input.is_pressed_for_player(.Roll, e.index) &&
-			   !e.is_rolling &&
-			   !e.is_attacking {
+			if input.is_pressed_for_player(.Roll, e.index) && !e.is_rolling && !e.is_attacking {
 				movement_input := input.get_movement_for_player(e.index)
 				// Only roll if moving
 				if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
@@ -415,9 +407,7 @@ entity_handle_input :: proc() {
 			}
 
 			// Handle pickup/drop input
-			if input.is_pressed_for_player(.Accept, e.index) &&
-			   !e.is_attacking &&
-			   !e.is_rolling {
+			if input.is_pressed_for_player(.Accept, e.index) && !e.is_attacking && !e.is_rolling {
 				if e.carrying != nil {
 					// Drop the object
 					e.carrying.held_by = nil
