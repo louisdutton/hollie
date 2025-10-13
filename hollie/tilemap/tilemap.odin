@@ -1,5 +1,8 @@
 package tilemap
 
+import "../asset"
+import "../renderer"
+import "../window"
 import "core:fmt"
 import "core:math/rand"
 import "core:os"
@@ -22,46 +25,44 @@ config := TilemapConfig {
 }
 
 TileType :: enum u16 {
-	GRASS_1 = 0,
+	EMPTY = 0,
+	GRASS_1 = 1,
 	GRASS_2,
 	GRASS_3,
-	GRASS_4 = 32,
+	GRASS_4 = 33,
 	GRASS_5,
 	GRASS_6,
-	GRASS_7 = 32 * 2,
+	GRASS_7 = 65,
 	GRASS_8,
 
 	// grass decorations
-	GRASS_DEC_1 = 32 * 8,
+	GRASS_DEC_1 = 257,
 	GRASS_DEC_2,
 	GRASS_DEC_3,
 	GRASS_DEC_4,
-	GRASS_DEC_5 = 32 * 9,
+	GRASS_DEC_5 = 289,
 	GRASS_DEC_6,
 	GRASS_DEC_7,
 	GRASS_DEC_8,
-	GRASS_DEC_9 = 32 * 10,
+	GRASS_DEC_9 = 321,
 	GRASS_DEC_10,
 	GRASS_DEC_11,
 	GRASS_DEC_12,
-	GRASS_DEC_13 = 32 * 11,
+	GRASS_DEC_13 = 353,
 	GRASS_DEC_14,
 	GRASS_DEC_15,
 	GRASS_DEC_16,
 
 	// sand
-	SAND_1 = 3,
+	SAND_1 = 4,
 	SAND_2,
 	SAND_3,
 
 	// sand decorations
-	SAND_DEC_13 = 32 * 12,
+	SAND_DEC_13 = 385,
 	SAND_DEC_14,
 	SAND_DEC_15,
 	SAND_DEC_16,
-
-	// misc
-	EMPTY = 65535, // Special empty tile for decorative layer
 }
 
 Tile :: struct {
@@ -74,7 +75,7 @@ TileMap :: struct {
 	height:     int,
 	base_tiles: []Tile,
 	deco_tiles: []Tile,
-	tileset:    rl.Texture2D,
+	tileset:    renderer.Texture2D,
 	tile_size:  int,
 }
 
@@ -102,7 +103,7 @@ load_from_config :: proc(res: TilemapResource) {
 		delete(tilemap.deco_tiles)
 	}
 	if tilemap.tileset.id != 0 {
-		rl.UnloadTexture(tilemap.tileset)
+		renderer.unload_texture(tilemap.tileset)
 	}
 
 	// Update global config
@@ -111,40 +112,18 @@ load_from_config :: proc(res: TilemapResource) {
 	tilemap.width = res.width
 	tilemap.height = res.height
 	tilemap.tile_size = res.config.tile_size
-	tilemap.tileset = rl.LoadTexture(cstring(raw_data(res.tileset_path)))
+	tilemap.tileset = renderer.load_texture(asset.path(res.tileset_path))
 
 	tilemap.base_tiles = make([]Tile, tilemap.width * tilemap.height)
 	tilemap.deco_tiles = make([]Tile, tilemap.width * tilemap.height)
 
 	// Load base layer
-	if len(res.base_data) > 0 {
-		for i in 0 ..< min(len(res.base_data), len(tilemap.base_tiles)) {
-			tilemap.base_tiles[i] = Tile {
-				type  = res.base_data[i],
-				solid = false,
-			}
-		}
-	} else {
-		for y in 0 ..< tilemap.height {
-			for x in 0 ..< tilemap.width {
-				index := y * tilemap.width + x
-				type := rand.choice(
-					[]TileType {
-						.GRASS_1,
-						.GRASS_2,
-						.GRASS_3,
-						.GRASS_4,
-						.GRASS_5,
-						.GRASS_6,
-						.GRASS_7,
-						.GRASS_8,
-					},
-				)
-				tilemap.base_tiles[index] = Tile {
-					type  = type,
-					solid = false,
-				}
-			}
+	assert(len(res.base_data) > 0)
+
+	for i in 0 ..< min(len(res.base_data), len(tilemap.base_tiles)) {
+		tilemap.base_tiles[i] = Tile {
+			type  = res.base_data[i],
+			solid = false,
 		}
 	}
 
@@ -187,14 +166,18 @@ get_deco_tile :: proc(x, y: int) -> ^Tile {
 	return &tilemap.deco_tiles[index]
 }
 
-get_tile_source_rect :: proc(tile_type: TileType) -> rl.Rectangle {
-	tile_id := int(tile_type)
+get_tile_source_rect :: proc(tile_type: TileType) -> renderer.Rect {
+	if tile_type == .EMPTY {
+		return {}
+	}
+
+	tile_id := int(tile_type) - 1
 	tiles_per_row := config.tileset_cols
 
 	source_x := (tile_id % tiles_per_row) * config.tile_size
 	source_y := (tile_id / tiles_per_row) * config.tile_size
 
-	return rl.Rectangle {
+	return renderer.Rect {
 		x = f32(source_x),
 		y = f32(source_y),
 		width = f32(config.tile_size),
@@ -202,7 +185,7 @@ get_tile_source_rect :: proc(tile_type: TileType) -> rl.Rectangle {
 	}
 }
 
-get_tileset :: proc() -> rl.Texture2D {
+get_tileset :: proc() -> renderer.Texture2D {
 	return tilemap.tileset
 }
 
@@ -268,7 +251,7 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 			case "height": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
 						res.height = parsed_value
 					}
-			case "tileset_path": res.tileset_path = value
+			case "tileset_path": res.tileset_path = strings.clone(value)
 			case "tile_size": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
 						res.config.tile_size = parsed_value
 					}
@@ -382,7 +365,7 @@ is_tile_solid :: proc(x, y: int) -> bool {
 	return true
 }
 
-check_collision :: proc(rect: rl.Rectangle) -> bool {
+check_collision :: proc(rect: renderer.Rect) -> bool {
 	tile_size_f := f32(config.tile_size)
 	left := int(rect.x / tile_size_f)
 	right := int((rect.x + rect.width) / tile_size_f)
@@ -399,12 +382,12 @@ check_collision :: proc(rect: rl.Rectangle) -> bool {
 	return false
 }
 
-draw :: proc(camera: rl.Camera2D) {
-	screen_width := f32(rl.GetScreenWidth())
-	screen_height := f32(rl.GetScreenHeight())
+draw :: proc(camera: renderer.Camera2D) {
+	screen_width := f32(window.get_screen_width())
+	screen_height := f32(window.get_screen_height())
 
-	world_min := rl.GetScreenToWorld2D({0, 0}, camera)
-	world_max := rl.GetScreenToWorld2D({screen_width, screen_height}, camera)
+	world_min := renderer.get_screen_to_world_2d({0, 0}, camera)
+	world_max := renderer.get_screen_to_world_2d({screen_width, screen_height}, camera)
 
 	tile_size_f := f32(config.tile_size)
 	start_x := max(0, int(world_min.x / tile_size_f) - 1)
@@ -423,14 +406,21 @@ draw :: proc(camera: rl.Camera2D) {
 			world_x := f32(x * tilemap.tile_size)
 
 			source_rect := get_tile_source_rect(base_tile.type)
-			dest_rect := rl.Rectangle {
+			dest_rect := renderer.Rect {
 				x      = world_x,
 				y      = world_y,
 				width  = f32(config.tile_size),
 				height = f32(config.tile_size),
 			}
 
-			rl.DrawTexturePro(tilemap.tileset, source_rect, dest_rect, {0, 0}, 0, rl.WHITE)
+			renderer.draw_texture_pro(
+				tilemap.tileset,
+				source_rect,
+				dest_rect,
+				{0, 0},
+				0,
+				renderer.WHITE,
+			)
 		}
 	}
 
@@ -445,14 +435,21 @@ draw :: proc(camera: rl.Camera2D) {
 			world_x := f32(x * tilemap.tile_size)
 
 			source_rect := get_tile_source_rect(deco_tile.type)
-			dest_rect := rl.Rectangle {
+			dest_rect := renderer.Rect {
 				x      = world_x,
 				y      = world_y,
 				width  = f32(config.tile_size),
 				height = f32(config.tile_size),
 			}
 
-			rl.DrawTexturePro(tilemap.tileset, source_rect, dest_rect, {0, 0}, 0, rl.WHITE)
+			renderer.draw_texture_pro(
+				tilemap.tileset,
+				source_rect,
+				dest_rect,
+				{0, 0},
+				0,
+				renderer.WHITE,
+			)
 		}
 	}
 }
@@ -466,7 +463,7 @@ fini :: proc() {
 		delete(tilemap.deco_tiles)
 		tilemap.deco_tiles = nil
 	}
-	rl.UnloadTexture(tilemap.tileset)
+	renderer.unload_texture(tilemap.tileset)
 }
 
 /// Reset tilemap state for testing

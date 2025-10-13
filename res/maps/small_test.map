@@ -1,4 +1,3 @@
-# Small Test Map
 [config]
 width=10
 height=8
@@ -6,7 +5,6 @@ tileset_path=art/tileset/spr_tileset_sunnysideworld_16px.png
 tile_size=16
 tileset_cols=32
 
-# Base layer data (10x8 = 80 tiles)
 [base_data]
 0,1,2,0,1,2,0,1,2,0,
 1,2,0,1,2,0,1,2,0,1,
@@ -17,7 +15,6 @@ tileset_cols=32
 0,1,2,0,1,2,0,1,2,0,
 1,2,0,1,2,0,1,2,0,1
 
-# Decorative layer data (mostly empty with some decorations)
 [deco_data]
 65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,
 65535,256,65535,65535,65535,65535,65535,257,65535,65535,
