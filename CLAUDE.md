@@ -5,8 +5,7 @@ ALWAYS run `odin check hollie -vet` to ensure that your changes produce valid co
 
 ## style
 
-NEVER use comments in any scenario other than doc comments (on functions, constants or types)
-doc comments should always be used on relevant symbols
+NEVER USE COMMENTS, DO NOT EVER PUT COMMENTS IN THE CODE
 
 ## architecture
 

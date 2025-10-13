@@ -49,7 +49,7 @@ is_pressed_for_player :: proc(input: Player_Input, player_id: Player_Index) -> b
 		case .Roll:
 			return is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_2) || is_key_pressed(.K)
 		case .Accept:
-			return is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) || is_key_pressed(.J)
+			return is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) || is_key_pressed(.H)
 		case .Attack:
 			return is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) || is_key_pressed(.J)
 		case: return false

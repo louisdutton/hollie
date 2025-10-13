@@ -262,6 +262,24 @@ puzzle_update :: proc() {
 		}
 	}
 
+	// Check if holdables are on pressure plates
+	holdables := entity_get_holdables()
+	defer delete(holdables)
+
+	for holdable in holdables {
+		// Only check holdables that are not being carried
+		if holdable.held_by == nil {
+			holdable_entity := Entity(holdable^)
+			for plate in pressure_plates {
+				plate_entity := Entity(plate^)
+				if entity_check_collision(&holdable_entity, &plate_entity) {
+					// Holdables count as if both players activated the plate
+					plate.activated_by += {.PLAYER_1, .PLAYER_2}
+				}
+			}
+		}
+	}
+
 	// Update pressure plate active states
 	for plate in pressure_plates {
 		if plate.requires_both {

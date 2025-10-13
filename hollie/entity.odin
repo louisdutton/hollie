@@ -63,6 +63,7 @@ Player :: struct {
 	using combat:    Combat,
 	using anim_data: Animator,
 	player_index:    input.Player_Index,
+	carrying:        ^Holdable,
 }
 
 NPC :: struct {
@@ -97,6 +98,13 @@ Gate :: struct {
 	inverted:          bool,
 }
 
+Holdable :: struct {
+	using transform: Transform,
+	using collider:  Collider,
+	held_by:         ^Player,
+	sprite_texture:  renderer.Texture2D,
+}
+
 // Main entity union
 Entity :: union {
 	Player,
@@ -104,6 +112,7 @@ Entity :: union {
 	NPC,
 	Pressure_Plate,
 	Gate,
+	Holdable,
 }
 
 // Global entity storage
@@ -190,6 +199,18 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 	return &entities[len(entities) - 1].(Gate)
 }
 
+entity_create_holdable :: proc(pos: Vec2, texture_path: string) -> ^Holdable {
+	holdable := Holdable {
+		transform = {position = pos, velocity = {0, 0}},
+		collider = {size = {16, 16}, offset = {-8, -8}, solid = false},
+		held_by = nil,
+		sprite_texture = renderer.load_texture(texture_path),
+	}
+
+	append(&entities, holdable)
+	return &entities[len(entities) - 1].(Holdable)
+}
+
 // Query functions
 entity_get_players :: proc() -> [dynamic]^Player {
 	players := make([dynamic]^Player)
@@ -230,6 +251,16 @@ entity_get_gates :: proc() -> [dynamic]^Gate {
 	return gates
 }
 
+entity_get_holdables :: proc() -> [dynamic]^Holdable {
+	holdables := make([dynamic]^Holdable)
+	for &entity in entities {
+		if holdable, ok := &entity.(Holdable); ok {
+			append(&holdables, holdable)
+		}
+	}
+	return holdables
+}
+
 // Collision helpers
 entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	switch e in entity {
@@ -238,6 +269,7 @@ entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	case NPC: return e.position + e.collider.offset
 	case Pressure_Plate: return e.position + e.collider.offset
 	case Gate: return e.position + e.collider.offset
+	case Holdable: return e.position + e.collider.offset
 	}
 	return {0, 0}
 }
@@ -249,6 +281,7 @@ entity_get_collider_size :: proc(entity: ^Entity) -> Vec2 {
 	case NPC: return e.collider.size
 	case Pressure_Plate: return e.collider.size
 	case Gate: return e.collider.size
+	case Holdable: return e.collider.size
 	}
 	return {0, 0}
 }
@@ -287,6 +320,7 @@ entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entit
 		switch e in entity {
 		case Player, Enemy, NPC, Pressure_Plate: is_solid = false
 		case Gate: is_solid = e.collider.solid && !e.open
+		case Holdable: is_solid = false // Holdables are never solid - players need to walk over them
 		}
 
 		if is_solid {
@@ -380,7 +414,40 @@ entity_handle_input :: proc() {
 				}
 			}
 
-		case Enemy, NPC, Pressure_Plate, Gate: // No input handling for these entities
+			// Handle pickup/drop input
+			if input.is_pressed_for_player(.Accept, e.player_index) &&
+			   !e.is_attacking &&
+			   !e.is_rolling {
+				if e.carrying != nil {
+					// Drop the object
+					e.carrying.held_by = nil
+					e.carrying.position = e.position + Vec2{0, 16} // Drop in front of player
+					e.carrying = nil
+				} else {
+					// Try to pick up nearby holdable
+					holdables := entity_get_holdables()
+					defer delete(holdables)
+
+					for holdable in holdables {
+						if holdable.held_by == nil {
+							// Check if close enough to pick up
+							distance := math.sqrt(
+								(holdable.position.x - e.position.x) *
+									(holdable.position.x - e.position.x) +
+								(holdable.position.y - e.position.y) *
+									(holdable.position.y - e.position.y),
+							)
+							if distance <= 24 { 	// Pickup range
+								holdable.held_by = &e
+								e.carrying = holdable
+								break
+							}
+						}
+					}
+				}
+			}
+
+		case Enemy, NPC, Pressure_Plate, Gate, Holdable: // No input handling for these entities
 				continue
 		}
 	}
@@ -426,7 +493,7 @@ entity_update_timers :: proc() {
 			if e.hit_flash_timer > 0 do e.hit_flash_timer = max(e.hit_flash_timer - dt, 0)
 			if e.knockback_timer > 0 do e.knockback_timer = max(e.knockback_timer - dt, 0)
 
-		case Pressure_Plate, Gate: // No timers for these entities
+		case Pressure_Plate, Gate, Holdable: // No timers for these entities
 				continue
 		}
 	}
@@ -504,6 +571,8 @@ entity_update_movement :: proc() {
 
 		case Pressure_Plate, Gate: // Static entities don't move
 				continue
+		case Holdable: // Holdables have no AI movement, they only move when carried
+				continue
 		}
 	}
 }
@@ -515,6 +584,8 @@ entity_update_positions :: proc() {
 		case Enemy: entity_move_character(&e.transform, &e.collider)
 		case NPC: entity_move_character(&e.transform, &e.collider)
 		case Pressure_Plate, Gate: // Static entities don't move
+				continue
+		case Holdable: // Holdables don't move on their own - position calculated during rendering
 				continue
 		}
 	}
@@ -541,7 +612,7 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 		case NPC:
 			entity_transform = &e.transform
 			entity_collider = &e.collider
-		case Pressure_Plate, Gate: continue
+		case Pressure_Plate, Gate, Holdable: continue
 		}
 
 		if entity_transform == transform && entity_collider == collider {
@@ -643,11 +714,11 @@ entity_check_combat :: proc() {
 						}
 					}
 
-				case Player, NPC, Pressure_Plate, Gate: continue
+				case Player, NPC, Pressure_Plate, Gate, Holdable: continue
 				}
 			}
 
-		case Enemy, NPC, Pressure_Plate, Gate: continue
+		case Enemy, NPC, Pressure_Plate, Gate, Holdable: continue
 		}
 	}
 }
@@ -662,6 +733,9 @@ entity_update_animations :: proc() {
 				animation_set_state(&e.anim_data, .ATTACK)
 			} else if e.is_rolling {
 				animation_set_state(&e.anim_data, .ROLL)
+			} else if e.carrying != nil {
+				// Use carrying animation when holding an object
+				animation_set_state(&e.anim_data, .CARRY)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
 				animation_set_state(&e.anim_data, .RUN)
 			} else {
@@ -689,7 +763,7 @@ entity_update_animations :: proc() {
 			}
 			animation_update(&e.anim_data)
 
-		case Pressure_Plate, Gate: // Static entities don't have animations
+		case Pressure_Plate, Gate, Holdable: // Static entities don't have animations
 				continue
 		}
 	}
@@ -707,6 +781,7 @@ entity_system_draw :: proc() {
 	for &entity in entities {
 		switch e in entity {
 		case Player, Enemy, NPC: append(&drawable_entities, &entity)
+		case Holdable: append(&drawable_entities, &entity)
 		case Pressure_Plate, Gate: // These are drawn by the room system
 				continue
 		}
@@ -766,6 +841,21 @@ entity_system_draw :: proc() {
 				animation_draw(&e.anim_data, e.position)
 			}
 
+		case Holdable:
+			draw_pos := e.position
+			if e.held_by != nil {
+				draw_pos = e.held_by.position + Vec2{0, -10}
+			} else {
+				entity_draw_shadow(draw_pos)
+			}
+
+			renderer.draw_texture(
+				e.sprite_texture,
+				i32(draw_pos.x - 8),
+				i32(draw_pos.y - 8),
+				renderer.WHITE,
+			)
+
 		case Pressure_Plate, Gate: // These shouldn't be in drawable_entities
 				continue
 		}
@@ -782,9 +872,10 @@ entity_system_draw :: proc() {
 			switch e in entity {
 			case Player: color = renderer.GREEN
 			case Enemy: color = renderer.RED
-			case NPC: color = renderer.YELLOW
+			case NPC: color = renderer.WHITE
 			case Pressure_Plate: color = renderer.BLUE
 			case Gate: color = renderer.SKYBLUE
+			case Holdable: color = renderer.YELLOW
 			}
 
 			renderer.draw_rect_outline(
@@ -810,7 +901,7 @@ entity_system_draw :: proc() {
 							color = renderer.RED,
 						)
 					}
-			case Enemy, NPC, Pressure_Plate, Gate: continue
+			case Enemy, NPC, Pressure_Plate, Gate, Holdable: continue
 			}
 		}
 	}
@@ -832,7 +923,7 @@ entity_cleanup_dead :: proc() {
 					particle_create_explosion(e.position)
 					unordered_remove(&entities, i)
 				}
-		case Player, Pressure_Plate, Gate: continue
+		case Player, Pressure_Plate, Gate, Holdable: continue
 		}
 	}
 }

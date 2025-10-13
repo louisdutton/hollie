@@ -32,4 +32,5 @@ player_animations := [?]Animation {
 	{asset.path("art/characters/player/death.png"), 13},
 	{asset.path("art/characters/player/attack.png"), 10},
 	{asset.path("art/characters/player/roll.png"), 10},
+	{asset.path("art/characters/player/carry.png"), 8},
 }

@@ -20,6 +20,7 @@ AnimationState :: enum {
 	DEATH,
 	ATTACK,
 	ROLL,
+	CARRY,
 }
 
 Animator :: struct {

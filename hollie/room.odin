@@ -449,6 +449,9 @@ room_setup_basic_puzzle :: proc() {
 	// Link both plates to control the gate - gate opens only when BOTH are active
 	append(&gate.required_triggers, 1)
 	append(&gate.required_triggers, 2)
+
+	// Create a holdable object that can be used on the pressure plates
+	_ = entity_create_holdable({300, 300}, "res/art/elements/crops/wood.png")
 }
 
 // Draw puzzle elements with placeholder sprites
