@@ -1,5 +1,7 @@
 package hollie
 
+import "audio"
+
 // Puzzle primitive types for 2-player async coordination
 
 Puzzle_State :: enum {
@@ -37,6 +39,7 @@ Puzzle_Gate :: struct {
 	position:          Vec2,
 	size:              Vec2,
 	open:              bool,
+	previous_open:     bool, // Track previous state for SFX
 	required_triggers: [dynamic]int, // Trigger IDs that must be active
 	inverted:          bool, // Opens when triggers are inactive
 }
@@ -161,15 +164,25 @@ puzzle_trigger_activate :: proc(trigger: ^Puzzle_Trigger, player_id: Player_ID) 
 		// Momentary activation
 		trigger.activated_by = {player_id}
 		puzzle_trigger_update_state(trigger)
+		audio.sound_play(game.sounds["button_press"])
 
 	case .SWITCH:
 		// Toggle state for this player
+		was_active := trigger.active
 		if player_id in trigger.activated_by {
 			trigger.activated_by -= {player_id}
 		} else {
 			trigger.activated_by += {player_id}
 		}
 		puzzle_trigger_update_state(trigger)
+
+		if trigger.active != was_active {
+			if trigger.active {
+				audio.sound_play(game.sounds["switch_on"])
+			} else {
+				audio.sound_play(game.sounds["switch_off"])
+			}
+		}
 
 	case .PRESSURE_PLATE:
 		// Standing on plate
@@ -285,6 +298,15 @@ puzzle_update :: proc() {
 		// Apply inversion if needed
 		if gate.inverted {
 			gate_should_open = !gate_should_open
+		}
+
+		// Play SFX when gate state changes
+		if gate.open != gate_should_open {
+			if gate_should_open {
+				audio.sound_play(game.sounds["gate_open"])
+			} else {
+				audio.sound_play(game.sounds["gate_close"])
+			}
 		}
 
 		gate.open = gate_should_open

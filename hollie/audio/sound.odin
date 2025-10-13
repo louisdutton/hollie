@@ -32,6 +32,11 @@ sound_init :: proc() -> Sound_Map {
 	)
 	sounds["enemy_hit"] = _sound_init({"audio/fx/impact/punch-squelch-heavy-05.wav"})
 	sounds["enemy_death"] = _sound_init({"audio/fx/impact/waterplosion.wav"})
+	sounds["gate_open"] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
+	sounds["gate_close"] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds["switch_on"] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
+	sounds["switch_off"] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds["button_press"] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	return sounds
 }
 
