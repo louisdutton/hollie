@@ -321,11 +321,13 @@ puzzle_check_gate_collision :: proc(position: Vec2, size: Vec2 = {16, 16}) -> bo
 	for gate in gates {
 		if !gate.open {
 			gate_pos := gate.position + gate.collider.offset
-			// Check collision between position+size and gate
-			if position.x < gate_pos.x + gate.collider.size.x &&
-			   position.x + size.x > gate_pos.x &&
-			   position.y < gate_pos.y + gate.collider.size.y &&
-			   position.y + size.y > gate_pos.y {
+			// Character position needs offset to get collision box position
+			char_pos := position + Vec2{-size.x / 2, -size.y / 2}
+			// Check collision between character collision box and gate
+			if char_pos.x < gate_pos.x + gate.collider.size.x &&
+			   char_pos.x + size.x > gate_pos.x &&
+			   char_pos.y < gate_pos.y + gate.collider.size.y &&
+			   char_pos.y + size.y > gate_pos.y {
 				return true
 			}
 		}

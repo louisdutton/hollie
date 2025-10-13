@@ -279,6 +279,41 @@ entity_point_in_collider :: proc(entity: ^Entity, point: Vec2) -> bool {
 	)
 }
 
+entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entity = nil) -> bool {
+	for &entity in entities {
+		if exclude != nil && &entity == exclude do continue
+
+		is_solid := false
+		switch e in entity {
+		case Player, Enemy, NPC, Pressure_Plate: is_solid = false
+		case Gate: is_solid = e.collider.solid && !e.open
+		}
+
+		if is_solid {
+			entity_ptr := &entity
+			if entity_check_collision_rect(entity_ptr, position, size) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+entity_check_collision_rect :: proc(entity: ^Entity, rect_pos: Vec2, rect_size: Vec2) -> bool {
+	entity_pos := entity_get_world_collider_pos(entity)
+	entity_size := entity_get_collider_size(entity)
+
+	// Convert position to collision box position (assuming center-based positioning)
+	char_pos := rect_pos + Vec2{-rect_size.x / 2, -rect_size.y / 2}
+
+	return(
+		char_pos.x < entity_pos.x + entity_size.x &&
+		char_pos.x + rect_size.x > entity_pos.x &&
+		char_pos.y < entity_pos.y + entity_size.y &&
+		char_pos.y + rect_size.y > entity_pos.y \
+	)
+}
+
 // Update systems
 entity_system_update :: proc() {
 	entity_handle_input()
@@ -487,11 +522,47 @@ entity_update_positions :: proc() {
 
 // Helper function to move any character with Transform and Collider
 entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
-	next_pos := transform.position + transform.velocity * rl.GetFrameTime()
+	dt := rl.GetFrameTime()
+	next_pos := transform.position + transform.velocity * dt
 
-	// Check puzzle gate collision
-	if puzzle_check_gate_collision(next_pos, collider.size) {
-		return // Don't move if blocked by a gate
+	// Find the moving entity to exclude it from collision checks
+	moving_entity: ^Entity = nil
+	for &entity in entities {
+		entity_transform := &Transform{}
+		entity_collider := &Collider{}
+
+		switch &e in entity {
+		case Player:
+			entity_transform = &e.transform
+			entity_collider = &e.collider
+		case Enemy:
+			entity_transform = &e.transform
+			entity_collider = &e.collider
+		case NPC:
+			entity_transform = &e.transform
+			entity_collider = &e.collider
+		case Pressure_Plate, Gate: continue
+		}
+
+		if entity_transform == transform && entity_collider == collider {
+			moving_entity = &entity
+			break
+		}
+	}
+
+	// Check collision per axis to allow sliding
+	final_pos := transform.position
+
+	// Try X movement
+	test_pos_x := Vec2{next_pos.x, transform.position.y}
+	if !entity_check_solid_collision(test_pos_x, collider.size, moving_entity) {
+		final_pos.x = next_pos.x
+	}
+
+	// Try Y movement
+	test_pos_y := Vec2{final_pos.x, next_pos.y}
+	if !entity_check_solid_collision(test_pos_y, collider.size, moving_entity) {
+		final_pos.y = next_pos.y
 	}
 
 	// Apply bounds checking using room collision bounds
@@ -500,12 +571,12 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 	half_height := collider.size.y / 2
 
 	transform.position.x = clamp(
-		next_pos.x,
+		final_pos.x,
 		room_bounds.x + half_width,
 		room_bounds.x + room_bounds.width - half_width,
 	)
 	transform.position.y = clamp(
-		next_pos.y,
+		final_pos.y,
 		room_bounds.y + half_height,
 		room_bounds.y + room_bounds.height - half_height,
 	)
