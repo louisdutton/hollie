@@ -849,12 +849,63 @@ entity_system_draw :: proc() {
 				entity_draw_shadow(draw_pos)
 			}
 
-			renderer.draw_texture(
-				e.sprite_texture,
-				i32(draw_pos.x - 8),
-				i32(draw_pos.y - 8),
-				renderer.WHITE,
-			)
+			can_pickup := false
+			if e.held_by == nil {
+				players := entity_get_players()
+				defer delete(players)
+
+				for player in players {
+					if player.carrying == nil {
+						distance := math.sqrt(
+							(e.position.x - player.position.x) *
+								(e.position.x - player.position.x) +
+							(e.position.y - player.position.y) *
+								(e.position.y - player.position.y),
+						)
+						if distance <= 24 {
+							can_pickup = true
+							break
+						}
+					}
+				}
+			}
+
+			if can_pickup {
+				outline_color := renderer.GREEN
+				flash_intensity: f32 = 1.0
+
+				// Draw 8-directional outline using white flash shader
+				offsets := [8][2]f32{
+					{-1, -1}, {0, -1}, {1, -1},
+					{-1,  0},          {1,  0},
+					{-1,  1}, {0,  1}, {1,  1},
+				}
+
+				texture_2d := rl.Texture2D(e.sprite_texture)
+				source_rect := rl.Rectangle{0, 0, f32(texture_2d.width), f32(texture_2d.height)}
+				base_position := Vec2{draw_pos.x - 8, draw_pos.y - 8}
+
+				// Draw outline using the same positioning system
+				for offset in offsets {
+					shader_draw_with_white_flash(
+						texture_2d,
+						source_rect,
+						Vec2{base_position.x + offset[0], base_position.y + offset[1]},
+						outline_color,
+						&flash_intensity,
+					)
+				}
+
+				// Draw original sprite on top using the same positioning
+				rl.DrawTextureRec(texture_2d, source_rect, base_position, rl.WHITE)
+			} else {
+				renderer.draw_texture(
+					e.sprite_texture,
+					i32(draw_pos.x - 8),
+					i32(draw_pos.y - 8),
+					renderer.WHITE,
+				)
+			}
 
 		case Pressure_Plate, Gate: // These shouldn't be in drawable_entities
 				continue
