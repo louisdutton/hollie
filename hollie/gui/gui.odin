@@ -45,18 +45,24 @@ get_mouse_pos :: proc() -> Vec2 {
 }
 
 // Draw a button and return true if clicked
-button :: proc(rect: Rectangle, text: string) -> bool {
+button :: proc(rect: Rectangle, text: string, selected: bool = false) -> bool {
 	mouse_pos := get_mouse_pos()
 	hovered := rl.CheckCollisionPointRec(mouse_pos, rect)
 	pressed := hovered && rl.IsMouseButtonPressed(.LEFT)
 
 	// Button colors
-	color := hovered ? rl.LIGHTGRAY : rl.GRAY
+	color := rl.GRAY
+	if selected do color = rl.YELLOW
+	else if hovered do color = rl.LIGHTGRAY
 	if pressed do color = rl.DARKGRAY
 
 	// Draw button
 	rl.DrawRectangleRec(rect, color)
-	rl.DrawRectangleLinesEx(rect, 1, rl.BLACK)
+
+	// Draw selection border if selected
+	border_color := selected ? rl.ORANGE : rl.BLACK
+	border_width := f32(selected ? 2.0 : 1.0)
+	rl.DrawRectangleLinesEx(rect, border_width, border_color)
 
 	FONT_SIZE :: 12
 

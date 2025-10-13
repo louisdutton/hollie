@@ -2,7 +2,6 @@ package hollie
 
 import "asset"
 import "audio"
-import "core:fmt"
 import "core:math/linalg"
 import "core:math/rand"
 import "input"

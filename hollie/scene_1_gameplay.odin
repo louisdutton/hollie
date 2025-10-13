@@ -8,6 +8,7 @@ import "input"
 import "renderer"
 import "tilemap"
 import "tween"
+import rl "vendor:raylib"
 
 // Draw all characters sorted by y position
 // we can potentially avoid double iteration with a custom sort
@@ -58,6 +59,7 @@ update_gameplay_screen :: proc() {
 	}
 
 	pause_handle_input()
+	pause_update(rl.GetFrameTime())
 
 	when ODIN_DEBUG {
 		if input.is_key_pressed(.R) {

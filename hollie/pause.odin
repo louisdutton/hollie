@@ -1,3 +1,4 @@
+#+feature dynamic-literals
 package hollie
 
 import "audio"
@@ -18,9 +19,21 @@ Pause_Menu_State :: enum {
 
 @(private = "file")
 pause_state := struct {
-	menu_state: Pause_Menu_State,
+	menu_state:        Pause_Menu_State,
+	selected_index:    int,
+	menu_item_counts:  map[Pause_Menu_State]int,
+	gamepad_nav_timer: f32,
 } {
 	menu_state = .HIDDEN,
+	selected_index = 0,
+	gamepad_nav_timer = 0.0,
+	menu_item_counts = {
+		.MAIN     = 4, // Resume, Options, Return to Menu, Quit
+		.OPTIONS  = 4, // Audio, Visual, Controls, Back
+		.AUDIO    = 4, // Master Volume, Music Volume, SFX Volume, Back
+		.VISUAL   = 1, // Back (non-interactive elements don't count for navigation)
+		.CONTROLS = 1, // Back
+	},
 }
 
 // Check if the game is currently paused
@@ -40,6 +53,7 @@ pause_toggle :: proc() {
 // Open the pause menu
 pause_open :: proc() {
 	pause_state.menu_state = .MAIN
+	pause_state.selected_index = 0
 	audio.music_set_volume(game.music, audio.get_effective_music_volume() * 0.2)
 }
 
@@ -54,13 +68,57 @@ pause_handle_input :: proc() {
 	if !pause_is_active() do return
 
 	// Handle escape key to go back or close menu
-	if input.is_key_pressed(.ESCAPE) {
+	if input.is_key_pressed(.ESCAPE) ||
+	   input.is_gamepad_button_pressed(input.PLAYER_1, .RIGHT_FACE_DOWN) {
 		switch pause_state.menu_state {
 		case .MAIN: pause_close()
-		case .OPTIONS, .AUDIO, .VISUAL, .CONTROLS: pause_state.menu_state = .MAIN
+		case .OPTIONS, .AUDIO, .VISUAL, .CONTROLS:
+			pause_state.menu_state = .MAIN
+			pause_state.selected_index = 0
 		case .HIDDEN:
 		// Do nothing
 		}
+	}
+
+	// Handle gamepad navigation
+	if input.is_gamepad_available(input.PLAYER_1) {
+		// Navigate up/down with D-pad or left stick
+		menu_count := pause_state.menu_item_counts[pause_state.menu_state]
+
+		if input.is_gamepad_button_pressed(input.PLAYER_1, .LEFT_FACE_UP) ||
+		   (input.get_gamepad_axis_movement(input.PLAYER_1, .LEFT_Y) < -0.5 &&
+				   pause_gamepad_can_navigate()) {
+			pause_state.selected_index = (pause_state.selected_index - 1 + menu_count) % menu_count
+			pause_reset_navigation_timer()
+		}
+
+		if input.is_gamepad_button_pressed(input.PLAYER_1, .LEFT_FACE_DOWN) ||
+		   (input.get_gamepad_axis_movement(input.PLAYER_1, .LEFT_Y) > 0.5 &&
+				   pause_gamepad_can_navigate()) {
+			pause_state.selected_index = (pause_state.selected_index + 1) % menu_count
+			pause_reset_navigation_timer()
+		}
+
+		// Select with A button
+		if input.is_gamepad_button_pressed(input.PLAYER_1, .RIGHT_FACE_RIGHT) {
+			pause_activate_selected_item()
+		}
+	}
+
+	// Also handle keyboard navigation
+	if input.is_key_pressed(.UP) || input.is_key_pressed(.W) {
+		menu_count := pause_state.menu_item_counts[pause_state.menu_state]
+		pause_state.selected_index = (pause_state.selected_index - 1 + menu_count) % menu_count
+	}
+
+	if input.is_key_pressed(.DOWN) || input.is_key_pressed(.S) {
+		menu_count := pause_state.menu_item_counts[pause_state.menu_state]
+		pause_state.selected_index = (pause_state.selected_index + 1) % menu_count
+	}
+
+	// Select with Enter or Space
+	if input.is_key_pressed(.ENTER) || input.is_key_pressed(.SPACE) {
+		pause_activate_selected_item()
 	}
 }
 
@@ -106,25 +164,26 @@ pause_draw_main_menu :: proc() {
 
 	// Resume button
 	resume_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(resume_rect, "Resume") {
+	if gui.button(resume_rect, "Resume", pause_state.selected_index == 0) {
 		pause_close()
 	}
 
 	// Options button
 	options_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(options_rect, "Options") {
+	if gui.button(options_rect, "Options", pause_state.selected_index == 1) {
 		pause_state.menu_state = .OPTIONS
+		pause_state.selected_index = 0
 	}
 
 	// Return to Menu button
 	menu_button_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(menu_button_rect, "Return to Menu") {
+	if gui.button(menu_button_rect, "Return to Menu", pause_state.selected_index == 2) {
 		set_scene(.TITLE)
 	}
 
 	// Quit button
 	quit_rect := renderer.Rect{button_x, start_y + 180, button_width, button_height}
-	if gui.button(quit_rect, "Quit Game") {
+	if gui.button(quit_rect, "Quit Game", pause_state.selected_index == 3) {
 		pause_quit_game()
 	}
 }
@@ -150,26 +209,30 @@ pause_draw_options_menu :: proc() {
 
 	// Audio options button
 	audio_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(audio_rect, "Audio") {
+	if gui.button(audio_rect, "Audio", pause_state.selected_index == 0) {
 		pause_state.menu_state = .AUDIO
+		pause_state.selected_index = 0
 	}
 
 	// Visual options button
 	visual_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(visual_rect, "Visual") {
+	if gui.button(visual_rect, "Visual", pause_state.selected_index == 1) {
 		pause_state.menu_state = .VISUAL
+		pause_state.selected_index = 0
 	}
 
 	// Controls options button
 	controls_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(controls_rect, "Controls") {
+	if gui.button(controls_rect, "Controls", pause_state.selected_index == 2) {
 		pause_state.menu_state = .CONTROLS
+		pause_state.selected_index = 0
 	}
 
 	// Back button
 	back_rect := renderer.Rect{button_x, start_y + 200, button_width, button_height}
-	if gui.button(back_rect, "Back") {
+	if gui.button(back_rect, "Back", pause_state.selected_index == 3) {
 		pause_state.menu_state = .MAIN
+		pause_state.selected_index = 0
 	}
 }
 
@@ -228,8 +291,9 @@ pause_draw_audio_menu :: proc() {
 	button_width: f32 = 100
 	button_height: f32 = 30
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
-	if gui.button(back_rect, "Back") {
+	if gui.button(back_rect, "Back", pause_state.selected_index == 3) {
 		pause_state.menu_state = .OPTIONS
+		pause_state.selected_index = 0
 	}
 }
 
@@ -294,8 +358,9 @@ pause_draw_visual_menu :: proc() {
 
 	// Back button
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back") {
+	if gui.button(back_rect, "Back", pause_state.selected_index == 0) {
 		pause_state.menu_state = .OPTIONS
+		pause_state.selected_index = 0
 	}
 }
 
@@ -341,8 +406,59 @@ pause_draw_controls_menu :: proc() {
 
 	// Back button
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back") {
+	if gui.button(back_rect, "Back", pause_state.selected_index == 0) {
 		pause_state.menu_state = .OPTIONS
+		pause_state.selected_index = 0
+	}
+}
+
+// Helper functions for gamepad navigation timing
+pause_gamepad_can_navigate :: proc() -> bool {
+	return pause_state.gamepad_nav_timer <= 0.0
+}
+
+pause_reset_navigation_timer :: proc() {
+	pause_state.gamepad_nav_timer = 0.2 // 200ms delay between analog stick navigation
+}
+
+// Update gamepad navigation timer
+pause_update :: proc(delta_time: f32) {
+	if pause_state.gamepad_nav_timer > 0.0 {
+		pause_state.gamepad_nav_timer -= delta_time
+	}
+}
+
+// Activate the currently selected menu item
+pause_activate_selected_item :: proc() {
+	switch pause_state.menu_state {
+	case .MAIN: switch pause_state.selected_index {
+			case 0: pause_close()
+			case 1:
+				pause_state.menu_state = .OPTIONS
+				pause_state.selected_index = 0
+			case 2: set_scene(.TITLE)
+			case 3: pause_quit_game()
+			}
+	case .OPTIONS: switch pause_state.selected_index {
+			case 0:
+				pause_state.menu_state = .AUDIO
+				pause_state.selected_index = 0
+			case 1:
+				pause_state.menu_state = .VISUAL
+				pause_state.selected_index = 0
+			case 2:
+				pause_state.menu_state = .CONTROLS
+				pause_state.selected_index = 0
+			case 3:
+				pause_state.menu_state = .MAIN
+				pause_state.selected_index = 0
+			}
+	case .AUDIO, .VISUAL, .CONTROLS:
+		// For these menus, the only selectable item is Back
+		pause_state.menu_state = .OPTIONS
+		pause_state.selected_index = 0
+	case .HIDDEN:
+	// Do nothing
 	}
 }
 
