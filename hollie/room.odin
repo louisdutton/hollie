@@ -40,13 +40,23 @@ RoomResource :: struct {
 }
 
 Entity_Spawn :: struct {
-	position: Vec2,
-	type:     Entity_Type,
+	position:      Vec2,
+	type:          Entity_Type,
+	trigger_id:    int,        // For pressure plates and gates
+	gate_id:       int,        // For gates
+	requires_both: bool,       // For pressure plates
+	inverted:      bool,       // For gates
+	size:          Vec2,       // For gates, pressure plates
+	texture_path:  string,     // For holdable items
+	required_triggers: [dynamic]int, // For gates - triggers that control this gate
 }
 
 Entity_Type :: enum {
 	Player,
 	Enemy,
+	Pressure_Plate,
+	Gate,
+	Holdable,
 }
 
 RoomState :: struct {
@@ -152,6 +162,15 @@ room_init :: proc(res: ^RoomResource) {
 		case .Player:
 			player_spawn_at(spawn.position, input.Player_Index(player_spawn_count))
 			player_spawn_count += 1
+		case .Pressure_Plate:
+			entity_create_pressure_plate(spawn.position, spawn.trigger_id, spawn.requires_both)
+		case .Gate:
+			gate := entity_create_gate(spawn.position, spawn.size, spawn.gate_id, spawn.inverted)
+			for trigger_id in spawn.required_triggers {
+				append(&gate.required_triggers, trigger_id)
+			}
+		case .Holdable:
+			entity_create_holdable(spawn.position, spawn.texture_path)
 		}
 	}
 
@@ -283,13 +302,50 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 	}
 
 	entities := make([dynamic]Entity_Spawn)
-	append(&entities, Entity_Spawn{{240, 256}, .Player}) // Player 1
-	append(&entities, Entity_Spawn{{272, 256}, .Player}) // Player 2
+	append(&entities, Entity_Spawn{position = {240, 256}, type = .Player}) // Player 1
+	append(&entities, Entity_Spawn{position = {272, 256}, type = .Player}) // Player 2
 	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)
-		append(&entities, Entity_Spawn{{x, y}, .Enemy})
+		append(&entities, Entity_Spawn{position = {x, y}, type = .Enemy})
 	}
+
+	// Add puzzle elements as entities
+	// Create two pressure plates that both players must stand on simultaneously
+	append(&entities, Entity_Spawn{
+		position = {150, 200},
+		type = .Pressure_Plate,
+		trigger_id = 1,
+		requires_both = false,
+		size = {32, 32},
+	})
+	append(&entities, Entity_Spawn{
+		position = {350, 200},
+		type = .Pressure_Plate,
+		trigger_id = 2,
+		requires_both = false,
+		size = {32, 32},
+	})
+
+	// Create a gate that blocks access to the upper area
+	required_triggers := make([dynamic]int)
+	append(&required_triggers, 1)
+	append(&required_triggers, 2)
+	append(&entities, Entity_Spawn{
+		position = {240, 150},
+		type = .Gate,
+		gate_id = 1,
+		inverted = false,
+		size = {64, 16},
+		required_triggers = required_triggers,
+	})
+
+	// Create a holdable object that can be used on the pressure plates
+	append(&entities, Entity_Spawn{
+		position = {300, 300},
+		type = .Holdable,
+		texture_path = "res/art/elements/crops/wood.png",
+	})
 
 	camera_bounds := rl.Rectangle {
 		0,
@@ -312,9 +368,6 @@ room_new :: proc(width := 50, height := 30) -> RoomResource {
 			target_door = "from_olivewood",
 		},
 	)
-
-	// Setup basic 2-player puzzle: two pressure plates that open a gate
-	room_setup_basic_puzzle()
 
 	return RoomResource {
 		id = "olivewood",
@@ -374,12 +427,12 @@ room_new_sand :: proc(width := 50, height := 30) -> RoomResource {
 	}
 
 	entities := make([dynamic]Entity_Spawn)
-	append(&entities, Entity_Spawn{{240, 256}, .Player}) // Player 1
-	append(&entities, Entity_Spawn{{272, 256}, .Player}) // Player 2
+	append(&entities, Entity_Spawn{position = {240, 256}, type = .Player}) // Player 1
+	append(&entities, Entity_Spawn{position = {272, 256}, type = .Player}) // Player 2
 	for _ in 0 ..< 10 {
 		x := rand.float32_range(128, 384)
 		y := rand.float32_range(128, 384)
-		append(&entities, Entity_Spawn{{x, y}, .Enemy})
+		append(&entities, Entity_Spawn{position = {x, y}, type = .Enemy})
 	}
 
 	camera_bounds := rl.Rectangle {
@@ -437,22 +490,6 @@ room_draw_name :: proc() {
 	renderer.draw_text(room_name, x, y, text_size, color)
 }
 
-// Setup a basic puzzle for the olivewood room using union entities
-room_setup_basic_puzzle :: proc() {
-	// Create two pressure plates that both players must stand on simultaneously
-	_ = entity_create_pressure_plate({150, 200}, 1, false)
-	_ = entity_create_pressure_plate({350, 200}, 2, false)
-
-	// Create a gate that blocks access to the upper area
-	gate := entity_create_gate({240, 150}, {64, 16}, 1, false)
-
-	// Link both plates to control the gate - gate opens only when BOTH are active
-	append(&gate.required_triggers, 1)
-	append(&gate.required_triggers, 2)
-
-	// Create a holdable object that can be used on the pressure plates
-	_ = entity_create_holdable({300, 300}, "res/art/elements/crops/wood.png")
-}
 
 // Draw puzzle elements with placeholder sprites
 room_draw_puzzle_elements :: proc() {
