@@ -86,7 +86,7 @@ Pressure_Plate :: struct {
 	using collider:  Collider,
 	trigger_id:      int,
 	active:          bool,
-	activated_by:    bit_set[Player_ID],
+	activated_by:    bit_set[input.Player_Index],
 	requires_both:   bool,
 }
 
@@ -795,8 +795,8 @@ entity_system_draw :: proc() {
 
 			// Draw with hit flash if needed
 			if e.hit_flash_timer > 0 {
-				flash_intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, rl.WHITE, &flash_intensity)
+				intensity := e.hit_flash_timer / 0.2
+				animation_draw_with_flash(&e.anim_data, e.position, intensity)
 			} else {
 				animation_draw(&e.anim_data, e.position)
 			}
@@ -817,8 +817,8 @@ entity_system_draw :: proc() {
 
 			// Draw with hit flash if needed
 			if e.hit_flash_timer > 0 {
-				flash_intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, rl.WHITE, &flash_intensity)
+				intensity := e.hit_flash_timer / 0.2
+				animation_draw_with_flash(&e.anim_data, e.position, intensity)
 			} else {
 				animation_draw(&e.anim_data, e.position)
 			}
@@ -832,26 +832,22 @@ entity_system_draw :: proc() {
 				defer delete(players)
 
 				for player in players {
-					distance := math.sqrt(
-						(e.position.x - player.position.x) *
-							(e.position.x - player.position.x) +
-						(e.position.y - player.position.y) *
-							(e.position.y - player.position.y),
-					)
-					if distance <= 24 {
+					distance := get_distance(e.position, player.position)
+					if distance <= PLAYER_INTERACT_RANGE {
 						can_interact = true
 						break
 					}
 				}
 			}
 
+			shader_draw_outline :: proc() {
+			}
+
 			// Draw with hit flash if needed
 			if e.hit_flash_timer > 0 {
-				flash_intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, rl.WHITE, &flash_intensity)
+				intensity := e.hit_flash_timer / 0.2
+				animation_draw_with_flash(&e.anim_data, e.position, intensity)
 			} else if can_interact {
-				outline_color := renderer.YELLOW
-				flash_intensity: f32 = 1.0
 
 				offsets := [8][2]f32 {
 					{-1, -1},
@@ -877,8 +873,7 @@ entity_system_draw :: proc() {
 						e.anim_data.animations[e.anim_data.current_anim],
 						tex_rect,
 						Vec2{tex_pos.x + offset[0], tex_pos.y + offset[1]},
-						outline_color,
-						&flash_intensity,
+						1.0,
 					)
 				}
 
@@ -917,9 +912,6 @@ entity_system_draw :: proc() {
 			}
 
 			if can_pickup {
-				outline_color := renderer.GREEN
-				flash_intensity: f32 = 1.0
-
 				// Draw 8-directional outline using white flash shader
 				offsets := [8][2]f32 {
 					{-1, -1},
@@ -942,8 +934,7 @@ entity_system_draw :: proc() {
 						texture_2d,
 						source_rect,
 						Vec2{base_position.x + offset[0], base_position.y + offset[1]},
-						outline_color,
-						&flash_intensity,
+						1.0,
 					)
 				}
 

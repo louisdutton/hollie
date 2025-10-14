@@ -84,12 +84,7 @@ animation_draw :: proc(anim_data: ^Animator, position: Vec2) {
 }
 
 // Special draw function for hit flash effect using shader
-animation_draw_with_flash :: proc(
-	anim_data: ^Animator,
-	position: Vec2,
-	color: rl.Color,
-	flash_intensity: ^f32,
-) {
+animation_draw_with_flash :: proc(anim_data: ^Animator, position: Vec2, flash_intensity: f32) {
 	tex_pos := position
 	tex_pos.x -= f32(FRAME_WIDTH) / 2
 	tex_pos.y -= f32(FRAME_HEIGHT) / 2
@@ -102,7 +97,6 @@ animation_draw_with_flash :: proc(
 		anim_data.animations[anim_data.current_anim],
 		tex_rect,
 		tex_pos,
-		color,
 		flash_intensity,
 	)
 }

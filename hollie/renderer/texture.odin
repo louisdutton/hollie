@@ -12,7 +12,7 @@ draw_texture_rec :: #force_inline proc(
 	texture: Texture2D,
 	source: Rect,
 	position: Vec2,
-	tint: Colour,
+	tint := WHITE,
 ) {
 	rl.DrawTextureRec(texture, source, position, tint)
 }
