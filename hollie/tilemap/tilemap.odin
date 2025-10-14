@@ -11,6 +11,16 @@ import rl "vendor:raylib"
 
 Vec2 :: rl.Vector2
 
+EntityType :: enum {
+	PLAYER = 0,
+	ENEMY = 1,
+	PRESSURE_PLATE = 2,
+	GATE = 3,
+	HOLDABLE = 4,
+	NPC = 5,
+	DOOR = 6,
+}
+
 /// Configuration for tilemap rendering and behavior
 TilemapConfig :: struct {
 	tile_size:    int,
@@ -89,7 +99,7 @@ Tile :: struct {
 EntityData :: struct {
 	x:                 int,
 	y:                 int,
-	entity_type:       int,
+	entity_type:       EntityType,
 	trigger_id:        int,
 	gate_id:           int,
 	requires_both:     bool,
@@ -399,9 +409,9 @@ load_tilemap_from_file :: proc(map_path: string) -> (TilemapResource, bool) {
 				if y, y_ok := strconv.parse_int(strings.trim_space(parts[1])); y_ok {
 					entity.y = y
 				}
-				if entity_type, type_ok := strconv.parse_int(strings.trim_space(parts[2]));
+				if entity_type_int, type_ok := strconv.parse_int(strings.trim_space(parts[2]));
 				   type_ok {
-					entity.entity_type = entity_type
+					entity.entity_type = EntityType(entity_type_int)
 				}
 
 				// Optional parameters
@@ -444,7 +454,7 @@ load_tilemap_from_file :: proc(map_path: string) -> (TilemapResource, bool) {
 
 				// Parse required_triggers (remaining parameters starting at index 10 for gates)
 				entity.required_triggers = make([dynamic]int)
-				start_index := entity.entity_type == 3 ? 10 : 12 // Gates start at 10, others at 12
+				start_index := entity.entity_type == .GATE ? 10 : 12 // Gates start at 10, others at 12
 				for i in start_index ..< len(parts) {
 					part := strings.trim_space(parts[i])
 					if part != "" {

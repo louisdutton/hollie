@@ -112,19 +112,17 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 		position := Vec2{f32(entity.x), f32(entity.y)}
 
 		switch entity.entity_type {
-		case 0:
-			// Player
+		case .PLAYER:
 			player_spawn_at(position, input.Player_Index(player_spawn_count))
 			player_spawn_count += 1
-		case 1: // Enemy
-				switch res.room_id {
-				case "olivewood": enemy_spawn_race_at(position, .GOBLIN)
-				case "desert": enemy_spawn_race_at(position, .SKELETON)
-				}
-		case 2: // Pressure_Plate
-				entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
-		case 3:
-			// Gate
+		case .ENEMY:
+			switch res.room_id {
+			case "olivewood": enemy_spawn_race_at(position, .GOBLIN)
+			case "desert": enemy_spawn_race_at(position, .SKELETON)
+			}
+		case .PRESSURE_PLATE:
+			entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
+		case .GATE:
 			gate := entity_create_gate(
 				position,
 				Vec2{f32(entity.width), f32(entity.height)},
@@ -134,17 +132,17 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case 4: // Holdable
-				entity_create_holdable(position, asset.path(entity.texture_path))
-		case 5: // NPC
-				entity_create_npc(position, human_animations[:], test_dialog)
-		case 6: // Door
-				entity_create_door(
-					position,
-					Vec2{f32(entity.width), f32(entity.height)},
-					entity.target_room,
-					entity.target_door,
-				)
+		case .HOLDABLE:
+			entity_create_holdable(position, asset.path(entity.texture_path))
+		case .NPC:
+			entity_create_npc(position, human_animations[:], test_dialog)
+		case .DOOR:
+			entity_create_door(
+				position,
+				Vec2{f32(entity.width), f32(entity.height)},
+				entity.target_room,
+				entity.target_door,
+			)
 		}
 	}
 
