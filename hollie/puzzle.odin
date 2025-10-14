@@ -1,14 +1,12 @@
 package hollie
 
 import "audio"
+import "input"
 import "renderer"
 
-Player_ID :: enum {
-	PLAYER_1,
-	PLAYER_2,
-}
 
 entity_update_puzzle_logic :: proc() {
+
 	// Update pressure plate states
 	pressure_plates := entity_get_pressure_plates()
 	defer delete(pressure_plates)
@@ -33,17 +31,15 @@ entity_update_puzzle_logic :: proc() {
 			}
 
 			if rects_intersect(player_rect, plate_rect) {
-				if player.index == .PLAYER_1 {
-					plate.activated_by += {.PLAYER_1}
-				} else {
-					plate.activated_by += {.PLAYER_2}
-				}
+				plate.activated_by += {player.index}
 			}
 		}
 
 		// Update active state based on requirements
 		if plate.requires_both {
-			plate.active = .PLAYER_1 in plate.activated_by && .PLAYER_2 in plate.activated_by
+			plate.active =
+				input.Player_Index.PLAYER_1 in plate.activated_by &&
+				input.Player_Index.PLAYER_2 in plate.activated_by
 		} else {
 			plate.active = card(plate.activated_by) > 0
 		}
@@ -54,9 +50,7 @@ entity_update_puzzle_logic :: proc() {
 	defer delete(gates)
 
 	for gate in gates {
-		if len(gate.required_triggers) == 0 {
-			continue // Gate with no requirements stays as-is
-		}
+		assert(len(gate.required_triggers) > 0)
 
 		all_triggers_active := true
 		for trigger_id in gate.required_triggers {

@@ -442,12 +442,13 @@ load_tilemap_from_file :: proc(map_path: string) -> (TilemapResource, bool) {
 					entity.target_door = strings.clone(strings.trim_space(parts[11]))
 				}
 
-				// Parse required_triggers (remaining parameters)
+				// Parse required_triggers (remaining parameters starting at index 10 for gates)
 				entity.required_triggers = make([dynamic]int)
-				if len(parts) > 12 {
-					for i in 12 ..< len(parts) {
-						if trigger_id, rt_ok := strconv.parse_int(strings.trim_space(parts[i]));
-						   rt_ok {
+				start_index := entity.entity_type == 3 ? 10 : 12 // Gates start at 10, others at 12
+				for i in start_index ..< len(parts) {
+					part := strings.trim_space(parts[i])
+					if part != "" {
+						if trigger_id, rt_ok := strconv.parse_int(part); rt_ok {
 							append(&entity.required_triggers, trigger_id)
 						}
 					}
