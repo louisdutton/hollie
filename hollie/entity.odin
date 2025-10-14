@@ -826,10 +826,63 @@ entity_system_draw :: proc() {
 		case NPC:
 			entity_draw_shadow(e.position)
 
+			can_interact := false
+			if len(e.dialog_messages) > 0 {
+				players := entity_get_players()
+				defer delete(players)
+
+				for player in players {
+					distance := math.sqrt(
+						(e.position.x - player.position.x) *
+							(e.position.x - player.position.x) +
+						(e.position.y - player.position.y) *
+							(e.position.y - player.position.y),
+					)
+					if distance <= 24 {
+						can_interact = true
+						break
+					}
+				}
+			}
+
 			// Draw with hit flash if needed
 			if e.hit_flash_timer > 0 {
 				flash_intensity := e.hit_flash_timer / 0.2
 				animation_draw_with_flash(&e.anim_data, e.position, rl.WHITE, &flash_intensity)
+			} else if can_interact {
+				outline_color := renderer.YELLOW
+				flash_intensity: f32 = 1.0
+
+				offsets := [8][2]f32 {
+					{-1, -1},
+					{0, -1},
+					{1, -1},
+					{-1, 0},
+					{1, 0},
+					{-1, 1},
+					{0, 1},
+					{1, 1},
+				}
+
+				tex_pos := e.position
+				tex_pos.x -= f32(FRAME_WIDTH) / 2
+				tex_pos.y -= f32(FRAME_HEIGHT) / 2
+				tex_rect := e.anim_data.rect
+				if e.anim_data.is_flipped {
+					tex_rect.width *= -1
+				}
+
+				for offset in offsets {
+					shader_draw_with_white_flash(
+						e.anim_data.animations[e.anim_data.current_anim],
+						tex_rect,
+						Vec2{tex_pos.x + offset[0], tex_pos.y + offset[1]},
+						outline_color,
+						&flash_intensity,
+					)
+				}
+
+				animation_draw(&e.anim_data, e.position)
 			} else {
 				animation_draw(&e.anim_data, e.position)
 			}
