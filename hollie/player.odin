@@ -6,19 +6,13 @@ import "input"
 
 PLAYER_INTERACT_RANGE :: 24 // the distance within which the player can interact with interable entities
 
-player_spawn_at :: proc(spawn_pos: Vec2, index: input.Player_Index) {
-	entity_create_player(spawn_pos, index, player_animations[:])
+player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
+	entity_create_player(pos, index, player_animations[:])
 }
-
-player_spawn_both :: proc(spawn_pos_1, spawn_pos_2: Vec2) {
-	player_spawn_at(spawn_pos_1, .PLAYER_1)
-	player_spawn_at(spawn_pos_2, .PLAYER_2)
-}
-
 
 player_handle_input :: proc(p: ^Player) {
-	if dialog_is_active() do return
-	if p.is_attacking || p.is_rolling do return
+	// attack and rolling bools can probably be made redundant
+	if p.is_busy || p.is_attacking || p.is_rolling do return
 
 	// Carrying is a limited state so must be handled first
 	// there will likely be other states like this
@@ -27,7 +21,13 @@ player_handle_input :: proc(p: ^Player) {
 		return
 	}
 
-	if input.is_pressed_for_player(.Accept, p.index) do player_carry(p)
+	if input.is_pressed_for_player(.Accept, p.index) {
+		if npc := npc_get_in_range(p.position, PLAYER_INTERACT_RANGE); npc != nil {
+			dialog_start(npc)
+		} else {
+			player_carry(p)
+		}
+	}
 	if input.is_pressed_for_player(.Attack, p.index) do player_attack(p)
 	if input.is_pressed_for_player(.Roll, p.index) do player_roll(p)
 }

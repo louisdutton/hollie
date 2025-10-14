@@ -29,13 +29,14 @@ dialog_init :: proc() {
 	dialog_state = {}
 }
 
-dialog_start :: proc(messages: []Dialog_Message) {
-	dialog_state.messages = messages
+dialog_start :: proc(npc: ^NPC) {
+	dialog_state.messages = npc.dialog_messages
 	dialog_state.current_page = 0
-	dialog_state.is_active = len(messages) > 0
+	dialog_state.is_active = len(npc.dialog_messages) > 0
 	dialog_state.text_complete = false
 
 	if dialog_state.is_active {
+		dialog_set_all_busy(true)
 		tween.to(
 			&camera_base_zoom,
 			ZOOM_DIALOG,
@@ -76,6 +77,7 @@ dialog_advance :: proc() {
 
 	if dialog_state.current_page >= len(dialog_state.messages) {
 		dialog_state.is_active = false
+		dialog_set_all_busy(false)
 		tween.to(
 			&camera_base_zoom,
 			ZOOM_DEFAULT,
@@ -86,9 +88,6 @@ dialog_advance :: proc() {
 			delete(dialog_state.current_runes)
 			dialog_state.current_runes = {}
 		}
-
-		// unlock dialog target
-		// TODO: implement entity interaction unlocking
 	} else {
 		if len(dialog_state.current_runes) > 0 {
 			delete(dialog_state.current_runes)
@@ -112,6 +111,21 @@ dialog_update :: proc() {
 
 dialog_is_active :: proc() -> bool {
 	return dialog_state.is_active
+}
+
+// TODO: we should only mark participating NPCs as busy
+dialog_set_all_busy :: proc(busy: bool) {
+	players := entity_get_players()
+	defer delete(players)
+	for player in players {
+		player.is_busy = busy
+	}
+
+	npcs := npc_get_all()
+	defer delete(npcs)
+	for npc in npcs {
+		npc.is_busy = busy
+	}
 }
 
 dialog_draw :: proc() {

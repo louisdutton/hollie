@@ -73,6 +73,7 @@ NPC :: struct {
 	using movement:  Movement,
 	using ai:        AI,
 	using anim_data: Animator,
+	dialog_messages: []Dialog_Message,
 }
 
 Enemy :: struct {
@@ -158,7 +159,7 @@ entity_create_player :: proc(
 	return &entities[len(entities) - 1].(Player)
 }
 
-entity_create_enemy :: proc(pos: Vec2, race: NPC_Race, animations: []Animation) -> ^Enemy {
+entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
@@ -204,12 +205,17 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 	return &entities[len(entities) - 1].(Gate)
 }
 
-entity_create_npc :: proc(pos: Vec2, race: NPC_Race, animations: []Animation) -> ^NPC {
+entity_create_npc :: proc(
+	pos: Vec2,
+	animations: []Animation,
+	dialog_messages: []Dialog_Message = {},
+) -> ^NPC {
 	npc := NPC {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 50, max = 50},
 		movement = {move_speed = 30},
+		dialog_messages = dialog_messages,
 	}
 
 	if len(animations) > 0 {
@@ -326,6 +332,7 @@ entity_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
 	}
 	return nil
 }
+
 
 // Collision helpers
 entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
@@ -486,11 +493,13 @@ entity_update_timers :: proc() {
 entity_update_movement :: proc() {
 	for &entity in entities {
 		switch &e in entity {
-		case Player: // Skip movement if rolling (velocity locked) or attacking or knockback
-				if e.is_rolling || e.knockback_timer > 0 {
+		case Player: // Skip movement if rolling (velocity locked) or attacking or knockback or busy
+				if e.is_rolling || e.knockback_timer > 0 || e.is_busy {
 					// Keep current velocity for rolling or apply knockback friction
 					if e.knockback_timer > 0 {
 						e.velocity = e.velocity * 0.85 // Knockback friction
+					} else if e.is_busy {
+						e.velocity = {0, 0} // Stop completely when busy
 					}
 				} else {
 					movement_input := input.get_movement_for_player(e.index)
@@ -527,9 +536,9 @@ entity_update_movement :: proc() {
 					}
 				}
 
-		case NPC: // Skip movement if dying or in knockback
-				if e.is_dying || e.knockback_timer > 0 {
-					// Apply knockback friction
+		case NPC: // Skip movement if dying, in knockback, or busy
+				if e.is_dying || e.knockback_timer > 0 || e.is_busy {
+					// Apply knockback friction or stop for dialog
 					if e.knockback_timer > 0 {
 						e.velocity = e.velocity * 0.85 // Knockback friction
 					} else {
@@ -569,12 +578,7 @@ entity_update_positions :: proc() {
 		case Player: entity_move_character(&e.transform, &e.collider)
 		case Enemy: entity_move_character(&e.transform, &e.collider)
 		case NPC: entity_move_character(&e.transform, &e.collider)
-		case Pressure_Plate, Gate: // Static entities don't move
-				continue
-		case Holdable: // Holdables don't move on their own - position calculated during rendering
-				continue
-		case Door: // Doors are static
-				continue
+		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }

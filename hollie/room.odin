@@ -82,6 +82,13 @@ room_draw_doors_debug :: proc() {
 	}
 }
 
+// TODO: clone this so it doesn't need to be in block memory
+test_dialog := []Dialog_Message {
+	{text = "Hello there, traveler!", speaker = "Village NPC"},
+	{text = "Welcome to our peaceful village.", speaker = "Village NPC"},
+	{text = "Feel free to explore around.", speaker = "Village NPC"},
+}
+
 room_init :: proc(res: ^tilemap.TilemapResource) {
 	if room_state.is_loaded do room_fini()
 
@@ -130,7 +137,7 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 		case 4: // Holdable
 				entity_create_holdable(position, asset.path(entity.texture_path))
 		case 5: // NPC
-				entity_create_npc(position, .HUMAN, human_animations[:])
+				entity_create_npc(position, human_animations[:], test_dialog)
 		case 6: // Door
 				entity_create_door(
 					position,
