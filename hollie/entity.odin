@@ -424,6 +424,7 @@ entity_system_update :: proc() {
 	entity_update_movement()
 	entity_update_positions()
 	entity_check_combat()
+	entity_update_puzzle_logic()
 	entity_update_animations()
 	entity_cleanup_dead()
 }
@@ -709,6 +710,7 @@ entity_check_combat :: proc() {
 		}
 	}
 }
+
 
 entity_update_animations :: proc() {
 	for &entity in entities {

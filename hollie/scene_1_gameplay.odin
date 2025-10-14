@@ -35,7 +35,6 @@ init_gameplay_screen :: proc() {
 	particle_system_init()
 	shader_init()
 	gui.init()
-	puzzle_init()
 
 	gameplay_state.grass_room, _ = tilemap.load_tilemap_from_file("maps/olivewood.map")
 	gameplay_state.sand_room, _ = tilemap.load_tilemap_from_file("maps/desert.map")
@@ -105,7 +104,6 @@ update_gameplay_screen :: proc() {
 	if !pause_is_active() {
 		room_update()
 		entity_system_update() // Handles all entities (players, enemies, NPCs, puzzles)
-		puzzle_update()
 
 		// Check for door collisions with any player
 		if !gameplay_state.is_transitioning {
@@ -191,7 +189,6 @@ unload_gameplay_screen :: proc() {
 	room_fini()
 	entity_system_fini() // Cleanup entities
 	particle_system_fini()
-	puzzle_fini()
 }
 
 

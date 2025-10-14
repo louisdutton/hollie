@@ -286,26 +286,32 @@ room_draw_puzzle_elements :: proc() {
 room_draw_puzzle_debug :: proc() {
 	if !room_state.is_loaded do return
 
-	// Draw trigger collision boxes
-	for trigger in puzzle_system.triggers {
-		outline_color := trigger.active ? renderer.GREEN : renderer.RED
+	// Draw pressure plate collision boxes
+	pressure_plates := entity_get_pressure_plates()
+	defer delete(pressure_plates)
+
+	for plate in pressure_plates {
+		outline_color := plate.active ? renderer.GREEN : renderer.RED
 		renderer.draw_rect_outline(
-			trigger.position.x,
-			trigger.position.y,
-			trigger.size.x,
-			trigger.size.y,
+			plate.position.x + plate.collider.offset.x,
+			plate.position.y + plate.collider.offset.y,
+			plate.collider.size.x,
+			plate.collider.size.y,
 			color = outline_color,
 		)
 	}
 
 	// Draw gate collision boxes
-	for gate in puzzle_system.gates {
+	gates := entity_get_gates()
+	defer delete(gates)
+
+	for gate in gates {
 		if !gate.open {
 			renderer.draw_rect_outline(
-				gate.position.x,
-				gate.position.y,
-				gate.size.x,
-				gate.size.y,
+				gate.position.x + gate.collider.offset.x,
+				gate.position.y + gate.collider.offset.y,
+				gate.collider.size.x,
+				gate.collider.size.y,
 				color = renderer.RED,
 			)
 		}
