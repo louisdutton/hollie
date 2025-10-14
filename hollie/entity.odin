@@ -105,6 +105,13 @@ Holdable :: struct {
 	sprite_texture:  renderer.Texture2D,
 }
 
+Door :: struct {
+	using transform: Transform,
+	using collider:  Collider,
+	target_room:     string,
+	target_door:     string,
+}
+
 // Main entity union
 Entity :: union {
 	Player,
@@ -113,6 +120,7 @@ Entity :: union {
 	Pressure_Plate,
 	Gate,
 	Holdable,
+	Door,
 }
 
 // Global entity storage
@@ -196,6 +204,22 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 	return &entities[len(entities) - 1].(Gate)
 }
 
+entity_create_npc :: proc(pos: Vec2, race: NPC_Race, animations: []Animation) -> ^NPC {
+	npc := NPC {
+		transform = {position = pos},
+		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
+		health = {current = 50, max = 50},
+		movement = {move_speed = 30},
+	}
+
+	if len(animations) > 0 {
+		animation_init(&npc.anim_data, animations)
+	}
+
+	append(&entities, npc)
+	return &entities[len(entities) - 1].(NPC)
+}
+
 entity_create_holdable :: proc(pos: Vec2, texture_path: string) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
@@ -205,6 +229,23 @@ entity_create_holdable :: proc(pos: Vec2, texture_path: string) -> ^Holdable {
 
 	append(&entities, holdable)
 	return &entities[len(entities) - 1].(Holdable)
+}
+
+entity_create_door :: proc(
+	pos: Vec2,
+	size: Vec2,
+	target_room: string,
+	target_door: string,
+) -> ^Door {
+	door := Door {
+		transform = {position = pos},
+		collider = {size = size, solid = false},
+		target_room = target_room,
+		target_door = target_door,
+	}
+
+	append(&entities, door)
+	return &entities[len(entities) - 1].(Door)
 }
 
 // Query functions
@@ -257,6 +298,35 @@ entity_get_holdables :: proc() -> [dynamic]^Holdable {
 	return holdables
 }
 
+entity_get_doors :: proc() -> [dynamic]^Door {
+	doors := make([dynamic]^Door)
+	for &entity in entities {
+		if door, ok := &entity.(Door); ok {
+			append(&doors, door)
+		}
+	}
+	return doors
+}
+
+entity_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
+	doors := entity_get_doors()
+	defer delete(doors)
+
+	for door in doors {
+		door_entity := Entity(door^)
+		door_pos := entity_get_world_collider_pos(&door_entity)
+		door_size := entity_get_collider_size(&door_entity)
+
+		player_rect := renderer.Rect{player_pos.x - 8, player_pos.y - 8, 16, 16}
+		door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
+
+		if rects_intersect(player_rect, door_rect) {
+			return door
+		}
+	}
+	return nil
+}
+
 // Collision helpers
 entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	switch e in entity {
@@ -266,6 +336,7 @@ entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	case Pressure_Plate: return e.position + e.collider.offset
 	case Gate: return e.position + e.collider.offset
 	case Holdable: return e.position + e.collider.offset
+	case Door: return e.position + e.collider.offset
 	}
 	return {0, 0}
 }
@@ -278,6 +349,7 @@ entity_get_collider_size :: proc(entity: ^Entity) -> Vec2 {
 	case Pressure_Plate: return e.collider.size
 	case Gate: return e.collider.size
 	case Holdable: return e.collider.size
+	case Door: return e.collider.size
 	}
 	return {0, 0}
 }
@@ -317,6 +389,7 @@ entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entit
 		case Player, Enemy, NPC, Pressure_Plate: is_solid = false
 		case Gate: is_solid = e.collider.solid && !e.open
 		case Holdable: is_solid = false // Holdables are never solid - players need to walk over them
+		case Door: is_solid = false // Doors are triggers, not solid barriers
 		}
 
 		if is_solid {
@@ -403,7 +476,7 @@ entity_update_timers :: proc() {
 			if e.hit_flash_timer > 0 do e.hit_flash_timer = max(e.hit_flash_timer - dt, 0)
 			if e.knockback_timer > 0 do e.knockback_timer = max(e.knockback_timer - dt, 0)
 
-		case Pressure_Plate, Gate, Holdable: // No timers for these entities
+		case Pressure_Plate, Gate, Holdable, Door: // No timers for these entities
 				continue
 		}
 	}
@@ -483,6 +556,8 @@ entity_update_movement :: proc() {
 				continue
 		case Holdable: // Holdables have no AI movement, they only move when carried
 				continue
+		case Door: // Doors are static
+				continue
 		}
 	}
 }
@@ -496,6 +571,8 @@ entity_update_positions :: proc() {
 		case Pressure_Plate, Gate: // Static entities don't move
 				continue
 		case Holdable: // Holdables don't move on their own - position calculated during rendering
+				continue
+		case Door: // Doors are static
 				continue
 		}
 	}
@@ -522,7 +599,7 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 		case NPC:
 			entity_transform = &e.transform
 			entity_collider = &e.collider
-		case Pressure_Plate, Gate, Holdable: continue
+		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 
 		if entity_transform == transform && entity_collider == collider {
@@ -624,11 +701,11 @@ entity_check_combat :: proc() {
 						}
 					}
 
-				case Player, NPC, Pressure_Plate, Gate, Holdable: continue
+				case Player, NPC, Pressure_Plate, Gate, Holdable, Door: continue
 				}
 			}
 
-		case Enemy, NPC, Pressure_Plate, Gate, Holdable: continue
+		case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }
@@ -673,7 +750,7 @@ entity_update_animations :: proc() {
 			}
 			animation_update(&e.anim_data)
 
-		case Pressure_Plate, Gate, Holdable: // Static entities don't have animations
+		case Pressure_Plate, Gate, Holdable, Door: // Static entities don't have animations
 				continue
 		}
 	}
@@ -692,7 +769,7 @@ entity_system_draw :: proc() {
 		switch e in entity {
 		case Player, Enemy, NPC: append(&drawable_entities, &entity)
 		case Holdable: append(&drawable_entities, &entity)
-		case Pressure_Plate, Gate: // These are drawn by the room system
+		case Pressure_Plate, Gate, Door: // These are drawn by the room system
 				continue
 		}
 	}
@@ -822,7 +899,7 @@ entity_system_draw :: proc() {
 				)
 			}
 
-		case Pressure_Plate, Gate: // These shouldn't be in drawable_entities
+		case Pressure_Plate, Gate, Door: // These shouldn't be in drawable_entities
 				continue
 		}
 	}
@@ -842,6 +919,7 @@ entity_system_draw :: proc() {
 			case Pressure_Plate: color = renderer.BLUE
 			case Gate: color = renderer.SKYBLUE
 			case Holdable: color = renderer.YELLOW
+			case Door: color = renderer.PURPLE
 			}
 
 			renderer.draw_rect_outline(
@@ -867,7 +945,7 @@ entity_system_draw :: proc() {
 							color = renderer.RED,
 						)
 					}
-			case Enemy, NPC, Pressure_Plate, Gate, Holdable: continue
+			case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
 			}
 		}
 	}
@@ -889,7 +967,7 @@ entity_cleanup_dead :: proc() {
 					particle_create_explosion(e.position)
 					unordered_remove(&entities, i)
 				}
-		case Player, Pressure_Plate, Gate, Holdable: continue
+		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }

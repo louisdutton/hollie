@@ -4,6 +4,11 @@ height=30
 tileset_path=art/tileset/spr_tileset_sunnysideworld_16px.png
 tile_size=16
 tileset_cols=32
+room_id=desert
+room_name=Blisterwind
+music_path=audio/music/ambient.ogg
+camera_bounds=0,0,800,480
+collision_bounds=0,0,800,480
 
 [base_data]
 4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5,6,4,5
@@ -67,3 +72,16 @@ tileset_cols=32
 0,0,0,387,0,0,0,0,0,0,0,0,0,388,0,0,0,0,0,0,0,0,0,0,0,0,0,0,385,0,0,0,0,0,0,0,0,0,0,386,0,0,0,0,0,0,0,0,387,0
 0,0,0,0,0,0,0,0,0,0,388,0,0,0,0,0,0,0,0,385,0,0,0,0,0,0,0,0,0,0,0,0,0,386,0,0,0,0,0,0,0,0,0,0,0,387,0,0,0,0
 0,388,0,0,0,0,0,0,0,0,0,0,0,0,0,385,0,0,0,0,0,0,0,386,0,0,0,0,0,0,0,0,0,0,0,0,0,0,387,0,0,0,0,0,0,0,0,0,0,388
+
+[entity_data]
+# Players: type 0
+240,256,0
+272,256,0
+# Enemies (Skeletons): type 1
+200,150,1
+350,200,1
+450,300,1
+300,400,1
+150,350,1
+# Door back to olivewood: type 6
+16,208,6,0,0,false,false,32,64,,olivewood,from_desert

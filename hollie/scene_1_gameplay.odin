@@ -13,9 +13,9 @@ import rl "vendor:raylib"
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	grass_room:         RoomResource,
-	sand_room:          RoomResource,
-	small_room:         RoomResource,
+	grass_room:         tilemap.TilemapResource,
+	sand_room:          tilemap.TilemapResource,
+	small_room:         tilemap.TilemapResource,
 	current_room:       int, // 0 = grass, 1 = sand, 2 = small
 	is_transitioning:   bool,
 	transition_opacity: f32,
@@ -37,9 +37,9 @@ init_gameplay_screen :: proc() {
 	gui.init()
 	puzzle_init()
 
-	gameplay_state.grass_room = room_new()
-	gameplay_state.sand_room = room_new_sand()
-	gameplay_state.small_room = room_new_small()
+	gameplay_state.grass_room, _ = tilemap.load_tilemap_from_file("maps/olivewood.map")
+	gameplay_state.sand_room, _ = tilemap.load_tilemap_from_file("maps/desert.map")
+	gameplay_state.small_room, _ = tilemap.load_tilemap_from_file("maps/room.map")
 	room_init(&gameplay_state.grass_room)
 }
 
@@ -61,7 +61,9 @@ update_gameplay_screen :: proc() {
 	if gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity >= 0.99 &&
 	   gameplay_state.pending_room >= 0 {
+
 		gameplay_state.current_room = gameplay_state.pending_room
+
 
 		// Load appropriate level
 		switch gameplay_state.current_room {
@@ -111,7 +113,7 @@ update_gameplay_screen :: proc() {
 			defer delete(players)
 
 			for player in players {
-				door := room_check_door_collision(player.position)
+				door := entity_check_door_collision(player.position)
 				if door != nil {
 					gameplay_state.is_transitioning = true
 
@@ -126,7 +128,10 @@ update_gameplay_screen :: proc() {
 						} else {
 							// Coming from desert, place on right side
 							room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
-							gameplay_state.pending_player_pos = {room_width - 60, player.position.y}
+							gameplay_state.pending_player_pos = {
+								room_width - 60,
+								player.position.y,
+							}
 						}
 					} else if door.target_room == "small_room" {
 						gameplay_state.pending_room = 2
@@ -194,5 +199,15 @@ draw_transition_overlay :: proc() {
 	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
 		alpha := u8(gameplay_state.transition_opacity * 255)
 		renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{0, 0, 0, alpha})
+	}
+}
+
+// DEBUG: Add this at the end of the file temporarily
+when ODIN_DEBUG {
+	@(export)
+	debug_transition_state :: proc() -> (bool, f32, int) {
+		return gameplay_state.is_transitioning,
+			gameplay_state.transition_opacity,
+			gameplay_state.pending_room
 	}
 }

@@ -100,10 +100,3 @@ player_attack :: proc(p: ^Player) {
 	// Play attack grunt sound
 	audio.sound_play(game.sounds["grunt_attack"])
 }
-
-// TODO: this shouldnt be here
-// this is for accurate distance and shouldn't be used in performance-critical contexts
-get_distance :: proc(a, b: Vec2) -> f32 {
-	return math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
-
-}

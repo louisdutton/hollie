@@ -4,12 +4,17 @@ height=8
 tileset_path=art/tileset/spr_tileset_sunnysideworld_16px.png
 tile_size=16
 tileset_cols=32
+room_id=small_room
+room_name=???
+music_path=audio/music/ambient.ogg
+camera_bounds=-200,-150,528,428
+collision_bounds=0,0,128,128
 
 [base_data]
 1,1,1,1,1,1,1,1
 1,1,1,1,1,1,1,1
 1,1,1,1,1,1,1,1
-1,1,1,1,1,1,1,43
+1,1,1,1,1,1,1,1
 1,1,1,1,1,1,1,1
 1,1,1,1,1,1,1,1
 1,1,1,1,1,1,1,1
@@ -21,6 +26,9 @@ tileset_cols=32
 0,0,0,0,0,0,0,0
 0,0,0,0,0,0,0,0
 0,0,0,0,0,0,0,0
-0,0,0,0,0,0,0,0
-0,0,0,0,0,0,0,0
-0,0,0,0,0,0,0,0
+
+[entity_data]
+64,64,0
+80,64,0
+96,96,5
+16,64,6,0,0,false,false,32,32,,olivewood,from_small_room

@@ -86,11 +86,28 @@ Tile :: struct {
 	solid: bool,
 }
 
+EntityData :: struct {
+	x:                 int,
+	y:                 int,
+	entity_type:       int,
+	trigger_id:        int,
+	gate_id:           int,
+	requires_both:     bool,
+	inverted:          bool,
+	width:             int,
+	height:            int,
+	texture_path:      string,
+	target_room:       string,
+	target_door:       string,
+	required_triggers: [dynamic]int,
+}
+
 TileMap :: struct {
 	width:      int,
 	height:     int,
 	base_tiles: []Tile,
 	deco_tiles: []Tile,
+	entities:   []EntityData,
 	tileset:    renderer.Texture2D,
 	tile_size:  int,
 }
@@ -103,12 +120,18 @@ tilemap := TileMap {
 }
 
 TilemapResource :: struct {
-	width:        int,
-	height:       int,
-	tileset_path: string,
-	base_data:    []TileType,
-	deco_data:    []TileType,
-	config:       TilemapConfig,
+	width:            int,
+	height:           int,
+	tileset_path:     string,
+	base_data:        []TileType,
+	deco_data:        []TileType,
+	entity_data:      []EntityData,
+	config:           TilemapConfig,
+	room_id:          string,
+	room_name:        string,
+	music_path:       string,
+	camera_bounds:    rl.Rectangle,
+	collision_bounds: rl.Rectangle,
 }
 
 load_from_config :: proc(res: TilemapResource) {
@@ -117,6 +140,12 @@ load_from_config :: proc(res: TilemapResource) {
 	}
 	if tilemap.deco_tiles != nil {
 		delete(tilemap.deco_tiles)
+	}
+	if tilemap.entities != nil {
+		for &entity in tilemap.entities {
+			delete(entity.required_triggers)
+		}
+		delete(tilemap.entities)
 	}
 	if tilemap.tileset.id != 0 {
 		renderer.unload_texture(tilemap.tileset)
@@ -128,6 +157,7 @@ load_from_config :: proc(res: TilemapResource) {
 	tilemap.width = res.width
 	tilemap.height = res.height
 	tilemap.tile_size = res.config.tile_size
+
 	tilemap.tileset = renderer.load_texture(asset.path(res.tileset_path))
 
 	tilemap.base_tiles = make([]Tile, tilemap.width * tilemap.height)
@@ -158,6 +188,20 @@ load_from_config :: proc(res: TilemapResource) {
 				type  = .EMPTY,
 				solid = false,
 			}
+		}
+	}
+
+	// Load entity data
+	if len(res.entity_data) > 0 {
+		tilemap.entities = make([]EntityData, len(res.entity_data))
+		for i in 0 ..< len(res.entity_data) {
+			tilemap.entities[i] = res.entity_data[i]
+			// Copy required_triggers array
+			tilemap.entities[i].required_triggers = make(
+				[dynamic]int,
+				len(res.entity_data[i].required_triggers),
+			)
+			copy(tilemap.entities[i].required_triggers[:], res.entity_data[i].required_triggers[:])
 		}
 	}
 }
@@ -217,8 +261,13 @@ get_tilemap_height :: proc() -> int {
 	return tilemap.height
 }
 
+get_entities :: proc() -> []EntityData {
+	return tilemap.entities
+}
+
 /// Load complete tilemap resource from file
-load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
+load_tilemap_from_file :: proc(map_path: string) -> (TilemapResource, bool) {
+	path := asset.path(map_path)
 	data, ok := os.read_entire_file(path)
 	if !ok {
 		return {}, false
@@ -236,8 +285,10 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 	current_section := ""
 	base_data := make([dynamic]TileType)
 	deco_data := make([dynamic]TileType)
+	entity_data := make([dynamic]EntityData)
 	defer delete(base_data)
 	defer delete(deco_data)
+	defer delete(entity_data)
 
 	for &line in lines {
 		line = strings.trim_space(line)
@@ -274,6 +325,43 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 			case "tileset_cols": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
 						res.config.tileset_cols = parsed_value
 					}
+			case "room_id": res.room_id = strings.clone(value)
+			case "room_name": res.room_name = strings.clone(value)
+			case "music_path": res.music_path = strings.clone(value)
+			case "camera_bounds":
+				bounds_parts := strings.split(value, ",")
+				defer delete(bounds_parts)
+				if len(bounds_parts) == 4 {
+					if x, x_ok := strconv.parse_f32(strings.trim_space(bounds_parts[0])); x_ok {
+						res.camera_bounds.x = x
+					}
+					if y, y_ok := strconv.parse_f32(strings.trim_space(bounds_parts[1])); y_ok {
+						res.camera_bounds.y = y
+					}
+					if w, w_ok := strconv.parse_f32(strings.trim_space(bounds_parts[2])); w_ok {
+						res.camera_bounds.width = w
+					}
+					if h, h_ok := strconv.parse_f32(strings.trim_space(bounds_parts[3])); h_ok {
+						res.camera_bounds.height = h
+					}
+				}
+			case "collision_bounds":
+				bounds_parts := strings.split(value, ",")
+				defer delete(bounds_parts)
+				if len(bounds_parts) == 4 {
+					if x, x_ok := strconv.parse_f32(strings.trim_space(bounds_parts[0])); x_ok {
+						res.collision_bounds.x = x
+					}
+					if y, y_ok := strconv.parse_f32(strings.trim_space(bounds_parts[1])); y_ok {
+						res.collision_bounds.y = y
+					}
+					if w, w_ok := strconv.parse_f32(strings.trim_space(bounds_parts[2])); w_ok {
+						res.collision_bounds.width = w
+					}
+					if h, h_ok := strconv.parse_f32(strings.trim_space(bounds_parts[3])); h_ok {
+						res.collision_bounds.height = h
+					}
+				}
 			}
 
 		case "base_data":
@@ -297,6 +385,77 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 					append(&deco_data, TileType(tile_id))
 				}
 			}
+
+		case "entity_data":
+			// Parse entity line: x,y,type,trigger_id,gate_id,requires_both,inverted,width,height,texture_path,target_room,target_door,required_triggers...
+			parts := strings.split(line, ",")
+			defer delete(parts)
+			if len(parts) >= 3 {
+				entity := EntityData{}
+
+				if x, x_ok := strconv.parse_int(strings.trim_space(parts[0])); x_ok {
+					entity.x = x
+				}
+				if y, y_ok := strconv.parse_int(strings.trim_space(parts[1])); y_ok {
+					entity.y = y
+				}
+				if entity_type, type_ok := strconv.parse_int(strings.trim_space(parts[2]));
+				   type_ok {
+					entity.entity_type = entity_type
+				}
+
+				// Optional parameters
+				if len(parts) > 3 {
+					if trigger_id, tid_ok := strconv.parse_int(strings.trim_space(parts[3]));
+					   tid_ok {
+						entity.trigger_id = trigger_id
+					}
+				}
+				if len(parts) > 4 {
+					if gate_id, gid_ok := strconv.parse_int(strings.trim_space(parts[4])); gid_ok {
+						entity.gate_id = gate_id
+					}
+				}
+				if len(parts) > 5 {
+					entity.requires_both = strings.trim_space(parts[5]) == "true"
+				}
+				if len(parts) > 6 {
+					entity.inverted = strings.trim_space(parts[6]) == "true"
+				}
+				if len(parts) > 7 {
+					if width, w_ok := strconv.parse_int(strings.trim_space(parts[7])); w_ok {
+						entity.width = width
+					}
+				}
+				if len(parts) > 8 {
+					if height, h_ok := strconv.parse_int(strings.trim_space(parts[8])); h_ok {
+						entity.height = height
+					}
+				}
+				if len(parts) > 9 {
+					entity.texture_path = strings.clone(strings.trim_space(parts[9]))
+				}
+				if len(parts) > 10 {
+					entity.target_room = strings.clone(strings.trim_space(parts[10]))
+				}
+				if len(parts) > 11 {
+					entity.target_door = strings.clone(strings.trim_space(parts[11]))
+				}
+
+				// Parse required_triggers (remaining parameters)
+				entity.required_triggers = make([dynamic]int)
+				if len(parts) > 12 {
+					for i in 12 ..< len(parts) {
+						if trigger_id, rt_ok := strconv.parse_int(strings.trim_space(parts[i]));
+						   rt_ok {
+							append(&entity.required_triggers, trigger_id)
+						}
+					}
+				}
+
+				append(&entity_data, entity)
+			}
+
 		}
 	}
 
@@ -306,6 +465,9 @@ load_tilemap_from_file :: proc(path: string) -> (TilemapResource, bool) {
 
 	res.deco_data = make([]TileType, len(deco_data))
 	copy(res.deco_data, deco_data[:])
+
+	res.entity_data = make([]EntityData, len(entity_data))
+	copy(res.entity_data, entity_data[:])
 
 	return res, true
 }
@@ -479,6 +641,13 @@ fini :: proc() {
 		delete(tilemap.deco_tiles)
 		tilemap.deco_tiles = nil
 	}
+	if tilemap.entities != nil {
+		for &entity in tilemap.entities {
+			delete(entity.required_triggers)
+		}
+		delete(tilemap.entities)
+		tilemap.entities = nil
+	}
 	renderer.unload_texture(tilemap.tileset)
 }
 
@@ -491,6 +660,13 @@ reset_for_testing :: proc() {
 	if tilemap.deco_tiles != nil {
 		delete(tilemap.deco_tiles)
 		tilemap.deco_tiles = nil
+	}
+	if tilemap.entities != nil {
+		for &entity in tilemap.entities {
+			delete(entity.required_triggers)
+		}
+		delete(tilemap.entities)
+		tilemap.entities = nil
 	}
 	tilemap.width = 0
 	tilemap.height = 0
