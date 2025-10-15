@@ -275,6 +275,45 @@ get_entities :: proc() -> []EntityData {
 	return tilemap.entities
 }
 
+add_entity :: proc(x, y: int, entity_type: EntityType) {
+	entity := EntityData{
+		x = x,
+		y = y,
+		entity_type = entity_type,
+		width = 16,
+		height = 16,
+		required_triggers = make([dynamic]int),
+	}
+
+	temp_entities := make([dynamic]EntityData, len(tilemap.entities))
+	copy(temp_entities[:], tilemap.entities[:])
+	append(&temp_entities, entity)
+
+	delete(tilemap.entities)
+	tilemap.entities = temp_entities[:]
+}
+
+remove_entity_at :: proc(x, y: int) -> bool {
+	for i in 0..<len(tilemap.entities) {
+		entity := &tilemap.entities[i]
+		if entity.x == x && entity.y == y {
+			delete(entity.required_triggers)
+
+			temp_entities := make([dynamic]EntityData, 0, len(tilemap.entities) - 1)
+			for j in 0..<len(tilemap.entities) {
+				if j != i {
+					append(&temp_entities, tilemap.entities[j])
+				}
+			}
+
+			delete(tilemap.entities)
+			tilemap.entities = temp_entities[:]
+			return true
+		}
+	}
+	return false
+}
+
 /// Load complete tilemap resource from file
 load_tilemap_from_file :: proc(map_path: string) -> (TilemapResource, bool) {
 	path := asset.path(map_path)
