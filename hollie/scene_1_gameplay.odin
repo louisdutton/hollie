@@ -31,10 +31,14 @@ gameplay_state := struct {
 init_gameplay_screen :: proc() {
 	camera_init()
 	dialog_init()
-	entity_system_init() // Initialize union-based entities
+	entity_system_init()
 	particle_system_init()
 	shader_init()
 	gui.init()
+
+	when ODIN_DEBUG {
+		editor_init()
+	}
 
 	gameplay_state.grass_room, _ = tilemap.load_tilemap_from_file("maps/olivewood.map")
 	gameplay_state.sand_room, _ = tilemap.load_tilemap_from_file("maps/desert.map")
@@ -50,7 +54,17 @@ update_gameplay_screen :: proc() {
 	pause_handle_input()
 	pause_update(rl.GetFrameTime())
 
+
 	when ODIN_DEBUG {
+		if input.is_key_pressed(.F1) && !editor_is_active() {
+			editor_toggle()
+		}
+
+		if editor_is_active() {
+			editor_update()
+			return
+		}
+
 		if input.is_key_pressed(.R) {
 			room_reload()
 		}
@@ -160,18 +174,36 @@ draw_gameplay_screen :: proc() {
 		defer renderer.end_mode_2d()
 
 		tilemap.draw(camera)
-		room_draw_puzzle_elements() // Draw puzzle sprites in normal mode
-		entity_system_draw() // Draw all entities with proper sorting
-		particle_system_draw()
 
 		when ODIN_DEBUG {
-			room_draw_doors_debug()
-			room_draw_puzzle_debug()
+			if editor_is_active() {
+				editor_draw()
+			} else {
+				room_draw_puzzle_elements()
+				entity_system_draw()
+				particle_system_draw()
+
+				// debug colldiers
+				room_draw_doors_debug()
+				room_draw_puzzle_debug()
+			}
+		} else {
+			room_draw_puzzle_elements()
+			entity_system_draw()
+			particle_system_draw()
 		}
 	}
 
 	// ui
 	{
+
+		when ODIN_DEBUG {
+			if editor_is_active() {
+				editor_draw_ui()
+				return
+			}
+		}
+
 		ui_begin()
 		defer ui_end()
 
@@ -184,6 +216,10 @@ draw_gameplay_screen :: proc() {
 }
 
 unload_gameplay_screen :: proc() {
+	when ODIN_DEBUG {
+		editor_fini()
+	}
+
 	pause_close()
 	shader_fini()
 	room_fini()
@@ -197,6 +233,10 @@ draw_transition_overlay :: proc() {
 		alpha := u8(gameplay_state.transition_opacity * 255)
 		renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{0, 0, 0, alpha})
 	}
+}
+
+gameplay_get_current_room :: proc() -> int {
+	return gameplay_state.current_room
 }
 
 // DEBUG: Add this at the end of the file temporarily
