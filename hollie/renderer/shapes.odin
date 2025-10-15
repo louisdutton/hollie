@@ -42,3 +42,12 @@ draw_circle :: #force_inline proc(x, y, radius: f32, color := DEFAULT_TEXT_COLOR
 draw_ellipse :: #force_inline proc(x, y, radius_h, radius_v: f32, color := DEFAULT_TEXT_COLOR) {
 	rl.DrawEllipse(i32(x), i32(y), radius_h, radius_v, color)
 }
+
+draw_rect_rounded :: #force_inline proc(
+	x, y, w, h: f32,
+	roundness: Roundness = .MEDIUM,
+	color := DEFAULT_BG_COLOR,
+) {
+	rect := rl.Rectangle{x, y, w, h}
+	rl.DrawRectangleRounded(rect, ROUNDED_VARIANTS[roundness], ROUNDED_SEGMENTS, color)
+}

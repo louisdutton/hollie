@@ -133,7 +133,7 @@ dialog_draw :: proc() {
 		return
 	}
 
-	MARGIN_X :: 100
+	MARGIN_X :: 150
 	MARGIN_Y :: 10
 	PADDING_X :: 15
 	PADDING_Y :: 15
@@ -143,11 +143,17 @@ dialog_draw :: proc() {
 	design_w := f32(design_width)
 	design_h := f32(design_height)
 
-	bg_height :: 200
+	bg_height :: 100
 	bg_x := f32(MARGIN_X)
 	bg_y := f32(design_h - bg_height - MARGIN_Y)
-	renderer.draw_rect(bg_x, bg_y, f32(design_w - MARGIN_X * 2), bg_height)
-	renderer.draw_rect_outline(bg_x, bg_y, f32(design_w - MARGIN_X * 2), bg_height)
+	renderer.draw_rect_rounded(
+		bg_x,
+		bg_y,
+		f32(design_w - MARGIN_X * 2),
+		bg_height,
+		.MEDIUM,
+		renderer.DARKGREEN,
+	)
 
 	current_msg := dialog_state.messages[dialog_state.current_page]
 
@@ -169,7 +175,7 @@ dialog_draw :: proc() {
 	}
 
 	if dialog_state.text_complete {
-		continue_text := "[continue]"
+		continue_text := "->"
 		if dialog_state.current_page >= len(dialog_state.messages) - 1 {
 			continue_text = "[close]"
 		}
