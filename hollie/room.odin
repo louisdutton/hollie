@@ -12,7 +12,7 @@ import rl "vendor:raylib"
 
 
 RoomState :: struct {
-	current_bundle:          ^tilemap.TilemapResource,
+	current_tilemap:         ^tilemap.TileMap,
 	is_loaded:               bool,
 	room_music:              audio.Music,
 	room_name_opacity:       f32,
@@ -34,8 +34,8 @@ room_get_collision_bounds :: proc() -> rl.Rectangle {
 }
 
 
-room_get_current :: proc() -> ^tilemap.TilemapResource {
-	return room_state.current_bundle
+room_get_current :: proc() -> ^tilemap.TileMap {
+	return room_state.current_tilemap
 }
 
 room_draw_doors_debug :: proc() {
@@ -89,20 +89,20 @@ test_dialog := []Dialog_Message {
 	{text = "Feel free to explore around.", speaker = "Village NPC"},
 }
 
-room_init :: proc(res: ^tilemap.TilemapResource) {
+room_init :: proc(tm: ^tilemap.TileMap) {
 	if room_state.is_loaded do room_fini()
 
-	room_state.current_bundle = res
+	room_state.current_tilemap = tm
 
-	if res.music_path != "" {
-		room_state.room_music = audio.music_init(asset.path(res.music_path))
+	if tm.music_path != "" {
+		room_state.room_music = audio.music_init(asset.path(tm.music_path))
 		audio.music_set_volume(room_state.room_music, 1.0)
 		audio.music_play(room_state.room_music)
 	}
 
-	tilemap.load_from_config(res^)
-	camera_set_bounds(res.camera_bounds)
-	room_set_collision_bounds(res.collision_bounds)
+	tilemap.load_tilemap(tm^)
+	camera_set_bounds(tm.camera_bounds)
+	room_set_collision_bounds(tm.collision_bounds)
 
 	// Get entity data from tilemap and spawn entities
 	entity_data := tilemap.get_entities()
@@ -116,10 +116,8 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 			player_spawn_at(position, input.Player_Index(player_spawn_count))
 			player_spawn_count += 1
 		case .ENEMY:
-			switch res.room_id {
-			case "olivewood": enemy_spawn_race_at(position, .GOBLIN)
-			case "desert": enemy_spawn_race_at(position, .SKELETON)
-			}
+			race := NPC_Race.GOBLIN // TODO: derive from map
+			enemy_spawn_race_at(position, race)
 		case .PRESSURE_PLATE:
 			entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
 		case .GATE:
@@ -132,17 +130,15 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case .HOLDABLE:
-			entity_create_holdable(position, asset.path(entity.texture_path))
-		case .NPC:
-			entity_create_npc(position, human_animations[:], test_dialog)
+		case .HOLDABLE: entity_create_holdable(position, asset.path(entity.texture_path))
+		case .NPC: entity_create_npc(position, human_animations[:], test_dialog)
 		case .DOOR:
 			entity_create_door(
-				position,
-				Vec2{f32(entity.width), f32(entity.height)},
-				entity.target_room,
-				entity.target_door,
-			)
+					position,
+					Vec2{f32(entity.width), f32(entity.height)},
+					entity.target_room,
+					entity.target_door,
+				)
 		}
 	}
 
@@ -156,10 +152,10 @@ room_init :: proc(res: ^tilemap.TilemapResource) {
 }
 
 room_reload :: proc() {
-	if room_state.current_bundle != nil {
-		bundle := room_state.current_bundle
+	if room_state.current_tilemap != nil {
+		tm := room_state.current_tilemap
 		room_fini()
-		room_init(bundle)
+		room_init(tm)
 	}
 }
 
@@ -176,7 +172,7 @@ room_fini :: proc() {
 	// Clear entities for level unload/reload
 	clear(&entities)
 
-	room_state.current_bundle = nil
+	room_state.current_tilemap = nil
 	room_state.is_loaded = false
 }
 
@@ -201,10 +197,10 @@ room_update :: proc() {
 
 
 room_draw_name :: proc() {
-	if !room_state.is_loaded || room_state.current_bundle == nil do return
+	if !room_state.is_loaded || room_state.current_tilemap == nil do return
 	if room_state.room_name_opacity <= 0.01 do return
 
-	room_name := room_state.current_bundle.room_name
+	room_name := room_state.current_tilemap.room_name
 	if room_name == "" do return
 
 	// Calculate text size and position for centering using design resolution

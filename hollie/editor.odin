@@ -2,7 +2,6 @@ package hollie
 
 import "asset"
 import "core:fmt"
-import "core:math"
 import "core:strings"
 import "gui"
 import "input"
@@ -117,6 +116,13 @@ when ODIN_DEBUG {
 		for i in 0 ..< min(len(players), len(editor_state.pre_edit_players)) {
 			players[i].position = editor_state.pre_edit_players[i]
 		}
+
+		editor_reload_current_level()
+	}
+
+	editor_reload_current_level :: proc() {
+		current_room := gameplay_get_current_room()
+		gameplay_load_room(current_room)
 	}
 
 	editor_update :: proc() {
@@ -266,20 +272,12 @@ when ODIN_DEBUG {
 	}
 
 	editor_save_current_tilemap :: proc() {
-		current_room_name := ""
-		switch gameplay_get_current_room() {
-		case 0: current_room_name = "maps/olivewood.map"
-		case 1: current_room_name = "maps/desert.map"
-		case 2: current_room_name = "maps/room.map"
-		}
-
-		if current_room_name != "" {
-			full_path := asset.path(current_room_name)
-			if tilemap.save_tilemap_to_file(full_path) {
-				fmt.println("Tilemap saved to:", full_path)
-			} else {
-				fmt.println("Failed to save tilemap to:", full_path)
-			}
+		room_path := gameplay_get_current_room_path()
+		full_path := asset.path(room_path)
+		if tilemap.to_file(full_path) {
+			fmt.println("Tilemap saved to:", full_path)
+		} else {
+			fmt.println("Failed to save tilemap to:", full_path)
 		}
 	}
 
@@ -290,14 +288,12 @@ when ODIN_DEBUG {
 				y := tile_y + dy
 
 				switch editor_state.selected_layer {
-				case .BASE:
-					if tile := tilemap.get_base_tile(x, y); tile != nil {
-						tile.type = editor_state.selected_tile
-					}
-				case .DECORATION:
-					if tile := tilemap.get_deco_tile(x, y); tile != nil {
-						tile.type = editor_state.selected_tile
-					}
+				case .BASE: if tile := tilemap.get_base_tile(x, y); tile != nil {
+							tile^ = editor_state.selected_tile
+						}
+				case .DECORATION: if tile := tilemap.get_deco_tile(x, y); tile != nil {
+							tile^ = editor_state.selected_tile
+						}
 				case .ENTITY:
 					// Only place one entity per tile, so check if there's already one
 					entities := tilemap.get_entities()
@@ -328,14 +324,12 @@ when ODIN_DEBUG {
 				y := tile_y + dy
 
 				switch editor_state.selected_layer {
-				case .BASE:
-					if tile := tilemap.get_base_tile(x, y); tile != nil {
-						tile.type = .GRASS_1
-					}
-				case .DECORATION:
-					if tile := tilemap.get_deco_tile(x, y); tile != nil {
-						tile.type = .EMPTY
-					}
+				case .BASE: if tile := tilemap.get_base_tile(x, y); tile != nil {
+							tile^ = .GRASS_1
+						}
+				case .DECORATION: if tile := tilemap.get_deco_tile(x, y); tile != nil {
+							tile^ = .EMPTY
+						}
 				case .ENTITY:
 					// Remove entity at this position
 					tile_size := tilemap.get_tile_size()
@@ -459,9 +453,15 @@ when ODIN_DEBUG {
 			rl.DrawRectangleLines(i32(x), i32(y), i32(tile_size), i32(tile_size), {0, 0, 0, 255})
 
 			// Draw entity icon/text
-			text_x := i32(x + tile_size/2 - 4)
-			text_y := i32(y + tile_size/2 - 6)
-			rl.DrawText(strings.unsafe_string_to_cstring(icon_text), text_x, text_y, 12, {0, 0, 0, 255})
+			text_x := i32(x + tile_size / 2 - 4)
+			text_y := i32(y + tile_size / 2 - 6)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(icon_text),
+				text_x,
+				text_y,
+				12,
+				{0, 0, 0, 255},
+			)
 		}
 	}
 
@@ -601,30 +601,75 @@ when ODIN_DEBUG {
 
 		if editor_state.selected_layer == .BASE {
 			grass_tiles := []tilemap.TileType {
-				.GRASS_1, .GRASS_2, .GRASS_3, .GRASS_4,
-				.GRASS_5, .GRASS_6, .GRASS_7, .GRASS_8,
+				.GRASS_1,
+				.GRASS_2,
+				.GRASS_3,
+				.GRASS_4,
+				.GRASS_5,
+				.GRASS_6,
+				.GRASS_7,
+				.GRASS_8,
 			}
 			sand_tiles := []tilemap.TileType{.SAND_1, .SAND_2, .SAND_3}
 
 			ui_label(rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20}, "Grass Tiles")
 			y_offset += 25
-			y_offset += editor_draw_tile_section(grass_tiles, palette_x + 10, palette_y + y_offset, tiles_per_row, tile_size, padding)
+			y_offset += editor_draw_tile_section(
+				grass_tiles,
+				palette_x + 10,
+				palette_y + y_offset,
+				tiles_per_row,
+				tile_size,
+				padding,
+			)
 
 			ui_label(rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20}, "Sand Tiles")
 			y_offset += 25
-			y_offset += editor_draw_tile_section(sand_tiles, palette_x + 10, palette_y + y_offset, tiles_per_row, tile_size, padding)
+			y_offset += editor_draw_tile_section(
+				sand_tiles,
+				palette_x + 10,
+				palette_y + y_offset,
+				tiles_per_row,
+				tile_size,
+				padding,
+			)
 		} else if editor_state.selected_layer == .DECORATION {
 			deco_tiles := []tilemap.TileType {
-				.GRASS_DEC_1, .GRASS_DEC_2, .GRASS_DEC_3, .GRASS_DEC_4,
-				.GRASS_DEC_5, .GRASS_DEC_6, .GRASS_DEC_7, .GRASS_DEC_8,
-				.GRASS_DEC_9, .GRASS_DEC_10, .GRASS_DEC_11, .GRASS_DEC_12,
-				.GRASS_DEC_13, .GRASS_DEC_14, .GRASS_DEC_15, .GRASS_DEC_16,
-				.SAND_DEC_13, .SAND_DEC_14, .SAND_DEC_15, .SAND_DEC_16,
+				.GRASS_DEC_1,
+				.GRASS_DEC_2,
+				.GRASS_DEC_3,
+				.GRASS_DEC_4,
+				.GRASS_DEC_5,
+				.GRASS_DEC_6,
+				.GRASS_DEC_7,
+				.GRASS_DEC_8,
+				.GRASS_DEC_9,
+				.GRASS_DEC_10,
+				.GRASS_DEC_11,
+				.GRASS_DEC_12,
+				.GRASS_DEC_13,
+				.GRASS_DEC_14,
+				.GRASS_DEC_15,
+				.GRASS_DEC_16,
+				.SAND_DEC_13,
+				.SAND_DEC_14,
+				.SAND_DEC_15,
+				.SAND_DEC_16,
 			}
 
-			ui_label(rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20}, "Decoration Tiles")
+			ui_label(
+				rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20},
+				"Decoration Tiles",
+			)
 			y_offset += 25
-			y_offset += editor_draw_tile_section(deco_tiles, palette_x + 10, palette_y + y_offset, tiles_per_row, tile_size, padding)
+			y_offset += editor_draw_tile_section(
+				deco_tiles,
+				palette_x + 10,
+				palette_y + y_offset,
+				tiles_per_row,
+				tile_size,
+				padding,
+			)
 		}
 	}
 
@@ -634,13 +679,18 @@ when ODIN_DEBUG {
 		padding: f32 = 5
 		y_offset: f32 = 40
 
-		entities := []tilemap.EntityType{
-			.PLAYER, .ENEMY, .NPC, .HOLDABLE,
-			.PRESSURE_PLATE, .GATE, .DOOR,
+		entities := []tilemap.EntityType {
+			.PLAYER,
+			.ENEMY,
+			.NPC,
+			.HOLDABLE,
+			.PRESSURE_PLATE,
+			.GATE,
+			.DOOR,
 		}
 
 		for entity_type in entities {
-			button_rect := rl.Rectangle{
+			button_rect := rl.Rectangle {
 				palette_x + 10,
 				palette_y + y_offset,
 				button_width,

@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import "audio"
 import "core:time"
 import "gui"
@@ -9,23 +10,32 @@ import "tilemap"
 import "tween"
 import rl "vendor:raylib"
 
+Room :: enum {
+	OLIVEWOOD,
+	DESERT,
+	SMALL_ROOM,
+}
+
+ROOM_PATHS := [Room]string {
+	.OLIVEWOOD  = "maps/olivewood.map",
+	.DESERT     = "maps/desert.map",
+	.SMALL_ROOM = "maps/room.map",
+}
 
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	grass_room:         tilemap.TilemapResource,
-	sand_room:          tilemap.TilemapResource,
-	small_room:         tilemap.TilemapResource,
-	current_room:       int, // 0 = grass, 1 = sand, 2 = small
+	current_tilemap:    tilemap.TileMap,
+	current_room:       Room,
 	is_transitioning:   bool,
 	transition_opacity: f32,
-	pending_room:       int,
+	pending_room:       Maybe(Room),
 	pending_player_pos: Vec2,
 } {
-	current_room       = 0,
+	current_room       = .SMALL_ROOM,
 	is_transitioning   = false,
 	transition_opacity = 0.0,
-	pending_room       = -1,
+	pending_room       = nil,
 }
 
 init_gameplay_screen :: proc() {
@@ -40,10 +50,7 @@ init_gameplay_screen :: proc() {
 		editor_init()
 	}
 
-	gameplay_state.grass_room, _ = tilemap.load_tilemap_from_file("maps/olivewood.map")
-	gameplay_state.sand_room, _ = tilemap.load_tilemap_from_file("maps/desert.map")
-	gameplay_state.small_room, _ = tilemap.load_tilemap_from_file("maps/room.map")
-	room_init(&gameplay_state.grass_room)
+	gameplay_load_room(gameplay_state.current_room)
 }
 
 update_gameplay_screen :: proc() {
@@ -71,19 +78,12 @@ update_gameplay_screen :: proc() {
 	}
 
 	// Handle transition state - switch level at peak opacity
-	if gameplay_state.is_transitioning &&
-	   gameplay_state.transition_opacity >= 0.99 &&
-	   gameplay_state.pending_room >= 0 {
+	if pending, has_pending := gameplay_state.pending_room.?;
+	   has_pending &&
+	   gameplay_state.is_transitioning &&
+	   gameplay_state.transition_opacity >= 0.99 {
 
-		gameplay_state.current_room = gameplay_state.pending_room
-
-
-		// Load appropriate level
-		switch gameplay_state.current_room {
-		case 0: room_init(&gameplay_state.grass_room)
-		case 1: room_init(&gameplay_state.sand_room)
-		case 2: room_init(&gameplay_state.small_room)
-		}
+		gameplay_load_room(pending)
 
 		// Position both players
 		player1 := entity_get_player(.PLAYER_1)
@@ -97,7 +97,7 @@ update_gameplay_screen :: proc() {
 				gameplay_state.pending_player_pos.y,
 			}
 		}
-		gameplay_state.pending_room = -1
+		gameplay_state.pending_room = nil
 
 		// Snap camera to new player positions immediately (no lerping)
 		camera_snap_to_target()
@@ -110,7 +110,7 @@ update_gameplay_screen :: proc() {
 	// End transition when fade out completes
 	if gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity <= 0.01 &&
-	   gameplay_state.pending_room < 0 {
+	   gameplay_state.pending_room == nil {
 		gameplay_state.is_transitioning = false
 		gameplay_state.transition_opacity = 0.0
 	}
@@ -130,10 +130,10 @@ update_gameplay_screen :: proc() {
 					gameplay_state.is_transitioning = true
 
 					if door.target_room == "desert" {
-						gameplay_state.pending_room = 1
+						gameplay_state.pending_room = .DESERT
 						gameplay_state.pending_player_pos = {50, player.position.y}
 					} else if door.target_room == "olivewood" {
-						gameplay_state.pending_room = 0
+						gameplay_state.pending_room = .OLIVEWOOD
 						if door.target_door == "from_small_room" {
 							// Coming from small room, place on left side
 							gameplay_state.pending_player_pos = {50, player.position.y}
@@ -146,7 +146,7 @@ update_gameplay_screen :: proc() {
 							}
 						}
 					} else if door.target_room == "small_room" {
-						gameplay_state.pending_room = 2
+						gameplay_state.pending_room = .SMALL_ROOM
 						gameplay_state.pending_player_pos = {32, player.position.y}
 					}
 
@@ -223,11 +223,11 @@ unload_gameplay_screen :: proc() {
 	pause_close()
 	shader_fini()
 	room_fini()
-	entity_system_fini() // Cleanup entities
+	entity_system_fini()
 	particle_system_fini()
 }
 
-
+// TODO: move this elsewhere
 draw_transition_overlay :: proc() {
 	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
 		alpha := u8(gameplay_state.transition_opacity * 255)
@@ -235,16 +235,26 @@ draw_transition_overlay :: proc() {
 	}
 }
 
-gameplay_get_current_room :: proc() -> int {
+gameplay_get_current_room :: proc() -> Room {
 	return gameplay_state.current_room
 }
 
-// DEBUG: Add this at the end of the file temporarily
-when ODIN_DEBUG {
-	@(export)
-	debug_transition_state :: proc() -> (bool, f32, int) {
-		return gameplay_state.is_transitioning,
-			gameplay_state.transition_opacity,
-			gameplay_state.pending_room
-	}
+gameplay_get_current_room_path :: proc() -> string {
+	return ROOM_PATHS[gameplay_state.current_room]
+}
+
+gameplay_load_room :: proc(room: Room) {
+	gameplay_state.current_room = room
+	map_path := asset.path(ROOM_PATHS[room])
+
+	tilemap_result, ok := tilemap.from_file(map_path)
+	assert(ok, "statically-known maps must load")
+	gameplay_state.current_tilemap = tilemap_result
+
+	room_init(&gameplay_state.current_tilemap)
+}
+
+// updates the tilemap of the current room
+gameplay_update_current_room :: proc(new_tilemap: tilemap.TileMap) {
+	gameplay_state.current_tilemap = new_tilemap
 }
