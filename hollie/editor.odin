@@ -32,8 +32,11 @@ when ODIN_DEBUG {
 		brush_size:         int,
 		show_grid:          bool,
 		show_layer_overlay: bool,
-		palette_scroll:     f32,
-		palette_visible:    bool,
+		show_hud:           bool,
+		cursor_x:           int,
+		cursor_y:           int,
+		cursor_visible:     bool,
+		cursor_move_timer:  f32,
 		pre_edit_camera:    rl.Camera2D,
 		pre_edit_players:   [dynamic]Vec2,
 	}
@@ -47,8 +50,11 @@ when ODIN_DEBUG {
 		brush_size         = 1,
 		show_grid          = true,
 		show_layer_overlay = false,
-		palette_scroll     = 0,
-		palette_visible    = true,
+		show_hud           = true,
+		cursor_x           = 0,
+		cursor_y           = 0,
+		cursor_visible     = true,
+		cursor_move_timer  = 0.0,
 	}
 
 	editor_init :: proc() {
@@ -99,10 +105,6 @@ when ODIN_DEBUG {
 		for player in players {
 			append(&editor_state.pre_edit_players, player.position)
 		}
-
-		camera.zoom = 1.0
-		camera.target = {400, 300}
-		camera.offset = {f32(design_width) / 2, f32(design_height) / 2}
 	}
 
 	editor_exit_edit_mode :: proc() {
@@ -149,9 +151,8 @@ when ODIN_DEBUG {
 		ui_begin()
 		defer ui_end()
 
-		editor_draw_control_panel()
-		if editor_state.palette_visible {
-			editor_draw_tile_palette()
+		if editor_state.show_hud {
+			editor_draw_minimal_hud()
 		}
 	}
 
@@ -160,10 +161,16 @@ when ODIN_DEBUG {
 		move_speed: f32 = 300.0
 
 		movement := Vec2{0, 0}
+
 		if input.is_key_down(.W) do movement.y -= 1
 		if input.is_key_down(.S) do movement.y += 1
 		if input.is_key_down(.A) do movement.x -= 1
 		if input.is_key_down(.D) do movement.x += 1
+
+		gamepad_x := input.get_gamepad_axis_movement(.PLAYER_1, .RIGHT_X)
+		gamepad_y := input.get_gamepad_axis_movement(.PLAYER_1, .RIGHT_Y)
+		if abs(gamepad_x) > input.JS_DEADZONE do movement.x += gamepad_x
+		if abs(gamepad_y) > input.JS_DEADZONE do movement.y += gamepad_y
 
 		if movement.x != 0 || movement.y != 0 {
 			movement = input.vector2_normalize(movement)
@@ -171,74 +178,166 @@ when ODIN_DEBUG {
 			camera.target.y += movement.y * move_speed * dt / camera.zoom
 		}
 
-		wheel := rl.GetMouseWheelMove()
-		if wheel != 0 {
-			mouse_world_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
-			camera.offset = rl.GetMousePosition()
-			camera.target = mouse_world_pos
+		zoom_change: f32 = 0
 
-			zoom_increment: f32 = 0.125
-			camera.zoom += wheel * zoom_increment
+		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_2) do zoom_change = 0.125
+		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_2) do zoom_change = -0.125
+
+		if zoom_change != 0 {
+			camera.zoom += zoom_change
 			camera.zoom = max(0.25, min(camera.zoom, 4.0))
 		}
 	}
 
+	BASE_TILES := []tilemap.TileType {
+		.GRASS_1,
+		.GRASS_2,
+		.GRASS_3,
+		.GRASS_4,
+		.GRASS_5,
+		.GRASS_6,
+		.GRASS_7,
+		.GRASS_8,
+		.SAND_1,
+		.SAND_2,
+		.SAND_3,
+	}
+
+	DECORATION_TILES := []tilemap.TileType {
+		.EMPTY,
+		.GRASS_DEC_1,
+		.GRASS_DEC_2,
+		.GRASS_DEC_3,
+		.GRASS_DEC_4,
+		.GRASS_DEC_5,
+	}
+
+	editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
+		switch layer {
+		case .BASE: return BASE_TILES
+		case .DECORATION: return DECORATION_TILES
+		case .ENTITY: return {}
+		}
+		return {}
+	}
+
 	editor_handle_tile_selection :: proc() {
 		if editor_state.selected_layer == .ENTITY {
-			// Entity selection shortcuts
-			if input.is_key_pressed(.ONE) do editor_state.selected_entity = .PLAYER
-			if input.is_key_pressed(.TWO) do editor_state.selected_entity = .ENEMY
-			if input.is_key_pressed(.THREE) do editor_state.selected_entity = .NPC
-			if input.is_key_pressed(.FOUR) do editor_state.selected_entity = .HOLDABLE
-			if input.is_key_pressed(.FIVE) do editor_state.selected_entity = .PRESSURE_PLATE
-			if input.is_key_pressed(.SIX) do editor_state.selected_entity = .GATE
-			if input.is_key_pressed(.SEVEN) do editor_state.selected_entity = .DOOR
-		} else {
-			// Tile selection shortcuts
-			if input.is_key_pressed(.ONE) do editor_state.selected_tile = .GRASS_1
-			if input.is_key_pressed(.TWO) do editor_state.selected_tile = .GRASS_2
-			if input.is_key_pressed(.THREE) do editor_state.selected_tile = .GRASS_3
-			if input.is_key_pressed(.FOUR) do editor_state.selected_tile = .GRASS_4
-			if input.is_key_pressed(.FIVE) do editor_state.selected_tile = .GRASS_5
-			if input.is_key_pressed(.SIX) do editor_state.selected_tile = .GRASS_6
-			if input.is_key_pressed(.SEVEN) do editor_state.selected_tile = .GRASS_7
-			if input.is_key_pressed(.EIGHT) do editor_state.selected_tile = .GRASS_8
-			if input.is_key_pressed(.NINE) do editor_state.selected_tile = .SAND_1
+			entities := []tilemap.EntityType {
+				.PLAYER,
+				.ENEMY,
+				.NPC,
+				.HOLDABLE,
+				.PRESSURE_PLATE,
+				.GATE,
+				.DOOR,
+			}
 
-			if input.is_key_pressed(.Q) do editor_state.selected_tile = .GRASS_DEC_1
-			if input.is_key_pressed(.E) do editor_state.selected_tile = .GRASS_DEC_2
+			current_index := -1
+			for entity, i in entities {
+				if entity == editor_state.selected_entity {
+					current_index = i
+					break
+				}
+			}
+
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_1) ||
+			   input.is_key_pressed(.RIGHT) {
+				current_index = (current_index + 1) % len(entities)
+				editor_state.selected_entity = entities[current_index]
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_1) ||
+			   input.is_key_pressed(.LEFT) {
+				current_index = (current_index - 1 + len(entities)) % len(entities)
+				editor_state.selected_entity = entities[current_index]
+			}
+		} else {
+			tiles := editor_get_tiles_for_layer(editor_state.selected_layer)
+			if len(tiles) == 0 do return
+
+			current_index := -1
+			for tile, i in tiles {
+				if tile == editor_state.selected_tile {
+					current_index = i
+					break
+				}
+			}
+
+			if current_index == -1 {
+				editor_state.selected_tile = tiles[0]
+				current_index = 0
+			}
+
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_1) ||
+			   input.is_key_pressed(.RIGHT) {
+				current_index = (current_index + 1) % len(tiles)
+				editor_state.selected_tile = tiles[current_index]
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_1) ||
+			   input.is_key_pressed(.LEFT) {
+				current_index = (current_index - 1 + len(tiles)) % len(tiles)
+				editor_state.selected_tile = tiles[current_index]
+			}
 		}
 	}
 
 	editor_handle_painting_input :: proc() {
-		mouse_pos := rl.GetMousePosition()
-		world_pos := rl.GetScreenToWorld2D(mouse_pos, camera)
-		tile_x, tile_y := tilemap.world_to_tile(world_pos)
+		dt := window.get_frame_time()
+		move_threshold: f32 = 0.15
 
-		if rl.IsMouseButtonPressed(.LEFT) {
-			editor_state.is_painting = true
-			editor_paint_tile(tile_x, tile_y)
-		} else if rl.IsMouseButtonPressed(.RIGHT) {
-			editor_state.is_erasing = true
-			editor_erase_tile(tile_x, tile_y)
+		editor_state.cursor_move_timer -= dt
+
+		gamepad_move_x := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X)
+		gamepad_move_y := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y)
+
+		if abs(gamepad_move_x) > input.JS_DEADZONE && editor_state.cursor_move_timer <= 0 {
+			if gamepad_move_x > 0 {
+				editor_state.cursor_x += 1
+			} else {
+				editor_state.cursor_x -= 1
+			}
+			editor_state.cursor_move_timer = move_threshold
+		}
+		if abs(gamepad_move_y) > input.JS_DEADZONE && editor_state.cursor_move_timer <= 0 {
+			if gamepad_move_y > 0 {
+				editor_state.cursor_y += 1
+			} else {
+				editor_state.cursor_y -= 1
+			}
+			editor_state.cursor_move_timer = move_threshold
 		}
 
-		if editor_state.is_painting && rl.IsMouseButtonDown(.LEFT) {
-			editor_paint_tile(tile_x, tile_y)
-		} else if editor_state.is_erasing && rl.IsMouseButtonDown(.RIGHT) {
-			editor_erase_tile(tile_x, tile_y)
-		}
 
-		if rl.IsMouseButtonReleased(.LEFT) {
+		editor_state.cursor_x = max(0, min(editor_state.cursor_x, tilemap.get_tilemap_width() - 1))
+		editor_state.cursor_y = max(
+			0,
+			min(editor_state.cursor_y, tilemap.get_tilemap_height() - 1),
+		)
+
+		paint_x, paint_y := editor_state.cursor_x, editor_state.cursor_y
+
+		if input.is_gamepad_button_down(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+			if !editor_state.is_painting {
+				editor_state.is_painting = true
+			}
+			editor_paint_tile(paint_x, paint_y)
+		} else {
 			editor_state.is_painting = false
 		}
-		if rl.IsMouseButtonReleased(.RIGHT) {
+
+		if input.is_gamepad_button_down(.PLAYER_1, .RIGHT_FACE_DOWN) {
+			if !editor_state.is_erasing {
+				editor_state.is_erasing = true
+			}
+			editor_erase_tile(paint_x, paint_y)
+		} else {
 			editor_state.is_erasing = false
 		}
 	}
 
 	editor_handle_ui_input :: proc() {
-		if input.is_key_pressed(.TAB) {
+		if input.is_key_pressed(.TAB) ||
+		   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP) {
 			switch editor_state.selected_layer {
 			case .BASE: editor_state.selected_layer = .DECORATION
 			case .DECORATION: editor_state.selected_layer = .ENTITY
@@ -246,20 +345,24 @@ when ODIN_DEBUG {
 			}
 		}
 
-		if input.is_key_pressed(.G) {
+		if input.is_key_pressed(.G) ||
+		   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT) {
 			editor_state.show_grid = !editor_state.show_grid
 		}
 
-		if input.is_key_pressed(.L) {
+		if input.is_key_pressed(.L) ||
+		   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT) {
 			editor_state.show_layer_overlay = !editor_state.show_layer_overlay
 		}
 
-		if input.is_key_pressed(.P) {
-			editor_state.palette_visible = !editor_state.palette_visible
+		if input.is_key_pressed(.H) ||
+		   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN) {
+			editor_state.show_hud = !editor_state.show_hud
 		}
 
 		if (input.is_key_down(.LEFT_CONTROL) || input.is_key_down(.RIGHT_CONTROL)) &&
-		   input.is_key_pressed(.S) {
+			   input.is_key_pressed(.S) ||
+		   input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_LEFT) {
 			editor_save_current_tilemap()
 		}
 
@@ -449,307 +552,267 @@ when ODIN_DEBUG {
 			}
 
 			// Draw entity rectangle
-			rl.DrawRectangle(i32(x), i32(y), i32(tile_size), i32(tile_size), color)
-			rl.DrawRectangleLines(i32(x), i32(y), i32(tile_size), i32(tile_size), {0, 0, 0, 255})
+			renderer.draw_rect(x, y, tile_size, tile_size, color)
+			renderer.draw_rect_outline(x, y, tile_size, tile_size, color = renderer.BLACK)
 
 			// Draw entity icon/text
-			text_x := i32(x + tile_size / 2 - 4)
-			text_y := i32(y + tile_size / 2 - 6)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(icon_text),
-				text_x,
-				text_y,
-				12,
-				{0, 0, 0, 255},
-			)
+			text_x := x + tile_size / 2 - 4
+			text_y := y + tile_size / 2 - 6
+			renderer.draw_text(icon_text, int(text_x), int(text_y), 12, renderer.BLACK)
 		}
 	}
 
 	editor_draw_cursor :: proc() {
-		mouse_pos := rl.GetMousePosition()
-		world_pos := rl.GetScreenToWorld2D(mouse_pos, camera)
-		tile_x, tile_y := tilemap.world_to_tile(world_pos)
+		if !editor_state.cursor_visible do return
 
+		cursor_x, cursor_y := editor_state.cursor_x, editor_state.cursor_y
 		brush_half := editor_state.brush_size / 2
-		cursor_color := renderer.Colour{255, 255, 0, 128}
+		tile_size := tilemap.get_tile_size()
 
 		for dy in -brush_half ..= brush_half {
 			for dx in -brush_half ..= brush_half {
-				x := tile_x + dx
-				y := tile_y + dy
+				x := cursor_x + dx
+				y := cursor_y + dy
 
 				if x >= 0 &&
 				   x < tilemap.get_tilemap_width() &&
 				   y >= 0 &&
 				   y < tilemap.get_tilemap_height() {
-					world_x := f32(x * tilemap.get_tile_size())
-					world_y := f32(y * tilemap.get_tile_size())
+					world_x := f32(x * tile_size)
+					world_y := f32(y * tile_size)
 
-					rl.DrawRectangleLines(
-						i32(world_x),
-						i32(world_y),
-						i32(tilemap.get_tile_size()),
-						i32(tilemap.get_tile_size()),
-						cursor_color,
+					renderer.draw_rect_outline(
+						world_x,
+						world_y,
+						f32(tile_size),
+						f32(tile_size),
+						2,
+						renderer.WHITE,
 					)
 				}
 			}
 		}
 	}
 
-	editor_draw_control_panel :: proc() {
-		panel_rect := rl.Rectangle{10, 10, 300, 220}
-		ui_panel(panel_rect, "Tilemap Editor")
+	editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
+		if tile_type == .EMPTY do return
 
-		layer_text := ""
-		switch editor_state.selected_layer {
-		case .BASE: layer_text = "Layer: BASE"
-		case .DECORATION: layer_text = "Layer: DECORATION"
-		case .ENTITY: layer_text = "Layer: ENTITY"
-		}
-		layer_rect := rl.Rectangle{20, 40, 100, 25}
-		if ui_button(layer_rect, layer_text) {
-			switch editor_state.selected_layer {
-			case .BASE: editor_state.selected_layer = .DECORATION
-			case .DECORATION: editor_state.selected_layer = .ENTITY
-			case .ENTITY: editor_state.selected_layer = .BASE
-			}
-		}
+		source_rect := tilemap.get_tile_source_rect(tile_type)
+		dest_rect := renderer.Rect{x, y, size, size}
+		tileset := tilemap.get_tileset()
 
-		grid_text := editor_state.show_grid ? "Grid: ON" : "Grid: OFF"
-		grid_rect := rl.Rectangle{130, 40, 80, 25}
-		if ui_button(grid_rect, grid_text) {
-			editor_state.show_grid = !editor_state.show_grid
-		}
+		color := renderer.Colour{255, 255, 255, alpha}
+		renderer.draw_texture_pro(tileset, source_rect, dest_rect, {0, 0}, 0, color)
+	}
 
-		overlay_text := editor_state.show_layer_overlay ? "Overlay: ON" : "Overlay: OFF"
-		overlay_rect := rl.Rectangle{220, 40, 80, 25}
-		if ui_button(overlay_rect, overlay_text) {
-			editor_state.show_layer_overlay = !editor_state.show_layer_overlay
-		}
-
-		brush_rect := rl.Rectangle{20, 75, 200, 20}
-		brush_value := f32(editor_state.brush_size)
-		if ui_slider(brush_rect, "Brush Size:", &brush_value, 1, 5) {
-			editor_state.brush_size = int(brush_value)
-		}
-
-		palette_text := editor_state.palette_visible ? "Hide Palette" : "Show Palette"
-		palette_rect := rl.Rectangle{20, 105, 120, 25}
-		if ui_button(palette_rect, palette_text) {
-			editor_state.palette_visible = !editor_state.palette_visible
-		}
-
-		save_rect := rl.Rectangle{150, 105, 80, 25}
-		if ui_button(save_rect, "Save (Ctrl+S)") {
-			editor_save_current_tilemap()
+	editor_draw_entity_preview :: proc(
+		entity_type: tilemap.EntityType,
+		x, y, size: f32,
+		alpha: u8,
+	) {
+		color := renderer.Colour{}
+		icon_text := ""
+		switch entity_type {
+		case .PLAYER:
+			color = {0, 255, 0, alpha}
+			icon_text = "P"
+		case .ENEMY:
+			color = {255, 0, 0, alpha}
+			icon_text = "E"
+		case .NPC:
+			color = {0, 0, 255, alpha}
+			icon_text = "N"
+		case .HOLDABLE:
+			color = {255, 165, 0, alpha}
+			icon_text = "H"
+		case .PRESSURE_PLATE:
+			color = {128, 128, 128, alpha}
+			icon_text = "PP"
+		case .GATE:
+			color = {139, 69, 19, alpha}
+			icon_text = "G"
+		case .DOOR:
+			color = {255, 255, 255, alpha}
+			icon_text = "D"
 		}
 
-		exit_rect := rl.Rectangle{20, 135, 100, 25}
-		if ui_button(exit_rect, "Exit Editor (F1)") {
-			editor_exit_edit_mode()
-		}
+		renderer.draw_rect(x, y, size, size, color)
+		renderer.draw_rect_outline(x, y, size, size, color = renderer.BLACK)
 
-		current_room_name := ""
-		switch gameplay_get_current_room() {
-		case 0: current_room_name = "olivewood.map"
-		case 1: current_room_name = "desert.map"
-		case 2: current_room_name = "room.map"
-		}
+		text_x := x + size / 2 - 4
+		text_y := y + size / 2 - 6
+		renderer.draw_text(icon_text, int(text_x), int(text_y), 12, renderer.BLACK)
+	}
 
-		ui_label(rl.Rectangle{20, 165, 280, 20}, fmt.tprintf("Room: %s", current_room_name))
+	editor_draw_tile_carousel :: proc() {
+		carousel_y: f32 = 80
+		carousel_x: f32 = 10
+		tile_preview_size: f32 = 32
+		spacing: f32 = 40
+		bg_colour := renderer.fade(renderer.BLACK, 0.5)
 
 		if editor_state.selected_layer == .ENTITY {
-			ui_label(
-				rl.Rectangle{20, 190, 280, 20},
-				fmt.tprintf("Selected: %v", editor_state.selected_entity),
+			entities := []tilemap.EntityType {
+				.PLAYER,
+				.ENEMY,
+				.NPC,
+				.HOLDABLE,
+				.PRESSURE_PLATE,
+				.GATE,
+				.DOOR,
+			}
+
+			current_index := -1
+			for entity, i in entities {
+				if entity == editor_state.selected_entity {
+					current_index = i
+					break
+				}
+			}
+
+			if current_index == -1 do return
+
+			carousel_width: f32 = 5 * spacing
+			renderer.draw_rect(
+				carousel_x - 5,
+				carousel_y - 5,
+				carousel_width + 10,
+				tile_preview_size + 10,
+				bg_colour,
 			)
-		} else {
-			ui_label(
-				rl.Rectangle{20, 190, 280, 20},
-				fmt.tprintf("Selected: %v", editor_state.selected_tile),
-			)
+
+			for i in 0 ..< 5 {
+				entity_index := current_index - 2 + i
+				if entity_index < 0 || entity_index >= len(entities) do continue
+
+				entity := entities[entity_index]
+				pos_x := carousel_x + f32(i) * spacing
+
+				alpha := u8(max(255 - (abs(i - 2) * 128), 0))
+				renderer.draw_rect_outline(
+					pos_x - 2,
+					carousel_y - 2,
+					tile_preview_size + 4,
+					tile_preview_size + 4,
+					3,
+					renderer.WHITE,
+				)
+
+				editor_draw_entity_preview(entity, pos_x, carousel_y, tile_preview_size, alpha)
+			}
+			return
+		}
+
+		tiles := editor_get_tiles_for_layer(editor_state.selected_layer)
+		if len(tiles) == 0 do return
+
+		current_index := -1
+		for tile, i in tiles {
+			if tile == editor_state.selected_tile {
+				current_index = i
+				break
+			}
+		}
+
+		if current_index == -1 do return
+
+		carousel_width: f32 = 5 * spacing
+		renderer.draw_rect(
+			carousel_x - 5,
+			carousel_y - 5,
+			carousel_width + 10,
+			tile_preview_size + 10,
+			bg_colour,
+		)
+
+		for i in 0 ..< 5 {
+			tile_index := current_index - 2 + i
+			if tile_index < 0 || tile_index >= len(tiles) do continue
+
+			tile := tiles[tile_index]
+			pos_x := carousel_x + f32(i) * spacing
+
+			alpha := u8(max(255 - (abs(i - 2) * 64), 0))
+			if i == 2 {
+				renderer.draw_rect_outline(
+					pos_x - 2,
+					carousel_y - 2,
+					tile_preview_size + 4,
+					tile_preview_size + 4,
+					3,
+				)
+			}
+
+			editor_draw_tile_preview(tile, pos_x, carousel_y, tile_preview_size, alpha)
 		}
 	}
 
-	editor_draw_tile_palette :: proc() {
-		if !editor_state.palette_visible do return
+	editor_draw_minimal_hud :: proc() {
+		design_height := f32(window.get_design_height())
 
-		design_width := f32(window.get_design_width())
-		palette_width: f32 = 320
-		palette_height: f32 = 400
-		palette_x := design_width - palette_width - 10
-		palette_y: f32 = 10
-
-		palette_rect := rl.Rectangle{palette_x, palette_y, palette_width, palette_height}
-
+		layer_text := ""
+		layer_color := renderer.Colour{255, 255, 255, 200}
 		switch editor_state.selected_layer {
-		case .BASE, .DECORATION:
-			ui_panel(palette_rect, "Tile Palette")
-			editor_draw_tile_sections(palette_x, palette_y, palette_width)
+		case .BASE:
+			layer_text = "BASE"
+			layer_color = {100, 255, 100, 200}
+		case .DECORATION:
+			layer_text = "DECO"
+			layer_color = {255, 255, 100, 200}
 		case .ENTITY:
-			ui_panel(palette_rect, "Entity Palette")
-			editor_draw_entity_sections(palette_x, palette_y, palette_width)
-		}
-	}
-
-	editor_draw_tile_sections :: proc(palette_x, palette_y, palette_width: f32) {
-		tile_size: f32 = 32
-		padding: f32 = 4
-		tiles_per_row := int((palette_width - 20) / (tile_size + padding))
-		y_offset: f32 = 40
-
-		if editor_state.selected_layer == .BASE {
-			grass_tiles := []tilemap.TileType {
-				.GRASS_1,
-				.GRASS_2,
-				.GRASS_3,
-				.GRASS_4,
-				.GRASS_5,
-				.GRASS_6,
-				.GRASS_7,
-				.GRASS_8,
-			}
-			sand_tiles := []tilemap.TileType{.SAND_1, .SAND_2, .SAND_3}
-
-			ui_label(rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20}, "Grass Tiles")
-			y_offset += 25
-			y_offset += editor_draw_tile_section(
-				grass_tiles,
-				palette_x + 10,
-				palette_y + y_offset,
-				tiles_per_row,
-				tile_size,
-				padding,
-			)
-
-			ui_label(rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20}, "Sand Tiles")
-			y_offset += 25
-			y_offset += editor_draw_tile_section(
-				sand_tiles,
-				palette_x + 10,
-				palette_y + y_offset,
-				tiles_per_row,
-				tile_size,
-				padding,
-			)
-		} else if editor_state.selected_layer == .DECORATION {
-			deco_tiles := []tilemap.TileType {
-				.GRASS_DEC_1,
-				.GRASS_DEC_2,
-				.GRASS_DEC_3,
-				.GRASS_DEC_4,
-				.GRASS_DEC_5,
-				.GRASS_DEC_6,
-				.GRASS_DEC_7,
-				.GRASS_DEC_8,
-				.GRASS_DEC_9,
-				.GRASS_DEC_10,
-				.GRASS_DEC_11,
-				.GRASS_DEC_12,
-				.GRASS_DEC_13,
-				.GRASS_DEC_14,
-				.GRASS_DEC_15,
-				.GRASS_DEC_16,
-				.SAND_DEC_13,
-				.SAND_DEC_14,
-				.SAND_DEC_15,
-				.SAND_DEC_16,
-			}
-
-			ui_label(
-				rl.Rectangle{palette_x + 10, palette_y + y_offset, 200, 20},
-				"Decoration Tiles",
-			)
-			y_offset += 25
-			y_offset += editor_draw_tile_section(
-				deco_tiles,
-				palette_x + 10,
-				palette_y + y_offset,
-				tiles_per_row,
-				tile_size,
-				padding,
-			)
-		}
-	}
-
-	editor_draw_entity_sections :: proc(palette_x, palette_y, palette_width: f32) {
-		button_width: f32 = 120
-		button_height: f32 = 30
-		padding: f32 = 5
-		y_offset: f32 = 40
-
-		entities := []tilemap.EntityType {
-			.PLAYER,
-			.ENEMY,
-			.NPC,
-			.HOLDABLE,
-			.PRESSURE_PLATE,
-			.GATE,
-			.DOOR,
+			layer_text = "ENTS"
+			layer_color = {255, 100, 255, 200}
 		}
 
-		for entity_type in entities {
-			button_rect := rl.Rectangle {
-				palette_x + 10,
-				palette_y + y_offset,
-				button_width,
-				button_height,
-			}
-
-			is_selected := editor_state.selected_entity == entity_type
-			button_text := fmt.tprintf("%v", entity_type)
-
-			if is_selected {
-				rl.DrawRectangleRec(button_rect, {255, 255, 0, 128})
-			}
-
-			if ui_button(button_rect, button_text) {
-				editor_state.selected_entity = entity_type
-			}
-
-			y_offset += button_height + padding
-		}
-	}
-
-	editor_draw_tile_section :: proc(
-		tiles: []tilemap.TileType,
-		start_x, start_y: f32,
-		tiles_per_row: int,
-		tile_size, padding: f32,
-	) -> f32 {
-		rows := int(math.ceil(f32(len(tiles)) / f32(tiles_per_row)))
-		height := f32(rows) * (tile_size + padding)
-
-		for i in 0 ..< len(tiles) {
-			tile_type := tiles[i]
-			row := i / tiles_per_row
-			col := i % tiles_per_row
-
-			x := start_x + f32(col) * (tile_size + padding)
-			y := start_y + f32(row) * (tile_size + padding)
-
-			tile_rect := rl.Rectangle{x, y, tile_size, tile_size}
-
-			is_selected := editor_state.selected_tile == tile_type
-			border_color := is_selected ? rl.YELLOW : rl.GRAY
-
-			rl.DrawRectangleRec(tile_rect, rl.WHITE)
-			rl.DrawRectangleLinesEx(tile_rect, 2, border_color)
-
-			source_rect := tilemap.get_tile_source_rect(tile_type)
-			tileset := tilemap.get_tileset()
-			if tileset.id != 0 {
-				rl.DrawTexturePro(tileset, source_rect, tile_rect, {0, 0}, 0, rl.WHITE)
-			}
-
-			mouse_pos := gui.get_mouse_pos()
-			if rl.CheckCollisionPointRec(mouse_pos, tile_rect) && rl.IsMouseButtonPressed(.LEFT) {
-				editor_state.selected_tile = tile_type
-			}
+		selected_text := ""
+		if editor_state.selected_layer == .ENTITY {
+			selected_text = fmt.tprintf("%v", editor_state.selected_entity)
+		} else {
+			selected_text = fmt.tprintf("%v", editor_state.selected_tile)
 		}
 
-		return height
+		rl.DrawRectangle(10, 10, 120, 60, {0, 0, 0, 150})
+		rl.DrawRectangleLines(10, 10, 120, 60, {255, 255, 255, 100})
+
+		text_y: i32 = 20
+		rl.DrawText(strings.unsafe_string_to_cstring(layer_text), 15, text_y, 12, layer_color)
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(fmt.tprintf("Brush: %d", editor_state.brush_size)),
+			15,
+			text_y + 15,
+			10,
+			{255, 255, 255, 200},
+		)
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(selected_text),
+			15,
+			text_y + 30,
+			10,
+			{200, 200, 200, 200},
+		)
+
+		editor_draw_tile_carousel()
+
+		controls_y := design_height - 60
+		rl.DrawRectangle(10, i32(controls_y), 300, 50, {0, 0, 0, 120})
+		rl.DrawRectangleLines(10, i32(controls_y), 300, 50, {255, 255, 255, 80})
+
+		controls_text := "Left Stick: Move Cursor  B: Paint  A: Erase  RB/LB: Select  Y: Layer  H: Hide HUD"
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(controls_text),
+			15,
+			i32(controls_y + 10),
+			10,
+			{200, 200, 200, 180},
+		)
+		controls_text2 := "Right Stick: Camera  RT/LT: Zoom  +/-: Brush  Select: Save  Start: Exit"
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(controls_text2),
+			15,
+			i32(controls_y + 25),
+			10,
+			{200, 200, 200, 180},
+		)
 	}
 
 	editor_fini :: proc() {

@@ -19,6 +19,10 @@ is_gamepad_button_pressed :: proc(gamepad: Player_Index, button: Gamepad_Button)
 	return rl.IsGamepadButtonPressed(i32(gamepad), button)
 }
 
+is_gamepad_button_down :: proc(gamepad: Player_Index, button: Gamepad_Button) -> bool {
+	return rl.IsGamepadButtonDown(i32(gamepad), button)
+}
+
 get_gamepad_axis_movement :: proc(gamepad: Player_Index, axis: Gamepad_Axis) -> f32 {
 	return rl.GetGamepadAxisMovement(i32(gamepad), axis)
 }
