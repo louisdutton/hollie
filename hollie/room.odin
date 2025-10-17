@@ -89,7 +89,7 @@ test_dialog := []Dialog_Message {
 	{text = "Feel free to explore around.", speaker = "Village NPC"},
 }
 
-room_init :: proc(tm: ^tilemap.TileMap) {
+room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	if room_state.is_loaded do room_fini()
 
 	room_state.current_tilemap = tm
@@ -106,15 +106,11 @@ room_init :: proc(tm: ^tilemap.TileMap) {
 
 	// Get entity data from tilemap and spawn entities
 	entity_data := tilemap.get_entities()
-	player_spawn_count := 0
 
 	for entity in entity_data {
 		position := Vec2{f32(entity.x), f32(entity.y)}
 
 		switch entity.entity_type {
-		case .PLAYER:
-			player_spawn_at(position, input.Player_Index(player_spawn_count))
-			player_spawn_count += 1
 		case .ENEMY:
 			race := NPC_Race.GOBLIN // TODO: derive from map
 			enemy_spawn_race_at(position, race)
@@ -142,6 +138,32 @@ room_init :: proc(tm: ^tilemap.TileMap) {
 		}
 	}
 
+	// Spawn players at the target door (or first door if no target specified)
+	doors := entity_get_doors()
+	defer delete(doors)
+
+	spawn_door: ^Door = nil
+	if target_door != "" {
+		// Find the door with matching target_door field
+		for door in doors {
+			if door.target_door == target_door {
+				spawn_door = door
+				break
+			}
+		}
+	}
+
+	// If no target door specified or not found, use first door
+	if spawn_door == nil && len(doors) > 0 {
+		spawn_door = doors[0]
+	}
+
+	// Spawn both players at the chosen door
+	if spawn_door != nil {
+		spawn_pos := spawn_door.position + Vec2{0, 48} // Offset further down from door
+		player_spawn_at(spawn_pos, input.Player_Index.PLAYER_1)
+		player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.PLAYER_2) // Player 2 slightly offset
+	}
 
 	room_state.is_loaded = true
 

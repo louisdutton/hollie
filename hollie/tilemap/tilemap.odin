@@ -11,7 +11,6 @@ Vec2 :: rl.Vector2
 TILE_SIZE :: 16
 
 EntityType :: enum {
-	PLAYER         = 0,
 	ENEMY          = 1,
 	PRESSURE_PLATE = 2,
 	GATE           = 3,

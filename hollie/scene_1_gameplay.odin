@@ -30,7 +30,8 @@ gameplay_state := struct {
 	is_transitioning:   bool,
 	transition_opacity: f32,
 	pending_room:       Maybe(Room),
-	pending_player_pos: Vec2,
+	pending_target_door: string,
+	doors_enabled:      bool,
 } {
 	current_room       = .SMALL_ROOM,
 	is_transitioning   = false,
@@ -51,6 +52,7 @@ init_gameplay_screen :: proc() {
 	}
 
 	gameplay_load_room(gameplay_state.current_room)
+	gameplay_state.doors_enabled = false // Disable doors until players move away from spawn
 }
 
 update_gameplay_screen :: proc() {
@@ -82,21 +84,11 @@ update_gameplay_screen :: proc() {
 	   gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity >= 0.99 {
 
-		gameplay_load_room(pending)
+		gameplay_load_room(pending, gameplay_state.pending_target_door)
 
-		// Position both players
-		player1 := entity_get_player(.PLAYER_1)
-		player2 := entity_get_player(.PLAYER_2)
-		if player1 != nil {
-			player1.position = gameplay_state.pending_player_pos
-		}
-		if player2 != nil {
-			player2.position = {
-				gameplay_state.pending_player_pos.x + 32,
-				gameplay_state.pending_player_pos.y,
-			}
-		}
 		gameplay_state.pending_room = nil
+		gameplay_state.pending_target_door = ""
+		gameplay_state.doors_enabled = false // Disable doors until players move away
 
 		// Snap camera to new player positions immediately (no lerping)
 		camera_snap_to_target()
@@ -118,8 +110,26 @@ update_gameplay_screen :: proc() {
 		room_update()
 		entity_system_update() // Handles all entities (players, enemies, NPCs, puzzles)
 
+		// Check if doors should be enabled (no players in any door area)
+		if !gameplay_state.doors_enabled {
+			players := entity_get_players()
+			defer delete(players)
+
+			all_players_clear := true
+			for player in players {
+				if entity_check_door_collision(player.position) != nil {
+					all_players_clear = false
+					break
+				}
+			}
+
+			if all_players_clear {
+				gameplay_state.doors_enabled = true
+			}
+		}
+
 		// Check for door collisions with any player
-		if !gameplay_state.is_transitioning {
+		if !gameplay_state.is_transitioning && gameplay_state.doors_enabled {
 			players := entity_get_players()
 			defer delete(players)
 
@@ -127,26 +137,17 @@ update_gameplay_screen :: proc() {
 				door := entity_check_door_collision(player.position)
 				if door != nil {
 					gameplay_state.is_transitioning = true
+					gameplay_state.doors_enabled = false // Disable doors during transition
 
 					if door.target_room == "desert" {
 						gameplay_state.pending_room = .DESERT
-						gameplay_state.pending_player_pos = {50, player.position.y}
+						gameplay_state.pending_target_door = door.target_door
 					} else if door.target_room == "olivewood" {
 						gameplay_state.pending_room = .OLIVEWOOD
-						if door.target_door == "from_small_room" {
-							// Coming from small room, place on left side
-							gameplay_state.pending_player_pos = {50, player.position.y}
-						} else {
-							// Coming from desert, place on right side
-							room_width := f32(50 * 16) // 50 tiles * 16 pixels per tile
-							gameplay_state.pending_player_pos = {
-								room_width - 60,
-								player.position.y,
-							}
-						}
+						gameplay_state.pending_target_door = door.target_door
 					} else if door.target_room == "small_room" {
 						gameplay_state.pending_room = .SMALL_ROOM
-						gameplay_state.pending_player_pos = {32, player.position.y}
+						gameplay_state.pending_target_door = door.target_door
 					}
 
 					tween.to(
@@ -242,7 +243,7 @@ gameplay_get_current_room_path :: proc() -> string {
 	return ROOM_PATHS[gameplay_state.current_room]
 }
 
-gameplay_load_room :: proc(room: Room) {
+gameplay_load_room :: proc(room: Room, target_door: string = "") {
 	gameplay_state.current_room = room
 	map_path := asset.path(ROOM_PATHS[room])
 
@@ -250,7 +251,7 @@ gameplay_load_room :: proc(room: Room) {
 	assert(ok, "statically-known maps must load")
 	gameplay_state.current_tilemap = tilemap_result
 
-	room_init(&gameplay_state.current_tilemap)
+	room_init(&gameplay_state.current_tilemap, target_door)
 }
 
 // updates the tilemap of the current room

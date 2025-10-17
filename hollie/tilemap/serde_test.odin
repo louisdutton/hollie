@@ -24,7 +24,7 @@ test_serialize :: proc(t: ^testing.T) {
 		{
 			x = 64,
 			y = 64,
-			entity_type = .PLAYER,
+			entity_type = .DOOR,
 			width = 16,
 			height = 16,
 			required_triggers = entity1_triggers,
@@ -32,7 +32,7 @@ test_serialize :: proc(t: ^testing.T) {
 		{
 			x = 80,
 			y = 64,
-			entity_type = .PLAYER,
+			entity_type = .DOOR,
 			width = 16,
 			height = 16,
 			required_triggers = entity2_triggers,
@@ -117,7 +117,7 @@ test_deserialize :: proc(t: ^testing.T) {
 	testing.expect_value(t, loaded_tilemap.deco_tiles[3], TileType.EMPTY)
 
 	testing.expect_value(t, len(loaded_tilemap.entities), 4)
-	testing.expect_value(t, loaded_tilemap.entities[0].entity_type, EntityType.PLAYER)
+	testing.expect_value(t, loaded_tilemap.entities[0].entity_type, EntityType.DOOR)
 	testing.expect_value(t, loaded_tilemap.entities[0].x, 64)
 	testing.expect_value(t, loaded_tilemap.entities[0].y, 64)
 	testing.expect_value(t, loaded_tilemap.entities[3].entity_type, EntityType.DOOR)
