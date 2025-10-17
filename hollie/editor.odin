@@ -39,6 +39,7 @@ when ODIN_DEBUG {
 		cursor_move_timer:  f32,
 		pre_edit_camera:    rl.Camera2D,
 		pre_edit_players:   [dynamic]Vec2,
+		hovered_entity:     ^tilemap.EntityData,
 	}
 
 	@(private)
@@ -134,6 +135,7 @@ when ODIN_DEBUG {
 		editor_handle_tile_selection()
 		editor_handle_painting_input()
 		editor_handle_ui_input()
+		editor_handle_cursor_hover()
 	}
 
 	editor_draw :: proc() {
@@ -148,12 +150,47 @@ when ODIN_DEBUG {
 	editor_draw_ui :: proc() {
 		if editor_state.mode != .EDITING do return
 
+		if editor_state.hovered_entity != nil {
+			editor_draw_entity_inspector(editor_state.hovered_entity)
+		}
+
 		ui_begin()
 		defer ui_end()
 
 		if editor_state.show_hud {
 			editor_draw_minimal_hud()
 		}
+	}
+
+	editor_handle_cursor_hover :: proc() {
+		editor_state.hovered_entity = nil
+
+		cursor_x, cursor_y := editor_state.cursor_x, editor_state.cursor_y
+		entities := tilemap.get_entities()
+		tile_size := tilemap.get_tile_size()
+
+		cursor_world_x := cursor_x * tile_size
+		cursor_world_y := cursor_y * tile_size
+
+		for &entity in entities {
+			if entity.x == cursor_world_x && entity.y == cursor_world_y {
+				if editor_entity_has_data(&entity) {
+					editor_state.hovered_entity = &entity
+					break
+				}
+			}
+		}
+	}
+
+	editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
+		#partial switch entity.entity_type {
+		case .PRESSURE_PLATE: return entity.trigger_id != 0
+		case .GATE: return entity.gate_id != 0 || len(entity.required_triggers) > 0
+		case .DOOR: return entity.target_room != "" || entity.target_door != ""
+		case .NPC: return entity.texture_path != ""
+		case .HOLDABLE: return entity.texture_path != ""
+		}
+		return false
 	}
 
 	editor_handle_camera_input :: proc() {
@@ -831,6 +868,152 @@ when ODIN_DEBUG {
 			10,
 			{200, 200, 200, 180},
 		)
+	}
+
+	editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
+		screen_width := f32(window.get_screen_width())
+		panel_width: f32 = 250
+		panel_height: f32 = 150
+		panel_x := screen_width - panel_width - 10
+		panel_y: f32 = 10
+
+		rl.DrawRectangle(
+			i32(panel_x),
+			i32(panel_y),
+			i32(panel_width),
+			i32(panel_height),
+			{0, 0, 0, 200},
+		)
+		rl.DrawRectangleLines(
+			i32(panel_x),
+			i32(panel_y),
+			i32(panel_width),
+			i32(panel_height),
+			{255, 255, 255, 150},
+		)
+
+		title_text := fmt.tprintf("Entity: %v", entity.entity_type)
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(title_text),
+			i32(panel_x + 10),
+			i32(panel_y + 10),
+			14,
+			{255, 255, 255, 255},
+		)
+
+		y_offset: f32 = 35
+		line_height: f32 = 15
+
+		pos_text := fmt.tprintf("Position: (%d, %d)", entity.x, entity.y)
+		rl.DrawText(
+			strings.unsafe_string_to_cstring(pos_text),
+			i32(panel_x + 10),
+			i32(panel_y + y_offset),
+			12,
+			{200, 200, 200, 255},
+		)
+		y_offset += line_height
+
+		if entity.trigger_id != 0 {
+			trigger_text := fmt.tprintf("Trigger ID: %d", entity.trigger_id)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(trigger_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.gate_id != 0 {
+			gate_text := fmt.tprintf("Gate ID: %d", entity.gate_id)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(gate_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if len(entity.required_triggers) > 0 {
+			triggers_text := "Req. Triggers: "
+			for trigger, i in entity.required_triggers {
+				if i > 0 {
+					triggers_text = fmt.tprintf("%s, %d", triggers_text, trigger)
+				} else {
+					triggers_text = fmt.tprintf("%s%d", triggers_text, trigger)
+				}
+			}
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(triggers_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.requires_both {
+			rl.DrawText(
+				"Requires Both: Yes",
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.inverted {
+			rl.DrawText(
+				"Inverted: Yes",
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.texture_path != "" {
+			texture_text := fmt.tprintf("Texture: %s", entity.texture_path)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(texture_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.target_room != "" {
+			room_text := fmt.tprintf("Target Room: %s", entity.target_room)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(room_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
+
+		if entity.target_door != "" {
+			door_text := fmt.tprintf("Target Door: %s", entity.target_door)
+			rl.DrawText(
+				strings.unsafe_string_to_cstring(door_text),
+				i32(panel_x + 10),
+				i32(panel_y + y_offset),
+				12,
+				{200, 200, 200, 255},
+			)
+			y_offset += line_height
+		}
 	}
 
 	editor_fini :: proc() {
