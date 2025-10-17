@@ -581,12 +581,30 @@ when ODIN_DEBUG {
 					world_x := f32(x * tile_size)
 					world_y := f32(y * tile_size)
 
+					if editor_state.selected_layer == .ENTITY {
+						editor_draw_entity_preview(
+							editor_state.selected_entity,
+							world_x,
+							world_y,
+							f32(tile_size),
+							128,
+						)
+					} else {
+						editor_draw_tile_preview(
+							editor_state.selected_tile,
+							world_x,
+							world_y,
+							f32(tile_size),
+							128,
+						)
+					}
+
 					renderer.draw_rect_outline(
 						world_x,
 						world_y,
 						f32(tile_size),
 						f32(tile_size),
-						2,
+						1,
 						renderer.WHITE,
 					)
 				}
