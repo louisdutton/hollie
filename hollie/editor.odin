@@ -38,6 +38,8 @@ when ODIN_DEBUG {
 		pre_edit_camera:    renderer.Camera2D,
 		pre_edit_players:   [dynamic]Vec2,
 		hovered_entity:     ^tilemap.EntityData,
+		is_editing_entity:  bool,
+		edit_input_timer:   f32,
 	}
 
 	@(private)
@@ -134,6 +136,7 @@ when ODIN_DEBUG {
 		editor_handle_painting_input()
 		editor_handle_ui_input()
 		editor_handle_cursor_hover()
+		editor_handle_entity_editing()
 	}
 
 	editor_draw :: proc() {
@@ -172,10 +175,82 @@ when ODIN_DEBUG {
 
 		for &entity in entities {
 			if entity.x == cursor_world_x && entity.y == cursor_world_y {
-				if editor_entity_has_data(&entity) {
-					editor_state.hovered_entity = &entity
-					break
-				}
+				editor_state.hovered_entity = &entity
+				break
+			}
+		}
+	}
+
+	editor_handle_entity_editing :: proc() {
+		dt := window.get_frame_time()
+		editor_state.edit_input_timer -= dt
+
+		if editor_state.hovered_entity == nil do return
+
+		// Enter/exit edit mode
+		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_UP) {
+			editor_state.is_editing_entity = !editor_state.is_editing_entity
+			editor_state.edit_input_timer = 0.2
+		}
+
+		if !editor_state.is_editing_entity do return
+		if editor_state.edit_input_timer > 0 do return
+
+		entity := editor_state.hovered_entity
+
+		// Handle editing based on entity type
+		#partial switch entity.entity_type {
+		case .PRESSURE_PLATE:
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+				entity.trigger_id += 1
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) &&
+			   entity.trigger_id > 0 {
+				entity.trigger_id -= 1
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+				entity.requires_both = !entity.requires_both
+				editor_state.edit_input_timer = 0.15
+			}
+
+		case .GATE:
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+				entity.gate_id += 1
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) && entity.gate_id > 0 {
+				entity.gate_id -= 1
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+				entity.inverted = !entity.inverted
+				editor_state.edit_input_timer = 0.15
+			}
+
+		case .DOOR:
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+				editor_cycle_room_name(&entity.target_room, 1)
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
+				editor_cycle_room_name(&entity.target_room, -1)
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+				editor_cycle_door_name(&entity.target_door)
+				editor_state.edit_input_timer = 0.15
+			}
+
+		case .NPC, .HOLDABLE:
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+				editor_cycle_texture_path(&entity.texture_path, 1)
+				editor_state.edit_input_timer = 0.15
+			}
+			if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
+				editor_cycle_texture_path(&entity.texture_path, -1)
+				editor_state.edit_input_timer = 0.15
 			}
 		}
 	}
@@ -840,8 +915,8 @@ when ODIN_DEBUG {
 
 	editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 		screen_width := f32(window.get_screen_width())
-		panel_width: f32 = 250
-		panel_height: f32 = 150
+		panel_width: f32 = 300
+		panel_height: f32 = 400
 		panel_x := screen_width - panel_width - 10
 		panel_y: f32 = 10
 
@@ -866,123 +941,274 @@ when ODIN_DEBUG {
 			title_text,
 			int(panel_x + 10),
 			int(panel_y + 10),
-			14,
+			16,
 			{255, 255, 255, 255},
 		)
 
 		y_offset: f32 = 35
-		line_height: f32 = 15
+		line_height: f32 = 20
 
 		pos_text := fmt.tprintf("Position: (%d, %d)", entity.x, entity.y)
 		renderer.draw_text(
 			pos_text,
 			int(panel_x + 10),
 			int(panel_y + y_offset),
-			12,
+			14,
 			{200, 200, 200, 255},
 		)
 		y_offset += line_height
 
-		if entity.trigger_id != 0 {
-			trigger_text := fmt.tprintf("Trigger ID: %d", entity.trigger_id)
+		// Editable fields based on entity type
+		switch entity.entity_type {
+		case .PRESSURE_PLATE:
+			editor_draw_int_field(panel_x, panel_y, &y_offset, "Trigger ID:", &entity.trigger_id)
+			editor_draw_bool_field(
+				panel_x,
+				panel_y,
+				&y_offset,
+				"Requires Both:",
+				&entity.requires_both,
+			)
+
+		case .GATE:
+			editor_draw_int_field(panel_x, panel_y, &y_offset, "Gate ID:", &entity.gate_id)
+			editor_draw_bool_field(panel_x, panel_y, &y_offset, "Inverted:", &entity.inverted)
+
+		case .DOOR:
+			editor_draw_string_field(
+				panel_x,
+				panel_y,
+				&y_offset,
+				"Target Room:",
+				&entity.target_room,
+			)
+			editor_draw_string_field(
+				panel_x,
+				panel_y,
+				&y_offset,
+				"Target Door:",
+				&entity.target_door,
+			)
+
+		case .NPC:
+			editor_draw_string_field(
+					panel_x,
+					panel_y,
+					&y_offset,
+					"Texture Path:",
+					&entity.texture_path,
+				)
+
+		case .HOLDABLE:
+			editor_draw_string_field(
+					panel_x,
+					panel_y,
+					&y_offset,
+					"Texture Path:",
+					&entity.texture_path,
+				)
+
+		case .PLAYER, .ENEMY:
 			renderer.draw_text(
-				trigger_text,
+				"No editable properties",
+				int(panel_x + 10),
+				int(panel_y + y_offset),
+				14,
+				{150, 150, 150, 255},
+			)
+			y_offset += 20
+		}
+
+		// Instructions
+		y_offset += line_height
+		if editor_state.is_editing_entity {
+			renderer.draw_text(
+				"[EDITING MODE] Use face buttons",
+				int(panel_x + 10),
+				int(panel_y + y_offset),
+				13,
+				{255, 255, 100, 255},
+			)
+			y_offset += 15
+			renderer.draw_text(
+				"X: Exit edit mode",
 				int(panel_x + 10),
 				int(panel_y + y_offset),
 				12,
-				{200, 200, 200, 255},
+				{150, 150, 150, 255},
 			)
-			y_offset += line_height
-		}
-
-		if entity.gate_id != 0 {
-			gate_text := fmt.tprintf("Gate ID: %d", entity.gate_id)
+		} else {
 			renderer.draw_text(
-				gate_text,
+				"X: Enter edit mode",
 				int(panel_x + 10),
 				int(panel_y + y_offset),
 				12,
-				{200, 200, 200, 255},
+				{150, 150, 150, 255},
 			)
-			y_offset += line_height
+		}
+	}
+
+	editor_draw_int_field :: proc(
+		panel_x, panel_y: f32,
+		y_offset: ^f32,
+		label: string,
+		value: ^int,
+	) {
+		line_height: f32 = 20
+
+		label_text := fmt.tprintf("%s %d", label, value^)
+		renderer.draw_text(
+			label_text,
+			int(panel_x + 10),
+			int(panel_y + y_offset^),
+			14,
+			{200, 200, 200, 255},
+		)
+
+		// Show controls hint
+		renderer.draw_text(
+			"[A/B: +/-1]",
+			int(panel_x + 200),
+			int(panel_y + y_offset^),
+			12,
+			{150, 150, 150, 255},
+		)
+
+		y_offset^ += line_height
+	}
+
+	editor_draw_bool_field :: proc(
+		panel_x, panel_y: f32,
+		y_offset: ^f32,
+		label: string,
+		value: ^bool,
+	) {
+		line_height: f32 = 20
+
+		value_text := value^ ? "Yes" : "No"
+		label_text := fmt.tprintf("%s %s", label, value_text)
+		renderer.draw_text(
+			label_text,
+			int(panel_x + 10),
+			int(panel_y + y_offset^),
+			14,
+			{200, 200, 200, 255},
+		)
+
+		// Show controls hint
+		renderer.draw_text(
+			"[A/B: toggle]",
+			int(panel_x + 200),
+			int(panel_y + y_offset^),
+			12,
+			{150, 150, 150, 255},
+		)
+
+		y_offset^ += line_height
+	}
+
+	editor_draw_string_field :: proc(
+		panel_x, panel_y: f32,
+		y_offset: ^f32,
+		label: string,
+		value: ^string,
+	) {
+		line_height: f32 = 40
+
+		renderer.draw_text(
+			label,
+			int(panel_x + 10),
+			int(panel_y + y_offset^),
+			14,
+			{200, 200, 200, 255},
+		)
+
+		display_value := value^ == "" ? "[empty]" : value^
+		if len(display_value) > 25 {
+			display_value = fmt.tprintf("%.22s...", display_value)
 		}
 
-		if len(entity.required_triggers) > 0 {
-			triggers_text := "Req. Triggers: "
-			for trigger, i in entity.required_triggers {
-				if i > 0 {
-					triggers_text = fmt.tprintf("%s, %d", triggers_text, trigger)
-				} else {
-					triggers_text = fmt.tprintf("%s%d", triggers_text, trigger)
-				}
+		renderer.draw_text(
+			display_value,
+			int(panel_x + 10),
+			int(panel_y + y_offset^ + 15),
+			13,
+			{150, 200, 255, 255},
+		)
+
+		// Show controls hint
+		renderer.draw_text(
+			"[A/B: cycle]",
+			int(panel_x + 200),
+			int(panel_y + y_offset^),
+			12,
+			{150, 150, 150, 255},
+		)
+
+		y_offset^ += line_height
+	}
+
+	editor_cycle_room_name :: proc(room_name: ^string, direction: int) {
+		room_names := []string{"", "desert", "olivewood", "small_room"}
+
+		current_index := -1
+		for name, i in room_names {
+			if name == room_name^ {
+				current_index = i
+				break
 			}
-			renderer.draw_text(
-				triggers_text,
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
 		}
 
-		if entity.requires_both {
-			renderer.draw_text(
-				"Requires Both: Yes",
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
+		if current_index == -1 do current_index = 0
+
+		new_index := (current_index + direction + len(room_names)) % len(room_names)
+		room_name^ = room_names[new_index]
+	}
+
+	editor_cycle_door_name :: proc(door_name: ^string) {
+		door_names := []string {
+			"",
+			"main",
+			"from_desert",
+			"from_small_room",
+			"to_desert",
+			"to_small_room",
 		}
 
-		if entity.inverted {
-			renderer.draw_text(
-				"Inverted: Yes",
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
+		current_index := -1
+		for name, i in door_names {
+			if name == door_name^ {
+				current_index = i
+				break
+			}
 		}
 
-		if entity.texture_path != "" {
-			texture_text := fmt.tprintf("Texture: %s", entity.texture_path)
-			renderer.draw_text(
-				texture_text,
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
+		if current_index == -1 do current_index = 0
+
+		new_index := (current_index + 1) % len(door_names)
+		door_name^ = door_names[new_index]
+	}
+
+	editor_cycle_texture_path :: proc(texture_path: ^string, direction: int) {
+		texture_paths := []string {
+			"",
+			"sprites/npc.png",
+			"sprites/holdable.png",
+			"sprites/item.png",
 		}
 
-		if entity.target_room != "" {
-			room_text := fmt.tprintf("Target Room: %s", entity.target_room)
-			renderer.draw_text(
-				room_text,
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
+		current_index := -1
+		for path, i in texture_paths {
+			if path == texture_path^ {
+				current_index = i
+				break
+			}
 		}
 
-		if entity.target_door != "" {
-			door_text := fmt.tprintf("Target Door: %s", entity.target_door)
-			renderer.draw_text(
-				door_text,
-				int(panel_x + 10),
-				int(panel_y + y_offset),
-				12,
-				{200, 200, 200, 255},
-			)
-			y_offset += line_height
-		}
+		if current_index == -1 do current_index = 0
+
+		new_index := (current_index + direction + len(texture_paths)) % len(texture_paths)
+		texture_path^ = texture_paths[new_index]
 	}
 
 	editor_fini :: proc() {
