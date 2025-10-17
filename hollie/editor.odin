@@ -2,12 +2,10 @@ package hollie
 
 import "asset"
 import "core:fmt"
-import "core:strings"
 import "gui"
 import "input"
 import "renderer"
 import "tilemap"
-import rl "vendor:raylib"
 import "window"
 
 when ODIN_DEBUG {
@@ -37,7 +35,7 @@ when ODIN_DEBUG {
 		cursor_y:           int,
 		cursor_visible:     bool,
 		cursor_move_timer:  f32,
-		pre_edit_camera:    rl.Camera2D,
+		pre_edit_camera:    renderer.Camera2D,
 		pre_edit_players:   [dynamic]Vec2,
 		hovered_entity:     ^tilemap.EntityData,
 	}
@@ -62,20 +60,20 @@ when ODIN_DEBUG {
 
 	}
 
-	ui_button :: proc(rect: rl.Rectangle, text: string) -> bool {
+	ui_button :: proc(rect: renderer.Rect, text: string) -> bool {
 		return gui.button(rect, text)
 	}
 
-	ui_panel :: proc(rect: rl.Rectangle, title: string) {
+	ui_panel :: proc(rect: renderer.Rect, title: string) {
 		gui.panel(rect, title)
 	}
 
-	ui_label :: proc(rect: rl.Rectangle, text: string) {
+	ui_label :: proc(rect: renderer.Rect, text: string) {
 		gui.label(rect, text)
 	}
 
 	ui_slider :: proc(
-		rect: rl.Rectangle,
+		rect: renderer.Rect,
 		label: string,
 		value: ^f32,
 		min_val, max_val: f32,
@@ -487,8 +485,8 @@ when ODIN_DEBUG {
 		screen_width := f32(window.get_screen_width())
 		screen_height := f32(window.get_screen_height())
 
-		world_min := rl.GetScreenToWorld2D({0, 0}, camera)
-		world_max := rl.GetScreenToWorld2D({screen_width, screen_height}, camera)
+		world_min := renderer.get_screen_to_world_2d({0, 0}, camera)
+		world_max := renderer.get_screen_to_world_2d({screen_width, screen_height}, camera)
 
 		tile_size := f32(tilemap.get_tile_size())
 		start_x := max(0, int(world_min.x / tile_size))
@@ -502,26 +500,14 @@ when ODIN_DEBUG {
 			world_x := f32(x * tilemap.get_tile_size())
 			start_world_y := f32(start_y * tilemap.get_tile_size())
 			end_world_y := f32(end_y * tilemap.get_tile_size())
-			rl.DrawLine(
-				i32(world_x),
-				i32(start_world_y),
-				i32(world_x),
-				i32(end_world_y),
-				grid_color,
-			)
+			renderer.draw_line(world_x, start_world_y, world_x, end_world_y, grid_color)
 		}
 
 		for y in start_y ..= end_y {
 			world_y := f32(y * tilemap.get_tile_size())
 			start_world_x := f32(start_x * tilemap.get_tile_size())
 			end_world_x := f32(end_x * tilemap.get_tile_size())
-			rl.DrawLine(
-				i32(start_world_x),
-				i32(world_y),
-				i32(end_world_x),
-				i32(world_y),
-				grid_color,
-			)
+			renderer.draw_line(start_world_x, world_y, end_world_x, world_y, grid_color)
 		}
 	}
 
@@ -535,8 +521,8 @@ when ODIN_DEBUG {
 		case .ENTITY: overlay_color = {255, 0, 255, 32}
 		}
 
-		screen_min := rl.GetWorldToScreen2D({0, 0}, camera)
-		screen_max := rl.GetWorldToScreen2D(
+		screen_min := renderer.get_world_to_screen_2d({0, 0}, camera)
+		screen_max := renderer.get_world_to_screen_2d(
 			{
 				f32(tilemap.get_tilemap_width() * tilemap.get_tile_size()),
 				f32(tilemap.get_tilemap_height() * tilemap.get_tile_size()),
@@ -544,7 +530,7 @@ when ODIN_DEBUG {
 			camera,
 		)
 
-		rl.DrawRectangle(
+		renderer.draw_rect_i(
 			i32(screen_min.x),
 			i32(screen_min.y),
 			i32(screen_max.x - screen_min.x),
@@ -826,48 +812,30 @@ when ODIN_DEBUG {
 			selected_text = fmt.tprintf("%v", editor_state.selected_tile)
 		}
 
-		rl.DrawRectangle(10, 10, 120, 60, {0, 0, 0, 150})
-		rl.DrawRectangleLines(10, 10, 120, 60, {255, 255, 255, 100})
+		renderer.draw_rect_i(10, 10, 120, 60, {0, 0, 0, 150})
+		renderer.draw_rect_outline(10, 10, 120, 60, 1, {255, 255, 255, 100})
 
 		text_y: i32 = 20
-		rl.DrawText(strings.unsafe_string_to_cstring(layer_text), 15, text_y, 12, layer_color)
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(fmt.tprintf("Brush: %d", editor_state.brush_size)),
+		renderer.draw_text(layer_text, 15, int(text_y), 12, layer_color)
+		renderer.draw_text(
+			fmt.tprintf("Brush: %d", editor_state.brush_size),
 			15,
-			text_y + 15,
+			int(text_y + 15),
 			10,
 			{255, 255, 255, 200},
 		)
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(selected_text),
-			15,
-			text_y + 30,
-			10,
-			{200, 200, 200, 200},
-		)
+		renderer.draw_text(selected_text, 15, int(text_y + 30), 10, {200, 200, 200, 200})
 
 		editor_draw_tile_carousel()
 
 		controls_y := design_height - 60
-		rl.DrawRectangle(10, i32(controls_y), 300, 50, {0, 0, 0, 120})
-		rl.DrawRectangleLines(10, i32(controls_y), 300, 50, {255, 255, 255, 80})
+		renderer.draw_rect_i(10, i32(controls_y), 300, 50, {0, 0, 0, 120})
+		renderer.draw_rect_outline(10, f32(controls_y), 300, 50, 1, {255, 255, 255, 80})
 
 		controls_text := "Left Stick: Move Cursor  B: Paint  A: Erase  RB/LB: Select  Y: Layer  H: Hide HUD"
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(controls_text),
-			15,
-			i32(controls_y + 10),
-			10,
-			{200, 200, 200, 180},
-		)
+		renderer.draw_text(controls_text, 15, int(controls_y + 10), 10, {200, 200, 200, 180})
 		controls_text2 := "Right Stick: Camera  RT/LT: Zoom  +/-: Brush  Select: Save  Start: Exit"
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(controls_text2),
-			15,
-			i32(controls_y + 25),
-			10,
-			{200, 200, 200, 180},
-		)
+		renderer.draw_text(controls_text2, 15, int(controls_y + 25), 10, {200, 200, 200, 180})
 	}
 
 	editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
@@ -877,26 +845,27 @@ when ODIN_DEBUG {
 		panel_x := screen_width - panel_width - 10
 		panel_y: f32 = 10
 
-		rl.DrawRectangle(
+		renderer.draw_rect_i(
 			i32(panel_x),
 			i32(panel_y),
 			i32(panel_width),
 			i32(panel_height),
 			{0, 0, 0, 200},
 		)
-		rl.DrawRectangleLines(
-			i32(panel_x),
-			i32(panel_y),
-			i32(panel_width),
-			i32(panel_height),
+		renderer.draw_rect_outline(
+			panel_x,
+			panel_y,
+			panel_width,
+			panel_height,
+			1,
 			{255, 255, 255, 150},
 		)
 
 		title_text := fmt.tprintf("Entity: %v", entity.entity_type)
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(title_text),
-			i32(panel_x + 10),
-			i32(panel_y + 10),
+		renderer.draw_text(
+			title_text,
+			int(panel_x + 10),
+			int(panel_y + 10),
 			14,
 			{255, 255, 255, 255},
 		)
@@ -905,10 +874,10 @@ when ODIN_DEBUG {
 		line_height: f32 = 15
 
 		pos_text := fmt.tprintf("Position: (%d, %d)", entity.x, entity.y)
-		rl.DrawText(
-			strings.unsafe_string_to_cstring(pos_text),
-			i32(panel_x + 10),
-			i32(panel_y + y_offset),
+		renderer.draw_text(
+			pos_text,
+			int(panel_x + 10),
+			int(panel_y + y_offset),
 			12,
 			{200, 200, 200, 255},
 		)
@@ -916,10 +885,10 @@ when ODIN_DEBUG {
 
 		if entity.trigger_id != 0 {
 			trigger_text := fmt.tprintf("Trigger ID: %d", entity.trigger_id)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(trigger_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				trigger_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -928,10 +897,10 @@ when ODIN_DEBUG {
 
 		if entity.gate_id != 0 {
 			gate_text := fmt.tprintf("Gate ID: %d", entity.gate_id)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(gate_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				gate_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -947,10 +916,10 @@ when ODIN_DEBUG {
 					triggers_text = fmt.tprintf("%s%d", triggers_text, trigger)
 				}
 			}
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(triggers_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				triggers_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -958,10 +927,10 @@ when ODIN_DEBUG {
 		}
 
 		if entity.requires_both {
-			rl.DrawText(
+			renderer.draw_text(
 				"Requires Both: Yes",
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -969,10 +938,10 @@ when ODIN_DEBUG {
 		}
 
 		if entity.inverted {
-			rl.DrawText(
+			renderer.draw_text(
 				"Inverted: Yes",
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -981,10 +950,10 @@ when ODIN_DEBUG {
 
 		if entity.texture_path != "" {
 			texture_text := fmt.tprintf("Texture: %s", entity.texture_path)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(texture_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				texture_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -993,10 +962,10 @@ when ODIN_DEBUG {
 
 		if entity.target_room != "" {
 			room_text := fmt.tprintf("Target Room: %s", entity.target_room)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(room_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				room_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)
@@ -1005,10 +974,10 @@ when ODIN_DEBUG {
 
 		if entity.target_door != "" {
 			door_text := fmt.tprintf("Target Door: %s", entity.target_door)
-			rl.DrawText(
-				strings.unsafe_string_to_cstring(door_text),
-				i32(panel_x + 10),
-				i32(panel_y + y_offset),
+			renderer.draw_text(
+				door_text,
+				int(panel_x + 10),
+				int(panel_y + y_offset),
 				12,
 				{200, 200, 200, 255},
 			)

@@ -20,6 +20,10 @@ get_screen_to_world_2d :: #force_inline proc(position: Vec2, camera: Camera2D) -
 	return rl.GetScreenToWorld2D(position, camera)
 }
 
+get_world_to_screen_2d :: #force_inline proc(position: Vec2, camera: Camera2D) -> Vec2 {
+	return rl.GetWorldToScreen2D(position, camera)
+}
+
 begin_drawing :: proc() {
 	rl.BeginDrawing()
 }

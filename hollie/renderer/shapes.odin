@@ -51,3 +51,7 @@ draw_rect_rounded :: #force_inline proc(
 	rect := rl.Rectangle{x, y, w, h}
 	rl.DrawRectangleRounded(rect, ROUNDED_VARIANTS[roundness], ROUNDED_SEGMENTS, color)
 }
+
+draw_line :: #force_inline proc(start_x, start_y, end_x, end_y: f32, color: Colour) {
+	rl.DrawLine(i32(start_x), i32(start_y), i32(end_x), i32(end_y), color)
+}
