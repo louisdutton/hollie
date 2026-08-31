@@ -166,6 +166,9 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	defer destroy_room_file(&room)
 
 	expect_room_file_contract(t, room)
+	validation_errors := validate_room_file(&room)
+	defer delete(validation_errors)
+	testing.expect_value(t, len(validation_errors), 0)
 
 	encoded, encode_error := encode_room_file_json5(room)
 	testing.expect(t, encode_error.kind == .none, "the room file contract should encode")
