@@ -13,6 +13,7 @@ Room_File_IO_Error_Kind :: enum {
 	read_failed,
 	decode_failed,
 	validation_failed,
+	conversion_failed,
 	encode_failed,
 	create_temp_failed,
 	write_failed,
@@ -111,6 +112,29 @@ load_room_file_json5 :: proc(
 	return
 }
 
+load_tilemap_file :: proc(
+	path: string,
+	resource_root := "",
+	allocator := context.allocator,
+) -> (
+	tm: TileMap,
+	err: Room_File_IO_Error,
+) {
+	context.allocator = allocator
+	room: Room_File
+	room, err = load_room_file_json5(path, resource_root, allocator)
+	if err.kind != .none do return
+	defer destroy_room_file(&room, allocator)
+
+	validation_errors: [dynamic]Validation_Error
+	tm, validation_errors = room_file_to_tilemap(room, resource_root, allocator)
+	defer destroy_validation_errors(&validation_errors)
+	if len(validation_errors) > 0 {
+		err = room_file_validation_error(path, validation_errors[:])
+	}
+	return
+}
+
 save_room_file_json5_atomic :: proc(
 	path: string,
 	room: ^Room_File,
@@ -198,6 +222,29 @@ save_room_file_json5_atomic :: proc(
 	}
 	temp_exists = false
 	return {}
+}
+
+save_tilemap_file_atomic :: proc(
+	path: string,
+	tm: ^TileMap,
+	resource_root := "",
+	allocator := context.allocator,
+) -> Room_File_IO_Error {
+	context.allocator = allocator
+	room, conversion_error := tilemap_to_room_file(tm^, allocator)
+	if conversion_error.kind != .none {
+		return room_file_io_error(
+			.conversion_failed,
+			path,
+			fmt.tprintf(
+				"entity %d has an unsupported runtime type",
+				conversion_error.entity_index + 1,
+			),
+			conversion_error.entity_index,
+		)
+	}
+	defer destroy_room_file(&room, allocator)
+	return save_room_file_json5_atomic(path, &room, resource_root, allocator)
 }
 
 destroy_room_file_io_error :: proc(err: ^Room_File_IO_Error, allocator := context.allocator) {

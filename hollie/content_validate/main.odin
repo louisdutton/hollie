@@ -36,29 +36,16 @@ main :: proc() {
 	error_count := 0
 
 	for map_path in os.args[2:] {
-		tm, ok := tilemap.from_file(map_path)
-		if !ok {
-			fmt.eprintfln("error: %s: map syntax is invalid", map_path)
+		tm, load_error := tilemap.load_tilemap_file(map_path, resource_root)
+		if load_error.kind != .none {
+			fmt.eprintfln("error: %s", load_error.message)
+			tilemap.destroy_room_file_io_error(&load_error)
 			error_count += 1
 			continue
 		}
+		tilemap.destroy_room_file_io_error(&load_error)
 
 		append(&maps, Loaded_Map{path = map_path, tm = tm})
-		errors := tilemap.validate_tilemap(&tm, resource_root)
-		for validation_error in errors {
-			if validation_error.entity_index >= 0 {
-				fmt.eprintfln(
-					"error: %s: entity %d: %s",
-					map_path,
-					validation_error.entity_index + 1,
-					validation_error.message,
-				)
-			} else {
-				fmt.eprintfln("error: %s: %s", map_path, validation_error.message)
-			}
-			error_count += 1
-		}
-		tilemap.destroy_validation_errors(&errors)
 	}
 
 	for source, source_index in maps {

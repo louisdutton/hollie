@@ -15,12 +15,12 @@
     "hollie:run".exec = "odin run hollie -debug";
     "hollie:check".exec = "odin check hollie -debug";
     "hollie:test".exec = "odin test hollie -all-packages -out:/tmp/hollie-tests";
-    "hollie:validate-content".exec = "odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.map";
+    "hollie:validate-content".exec = "odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json";
     "hollie:verify".exec = ''
       set -e
       odin check hollie -debug
       odin test hollie -all-packages -out:/tmp/hollie-tests
-      odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.map
+      odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json
     '';
   };
 
