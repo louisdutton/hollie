@@ -101,6 +101,9 @@ editor_draw_entities :: proc() {
 		color := renderer.Colour{}
 		icon_text := ""
 		switch entity.entity_type {
+		case .PLAYER:
+			color = {80, 160, 255, 180}
+			icon_text = "P"
 		case .ENEMY:
 			color = {255, 0, 0, 180}
 			icon_text = "E"
@@ -197,6 +200,9 @@ editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: 
 	color := renderer.Colour{}
 	icon_text := ""
 	switch entity_type {
+	case .PLAYER:
+		color = {80, 160, 255, alpha}
+		icon_text = "P"
 	case .ENEMY:
 		color = {255, 0, 0, alpha}
 		icon_text = "E"
@@ -423,6 +429,15 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 
 	// Editable fields based on entity type
 	switch entity.entity_type {
+	case .PLAYER:
+		renderer.draw_text(
+			"Player spawn marker",
+			int(panel_x + 10),
+			int(panel_y + y_offset),
+			14,
+			{150, 200, 255, 255},
+		)
+		y_offset += 20
 	case .PRESSURE_PLATE:
 		editor_draw_int_field(panel_x, panel_y, &y_offset, "Trigger ID:", &entity.trigger_id)
 		editor_draw_bool_field(

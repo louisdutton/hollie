@@ -111,6 +111,8 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		position := Vec2{f32(entity.x), f32(entity.y)}
 
 		switch entity.entity_type {
+		case .PLAYER: // Player spawn markers are editor metadata; spawning is handled below.
+				continue
 		case .ENEMY:
 			race := NPC_Race.GOBLIN // TODO: derive from map
 			enemy_spawn_race_at(position, race)
