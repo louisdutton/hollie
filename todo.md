@@ -41,6 +41,7 @@ The target workflow is:
 ## Chosen persistence model
 
 - JSON5 is the canonical editable source format for rooms and future content registries.
+- Room source files live under `res/maps/` and use the `<room-id>.room.json5` naming convention.
 - File DTOs are marshalled and unmarshalled with Odin's built-in reflection-based JSON package.
 - File DTOs are converted into separate runtime structures after successful validation and ID resolution.
 - Entity records use an explicit stable type discriminator and typed, entity-specific property data.
@@ -82,7 +83,7 @@ The target workflow is:
 - [x] Add explicit conversion from validated file DTOs into runtime `TileMap` data.
 - [x] Add explicit conversion from editable/runtime room data back into file DTOs.
 - [x] Centralize JSON5 marshal options for readable, deterministic output.
-- [ ] Choose and consistently apply the room filename extension and content directory convention.
+- [x] Choose and consistently apply the room filename extension and content directory convention.
 
 ### Typed entity DTOs
 
@@ -102,15 +103,15 @@ The target workflow is:
 
 ### JSON5 serde and diagnostics
 
-- [ ] Marshal and unmarshal file DTOs with `core:encoding/json`; do not maintain a custom tokenizer or general parser.
-- [ ] Support comments and trailing commas on input through JSON5.
+- [x] Marshal and unmarshal file DTOs with `core:encoding/json`; do not maintain a custom tokenizer or general parser.
+- [x] Support comments and trailing commas on input through JSON5.
 - [ ] Add tests for missing required fields, defaults, unknown entity types, malformed JSON5, and type mismatches.
 - [x] Add deterministic JSON5 semantic round-trip tests for every entity DTO.
-- [ ] Return load failures with the file path and a useful parse, conversion, or validation reason.
+- [x] Return load failures with the file path and a useful parse, conversion, or validation reason.
 - [x] Verify layer lengths against room width and height.
 - [x] Ensure allocations from failed and successful loads have explicit ownership and cleanup.
-- [ ] Validate after every load and before every editor save.
-- [ ] Save maps atomically so an interrupted save cannot destroy the previous file.
+- [x] Validate after every JSON5 load and before every JSON5 save.
+- [x] Save JSON5 maps atomically so an interrupted save cannot destroy the previous file.
 
 ### Reuse and extend content validation
 
