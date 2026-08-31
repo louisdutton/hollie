@@ -1,0 +1,211 @@
+{
+    "id": "small_room",
+  "name": "???",
+  "music_path": "audio/music/ambient.ogg",
+  "size": {
+    "width": 8,
+    "height": 8
+  },
+  "tileset": {
+    "path": "art/tileset/spr_tileset_sunnysideworld_16px.png",
+    "tile_size": 16,
+    "columns": 32
+  },
+  "camera_bounds": {
+    "x": -200.00000000,
+    "y": -150.00000000,
+    "width": 528.00000000,
+    "height": 428.00000000
+  },
+  "collision_bounds": {
+    "x": 0.00000000,
+    "y": 0.00000000,
+    "width": 128.00000000,
+    "height": 128.00000000
+  },
+  "layers": {
+    "base": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "decoration": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "entities": [
+    {
+      "id": "player_1_spawn",
+      "type": "player",
+      "position": {
+        "x": 64,
+        "y": 64
+      },
+      "properties": {
+        "player_index": 1
+      }
+    },
+    {
+      "id": "player_2_spawn",
+      "type": "player",
+      "position": {
+        "x": 80,
+        "y": 64
+      },
+      "properties": {
+        "player_index": 2
+      }
+    },
+    {
+      "id": "to_olivewood",
+      "type": "door",
+      "position": {
+        "x": 16,
+        "y": 64
+      },
+      "properties": {
+        "size": {
+          "height": 32,
+          "width": 32
+        },
+        "target_door_id": "from_small_room",
+        "target_room_id": "olivewood"
+      }
+    },
+    {
+      "id": "npc_1",
+      "type": "npc",
+      "position": {
+        "x": 96,
+        "y": 16
+      },
+      "properties": {
+        "archetype_id": "human"
+      }
+    }
+  ]
+}

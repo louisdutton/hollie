@@ -3,6 +3,10 @@ package tilemap
 import "core:strings"
 import "core:testing"
 
+OLIVEWOOD_ROOM_FILE :: #load("../../res/maps/olivewood.json", string)
+DESERT_ROOM_FILE :: #load("../../res/maps/desert.json", string)
+SMALL_ROOM_FILE :: #load("../../res/maps/small_room.json", string)
+
 ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 	// Room identity and presentation.
 	id: 'olivewood',
@@ -156,6 +160,39 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 		}
 		testing.expect_value(t, gate.inverted, true)
 	}
+}
+
+expect_shipped_room_file :: proc(
+	t: ^testing.T,
+	content, expected_id: string,
+	expected_width, expected_height, expected_entity_count: int,
+) {
+	room, decode_error := decode_room_file_json5(content)
+	testing.expect_value(t, decode_error.kind, Room_File_Decode_Error_Kind.none)
+	if decode_error.kind != .none do return
+	defer destroy_room_file(&room)
+
+	testing.expect_value(t, room.id, expected_id)
+	testing.expect_value(t, room.size.width, expected_width)
+	testing.expect_value(t, room.size.height, expected_height)
+	testing.expect_value(t, len(room.entities), expected_entity_count)
+
+	validation_errors := validate_room_file(&room, "res")
+	defer destroy_validation_errors(&validation_errors)
+	testing.expect_value(t, len(validation_errors), 0)
+
+	encoded, encode_error := encode_room_file_json5(room)
+	testing.expect_value(t, encode_error.kind, Room_File_Encode_Error_Kind.none)
+	if encode_error.kind != .none do return
+	defer delete(encoded)
+	testing.expect_value(t, string(encoded), content)
+}
+
+@(test)
+test_all_shipped_room_files_are_canonical_and_valid :: proc(t: ^testing.T) {
+	expect_shipped_room_file(t, OLIVEWOOD_ROOM_FILE, "olivewood", 20, 16, 11)
+	expect_shipped_room_file(t, DESERT_ROOM_FILE, "desert", 20, 16, 8)
+	expect_shipped_room_file(t, SMALL_ROOM_FILE, "small_room", 8, 8, 4)
 }
 
 @(test)
