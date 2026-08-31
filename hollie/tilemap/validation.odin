@@ -2,6 +2,7 @@ package tilemap
 
 import "core:fmt"
 import "core:os"
+import "core:strings"
 
 Validation_Error :: struct {
 	entity_index: int,
@@ -13,7 +14,28 @@ validation_add_error :: proc(
 	message: string,
 	entity_index := -1,
 ) {
+	append(
+		errors,
+		Validation_Error {
+			entity_index = entity_index,
+			message = strings.clone(message),
+		},
+	)
+}
+
+validation_add_owned_error :: proc(
+	errors: ^[dynamic]Validation_Error,
+	message: string,
+	entity_index := -1,
+) {
 	append(errors, Validation_Error{entity_index = entity_index, message = message})
+}
+
+destroy_validation_errors :: proc(errors: ^[dynamic]Validation_Error) {
+	if errors == nil do return
+	for error in errors^ do delete(error.message)
+	delete(errors^)
+	errors^ = nil
 }
 
 validation_check_asset :: proc(
@@ -22,7 +44,11 @@ validation_check_asset :: proc(
 	entity_index := -1,
 ) {
 	if asset_path == "" {
-		validation_add_error(errors, fmt.aprintf("%s path is empty", description), entity_index)
+		validation_add_owned_error(
+			errors,
+			fmt.aprintf("%s path is empty", description),
+			entity_index,
+		)
 		return
 	}
 
@@ -31,7 +57,7 @@ validation_check_asset :: proc(
 	full_path := fmt.aprintf("%s/%s", resource_root, asset_path)
 	defer delete(full_path)
 	if !os.is_file(full_path) {
-		validation_add_error(
+		validation_add_owned_error(
 			errors,
 			fmt.aprintf("%s does not exist: %s", description, asset_path),
 			entity_index,
@@ -52,7 +78,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 	expected_tile_count := room.size.width * room.size.height
 	if room.size.width > 0 && room.size.height > 0 {
 		if len(room.layers.base) != expected_tile_count {
-			validation_add_error(
+			validation_add_owned_error(
 				&errors,
 				fmt.aprintf(
 					"base layer contains %d tiles; expected %d",
@@ -62,7 +88,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 			)
 		}
 		if len(room.layers.decoration) != expected_tile_count {
-			validation_add_error(
+			validation_add_owned_error(
 				&errors,
 				fmt.aprintf(
 					"decoration layer contains %d tiles; expected %d",
@@ -96,7 +122,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 			for previous, previous_index in room.entities {
 				if previous_index >= entity_index do break
 				if previous.id == entity.id {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf("entity id %q is duplicated", entity.id),
 						entity_index,
@@ -123,7 +149,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				if previous_index >= entity_index do break
 				if previous_player, ok := previous.properties.(Room_File_Player);
 				   ok && previous_player.player_index == properties.player_index {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf("player_index %d is duplicated", properties.player_index),
 						entity_index,
@@ -187,7 +213,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				if previous_index >= entity_index do break
 				if previous_plate, ok := previous.properties.(Room_File_Pressure_Plate);
 				   ok && previous_plate.trigger_id == properties.trigger_id {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf(
 							"pressure plate trigger_id %d is duplicated",
@@ -210,7 +236,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				if previous_index >= entity_index do break
 				if previous_gate, ok := previous.properties.(Room_File_Gate);
 				   ok && previous_gate.gate_id == properties.gate_id {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf("gate_id %d is duplicated", properties.gate_id),
 						entity_index,
@@ -239,7 +265,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				for previous_trigger, previous_index in properties.required_trigger_ids {
 					if previous_index >= trigger_index do break
 					if previous_trigger == trigger_id {
-						validation_add_error(
+						validation_add_owned_error(
 							&errors,
 							fmt.aprintf("gate trigger ID %d is duplicated", trigger_id),
 							entity_index,
@@ -257,7 +283,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 					}
 				}
 				if !trigger_exists {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf("gate references missing trigger ID %d", trigger_id),
 						entity_index,
@@ -283,7 +309,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 	expected_tile_count := tm.width * tm.height
 	if tm.width > 0 && tm.height > 0 {
 		if len(tm.base_tiles) != expected_tile_count {
-			validation_add_error(
+			validation_add_owned_error(
 				&errors,
 				fmt.aprintf(
 					"base layer contains %d tiles; expected %d",
@@ -293,7 +319,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 			)
 		}
 		if len(tm.deco_tiles) != expected_tile_count {
-			validation_add_error(
+			validation_add_owned_error(
 				&errors,
 				fmt.aprintf(
 					"decoration layer contains %d tiles; expected %d",
@@ -346,7 +372,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 			for other, other_index in tm.entities {
 				if other_index >= entity_index do break
 				if other.entity_type == .PRESSURE_PLATE && other.trigger_id == entity.trigger_id {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf(
 							"pressure plate trigger_id %d is duplicated",
@@ -380,7 +406,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				for previous_trigger, previous_index in entity.required_triggers {
 					if previous_index >= trigger_index do break
 					if previous_trigger == required_trigger {
-						validation_add_error(
+						validation_add_owned_error(
 							&errors,
 							fmt.aprintf("gate trigger ID %d is duplicated", required_trigger),
 							entity_index,
@@ -397,7 +423,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 					}
 				}
 				if !trigger_exists {
-					validation_add_error(
+					validation_add_owned_error(
 						&errors,
 						fmt.aprintf("gate references missing trigger ID %d", required_trigger),
 						entity_index,

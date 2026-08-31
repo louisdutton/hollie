@@ -167,7 +167,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 
 	expect_room_file_contract(t, room)
 	validation_errors := validate_room_file(&room)
-	defer delete(validation_errors)
+	defer destroy_validation_errors(&validation_errors)
 	testing.expect_value(t, len(validation_errors), 0)
 
 	encoded, encode_error := encode_room_file_json5(room)
@@ -251,7 +251,7 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	defer destroy_room_file(&room)
 
 	tm, validation_errors := room_file_to_tilemap(room)
-	defer delete(validation_errors)
+	defer destroy_validation_errors(&validation_errors)
 	testing.expect_value(t, len(validation_errors), 0)
 	if len(validation_errors) != 0 do return
 	defer destroy_tilemap(&tm)

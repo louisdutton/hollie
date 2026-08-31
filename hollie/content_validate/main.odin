@@ -58,6 +58,7 @@ main :: proc() {
 			}
 			error_count += 1
 		}
+		tilemap.destroy_validation_errors(&errors)
 	}
 
 	for source, source_index in maps {
