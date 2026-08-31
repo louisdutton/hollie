@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import rl "vendor:raylib"
 
 TARGET_FPS :: 60
@@ -38,7 +39,8 @@ animation_init :: proc(anim: ^Animator, animations: []Animation) {
 	anim.frame_counts = make([]int, len(animations))
 
 	for file, i in animations {
-		anim.animations[i] = rl.LoadTexture(cstring(raw_data(file.path)))
+		path := asset.path(file.path)
+		anim.animations[i] = rl.LoadTexture(cstring(raw_data(path)))
 		anim.frame_counts[i] = file.frame_count
 	}
 

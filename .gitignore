@@ -1,4 +1,7 @@
 *.bin
 *.bin.dSYM
 .direnv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
 result

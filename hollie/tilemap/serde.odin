@@ -8,7 +8,8 @@ import "core:strings"
 
 // Load complete tilemap from file
 from_file :: proc(map_path: string) -> (tm: TileMap, ok: bool) {
-	data := os.read_entire_file(map_path) or_return
+	data, err := os.read_entire_file(map_path, context.allocator)
+	if err != nil do return {}, false
 	defer delete(data)
 
 	return deserialise_tilemap(string(data))
@@ -22,7 +23,7 @@ to_file :: proc(path: string) -> bool {
 	build_tilemap_content(&builder, &tilemap)
 
 	content := strings.to_string(builder)
-	return os.write_entire_file(path, transmute([]byte)content)
+	return os.write_entire_file(path, content) == nil
 }
 
 // Build tilemap content into a builder

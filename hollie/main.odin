@@ -38,6 +38,7 @@ main :: proc() {
 
 init :: proc() {
 	window.init(800, 450, "hollie")
+	tween.init()
 
 	design_width = window.get_design_width()
 	design_height = window.get_design_height()
@@ -60,6 +61,7 @@ init :: proc() {
 }
 
 fini :: proc() {
+	defer tween.destroy()
 	switch game.scene {
 	case .TITLE: unload_title_screen()
 	case .GAMEPLAY: unload_gameplay_screen()

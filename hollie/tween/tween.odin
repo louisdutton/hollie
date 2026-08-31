@@ -5,7 +5,11 @@ import "core:time"
 
 f :: f32
 
-flux := ease.flux_init(f)
+flux: ease.Flux_Map(f)
+
+init :: proc() {
+	flux = ease.flux_init(f)
+}
 
 // creates a tween
 to :: #force_inline proc(

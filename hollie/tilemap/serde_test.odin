@@ -1,6 +1,5 @@
 package tilemap
 
-import "core:strings"
 import "core:testing"
 
 TEST_MAP :: #load("./test.map", string)

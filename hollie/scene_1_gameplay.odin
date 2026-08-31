@@ -25,13 +25,13 @@ ROOM_PATHS := [Room]string {
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	current_tilemap:    tilemap.TileMap,
-	current_room:       Room,
-	is_transitioning:   bool,
-	transition_opacity: f32,
-	pending_room:       Maybe(Room),
+	current_tilemap:     tilemap.TileMap,
+	current_room:        Room,
+	is_transitioning:    bool,
+	transition_opacity:  f32,
+	pending_room:        Maybe(Room),
 	pending_target_door: string,
-	doors_enabled:      bool,
+	doors_enabled:       bool,
 } {
 	current_room       = .SMALL_ROOM,
 	is_transitioning   = false,
