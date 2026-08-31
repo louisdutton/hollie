@@ -464,5 +464,5 @@ pause_activate_selected_item :: proc() {
 
 // Quit the game
 pause_quit_game :: proc() {
-	game.running = false
+	game.state = .EXITING
 }

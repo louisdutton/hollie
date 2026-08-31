@@ -60,14 +60,6 @@ update_gameplay_screen :: proc() {
 		pause_toggle()
 	}
 
-	// Suspend gameplay when the window loses focus or the controller's Guide/Home
-	// button opens a platform overlay. Opening the pause menu explicitly prevents
-	// the same input from accidentally resuming an already-paused game.
-	if !pause_is_active() &&
-	   (!rl.IsWindowFocused() || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE)) {
-		pause_open()
-	}
-
 	pause_handle_input()
 	pause_update(rl.GetFrameTime())
 

@@ -80,7 +80,7 @@ title_handle_input :: proc() {
 	   input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
 		switch title_state.menu_state {
 		case .MAIN: // Exit game on escape from main menu
-				game.running = false
+				game.state = .EXITING
 		case .OPTIONS, .AUDIO, .VISUAL, .CONTROLS:
 			title_state.menu_state = .MAIN
 			title_state.selected_index = 0
@@ -163,7 +163,7 @@ title_draw_main_menu :: proc() {
 	// Exit Game button
 	exit_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
 	if gui.button(exit_rect, "Exit Game", title_state.selected_index == 2) {
-		game.running = false
+		game.state = .EXITING
 	}
 }
 
@@ -323,7 +323,7 @@ title_activate_selected_item :: proc() {
 			case 1:
 				title_state.menu_state = .OPTIONS
 				title_state.selected_index = 0
-			case 2: game.running = false
+			case 2: game.state = .EXITING
 			}
 	case .OPTIONS: switch title_state.selected_index {
 			case 0:

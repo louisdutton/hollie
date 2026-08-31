@@ -5,6 +5,7 @@ import "audio"
 import "input"
 import "renderer"
 import "tween"
+import rl "vendor:raylib"
 import "window"
 
 Vec2 :: renderer.Vec2
@@ -13,24 +14,30 @@ Vec2 :: renderer.Vec2
 design_width: i32
 design_height: i32
 
+App_State :: enum {
+	ACTIVE,
+	SUSPENDED,
+	EXITING,
+}
+
 Game_State :: struct {
-	scene:   Scene,
-	font:    renderer.Font,
-	music:   audio.Music,
-	sounds:  audio.Sound_Map,
-	running: bool,
+	state:  App_State,
+	scene:  Scene,
+	font:   renderer.Font,
+	music:  audio.Music,
+	sounds: audio.Sound_Map,
 }
 
 game: Game_State = {
-	scene   = .GAMEPLAY,
-	running = true,
+	state = .ACTIVE,
+	scene = .GAMEPLAY,
 }
 
 main :: proc() {
 	init()
 	defer fini()
 
-	for game.running {
+	for game.state != .EXITING {
 		update()
 		draw()
 	}
@@ -75,8 +82,10 @@ fini :: proc() {
 }
 
 update :: proc() {
+	if update_app_suspension() do return
+
 	if input.is_key_pressed(.BACKSPACE) {
-		game.running = false
+		game.state = .EXITING
 	}
 
 	if window.is_resized() {
@@ -95,11 +104,29 @@ update :: proc() {
 	}
 }
 
+// Handle external interruptions before any scene, menu, editor, tween, or
+// gameplay update can consume input.
+update_app_suspension :: proc() -> bool {
+	if !rl.IsWindowFocused() {
+		game.state = .SUSPENDED
+		return true
+	}
+
+	if game.state == .SUSPENDED {
+		game.state = .ACTIVE
+		// Consume the first focused frame so stale input cannot reach the scene.
+		return true
+	}
+
+	return false
+}
+
 draw :: proc() {
 	renderer.begin_drawing()
 	defer renderer.end_drawing()
 
 	renderer.clear_background()
+	if game.state == .SUSPENDED do return
 
 	switch game.scene {
 	case .TITLE: draw_title_screen()
