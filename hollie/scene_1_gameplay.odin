@@ -257,7 +257,9 @@ gameplay_get_current_room_path :: proc() -> string {
 
 gameplay_load_room :: proc(room: Room, target_door: string = "") {
 	map_path := asset.path(ROOM_PATHS[room])
+	defer delete(map_path)
 	resource_root := asset.path("")
+	defer delete(resource_root)
 	tilemap_result, load_error := tilemap.load_tilemap_file(map_path, resource_root)
 	assert(load_error.kind == .none, load_error.message)
 	tilemap.destroy_room_file_io_error(&load_error)

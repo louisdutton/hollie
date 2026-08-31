@@ -442,7 +442,9 @@ editor_handle_ui_input :: proc() {
 editor_save_current_tilemap :: proc() {
 	room_path := gameplay_get_current_room_path()
 	full_path := asset.path(room_path)
+	defer delete(full_path)
 	resource_root := asset.path("")
+	defer delete(resource_root)
 	save_error := tilemap.save_tilemap_file_atomic(
 		full_path,
 		tilemap.get_current_tilemap(),
