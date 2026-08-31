@@ -126,6 +126,7 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 	}
 
 	current_section := ""
+	parse_ok := true
 	base_tiles := make([dynamic]TileType)
 	deco_tiles := make([dynamic]TileType)
 	entity_data := make([dynamic]EntityData)
@@ -148,32 +149,55 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 		switch current_section {
 		case "config":
 			parts := strings.split(line, "=")
-			if len(parts) != 2 do continue
+			if len(parts) != 2 {
+				parse_ok = false
+				continue
+			}
 			defer delete(parts)
 
 			key := strings.trim_space(parts[0])
 			value := strings.trim_space(parts[1])
 
 			switch key {
-			case "width": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+			case "width": if parsed_value, value_ok := strconv.parse_int(value); value_ok {
 						tm.width = parsed_value
+					} else {
+						parse_ok = false
 					}
-			case "height": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+			case "height": if parsed_value, value_ok := strconv.parse_int(value); value_ok {
 						tm.height = parsed_value
+					} else {
+						parse_ok = false
 					}
 			case "tileset_path": tm.tileset_path = strings.clone(value)
-			case "tile_size": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+			case "tile_size": if parsed_value, value_ok := strconv.parse_int(value); value_ok {
 						tm.config.tile_size = parsed_value
 						tm.tile_size = parsed_value
+					} else {
+						parse_ok = false
 					}
-			case "tileset_cols": if parsed_value, parse_ok := strconv.parse_int(value); parse_ok {
+			case "tileset_cols": if parsed_value, value_ok := strconv.parse_int(value); value_ok {
 						tm.config.tileset_cols = parsed_value
+					} else {
+						parse_ok = false
 					}
 			case "room_id": tm.room_id = strings.clone(value)
 			case "room_name": tm.room_name = strings.clone(value)
 			case "music_path": tm.music_path = strings.clone(value)
-			case "camera_bounds": tm.camera_bounds = parse_rect(value)
-			case "collision_bounds": tm.collision_bounds = parse_rect(value)
+			case "camera_bounds":
+				bounds, bounds_ok := parse_rect(value)
+				if bounds_ok {
+					tm.camera_bounds = bounds
+				} else {
+					parse_ok = false
+				}
+			case "collision_bounds":
+				bounds, bounds_ok := parse_rect(value)
+				if bounds_ok {
+					tm.collision_bounds = bounds
+				} else {
+					parse_ok = false
+				}
 			}
 
 		case "base_data":
@@ -182,8 +206,10 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 			defer delete(tile_strs)
 			for &tile_str in tile_strs {
 				tile_str = strings.trim_space(tile_str)
-				if tile_id, parse_ok := strconv.parse_int(tile_str); parse_ok {
+				if tile_id, tile_ok := strconv.parse_int(tile_str); tile_ok {
 					append(&base_tiles, TileType(tile_id))
+				} else {
+					parse_ok = false
 				}
 			}
 
@@ -193,8 +219,10 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 			defer delete(tile_strs)
 			for &tile_str in tile_strs {
 				tile_str = strings.trim_space(tile_str)
-				if tile_id, parse_ok := strconv.parse_int(tile_str); parse_ok {
+				if tile_id, tile_ok := strconv.parse_int(tile_str); tile_ok {
 					append(&deco_tiles, TileType(tile_id))
+				} else {
+					parse_ok = false
 				}
 			}
 
@@ -210,58 +238,93 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 
 				if x, x_ok := strconv.parse_int(strings.trim_space(parts[0])); x_ok {
 					entity.x = x
+				} else {
+					parse_ok = false
 				}
 				if y, y_ok := strconv.parse_int(strings.trim_space(parts[1])); y_ok {
 					entity.y = y
+				} else {
+					parse_ok = false
 				}
 				if entity_type_int, type_ok := strconv.parse_int(strings.trim_space(parts[2]));
-				   type_ok {
+				   type_ok &&
+				   entity_type_int >= int(EntityType.PLAYER) &&
+				   entity_type_int <= int(EntityType.DOOR) {
 					entity.entity_type = EntityType(entity_type_int)
+				} else {
+					parse_ok = false
 				}
 
 				// Optional parameters
 				if len(parts) > 3 {
-					if trigger_id, tid_ok := strconv.parse_int(strings.trim_space(parts[3]));
-					   tid_ok {
+					value := strings.trim_space(parts[3])
+					if trigger_id, tid_ok := strconv.parse_int(value); tid_ok {
 						entity.trigger_id = trigger_id
+					} else if value != "" {
+						parse_ok = false
 					}
 				}
 				if len(parts) > 4 {
-					if gate_id, gid_ok := strconv.parse_int(strings.trim_space(parts[4])); gid_ok {
+					value := strings.trim_space(parts[4])
+					if gate_id, gid_ok := strconv.parse_int(value); gid_ok {
 						entity.gate_id = gate_id
+					} else if value != "" {
+						parse_ok = false
 					}
 				}
-				if len(parts) > 5 do entity.requires_both = strings.trim_space(parts[5]) == "true"
-				if len(parts) > 6 do entity.inverted = strings.trim_space(parts[6]) == "true"
+				if len(parts) > 5 {
+					value := strings.trim_space(parts[5])
+					if value == "true" || value == "false" {
+						entity.requires_both = value == "true"
+					} else if value != "" {
+						parse_ok = false
+					}
+				}
+				if len(parts) > 6 {
+					value := strings.trim_space(parts[6])
+					if value == "true" || value == "false" {
+						entity.inverted = value == "true"
+					} else if value != "" {
+						parse_ok = false
+					}
+				}
 				if len(parts) > 7 {
-					if width, w_ok := strconv.parse_int(strings.trim_space(parts[7]));
-					   w_ok && width > 0 {
-						entity.width = width
+					value := strings.trim_space(parts[7])
+					if width, width_ok := strconv.parse_int(value); width_ok {
+						if width > 0 do entity.width = width
+					} else if value != "" {
+						parse_ok = false
 					}
 				}
 				if len(parts) > 8 {
-					if height, h_ok := strconv.parse_int(strings.trim_space(parts[8]));
-					   h_ok && height > 0 {
-						entity.height = height
+					value := strings.trim_space(parts[8])
+					if height, height_ok := strconv.parse_int(value); height_ok {
+						if height > 0 do entity.height = height
+					} else if value != "" {
+						parse_ok = false
 					}
 				}
 				if len(parts) > 9 do entity.texture_path = strings.clone(strings.trim_space(parts[9]))
 				if len(parts) > 10 do entity.target_room = strings.clone(strings.trim_space(parts[10]))
 				if len(parts) > 11 do entity.target_door = strings.clone(strings.trim_space(parts[11]))
 
-				// Parse required_triggers (remaining parameters starting at index 10 for gates)
+				// Parse required_triggers after the common optional fields.
 				entity.required_triggers = make([dynamic]int)
-				start_index := entity.entity_type == .GATE ? 10 : 12 // Gates start at 10, others at 12
+				start_index := 12
 				for i in start_index ..< len(parts) {
 					part := strings.trim_space(parts[i])
 					if part != "" {
 						if trigger_id, rt_ok := strconv.parse_int(part); rt_ok {
 							append(&entity.required_triggers, trigger_id)
+						} else {
+							parse_ok = false
 						}
 					}
 				}
 
 				append(&entity_data, entity)
+			} else {
+				parse_ok = false
 			}
 
 		}
@@ -277,7 +340,7 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 	tm.entities = make([]EntityData, len(entity_data))
 	copy(tm.entities, entity_data[:])
 
-	return tm, true
+	return tm, parse_ok
 }
 
 @(private = "file")
@@ -331,13 +394,16 @@ section_end :: proc(b: ^strings.Builder) {
 }
 
 @(private = "file")
-parse_rect :: proc(v: string) -> renderer.Rect {
+parse_rect :: proc(v: string) -> (renderer.Rect, bool) {
 	parts := strings.split(v, ",")
 	defer delete(parts)
-	return {
-		x = strconv.parse_f32(parts[0]) or_else 0,
-		y = strconv.parse_f32(parts[1]) or_else 0,
-		width = strconv.parse_f32(parts[2]) or_else 0,
-		height = strconv.parse_f32(parts[3]) or_else 0,
-	}
+	if len(parts) != 4 do return {}, false
+
+	x, x_ok := strconv.parse_f32(strings.trim_space(parts[0]))
+	y, y_ok := strconv.parse_f32(strings.trim_space(parts[1]))
+	width, width_ok := strconv.parse_f32(strings.trim_space(parts[2]))
+	height, height_ok := strconv.parse_f32(strings.trim_space(parts[3]))
+	if !x_ok || !y_ok || !width_ok || !height_ok do return {}, false
+
+	return {x = x, y = y, width = width, height = height}, true
 }

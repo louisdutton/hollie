@@ -54,7 +54,7 @@ collision_bounds=0,0,320,256
 176,96,1,0,0,false,false,0,0,,,
 80,128,2,1,0,false,false,32,32,,,
 176,128,2,2,0,false,false,32,32,,,
-112,96,3,0,1,false,false,64,16,,1,2,1,2,1,2
+112,96,3,0,1,false,false,64,16,,,,1,2
 144,192,4,0,0,false,false,16,16,art/elements/crops/wood.png,,
 288,96,6,0,0,false,false,32,64,,desert,from_desert
 0,96,6,0,0,false,false,32,64,,small_room,from_small_room
