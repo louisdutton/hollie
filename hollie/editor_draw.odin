@@ -17,12 +17,12 @@ editor_draw :: proc() {
 editor_draw_ui :: proc() {
 	if editor_state.mode != .EDITING do return
 
+	ui_begin()
+	defer ui_end()
+
 	if editor_state.hovered_entity != nil {
 		editor_draw_entity_inspector(editor_state.hovered_entity)
 	}
-
-	ui_begin()
-	defer ui_end()
 
 	if editor_state.show_hud {
 		editor_draw_minimal_hud()
@@ -322,6 +322,7 @@ editor_draw_tile_carousel :: proc() {
 
 editor_draw_minimal_hud :: proc() {
 	design_height := f32(window.get_design_height())
+	design_width := f32(window.get_design_width())
 
 	layer_text := ""
 	layer_color := renderer.Colour{255, 255, 255, 200}
@@ -344,34 +345,45 @@ editor_draw_minimal_hud :: proc() {
 		selected_text = fmt.tprintf("%v", editor_state.selected_tile)
 	}
 
-	renderer.draw_rect_i(10, 10, 120, 60, {0, 0, 0, 150})
-	renderer.draw_rect_outline(10, 10, 120, 60, 1, {255, 255, 255, 100})
+	renderer.draw_rect_i(10, 10, 150, 64, {0, 0, 0, 200})
+	renderer.draw_rect_outline(10, 10, 150, 64, 2, layer_color)
 
 	text_y: i32 = 20
-	renderer.draw_text(layer_text, 15, int(text_y), 12, layer_color)
+	renderer.draw_text(fmt.tprintf("%s LAYER", layer_text), 17, int(text_y), 14, layer_color)
 	renderer.draw_text(
 		fmt.tprintf("Brush: %d", editor_state.brush_size),
-		15,
+		17,
 		int(text_y + 15),
-		10,
+		11,
 		{255, 255, 255, 200},
 	)
-	renderer.draw_text(selected_text, 15, int(text_y + 30), 10, {200, 200, 200, 200})
+	renderer.draw_text(selected_text, 17, int(text_y + 32), 11, {220, 220, 220, 255})
 
 	editor_draw_tile_carousel()
 
-	controls_y := design_height - 60
-	renderer.draw_rect_i(10, i32(controls_y), 300, 50, {0, 0, 0, 120})
-	renderer.draw_rect_outline(10, f32(controls_y), 300, 50, 1, {255, 255, 255, 80})
+	controls_height: f32 = 76
+	controls_y := design_height - controls_height - 10
+	controls_width := design_width - 20
+	renderer.draw_rect(10, controls_y, controls_width, controls_height, {0, 0, 0, 210})
+	renderer.draw_rect_outline(
+		10,
+		controls_y,
+		controls_width,
+		controls_height,
+		2,
+		{255, 255, 255, 100},
+	)
 
-	controls_text := "Left Stick: Move Cursor  B: Paint  A: Erase  RB/LB: Select  Y: Layer  H: Hide HUD"
-	renderer.draw_text(controls_text, 15, int(controls_y + 10), 10, {200, 200, 200, 180})
-	controls_text2 := "Right Stick: Camera  RT/LT: Zoom  +/-: Brush  Select: Save  Start: Exit"
-	renderer.draw_text(controls_text2, 15, int(controls_y + 25), 10, {200, 200, 200, 180})
+	primary := "LEFT STICK / D-PAD  Move     A  Paint     B  Erase     Y  Change layer"
+	secondary := "LB / RB  Select     RIGHT STICK  Camera     LT / RT  Zoom     X  Edit entity"
+	utility := "L3  Grid     R3  Save     MINUS  Exit editor"
+	renderer.draw_text(primary, 18, int(controls_y + 10), 12, {255, 255, 255, 255})
+	renderer.draw_text(secondary, 18, int(controls_y + 31), 11, {220, 220, 220, 255})
+	renderer.draw_text(utility, 18, int(controls_y + 52), 11, {170, 210, 255, 255})
 }
 
 editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
-	screen_width := f32(window.get_screen_width())
+	screen_width := f32(window.get_design_width())
 	panel_width: f32 = 300
 	panel_height: f32 = 400
 	panel_x := screen_width - panel_width - 10
@@ -426,8 +438,22 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 		editor_draw_bool_field(panel_x, panel_y, &y_offset, "Inverted:", &entity.inverted)
 
 	case .DOOR:
-		editor_draw_string_field(panel_x, panel_y, &y_offset, "Target Room:", &entity.target_room)
-		editor_draw_string_field(panel_x, panel_y, &y_offset, "Target Door:", &entity.target_door)
+		editor_draw_string_field(
+			panel_x,
+			panel_y,
+			&y_offset,
+			"Target Room:",
+			&entity.target_room,
+			"[A/B: next/previous]",
+		)
+		editor_draw_string_field(
+			panel_x,
+			panel_y,
+			&y_offset,
+			"Target Door:",
+			&entity.target_door,
+			"[Y: next]",
+		)
 
 	case .NPC:
 		editor_draw_string_field(
@@ -436,6 +462,7 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 				&y_offset,
 				"Texture Path:",
 				&entity.texture_path,
+				"[A/B: next/previous]",
 			)
 
 	case .HOLDABLE:
@@ -445,6 +472,7 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 				&y_offset,
 				"Texture Path:",
 				&entity.texture_path,
+				"[A/B: next/previous]",
 			)
 
 	case .ENEMY:
@@ -531,7 +559,7 @@ editor_draw_bool_field :: proc(
 
 	// Show controls hint
 	renderer.draw_text(
-		"[A/B: toggle]",
+		"[Y: toggle]",
 		int(panel_x + 200),
 		int(panel_y + y_offset^),
 		12,
@@ -546,6 +574,7 @@ editor_draw_string_field :: proc(
 	y_offset: ^f32,
 	label: string,
 	value: ^string,
+	hint: string,
 ) {
 	line_height: f32 = 40
 
@@ -572,7 +601,7 @@ editor_draw_string_field :: proc(
 
 	// Show controls hint
 	renderer.draw_text(
-		"[A/B: cycle]",
+		hint,
 		int(panel_x + 200),
 		int(panel_y + y_offset^),
 		12,

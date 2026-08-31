@@ -60,11 +60,19 @@ update_gameplay_screen :: proc() {
 		pause_toggle()
 	}
 
+	// Suspend gameplay when the window loses focus or the controller's Guide/Home
+	// button opens a platform overlay. Opening the pause menu explicitly prevents
+	// the same input from accidentally resuming an already-paused game.
+	if !pause_is_active() &&
+	   (!rl.IsWindowFocused() || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE)) {
+		pause_open()
+	}
+
 	pause_handle_input()
 	pause_update(rl.GetFrameTime())
 
 	when ODIN_DEBUG {
-		if input.is_key_pressed(.F1) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE) {
+		if input.is_key_pressed(.F1) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_LEFT) {
 			editor_toggle()
 		}
 
@@ -73,7 +81,7 @@ update_gameplay_screen :: proc() {
 			return
 		}
 
-		if input.is_key_pressed(.R) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_LEFT) {
+		if input.is_key_pressed(.R) {
 			room_reload()
 		}
 	}

@@ -138,14 +138,14 @@ editor_handle_entity_editing :: proc() {
 	dt := window.get_frame_time()
 	editor_state.edit_input_timer -= dt
 
-	if editor_state.hovered_entity == nil do return
-
 	// Enter/exit edit mode
-	if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_UP) {
+	if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_UP) &&
+	   (editor_state.hovered_entity != nil || editor_state.is_editing_entity) {
 		editor_state.is_editing_entity = !editor_state.is_editing_entity
 		editor_state.edit_input_timer = 0.2
 	}
 
+	if editor_state.hovered_entity == nil do return
 	if !editor_state.is_editing_entity do return
 	if editor_state.edit_input_timer > 0 do return
 
@@ -343,6 +343,19 @@ editor_handle_painting_input :: proc() {
 
 	gamepad_move_x := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X)
 	gamepad_move_y := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y)
+	dpad_x :=
+		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT)) -
+		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT))
+	dpad_y :=
+		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN)) -
+		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP))
+
+	if dpad_x != 0 {
+		editor_state.cursor_x += dpad_x
+	}
+	if dpad_y != 0 {
+		editor_state.cursor_y += dpad_y
+	}
 
 	if abs(gamepad_move_x) > input.JS_DEADZONE && editor_state.cursor_move_timer <= 0 {
 		if gamepad_move_x > 0 {
@@ -366,6 +379,11 @@ editor_handle_painting_input :: proc() {
 	editor_state.cursor_y = max(0, min(editor_state.cursor_y, tilemap.get_tilemap_height() - 1))
 
 	paint_x, paint_y := editor_state.cursor_x, editor_state.cursor_y
+	if editor_state.is_editing_entity {
+		editor_state.is_painting = false
+		editor_state.is_erasing = false
+		return
+	}
 
 	if input.is_gamepad_button_down(.PLAYER_1, .RIGHT_FACE_RIGHT) {
 		if !editor_state.is_painting {
@@ -387,7 +405,7 @@ editor_handle_painting_input :: proc() {
 }
 
 editor_handle_ui_input :: proc() {
-	if input.is_key_pressed(.TAB) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP) {
+	if input.is_key_pressed(.TAB) || input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
 		switch editor_state.selected_layer {
 		case .BASE: editor_state.selected_layer = .DECORATION
 		case .DECORATION: editor_state.selected_layer = .ENTITY
@@ -395,21 +413,21 @@ editor_handle_ui_input :: proc() {
 		}
 	}
 
-	if input.is_key_pressed(.G) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT) {
+	if input.is_key_pressed(.G) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_THUMB) {
 		editor_state.show_grid = !editor_state.show_grid
 	}
 
-	if input.is_key_pressed(.L) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT) {
+	if input.is_key_pressed(.L) {
 		editor_state.show_layer_overlay = !editor_state.show_layer_overlay
 	}
 
-	if input.is_key_pressed(.H) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN) {
+	if input.is_key_pressed(.H) {
 		editor_state.show_hud = !editor_state.show_hud
 	}
 
 	if (input.is_key_down(.LEFT_CONTROL) || input.is_key_down(.RIGHT_CONTROL)) &&
 		   input.is_key_pressed(.S) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_LEFT) {
+	   input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_THUMB) {
 		editor_save_current_tilemap()
 	}
 
