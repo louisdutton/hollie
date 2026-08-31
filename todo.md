@@ -76,12 +76,12 @@ The target workflow is:
 
 ### File/runtime boundary
 
-- [ ] Add a narrow serde test proving the intended JSON5 representation for enums/type names, optional fields, arrays, and entity discrimination.
-- [ ] Define `Room_File` and supporting metadata/layer DTOs containing only persisted values.
-- [ ] Keep renderer textures, loaded audio, allocators, caches, and mutable room state out of file DTOs.
+- [x] Add a narrow serde test proving the intended JSON5 representation for enums/type names, optional fields, arrays, and entity discrimination.
+- [x] Define `Room_File` and supporting metadata/layer DTOs containing only persisted values.
+- [x] Keep renderer textures, loaded audio, allocators, caches, and mutable room state out of file DTOs.
 - [ ] Add explicit conversion from validated file DTOs into runtime `TileMap` data.
 - [ ] Add explicit conversion from editable/runtime room data back into file DTOs.
-- [ ] Centralize JSON5 marshal options for readable, deterministic output.
+- [x] Centralize JSON5 marshal options for readable, deterministic output.
 - [ ] Choose and consistently apply the room filename extension and content directory convention.
 
 ### Typed entity DTOs
