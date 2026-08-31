@@ -12,13 +12,14 @@ validation_contains :: proc(errors: []Validation_Error, text: string, entity_ind
 
 @(test)
 test_valid_map_has_no_validation_errors :: proc(t: ^testing.T) {
-	context.allocator = context.temp_allocator
-
-	tm, ok := deserialise_tilemap(OLIVEWOOD_MAP)
-	testing.expect(t, ok, "test map should parse")
-	if !ok do return
+	tm, load_error := load_tilemap_file("res/maps/olivewood.json", "res")
+	defer destroy_room_file_io_error(&load_error)
+	testing.expect_value(t, load_error.kind, Room_File_IO_Error_Kind.none)
+	if load_error.kind != .none do return
+	defer destroy_tilemap(&tm)
 
 	errors := validate_tilemap(&tm)
+	defer destroy_validation_errors(&errors)
 	testing.expect_value(t, len(errors), 0)
 }
 

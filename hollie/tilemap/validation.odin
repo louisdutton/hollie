@@ -431,14 +431,10 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				}
 			}
 
-		case .HOLDABLE:
-			validation_check_asset(
-					&errors,
-					resource_root,
-					entity.texture_path,
-					"holdable texture",
-					entity_index,
-				)
+		case .ENEMY, .NPC, .HOLDABLE:
+			if entity.archetype_id == "" {
+				validation_add_error(&errors, "archetype_id must not be empty", entity_index)
+			}
 
 		case .DOOR:
 			if entity.target_room == "" {
@@ -448,7 +444,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				validation_add_error(&errors, "door target_door must not be empty", entity_index)
 			}
 
-		case .PLAYER, .ENEMY, .NPC:
+		case .PLAYER:
 		}
 	}
 

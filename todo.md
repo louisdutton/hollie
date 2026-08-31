@@ -132,7 +132,7 @@ The target workflow is:
 - [x] Switch in-game editor saving and reloading to the same JSON DTO pipeline.
 - [x] Switch the standalone validator and shipped-map tests to discover and read JSON rooms.
 - [x] Verify semantic parity for room metadata, tile layers, every entity, and every entity property.
-- [ ] Remove the legacy positional serializer, parser, fixtures, and tests only after parity checks pass.
+- [x] Remove the legacy positional serializer, parser, fixtures, and tests after parity checks pass.
 
 ### Exit criteria
 
@@ -141,7 +141,7 @@ The target workflow is:
 - [x] Every converted map passes the standalone validator.
 - [x] Every converted map produces deterministic JSON and round-trips without semantic changes.
 - [x] Runtime loading, editor saving, and validation all use the same file DTO definitions.
-- [ ] The legacy custom syntax and parser are no longer used.
+- [x] The legacy custom syntax and parser are no longer used.
 
 ## Milestone 2 — Introduce a data-driven content catalog
 
