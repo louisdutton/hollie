@@ -29,7 +29,7 @@ test_room_file_io_validates_and_replaces_atomically :: proc(t: ^testing.T) {
 	}
 
 	testing.expect(t, room_file_path_has_canonical_extension(path))
-	testing.expect(t, !room_file_path_has_canonical_extension("roundtrip.json5"))
+	testing.expect(t, !room_file_path_has_canonical_extension("roundtrip.room.json5"))
 
 	save_error := save_room_file_json5_atomic(path, &room)
 	defer destroy_room_file_io_error(&save_error)

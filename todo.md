@@ -41,7 +41,7 @@ The target workflow is:
 ## Chosen persistence model
 
 - JSON5 is the canonical editable source format for rooms and future content registries.
-- Room source files live under `res/maps/` and use the `<room-id>.room.json5` naming convention.
+- Room source files live under `res/maps/` and use the `<room-id>.json` naming convention.
 - File DTOs are marshalled and unmarshalled with Odin's built-in reflection-based JSON package.
 - File DTOs are converted into separate runtime structures after successful validation and ID resolution.
 - Entity records use an explicit stable type discriminator and typed, entity-specific property data.

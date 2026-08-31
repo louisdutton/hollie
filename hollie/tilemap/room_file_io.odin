@@ -5,7 +5,7 @@ import "core:os"
 import "core:strings"
 
 ROOM_FILE_RESOURCE_DIRECTORY :: "maps"
-ROOM_FILE_EXTENSION :: ".room.json5"
+ROOM_FILE_EXTENSION :: ".json"
 
 Room_File_IO_Error_Kind :: enum {
 	none,
