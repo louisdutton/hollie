@@ -250,7 +250,10 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	if decode_error.kind != .none do return
 	defer destroy_room_file(&room)
 
-	tm := room_file_to_tilemap(room)
+	tm, validation_errors := room_file_to_tilemap(room)
+	defer delete(validation_errors)
+	testing.expect_value(t, len(validation_errors), 0)
+	if len(validation_errors) != 0 do return
 	defer destroy_tilemap(&tm)
 	testing.expect_value(t, tm.tileset.id, u32(0))
 	testing.expect_value(t, len(tm.entities), 7)

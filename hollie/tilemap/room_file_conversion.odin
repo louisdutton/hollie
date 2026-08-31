@@ -12,7 +12,27 @@ Room_File_Conversion_Error :: struct {
 	entity_index: int,
 }
 
-room_file_to_tilemap :: proc(room: Room_File, allocator := context.allocator) -> TileMap {
+room_file_to_tilemap :: proc(
+	room: Room_File,
+	resource_root := "",
+	allocator := context.allocator,
+) -> (
+	tm: TileMap,
+	errors: [dynamic]Validation_Error,
+) {
+	context.allocator = allocator
+	room_to_validate := room
+	errors = validate_room_file(&room_to_validate, resource_root)
+	if len(errors) > 0 do return
+	tm = room_file_to_tilemap_unchecked(room, allocator)
+	return
+}
+
+@(private = "file")
+room_file_to_tilemap_unchecked :: proc(
+	room: Room_File,
+	allocator := context.allocator,
+) -> TileMap {
 	tm := TileMap {
 		width = room.size.width,
 		height = room.size.height,
