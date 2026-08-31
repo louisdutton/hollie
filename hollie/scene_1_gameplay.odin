@@ -39,6 +39,11 @@ gameplay_state := struct {
 	pending_room       = nil,
 }
 
+when ODIN_DEBUG {
+	@(private)
+	gameplay_debug_ui_visible := false
+}
+
 init_gameplay_screen :: proc() {
 	camera_init()
 	dialog_init()
@@ -48,6 +53,7 @@ init_gameplay_screen :: proc() {
 	gui.init()
 
 	when ODIN_DEBUG {
+		gameplay_debug_ui_visible = false
 		editor_init()
 	}
 
@@ -71,6 +77,10 @@ update_gameplay_screen :: proc() {
 		if editor_is_active() {
 			editor_update()
 			return
+		}
+
+		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_THUMB) {
+			gameplay_debug_ui_visible = !gameplay_debug_ui_visible
 		}
 
 		if input.is_key_pressed(.R) {
@@ -183,9 +193,10 @@ draw_gameplay_screen :: proc() {
 				entity_system_draw()
 				particle_system_draw()
 
-				// debug colldiers
-				room_draw_doors_debug()
-				room_draw_puzzle_debug()
+				if gameplay_debug_ui_visible {
+					room_draw_doors_debug()
+					room_draw_puzzle_debug()
+				}
 			}
 		} else {
 			room_draw_puzzle_elements()

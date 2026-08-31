@@ -2,7 +2,6 @@ package hollie
 
 import "asset"
 import "audio"
-import "core:fmt"
 import "core:time"
 import "input"
 import "renderer"
@@ -38,47 +37,49 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 	return room_state.current_tilemap
 }
 
-room_draw_doors_debug :: proc() {
-	if !room_state.is_loaded do return
+when ODIN_DEBUG {
+	room_draw_doors_debug :: proc() {
+		if !room_state.is_loaded do return
 
-	players := entity_get_players()
-	defer delete(players)
-	doors := entity_get_doors()
-	defer delete(doors)
+		players := entity_get_players()
+		defer delete(players)
+		doors := entity_get_doors()
+		defer delete(doors)
 
-	for door in doors {
-		door_entity := Entity(door^)
-		door_pos := entity_get_world_collider_pos(&door_entity)
-		door_size := entity_get_collider_size(&door_entity)
-		door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
+		for door in doors {
+			door_entity := Entity(door^)
+			door_pos := entity_get_world_collider_pos(&door_entity)
+			door_size := entity_get_collider_size(&door_entity)
+			door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
-		is_intersection := false
-		for player in players {
-			player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
-			if rects_intersect(door_rect, player_rect) {
-				is_intersection = true
-				break
+			is_intersection := false
+			for player in players {
+				player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
+				if rects_intersect(door_rect, player_rect) {
+					is_intersection = true
+					break
+				}
 			}
+
+			outline_color := is_intersection ? renderer.GREEN : renderer.RED
+			door_color := renderer.fade(outline_color, 0.5)
+
+			renderer.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
+			renderer.draw_rect_outline(
+				door_pos.x,
+				door_pos.y,
+				door_size.x,
+				door_size.y,
+				color = outline_color,
+			)
+
+			renderer.draw_text(
+				text = door.target_room,
+				x = int(door_pos.x),
+				y = int(door_pos.y - 20),
+				size = 12,
+			)
 		}
-
-		outline_color := is_intersection ? renderer.GREEN : renderer.RED
-		door_color := renderer.fade(outline_color, 0.5)
-
-		renderer.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
-		renderer.draw_rect_outline(
-			door_pos.x,
-			door_pos.y,
-			door_size.x,
-			door_size.y,
-			color = outline_color,
-		)
-
-		renderer.draw_text(
-			text = fmt.tprintf("%s", door.target_room),
-			x = int(door_pos.x),
-			y = int(door_pos.y - 20),
-			size = 12,
-		)
 	}
 }
 
@@ -308,38 +309,39 @@ room_draw_puzzle_elements :: proc() {
 	}
 }
 
-// Draw puzzle debug info (debug mode only)
-room_draw_puzzle_debug :: proc() {
-	if !room_state.is_loaded do return
+when ODIN_DEBUG {
+	room_draw_puzzle_debug :: proc() {
+		if !room_state.is_loaded do return
 
-	// Draw pressure plate collision boxes
-	pressure_plates := entity_get_pressure_plates()
-	defer delete(pressure_plates)
+		// Draw pressure plate collision boxes
+		pressure_plates := entity_get_pressure_plates()
+		defer delete(pressure_plates)
 
-	for plate in pressure_plates {
-		outline_color := plate.active ? renderer.GREEN : renderer.RED
-		renderer.draw_rect_outline(
-			plate.position.x + plate.collider.offset.x,
-			plate.position.y + plate.collider.offset.y,
-			plate.collider.size.x,
-			plate.collider.size.y,
-			color = outline_color,
-		)
-	}
-
-	// Draw gate collision boxes
-	gates := entity_get_gates()
-	defer delete(gates)
-
-	for gate in gates {
-		if !gate.open {
+		for plate in pressure_plates {
+			outline_color := plate.active ? renderer.GREEN : renderer.RED
 			renderer.draw_rect_outline(
-				gate.position.x + gate.collider.offset.x,
-				gate.position.y + gate.collider.offset.y,
-				gate.collider.size.x,
-				gate.collider.size.y,
-				color = renderer.RED,
+				plate.position.x + plate.collider.offset.x,
+				plate.position.y + plate.collider.offset.y,
+				plate.collider.size.x,
+				plate.collider.size.y,
+				color = outline_color,
 			)
+		}
+
+		// Draw gate collision boxes
+		gates := entity_get_gates()
+		defer delete(gates)
+
+		for gate in gates {
+			if !gate.open {
+				renderer.draw_rect_outline(
+					gate.position.x + gate.collider.offset.x,
+					gate.position.y + gate.collider.offset.y,
+					gate.collider.size.x,
+					gate.collider.size.y,
+					color = renderer.RED,
+				)
+			}
 		}
 	}
 }

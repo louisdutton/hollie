@@ -955,47 +955,49 @@ entity_system_draw :: proc() {
 	}
 
 	when ODIN_DEBUG {
-		// Draw collider bounds for all entities
-		for &entity in entities {
-			collider_pos := entity_get_world_collider_pos(&entity)
-			collider_size := entity_get_collider_size(&entity)
+		if gameplay_debug_ui_visible {
+			// Draw collider bounds for all entities
+			for &entity in entities {
+				collider_pos := entity_get_world_collider_pos(&entity)
+				collider_size := entity_get_collider_size(&entity)
 
-			// Choose color based on entity type
-			color: renderer.Colour
-			switch e in entity {
-			case Player: color = renderer.GREEN
-			case Enemy: color = renderer.RED
-			case NPC: color = renderer.WHITE
-			case Pressure_Plate: color = renderer.BLUE
-			case Gate: color = renderer.SKYBLUE
-			case Holdable: color = renderer.YELLOW
-			case Door: color = renderer.PURPLE
-			}
+				// Choose color based on entity type
+				color: renderer.Colour
+				switch e in entity {
+				case Player: color = renderer.GREEN
+				case Enemy: color = renderer.RED
+				case NPC: color = renderer.WHITE
+				case Pressure_Plate: color = renderer.BLUE
+				case Gate: color = renderer.SKYBLUE
+				case Holdable: color = renderer.YELLOW
+				case Door: color = renderer.PURPLE
+				}
 
-			renderer.draw_rect_outline(
-				collider_pos.x,
-				collider_pos.y,
-				collider_size.x,
-				collider_size.y,
-				thickness = 1,
-				color = color,
-			)
+				renderer.draw_rect_outline(
+					collider_pos.x,
+					collider_pos.y,
+					collider_size.x,
+					collider_size.y,
+					thickness = 1,
+					color = color,
+				)
 
-			// Draw attack collider for attacking players
-			switch &e in entity {
-			case Player: if e.is_attacking {
-						attack_offset := e.attack_direction * e.range
-						attack_pos := e.position + attack_offset
-						renderer.draw_rect_outline(
-							attack_pos.x - e.attack_width / 2,
-							attack_pos.y - e.attack_height / 2,
-							e.attack_width,
-							e.attack_height,
-							thickness = 2,
-							color = renderer.RED,
-						)
-					}
-			case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
+				// Draw attack collider for attacking players
+				switch &e in entity {
+				case Player: if e.is_attacking {
+							attack_offset := e.attack_direction * e.range
+							attack_pos := e.position + attack_offset
+							renderer.draw_rect_outline(
+								attack_pos.x - e.attack_width / 2,
+								attack_pos.y - e.attack_height / 2,
+								e.attack_width,
+								e.attack_height,
+								thickness = 2,
+								color = renderer.RED,
+							)
+						}
+				case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
+				}
 			}
 		}
 	}
