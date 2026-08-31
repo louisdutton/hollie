@@ -214,3 +214,39 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	)
 	testing.expect_value(t, properties_error.entity_index, 0)
 }
+
+@(test)
+test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
+	room, decode_error := decode_room_file_json5(ROOM_FILE_CONTRACT_TEST_JSON5)
+	testing.expect(t, decode_error.kind == .none, "the room file contract should decode")
+	if decode_error.kind != .none do return
+	defer destroy_room_file(&room)
+
+	tm := room_file_to_tilemap(room)
+	defer destroy_tilemap(&tm)
+	testing.expect_value(t, tm.tileset.id, u32(0))
+	testing.expect_value(t, len(tm.entities), 7)
+	if len(tm.entities) == 7 {
+		testing.expect_value(t, tm.entities[0].instance_id, "player_one_spawn")
+		testing.expect_value(t, tm.entities[0].player_index, 1)
+		testing.expect_value(t, tm.entities[1].archetype_id, "goblin")
+		testing.expect_value(t, tm.entities[6].instance_id, "gate_one")
+	}
+
+	converted, conversion_error := tilemap_to_room_file(tm)
+	testing.expect_value(t, conversion_error.kind, Room_File_Conversion_Error_Kind.none)
+	if conversion_error.kind != .none do return
+	defer destroy_room_file(&converted)
+
+	original_json, original_encode_error := encode_room_file_json5(room)
+	testing.expect_value(t, original_encode_error.kind, Room_File_Encode_Error_Kind.none)
+	if original_encode_error.kind != .none do return
+	defer delete(original_json)
+
+	converted_json, converted_encode_error := encode_room_file_json5(converted)
+	testing.expect_value(t, converted_encode_error.kind, Room_File_Encode_Error_Kind.none)
+	if converted_encode_error.kind != .none do return
+	defer delete(converted_json)
+
+	testing.expect_value(t, string(converted_json), string(original_json))
+}

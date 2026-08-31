@@ -79,8 +79,8 @@ The target workflow is:
 - [x] Add a narrow serde test proving the intended JSON5 representation for enums/type names, optional fields, arrays, and entity discrimination.
 - [x] Define `Room_File` and supporting metadata/layer DTOs containing only persisted values.
 - [x] Keep renderer textures, loaded audio, allocators, caches, and mutable room state out of file DTOs.
-- [ ] Add explicit conversion from validated file DTOs into runtime `TileMap` data.
-- [ ] Add explicit conversion from editable/runtime room data back into file DTOs.
+- [x] Add explicit conversion from validated file DTOs into runtime `TileMap` data.
+- [x] Add explicit conversion from editable/runtime room data back into file DTOs.
 - [x] Centralize JSON5 marshal options for readable, deterministic output.
 - [ ] Choose and consistently apply the room filename extension and content directory convention.
 
@@ -105,10 +105,10 @@ The target workflow is:
 - [ ] Marshal and unmarshal file DTOs with `core:encoding/json`; do not maintain a custom tokenizer or general parser.
 - [ ] Support comments and trailing commas on input through JSON5.
 - [ ] Add tests for missing required fields, defaults, unknown entity types, malformed JSON5, and type mismatches.
-- [ ] Add deterministic JSON5 semantic round-trip tests for every entity DTO.
+- [x] Add deterministic JSON5 semantic round-trip tests for every entity DTO.
 - [ ] Return load failures with the file path and a useful parse, conversion, or validation reason.
 - [x] Verify layer lengths against room width and height.
-- [ ] Ensure allocations from failed and successful loads have explicit ownership and cleanup.
+- [x] Ensure allocations from failed and successful loads have explicit ownership and cleanup.
 - [ ] Validate after every load and before every editor save.
 - [ ] Save maps atomically so an interrupted save cannot destroy the previous file.
 

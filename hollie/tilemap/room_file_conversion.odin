@@ -1,0 +1,188 @@
+package tilemap
+
+import "core:strings"
+
+Room_File_Conversion_Error_Kind :: enum {
+	none,
+	invalid_entity_type,
+}
+
+Room_File_Conversion_Error :: struct {
+	kind:         Room_File_Conversion_Error_Kind,
+	entity_index: int,
+}
+
+room_file_to_tilemap :: proc(room: Room_File, allocator := context.allocator) -> TileMap {
+	tm := TileMap {
+		width = room.size.width,
+		height = room.size.height,
+		tile_size = room.tileset.tile_size,
+		tileset_path = strings.clone(room.tileset.path, allocator),
+		config = {tile_size = room.tileset.tile_size, tileset_cols = room.tileset.columns},
+		room_id = strings.clone(room.id, allocator),
+		room_name = strings.clone(room.name, allocator),
+		music_path = strings.clone(room.music_path, allocator),
+		camera_bounds = {
+			x = room.camera_bounds.x,
+			y = room.camera_bounds.y,
+			width = room.camera_bounds.width,
+			height = room.camera_bounds.height,
+		},
+		collision_bounds = {
+			x = room.collision_bounds.x,
+			y = room.collision_bounds.y,
+			width = room.collision_bounds.width,
+			height = room.collision_bounds.height,
+		},
+	}
+
+	tm.base_tiles = make([]TileType, len(room.layers.base), allocator)
+	for tile, index in room.layers.base {
+		tm.base_tiles[index] = TileType(tile)
+	}
+	tm.deco_tiles = make([]TileType, len(room.layers.decoration), allocator)
+	for tile, index in room.layers.decoration {
+		tm.deco_tiles[index] = TileType(tile)
+	}
+
+	tm.entities = make([]EntityData, len(room.entities), allocator)
+	for file_entity, entity_index in room.entities {
+		entity := &tm.entities[entity_index]
+		entity.instance_id = strings.clone(file_entity.id, allocator)
+		entity.x = file_entity.position.x
+		entity.y = file_entity.position.y
+		entity.width = TILE_SIZE
+		entity.height = TILE_SIZE
+		entity.required_triggers = make([dynamic]int, allocator)
+
+		switch properties in file_entity.properties {
+		case Room_File_Player:
+			entity.entity_type = .PLAYER
+			entity.player_index = properties.player_index
+		case Room_File_Enemy:
+			entity.entity_type = .ENEMY
+			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
+		case Room_File_NPC:
+			entity.entity_type = .NPC
+			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
+		case Room_File_Holdable:
+			entity.entity_type = .HOLDABLE
+			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
+		case Room_File_Door:
+			entity.entity_type = .DOOR
+			entity.width = properties.size.width
+			entity.height = properties.size.height
+			entity.target_room = strings.clone(properties.target_room_id, allocator)
+			entity.target_door = strings.clone(properties.target_door_id, allocator)
+		case Room_File_Pressure_Plate:
+			entity.entity_type = .PRESSURE_PLATE
+			entity.width = 32
+			entity.height = 32
+			entity.trigger_id = properties.trigger_id
+			entity.requires_both = properties.requires_both
+		case Room_File_Gate:
+			entity.entity_type = .GATE
+			entity.gate_id = properties.gate_id
+			entity.width = properties.size.width
+			entity.height = properties.size.height
+			entity.inverted = properties.inverted
+			for trigger_id in properties.required_trigger_ids {
+				append(&entity.required_triggers, trigger_id)
+			}
+		}
+	}
+
+	return tm
+}
+
+tilemap_to_room_file :: proc(
+	tm: TileMap,
+	allocator := context.allocator,
+) -> (
+	room: Room_File,
+	err: Room_File_Conversion_Error,
+) {
+	room.id = strings.clone(tm.room_id, allocator)
+	room.name = strings.clone(tm.room_name, allocator)
+	room.music_path = strings.clone(tm.music_path, allocator)
+	room.size = {
+		width  = tm.width,
+		height = tm.height,
+	}
+	room.tileset = {
+		path      = strings.clone(tm.tileset_path, allocator),
+		tile_size = tm.config.tile_size,
+		columns   = tm.config.tileset_cols,
+	}
+	room.camera_bounds = {
+		x      = tm.camera_bounds.x,
+		y      = tm.camera_bounds.y,
+		width  = tm.camera_bounds.width,
+		height = tm.camera_bounds.height,
+	}
+	room.collision_bounds = {
+		x      = tm.collision_bounds.x,
+		y      = tm.collision_bounds.y,
+		width  = tm.collision_bounds.width,
+		height = tm.collision_bounds.height,
+	}
+	room.layers.base = make([]u16, len(tm.base_tiles), allocator)
+	for tile, index in tm.base_tiles {
+		room.layers.base[index] = u16(tile)
+	}
+	room.layers.decoration = make([]u16, len(tm.deco_tiles), allocator)
+	for tile, index in tm.deco_tiles {
+		room.layers.decoration[index] = u16(tile)
+	}
+
+	room.entities = make([]Room_File_Entity, len(tm.entities), allocator)
+	for entity, entity_index in tm.entities {
+		if int(entity.entity_type) < int(EntityType.PLAYER) ||
+		   int(entity.entity_type) > int(EntityType.DOOR) {
+			destroy_room_file(&room, allocator)
+			return {}, {kind = .invalid_entity_type, entity_index = entity_index}
+		}
+
+		file_entity := &room.entities[entity_index]
+		file_entity.id = strings.clone(entity.instance_id, allocator)
+		file_entity.position = {
+			x = entity.x,
+			y = entity.y,
+		}
+
+		switch entity.entity_type {
+		case .PLAYER: file_entity.properties = Room_File_Player {
+					player_index = entity.player_index,
+				}
+		case .ENEMY: file_entity.properties = Room_File_Enemy {
+					archetype_id = strings.clone(entity.archetype_id, allocator),
+				}
+		case .NPC: file_entity.properties = Room_File_NPC {
+					archetype_id = strings.clone(entity.archetype_id, allocator),
+				}
+		case .HOLDABLE: file_entity.properties = Room_File_Holdable {
+					archetype_id = strings.clone(entity.archetype_id, allocator),
+				}
+		case .DOOR: file_entity.properties = Room_File_Door {
+					size = {width = entity.width, height = entity.height},
+					target_room_id = strings.clone(entity.target_room, allocator),
+					target_door_id = strings.clone(entity.target_door, allocator),
+				}
+		case .PRESSURE_PLATE: file_entity.properties = Room_File_Pressure_Plate {
+					trigger_id    = entity.trigger_id,
+					requires_both = entity.requires_both,
+				}
+		case .GATE:
+			required_trigger_ids := make([]int, len(entity.required_triggers), allocator)
+			copy(required_trigger_ids, entity.required_triggers[:])
+			file_entity.properties = Room_File_Gate {
+				gate_id = entity.gate_id,
+				size = {width = entity.width, height = entity.height},
+				required_trigger_ids = required_trigger_ids,
+				inverted = entity.inverted,
+			}
+		}
+	}
+
+	return
+}
