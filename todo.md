@@ -147,12 +147,12 @@ The target workflow is:
 
 ### Room registry
 
-- [ ] Replace the `Room` enum and `ROOM_PATHS` table with a room registry keyed by `room_id`.
-- [ ] Discover room files from the content tree or a generated manifest without requiring gameplay-code edits.
-- [ ] Store the current and pending room as stable room IDs.
-- [ ] Resolve door transitions through the room registry.
-- [ ] Populate editor room choices from the same registry.
-- [ ] Validate duplicate IDs and room/file mismatches during catalog loading.
+- [x] Replace the `Room` enum and `ROOM_PATHS` table with a room registry keyed by `room_id`.
+- [x] Discover room files from the content tree without requiring gameplay-code edits.
+- [x] Store the current and pending room as stable room IDs.
+- [x] Resolve door transitions through the room registry.
+- [x] Populate editor room choices from the same registry.
+- [x] Validate duplicate IDs and room/file mismatches during catalog loading.
 
 ### Archetype registries
 

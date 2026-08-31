@@ -2,6 +2,7 @@ package hollie
 
 import "asset"
 import "audio"
+import "core:strings"
 import "core:time"
 import "gui"
 import "input"
@@ -10,33 +11,26 @@ import "tilemap"
 import "tween"
 import rl "vendor:raylib"
 
-Room :: enum {
-	OLIVEWOOD,
-	DESERT,
-	SMALL_ROOM,
-}
+INITIAL_ROOM_ID :: "small_room"
 
-ROOM_PATHS := [Room]string {
-	.OLIVEWOOD  = "maps/olivewood.json",
-	.DESERT     = "maps/desert.json",
-	.SMALL_ROOM = "maps/small_room.json",
-}
+@(private)
+gameplay_room_registry: Room_Registry
 
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
 	current_tilemap:     tilemap.TileMap,
-	current_room:        Room,
+	current_room_id:     string,
 	is_transitioning:    bool,
 	transition_opacity:  f32,
-	pending_room:        Maybe(Room),
+	pending_room_id:     Maybe(string),
 	pending_target_door: string,
 	doors_enabled:       bool,
 } {
-	current_room       = .SMALL_ROOM,
+	current_room_id    = INITIAL_ROOM_ID,
 	is_transitioning   = false,
 	transition_opacity = 0.0,
-	pending_room       = nil,
+	pending_room_id    = nil,
 }
 
 when ODIN_DEBUG {
@@ -45,6 +39,18 @@ when ODIN_DEBUG {
 }
 
 init_gameplay_screen :: proc() {
+	if gameplay_state.current_room_id == "" {
+		gameplay_state.current_room_id = INITIAL_ROOM_ID
+	}
+	maps_directory := asset.path(tilemap.ROOM_FILE_RESOURCE_DIRECTORY)
+	defer delete(maps_directory)
+	resource_root := asset.path("")
+	defer delete(resource_root)
+	registry_error: Room_Registry_Error
+	gameplay_room_registry, registry_error = room_registry_load(maps_directory, resource_root)
+	assert(registry_error.kind == .none, registry_error.message)
+	destroy_room_registry_error(&registry_error)
+
 	camera_init()
 	dialog_init()
 	entity_system_init()
@@ -57,7 +63,7 @@ init_gameplay_screen :: proc() {
 		editor_init()
 	}
 
-	gameplay_load_room(gameplay_state.current_room)
+	gameplay_load_room(gameplay_state.current_room_id)
 	gameplay_state.doors_enabled = false // Disable doors until players move away from spawn
 }
 
@@ -89,14 +95,15 @@ update_gameplay_screen :: proc() {
 	}
 
 	// Handle transition state - switch level at peak opacity
-	if pending, has_pending := gameplay_state.pending_room.?;
+	if pending, has_pending := gameplay_state.pending_room_id.?;
 	   has_pending &&
 	   gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity >= 0.99 {
 
 		gameplay_load_room(pending, gameplay_state.pending_target_door)
 
-		gameplay_state.pending_room = nil
+		gameplay_state.pending_room_id = nil
+		delete(gameplay_state.pending_target_door)
 		gameplay_state.pending_target_door = ""
 		gameplay_state.doors_enabled = false // Disable doors until players move away
 
@@ -111,7 +118,7 @@ update_gameplay_screen :: proc() {
 	// End transition when fade out completes
 	if gameplay_state.is_transitioning &&
 	   gameplay_state.transition_opacity <= 0.01 &&
-	   gameplay_state.pending_room == nil {
+	   gameplay_state.pending_room_id == nil {
 		gameplay_state.is_transitioning = false
 		gameplay_state.transition_opacity = 0.0
 	}
@@ -146,19 +153,17 @@ update_gameplay_screen :: proc() {
 			for player in players {
 				door := entity_check_door_collision(player.position)
 				if door != nil {
+				target_room, found := room_registry_find(
+						&gameplay_room_registry,
+						door.target_room,
+					)
+					if !found do continue
+
 					gameplay_state.is_transitioning = true
 					gameplay_state.doors_enabled = false // Disable doors during transition
-
-					if door.target_room == "desert" {
-						gameplay_state.pending_room = .DESERT
-						gameplay_state.pending_target_door = door.target_door
-					} else if door.target_room == "olivewood" {
-						gameplay_state.pending_room = .OLIVEWOOD
-						gameplay_state.pending_target_door = door.target_door
-					} else if door.target_room == "small_room" {
-						gameplay_state.pending_room = .SMALL_ROOM
-						gameplay_state.pending_target_door = door.target_door
-					}
+					gameplay_state.pending_room_id = target_room.id
+					delete(gameplay_state.pending_target_door)
+					gameplay_state.pending_target_door = strings.clone(door.target_door)
 
 					tween.to(
 						&gameplay_state.transition_opacity,
@@ -235,6 +240,11 @@ unload_gameplay_screen :: proc() {
 	shader_fini()
 	room_fini()
 	tilemap.destroy_tilemap(&gameplay_state.current_tilemap)
+	delete(gameplay_state.pending_target_door)
+	gameplay_state.pending_target_door = ""
+	gameplay_state.pending_room_id = nil
+	gameplay_state.current_room_id = ""
+	destroy_room_registry(&gameplay_room_registry)
 	entity_system_fini()
 	particle_system_fini()
 }
@@ -247,25 +257,31 @@ draw_transition_overlay :: proc() {
 	}
 }
 
-gameplay_get_current_room :: proc() -> Room {
-	return gameplay_state.current_room
+gameplay_get_current_room :: proc() -> string {
+	return gameplay_state.current_room_id
 }
 
 gameplay_get_current_room_path :: proc() -> string {
-	return ROOM_PATHS[gameplay_state.current_room]
+	room, found := room_registry_find(&gameplay_room_registry, gameplay_state.current_room_id)
+	assert(found, "current room must be registered")
+	return room.path
 }
 
-gameplay_load_room :: proc(room: Room, target_door: string = "") {
-	map_path := asset.path(ROOM_PATHS[room])
-	defer delete(map_path)
+gameplay_get_room_registry :: proc() -> ^Room_Registry {
+	return &gameplay_room_registry
+}
+
+gameplay_load_room :: proc(room_id: string, target_door: string = "") {
+	room, found := room_registry_find(&gameplay_room_registry, room_id)
+	assert(found, "requested room must be registered")
 	resource_root := asset.path("")
 	defer delete(resource_root)
-	tilemap_result, load_error := tilemap.load_tilemap_file(map_path, resource_root)
+	tilemap_result, load_error := tilemap.load_tilemap_file(room.path, resource_root)
 	assert(load_error.kind == .none, load_error.message)
 	tilemap.destroy_room_file_io_error(&load_error)
 
 	previous_tilemap := gameplay_state.current_tilemap
-	gameplay_state.current_room = room
+	gameplay_state.current_room_id = room.id
 	gameplay_state.current_tilemap = tilemap_result
 	room_init(&gameplay_state.current_tilemap, target_door)
 	tilemap.destroy_tilemap(&previous_tilemap)

@@ -440,9 +440,7 @@ editor_handle_ui_input :: proc() {
 }
 
 editor_save_current_tilemap :: proc() {
-	room_path := gameplay_get_current_room_path()
-	full_path := asset.path(room_path)
-	defer delete(full_path)
+	full_path := gameplay_get_current_room_path()
 	resource_root := asset.path("")
 	defer delete(resource_root)
 	save_error := tilemap.save_tilemap_file_atomic(
@@ -520,11 +518,12 @@ editor_erase_tile :: proc(tile_x, tile_y: int) {
 
 
 editor_cycle_room_name :: proc(room_name: ^string, direction: int) {
-	room_names := []string{"", "desert", "olivewood", "small_room"}
+	registry := gameplay_get_room_registry()
+	if len(registry.entries) == 0 do return
 
 	current_index := -1
-	for name, i in room_names {
-		if name == room_name^ {
+	for room, i in registry.entries {
+		if room.id == room_name^ {
 			current_index = i
 			break
 		}
@@ -532,8 +531,8 @@ editor_cycle_room_name :: proc(room_name: ^string, direction: int) {
 
 	if current_index == -1 do current_index = 0
 
-	new_index := (current_index + direction + len(room_names)) % len(room_names)
-	editor_replace_string(room_name, room_names[new_index])
+	new_index := (current_index + direction + len(registry.entries)) % len(registry.entries)
+	editor_replace_string(room_name, registry.entries[new_index].id)
 }
 
 editor_cycle_door_name :: proc(door_name: ^string) {
