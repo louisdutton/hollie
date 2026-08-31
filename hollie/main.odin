@@ -21,16 +21,18 @@ App_State :: enum {
 }
 
 Game_State :: struct {
-	state:  App_State,
-	scene:  Scene,
-	font:   renderer.Font,
-	music:  audio.Music,
-	sounds: audio.Sound_Map,
+	state:        App_State,
+	scene:        Scene,
+	player_count: int,
+	font:         renderer.Font,
+	music:        audio.Music,
+	sounds:       audio.Sound_Map,
 }
 
 game: Game_State = {
-	state = .ACTIVE,
-	scene = .GAMEPLAY,
+	state        = .ACTIVE,
+	scene        = .TITLE,
+	player_count = 1,
 }
 
 main :: proc() {

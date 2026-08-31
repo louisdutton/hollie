@@ -160,11 +160,12 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		spawn_door = doors[0]
 	}
 
-	// Spawn both players at the chosen door
 	if spawn_door != nil {
 		spawn_pos := spawn_door.position + Vec2{0, 48} // Offset further down from door
 		player_spawn_at(spawn_pos, input.Player_Index.PLAYER_1)
-		player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.PLAYER_2) // Player 2 slightly offset
+		if game.player_count == 2 {
+			player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.PLAYER_2)
+		}
 	}
 
 	room_state.is_loaded = true

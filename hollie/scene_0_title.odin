@@ -26,7 +26,7 @@ title_state := struct {
 	selected_index = 0,
 	gamepad_nav_timer = 0.0,
 	menu_item_counts = {
-		.MAIN     = 3, // Start Game, Options, Exit Game
+		.MAIN     = 4, // 1 Player, 2 Players, Options, Exit Game
 		.OPTIONS  = 4, // Audio, Visual, Controls, Back
 		.AUDIO    = 4, // Master Volume, Music Volume, SFX Volume, Back
 		.VISUAL   = 1, // Back (non-interactive elements don't count for navigation)
@@ -147,22 +147,29 @@ title_draw_main_menu :: proc() {
 	button_x := menu_x + (menu_width - button_width) / 2
 	start_y := menu_y + 60
 
-	// Start Game button
-	start_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(start_rect, "Start Game", title_state.selected_index == 0) {
+	// Game mode buttons
+	one_player_rect := renderer.Rect{button_x, start_y, button_width, button_height}
+	if gui.button(one_player_rect, "1 Player", title_state.selected_index == 0) {
+		game.player_count = 1
+		set_scene(.GAMEPLAY)
+	}
+
+	two_player_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
+	if gui.button(two_player_rect, "2 Players", title_state.selected_index == 1) {
+		game.player_count = 2
 		set_scene(.GAMEPLAY)
 	}
 
 	// Options button
-	options_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(options_rect, "Options", title_state.selected_index == 1) {
+	options_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
+	if gui.button(options_rect, "Options", title_state.selected_index == 2) {
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}
 
 	// Exit Game button
-	exit_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(exit_rect, "Exit Game", title_state.selected_index == 2) {
+	exit_rect := renderer.Rect{button_x, start_y + 180, button_width, button_height}
+	if gui.button(exit_rect, "Exit Game", title_state.selected_index == 3) {
 		game.state = .EXITING
 	}
 }
@@ -319,11 +326,16 @@ title_update :: proc(delta_time: f32) {
 title_activate_selected_item :: proc() {
 	switch title_state.menu_state {
 	case .MAIN: switch title_state.selected_index {
-			case 0: set_scene(.GAMEPLAY)
+			case 0:
+				game.player_count = 1
+				set_scene(.GAMEPLAY)
 			case 1:
+				game.player_count = 2
+				set_scene(.GAMEPLAY)
+			case 2:
 				title_state.menu_state = .OPTIONS
 				title_state.selected_index = 0
-			case 2: game.state = .EXITING
+			case 3: game.state = .EXITING
 			}
 	case .OPTIONS: switch title_state.selected_index {
 			case 0:
