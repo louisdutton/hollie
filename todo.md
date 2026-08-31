@@ -128,7 +128,7 @@ The target workflow is:
 ### Coordinated conversion
 
 - [x] Convert all three shipped maps to JSON in one coordinated content change.
-- [ ] Switch runtime room loading to the JSON5 DTO pipeline.
+- [x] Switch runtime room loading to the JSON DTO pipeline.
 - [ ] Switch in-game editor saving and reloading to the same JSON5 DTO pipeline.
 - [x] Switch the standalone validator and shipped-map tests to discover and read JSON rooms.
 - [x] Verify semantic parity for room metadata, tile layers, every entity, and every entity property.

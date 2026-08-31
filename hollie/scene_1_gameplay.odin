@@ -17,9 +17,9 @@ Room :: enum {
 }
 
 ROOM_PATHS := [Room]string {
-	.OLIVEWOOD  = "maps/olivewood.map",
-	.DESERT     = "maps/desert.map",
-	.SMALL_ROOM = "maps/room.map",
+	.OLIVEWOOD  = "maps/olivewood.json",
+	.DESERT     = "maps/desert.json",
+	.SMALL_ROOM = "maps/small_room.json",
 }
 
 // Gameplay Screen
@@ -234,6 +234,7 @@ unload_gameplay_screen :: proc() {
 	pause_close()
 	shader_fini()
 	room_fini()
+	tilemap.destroy_tilemap(&gameplay_state.current_tilemap)
 	entity_system_fini()
 	particle_system_fini()
 }
@@ -255,14 +256,17 @@ gameplay_get_current_room_path :: proc() -> string {
 }
 
 gameplay_load_room :: proc(room: Room, target_door: string = "") {
-	gameplay_state.current_room = room
 	map_path := asset.path(ROOM_PATHS[room])
+	resource_root := asset.path("")
+	tilemap_result, load_error := tilemap.load_tilemap_file(map_path, resource_root)
+	assert(load_error.kind == .none, load_error.message)
+	tilemap.destroy_room_file_io_error(&load_error)
 
-	tilemap_result, ok := tilemap.from_file(map_path)
-	assert(ok, "statically-known maps must load")
+	previous_tilemap := gameplay_state.current_tilemap
+	gameplay_state.current_room = room
 	gameplay_state.current_tilemap = tilemap_result
-
 	room_init(&gameplay_state.current_tilemap, target_door)
+	tilemap.destroy_tilemap(&previous_tilemap)
 }
 
 // updates the tilemap of the current room

@@ -129,7 +129,13 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case .HOLDABLE: entity_create_holdable(position, asset.path(entity.texture_path))
+		case .HOLDABLE:
+			texture_path := ""
+			switch entity.archetype_id {
+			case "wood": texture_path = "art/elements/crops/wood.png"
+			case: assert(false, "unknown holdable archetype")
+			}
+			entity_create_holdable(position, asset.path(texture_path))
 		case .NPC: entity_create_npc(position, human_animations[:], test_dialog)
 		case .DOOR:
 			entity_create_door(
