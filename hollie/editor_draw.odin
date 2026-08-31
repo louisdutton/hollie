@@ -470,35 +470,15 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 			"[Y: next]",
 		)
 
-	case .NPC:
+	case .ENEMY, .NPC, .HOLDABLE:
 		editor_draw_string_field(
 				panel_x,
 				panel_y,
 				&y_offset,
-				"Texture Path:",
-				&entity.texture_path,
+				"Archetype ID:",
+				&entity.archetype_id,
 				"[A/B: next/previous]",
 			)
-
-	case .HOLDABLE:
-		editor_draw_string_field(
-				panel_x,
-				panel_y,
-				&y_offset,
-				"Texture Path:",
-				&entity.texture_path,
-				"[A/B: next/previous]",
-			)
-
-	case .ENEMY:
-		renderer.draw_text(
-			"No editable properties",
-			int(panel_x + 10),
-			int(panel_y + y_offset),
-			14,
-			{150, 150, 150, 255},
-		)
-		y_offset += 20
 	}
 
 	// Instructions

@@ -2,6 +2,7 @@ package hollie
 
 import "asset"
 import "core:fmt"
+import "core:strings"
 import "input"
 import "renderer"
 import "tilemap"
@@ -195,13 +196,13 @@ editor_handle_entity_editing :: proc() {
 			editor_state.edit_input_timer = 0.15
 		}
 
-	case .NPC, .HOLDABLE:
+	case .ENEMY, .NPC, .HOLDABLE:
 		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
-			editor_cycle_texture_path(&entity.texture_path, 1)
+			editor_cycle_archetype_id(entity, 1)
 			editor_state.edit_input_timer = 0.15
 		}
 		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
-			editor_cycle_texture_path(&entity.texture_path, -1)
+			editor_cycle_archetype_id(entity, -1)
 			editor_state.edit_input_timer = 0.15
 		}
 	}
@@ -212,8 +213,7 @@ editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
 	case .PRESSURE_PLATE: return entity.trigger_id != 0
 	case .GATE: return entity.gate_id != 0 || len(entity.required_triggers) > 0
 	case .DOOR: return entity.target_room != "" || entity.target_door != ""
-	case .NPC: return entity.texture_path != ""
-	case .HOLDABLE: return entity.texture_path != ""
+	case .ENEMY, .NPC, .HOLDABLE: return entity.archetype_id != ""
 	}
 	return false
 }
@@ -442,10 +442,17 @@ editor_handle_ui_input :: proc() {
 editor_save_current_tilemap :: proc() {
 	room_path := gameplay_get_current_room_path()
 	full_path := asset.path(room_path)
-	if tilemap.to_file(full_path) {
+	resource_root := asset.path("")
+	save_error := tilemap.save_tilemap_file_atomic(
+		full_path,
+		tilemap.get_current_tilemap(),
+		resource_root,
+	)
+	defer tilemap.destroy_room_file_io_error(&save_error)
+	if save_error.kind == .none {
 		fmt.println("Tilemap saved to:", full_path)
 	} else {
-		fmt.println("Failed to save tilemap to:", full_path)
+		fmt.println("Failed to save tilemap:", save_error.message)
 	}
 }
 
@@ -524,7 +531,7 @@ editor_cycle_room_name :: proc(room_name: ^string, direction: int) {
 	if current_index == -1 do current_index = 0
 
 	new_index := (current_index + direction + len(room_names)) % len(room_names)
-	room_name^ = room_names[new_index]
+	editor_replace_string(room_name, room_names[new_index])
 }
 
 editor_cycle_door_name :: proc(door_name: ^string) {
@@ -548,15 +555,21 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 	if current_index == -1 do current_index = 0
 
 	new_index := (current_index + 1) % len(door_names)
-	door_name^ = door_names[new_index]
+	editor_replace_string(door_name, door_names[new_index])
 }
 
-editor_cycle_texture_path :: proc(texture_path: ^string, direction: int) {
-	texture_paths := []string{"", "sprites/npc.png", "sprites/holdable.png", "sprites/item.png"}
+editor_cycle_archetype_id :: proc(entity: ^tilemap.EntityData, direction: int) {
+	archetype_ids: []string
+	#partial switch entity.entity_type {
+	case .ENEMY: archetype_ids = []string{"goblin"}
+	case .NPC: archetype_ids = []string{"human"}
+	case .HOLDABLE: archetype_ids = []string{"wood"}
+	case: return
+	}
 
 	current_index := -1
-	for path, i in texture_paths {
-		if path == texture_path^ {
+	for archetype_id, i in archetype_ids {
+		if archetype_id == entity.archetype_id {
 			current_index = i
 			break
 		}
@@ -564,8 +577,14 @@ editor_cycle_texture_path :: proc(texture_path: ^string, direction: int) {
 
 	if current_index == -1 do current_index = 0
 
-	new_index := (current_index + direction + len(texture_paths)) % len(texture_paths)
-	texture_path^ = texture_paths[new_index]
+	new_index := (current_index + direction + len(archetype_ids)) % len(archetype_ids)
+	editor_replace_string(&entity.archetype_id, archetype_ids[new_index])
+}
+
+editor_replace_string :: proc(destination: ^string, value: string) {
+	if destination^ == value do return
+	delete(destination^)
+	destination^ = strings.clone(value)
 }
 
 editor_fini :: proc() {

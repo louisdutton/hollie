@@ -129,7 +129,7 @@ The target workflow is:
 
 - [x] Convert all three shipped maps to JSON in one coordinated content change.
 - [x] Switch runtime room loading to the JSON DTO pipeline.
-- [ ] Switch in-game editor saving and reloading to the same JSON5 DTO pipeline.
+- [x] Switch in-game editor saving and reloading to the same JSON DTO pipeline.
 - [x] Switch the standalone validator and shipped-map tests to discover and read JSON rooms.
 - [x] Verify semantic parity for room metadata, tile layers, every entity, and every entity property.
 - [ ] Remove the legacy positional serializer, parser, fixtures, and tests only after parity checks pass.
@@ -140,7 +140,7 @@ The target workflow is:
 - [ ] Corrupt or semantically invalid content cannot reach runtime assertions or unchecked indexing.
 - [x] Every converted map passes the standalone validator.
 - [x] Every converted map produces deterministic JSON and round-trips without semantic changes.
-- [ ] Runtime loading, editor saving, and validation all use the same file DTO definitions.
+- [x] Runtime loading, editor saving, and validation all use the same file DTO definitions.
 - [ ] The legacy custom syntax and parser are no longer used.
 
 ## Milestone 2 — Introduce a data-driven content catalog
