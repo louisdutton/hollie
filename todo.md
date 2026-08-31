@@ -86,17 +86,17 @@ The target workflow is:
 
 ### Typed entity DTOs
 
-- [ ] Give every placed entity a stable instance ID, stable type discriminator, position, and type-specific properties.
+- [x] Give every placed entity a stable instance ID, stable type discriminator, position, and type-specific properties.
 - [ ] Add typed file data for:
-  - [ ] player spawns;
-  - [ ] enemy spawns;
-  - [ ] NPC spawns;
-  - [ ] holdables;
-  - [ ] doors;
-  - [ ] pressure plates;
-  - [ ] gates.
-- [ ] Implement the small discriminated decode/encode layer needed around JSON's untagged union behavior.
-- [ ] Replace numeric entity types and positional fields with stable names and named properties.
+  - [x] player spawns;
+  - [x] enemy spawns;
+  - [x] NPC spawns;
+  - [x] holdables;
+  - [x] doors;
+  - [x] pressure plates;
+  - [x] gates.
+- [x] Implement the small discriminated decode/encode layer needed around JSON's untagged union behavior.
+- [x] Replace numeric entity types and positional fields with stable names and named properties.
 - [ ] Define required fields, optional fields, and defaults once for each entity type.
 - [ ] Reject unknown entity type names and report unsupported or unknown properties clearly.
 

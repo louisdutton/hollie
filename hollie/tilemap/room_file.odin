@@ -25,7 +25,7 @@ Room_File_Layers :: struct {
 	decoration: []u16,
 }
 
-Room_File :: struct {
+Room_File_Common :: struct {
 	id:               string,
 	name:             string,
 	music_path:       string `json:"music_path,omitempty"`,
@@ -34,6 +34,39 @@ Room_File :: struct {
 	camera_bounds:    Room_File_Bounds,
 	collision_bounds: Room_File_Bounds,
 	layers:           Room_File_Layers,
+}
+
+Room_File :: struct {
+	using _:  Room_File_Common,
+	entities: []Room_File_Entity `json:"entities,omitempty"`,
+}
+
+Room_File_Wire :: struct {
+	using _:  Room_File_Common,
+	entities: []Room_File_Entity_Wire `json:"entities,omitempty"`,
+}
+
+Room_File_Decode_Error_Kind :: enum {
+	none,
+	invalid_json5,
+	unknown_entity_type,
+	invalid_entity_properties,
+}
+
+Room_File_Decode_Error :: struct {
+	kind:         Room_File_Decode_Error_Kind,
+	entity_index: int,
+}
+
+Room_File_Encode_Error_Kind :: enum {
+	none,
+	invalid_entity_properties,
+	json_encoding_failed,
+}
+
+Room_File_Encode_Error :: struct {
+	kind:         Room_File_Encode_Error_Kind,
+	entity_index: int,
 }
 
 room_file_json5_options :: proc() -> json.Marshal_Options {
@@ -52,11 +85,41 @@ decode_room_file_json5 :: proc(
 	allocator := context.allocator,
 ) -> (
 	room: Room_File,
-	err: json.Unmarshal_Error,
+	err: Room_File_Decode_Error,
 ) {
-	err = json.unmarshal_string(content, &room, .JSON5, allocator)
-	if err != nil {
-		destroy_room_file(&room, allocator)
+	wire: Room_File_Wire
+	json_error := json.unmarshal_string(content, &wire, .JSON5, allocator)
+	if json_error != nil {
+		destroy_room_file_wire(&wire, allocator)
+		return {}, {kind = .invalid_json5, entity_index = -1}
+	}
+	defer destroy_room_file_wire(&wire, allocator)
+
+	room.id = wire.id
+	wire.id = ""
+	room.name = wire.name
+	wire.name = ""
+	room.music_path = wire.music_path
+	wire.music_path = ""
+	room.size = wire.size
+	room.tileset = wire.tileset
+	wire.tileset.path = ""
+	room.camera_bounds = wire.camera_bounds
+	room.collision_bounds = wire.collision_bounds
+	room.layers = wire.layers
+	wire.layers = {}
+
+	room.entities = make([]Room_File_Entity, len(wire.entities), allocator)
+	for wire_entity, entity_index in wire.entities {
+		room.entities[entity_index], err = decode_room_file_entity(
+			wire_entity,
+			entity_index,
+			allocator,
+		)
+		if err.kind != .none {
+			destroy_room_file(&room, allocator)
+			return
+		}
 	}
 	return
 }
@@ -66,9 +129,34 @@ encode_room_file_json5 :: proc(
 	allocator := context.allocator,
 ) -> (
 	data: []byte,
-	err: json.Marshal_Error,
+	err: Room_File_Encode_Error,
 ) {
-	return json.marshal(room, room_file_json5_options(), allocator)
+	wire: Room_File_Wire
+	wire.id = room.id
+	wire.name = room.name
+	wire.music_path = room.music_path
+	wire.size = room.size
+	wire.tileset = room.tileset
+	wire.camera_bounds = room.camera_bounds
+	wire.collision_bounds = room.collision_bounds
+	wire.layers = room.layers
+	wire.entities = make([]Room_File_Entity_Wire, len(room.entities), allocator)
+	defer destroy_encoded_room_file_wire(&wire, allocator)
+
+	for entity, entity_index in room.entities {
+		wire.entities[entity_index], err = encode_room_file_entity(entity, entity_index, allocator)
+		if err.kind != .none do return
+	}
+
+	marshal_error: json.Marshal_Error
+	data, marshal_error = json.marshal(wire, room_file_json5_options(), allocator)
+	if marshal_error != nil {
+		err = {
+			kind         = .json_encoding_failed,
+			entity_index = -1,
+		}
+	}
+	return
 }
 
 destroy_room_file :: proc(room: ^Room_File, allocator := context.allocator) {
@@ -80,5 +168,36 @@ destroy_room_file :: proc(room: ^Room_File, allocator := context.allocator) {
 	delete(room.tileset.path, allocator)
 	delete(room.layers.base, allocator)
 	delete(room.layers.decoration, allocator)
+	for &entity in room.entities {
+		destroy_room_file_entity(&entity, allocator)
+	}
+	delete(room.entities, allocator)
 	room^ = {}
+}
+
+destroy_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.allocator) {
+	if wire == nil do return
+
+	delete(wire.id, allocator)
+	delete(wire.name, allocator)
+	delete(wire.music_path, allocator)
+	delete(wire.tileset.path, allocator)
+	delete(wire.layers.base, allocator)
+	delete(wire.layers.decoration, allocator)
+	for &entity in wire.entities {
+		delete(entity.id, allocator)
+		json.destroy_value(entity.properties, allocator)
+	}
+	delete(wire.entities, allocator)
+	wire^ = {}
+}
+
+destroy_encoded_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.allocator) {
+	if wire == nil do return
+
+	for &entity in wire.entities {
+		json.destroy_value(entity.properties, allocator)
+	}
+	delete(wire.entities, allocator)
+	wire^ = {}
 }
