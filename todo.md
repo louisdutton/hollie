@@ -98,7 +98,7 @@ The target workflow is:
 - [x] Implement the small discriminated decode/encode layer needed around JSON's untagged union behavior.
 - [x] Replace numeric entity types and positional fields with stable names and named properties.
 - [ ] Define required fields, optional fields, and defaults once for each entity type.
-- [ ] Reject unknown entity type names and report unsupported or unknown properties clearly.
+- [x] Reject unknown entity type names and report unsupported or unknown properties clearly.
 
 ### JSON5 serde and diagnostics
 

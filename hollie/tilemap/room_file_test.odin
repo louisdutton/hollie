@@ -25,31 +25,31 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 		{
 			id: 'player_one_spawn',
 			type: 'player',
-			position: {x: 16, y: 32},
+			position: {x: 0, y: 0},
 			properties: {player_index: 1},
 		},
 		{
 			id: 'goblin_one',
 			type: 'enemy',
-			position: {x: 32, y: 32},
+			position: {x: 16, y: 0},
 			properties: {archetype_id: 'goblin'},
 		},
 		{
 			id: 'villager',
 			type: 'npc',
-			position: {x: 48, y: 32},
+			position: {x: 0, y: 0},
 			properties: {archetype_id: 'human'},
 		},
 		{
 			id: 'wood',
 			type: 'holdable',
-			position: {x: 64, y: 32},
+			position: {x: 16, y: 0},
 			properties: {archetype_id: 'wood'},
 		},
 		{
 			id: 'to_desert',
 			type: 'door',
-			position: {x: 80, y: 32},
+			position: {x: 0, y: 0},
 			properties: {
 				size: {width: 32, height: 64},
 				target_room_id: 'desert',
@@ -59,13 +59,13 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 		{
 			id: 'plate_one',
 			type: 'pressure_plate',
-			position: {x: 96, y: 32},
+			position: {x: 16, y: 0},
 			properties: {trigger_id: 1, requires_both: true},
 		},
 		{
 			id: 'gate_one',
 			type: 'gate',
-			position: {x: 112, y: 32},
+			position: {x: 0, y: 0},
 			properties: {
 				gate_id: 1,
 				size: {width: 64, height: 16},
@@ -194,8 +194,10 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 		}],
 	}`,
 	)
+	defer destroy_room_file_decode_error(&unknown_error)
 	testing.expect_value(t, unknown_error.kind, Room_File_Decode_Error_Kind.unknown_entity_type)
 	testing.expect_value(t, unknown_error.entity_index, 0)
+	testing.expect_value(t, unknown_error.message, `unknown entity type "teleporter"`)
 
 	_, properties_error := decode_room_file_json5(
 		`{
@@ -207,12 +209,35 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 		}],
 	}`,
 	)
+	defer destroy_room_file_decode_error(&properties_error)
 	testing.expect_value(
 		t,
 		properties_error.kind,
 		Room_File_Decode_Error_Kind.invalid_entity_properties,
 	)
 	testing.expect_value(t, properties_error.entity_index, 0)
+
+	_, unknown_property_error := decode_room_file_json5(
+		`{
+		entities: [{
+			id: 'broken_player',
+			type: 'player',
+			position: {x: 0, y: 0},
+			properties: {player_index: 1, god_mode: true},
+		}],
+	}`,
+	)
+	defer destroy_room_file_decode_error(&unknown_property_error)
+	testing.expect_value(
+		t,
+		unknown_property_error.kind,
+		Room_File_Decode_Error_Kind.unknown_entity_property,
+	)
+	testing.expect_value(
+		t,
+		unknown_property_error.message,
+		`unknown property "god_mode" for entity type "player"`,
+	)
 }
 
 @(test)

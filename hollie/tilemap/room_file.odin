@@ -1,6 +1,7 @@
 package tilemap
 
 import json "core:encoding/json"
+import "core:fmt"
 
 Room_File_Size :: struct {
 	width:  int,
@@ -50,12 +51,14 @@ Room_File_Decode_Error_Kind :: enum {
 	none,
 	invalid_json5,
 	unknown_entity_type,
+	unknown_entity_property,
 	invalid_entity_properties,
 }
 
 Room_File_Decode_Error :: struct {
 	kind:         Room_File_Decode_Error_Kind,
 	entity_index: int,
+	message:      string,
 }
 
 Room_File_Encode_Error_Kind :: enum {
@@ -87,11 +90,12 @@ decode_room_file_json5 :: proc(
 	room: Room_File,
 	err: Room_File_Decode_Error,
 ) {
+	context.allocator = allocator
 	wire: Room_File_Wire
 	json_error := json.unmarshal_string(content, &wire, .JSON5, allocator)
 	if json_error != nil {
 		destroy_room_file_wire(&wire, allocator)
-		return {}, {kind = .invalid_json5, entity_index = -1}
+		return {}, {kind = .invalid_json5, entity_index = -1, message = fmt.aprintf("invalid JSON5: %v", json_error)}
 	}
 	defer destroy_room_file_wire(&wire, allocator)
 
@@ -186,10 +190,20 @@ destroy_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.alloc
 	delete(wire.layers.decoration, allocator)
 	for &entity in wire.entities {
 		delete(entity.id, allocator)
+		delete(entity.type, allocator)
 		json.destroy_value(entity.properties, allocator)
 	}
 	delete(wire.entities, allocator)
 	wire^ = {}
+}
+
+destroy_room_file_decode_error :: proc(
+	err: ^Room_File_Decode_Error,
+	allocator := context.allocator,
+) {
+	if err == nil do return
+	delete(err.message, allocator)
+	err^ = {}
 }
 
 destroy_encoded_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.allocator) {
