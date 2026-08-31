@@ -1,5 +1,6 @@
 package hollie
 
+import "asset"
 import "audio"
 import "core:math"
 import "core:math/rand"
@@ -126,13 +127,18 @@ Entity :: union {
 
 // Global entity storage
 entities: [dynamic]Entity
+entity_shadow_texture: renderer.Texture2D
 
 // Entity system functions
 entity_system_init :: proc() {
 	entities = make([dynamic]Entity)
+	entity_shadow_texture = renderer.load_texture(asset.path("art/elements/other/spr_shadow.png"))
 }
 
 entity_system_fini :: proc() {
+	if entity_shadow_texture.id != 0 {
+		renderer.unload_texture(entity_shadow_texture)
+	}
 	delete(entities)
 }
 
@@ -801,16 +807,17 @@ entity_system_draw :: proc() {
 				animation_draw(&e.anim_data, e.position)
 			}
 
-			// Draw player indicator
-			player_text := e.index == .PLAYER_1 ? "P1" : "P2"
-			player_color := e.index == .PLAYER_1 ? renderer.BLUE : renderer.RED
-			renderer.draw_text(
-				player_text,
-				int(e.position.x) - 8,
-				int(e.position.y - 20),
-				12,
-				color = player_color,
-			)
+			if game.player_count == 2 {
+				player_text := e.index == .PLAYER_1 ? "P1" : "P2"
+				player_color := e.index == .PLAYER_1 ? renderer.BLUE : renderer.RED
+				renderer.draw_text(
+					player_text,
+					int(e.position.x) - 8,
+					int(e.position.y - 20),
+					12,
+					color = player_color,
+				)
+			}
 
 		case Enemy:
 			entity_draw_shadow(e.position)
@@ -1003,8 +1010,13 @@ entity_system_draw :: proc() {
 	}
 }
 
-entity_draw_shadow :: proc(position: Vec2, radius: f32 = 6) {
-	renderer.draw_circle(position.x, position.y + 8, radius, renderer.fade(renderer.BLACK, 0.3))
+entity_draw_shadow :: proc(position: Vec2) {
+	renderer.draw_texture(
+		entity_shadow_texture,
+		i32(position.x) - 6,
+		i32(position.y) + 5,
+		renderer.WHITE,
+	)
 }
 
 
