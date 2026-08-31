@@ -8,9 +8,12 @@ DESERT_MAP :: #load("../../res/maps/desert.map", string)
 SMALL_ROOM_MAP :: #load("../../res/maps/room.map", string)
 
 expect_entity_equal :: proc(t: ^testing.T, expected, actual: EntityData) {
+	testing.expect_value(t, actual.instance_id, expected.instance_id)
 	testing.expect_value(t, actual.x, expected.x)
 	testing.expect_value(t, actual.y, expected.y)
 	testing.expect_value(t, actual.entity_type, expected.entity_type)
+	testing.expect_value(t, actual.player_index, expected.player_index)
+	testing.expect_value(t, actual.archetype_id, expected.archetype_id)
 	testing.expect_value(t, actual.trigger_id, expected.trigger_id)
 	testing.expect_value(t, actual.gate_id, expected.gate_id)
 	testing.expect_value(t, actual.requires_both, expected.requires_both)

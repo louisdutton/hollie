@@ -340,6 +340,11 @@ deserialise_tilemap :: proc(content: string) -> (TileMap, bool) {
 	tm.entities = make([]EntityData, len(entity_data))
 	copy(tm.entities, entity_data[:])
 
+	if !parse_ok {
+		destroy_tilemap(&tm)
+		return {}, false
+	}
+
 	return tm, parse_ok
 }
 

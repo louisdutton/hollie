@@ -92,9 +92,12 @@ TileType :: enum u16 {
 
 
 EntityData :: struct {
+	instance_id:       string,
 	x:                 int,
 	y:                 int,
 	entity_type:       EntityType,
+	player_index:      int,
+	archetype_id:      string,
 	trigger_id:        int,
 	gate_id:           int,
 	requires_both:     bool,
@@ -124,6 +127,49 @@ TileMap :: struct {
 	collision_bounds: renderer.Rect,
 }
 
+clone_entity_data :: proc(entity: EntityData, allocator := context.allocator) -> EntityData {
+	cloned := entity
+	cloned.instance_id = strings.clone(entity.instance_id, allocator)
+	cloned.archetype_id = strings.clone(entity.archetype_id, allocator)
+	cloned.texture_path = strings.clone(entity.texture_path, allocator)
+	cloned.target_room = strings.clone(entity.target_room, allocator)
+	cloned.target_door = strings.clone(entity.target_door, allocator)
+	cloned.required_triggers = make([dynamic]int, len(entity.required_triggers), allocator)
+	copy(cloned.required_triggers[:], entity.required_triggers[:])
+	return cloned
+}
+
+destroy_entity_data :: proc(entity: ^EntityData, allocator := context.allocator) {
+	if entity == nil do return
+
+	delete(entity.instance_id, allocator)
+	delete(entity.archetype_id, allocator)
+	delete(entity.texture_path, allocator)
+	delete(entity.target_room, allocator)
+	delete(entity.target_door, allocator)
+	delete(entity.required_triggers)
+	entity^ = {}
+}
+
+destroy_tilemap :: proc(tm: ^TileMap, allocator := context.allocator) {
+	if tm == nil do return
+
+	delete(tm.base_tiles, allocator)
+	delete(tm.deco_tiles, allocator)
+	for &entity in tm.entities {
+		destroy_entity_data(&entity, allocator)
+	}
+	delete(tm.entities, allocator)
+	if tm.tileset.id != 0 {
+		renderer.unload_texture(tm.tileset)
+	}
+	delete(tm.tileset_path, allocator)
+	delete(tm.room_id, allocator)
+	delete(tm.room_name, allocator)
+	delete(tm.music_path, allocator)
+	tm^ = {}
+}
+
 @(private)
 tilemap := TileMap {
 	width = 50,
@@ -133,21 +179,7 @@ tilemap := TileMap {
 }
 
 load_tilemap :: proc(new_tilemap: TileMap) {
-	if tilemap.base_tiles != nil {
-		delete(tilemap.base_tiles)
-	}
-	if tilemap.deco_tiles != nil {
-		delete(tilemap.deco_tiles)
-	}
-	if tilemap.entities != nil {
-		for &entity in tilemap.entities {
-			delete(entity.required_triggers)
-		}
-		delete(tilemap.entities)
-	}
-	if tilemap.tileset.id != 0 {
-		renderer.unload_texture(tilemap.tileset)
-	}
+	destroy_tilemap(&tilemap)
 
 	// Update global config
 	config = new_tilemap.config
@@ -178,16 +210,7 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	if len(new_tilemap.entities) > 0 {
 		tilemap.entities = make([]EntityData, len(new_tilemap.entities))
 		for i in 0 ..< len(new_tilemap.entities) {
-			tilemap.entities[i] = new_tilemap.entities[i]
-			// Copy required_triggers array
-			tilemap.entities[i].required_triggers = make(
-				[dynamic]int,
-				len(new_tilemap.entities[i].required_triggers),
-			)
-			copy(
-				tilemap.entities[i].required_triggers[:],
-				new_tilemap.entities[i].required_triggers[:],
-			)
+			tilemap.entities[i] = clone_entity_data(new_tilemap.entities[i])
 		}
 	}
 }
@@ -302,7 +325,7 @@ remove_entity_at :: proc(x, y: int) -> bool {
 	for i in 0 ..< len(tilemap.entities) {
 		entity := &tilemap.entities[i]
 		if entity.x == x && entity.y == y {
-			delete(entity.required_triggers)
+			destroy_entity_data(entity)
 
 			temp_entities := make([dynamic]EntityData, 0, len(tilemap.entities) - 1)
 			for j in 0 ..< len(tilemap.entities) {
@@ -423,27 +446,5 @@ draw :: proc(camera: renderer.Camera2D) {
 }
 
 fini :: proc() {
-	if tilemap.base_tiles != nil {
-		delete(tilemap.base_tiles)
-		tilemap.base_tiles = nil
-	}
-	if tilemap.deco_tiles != nil {
-		delete(tilemap.deco_tiles)
-		tilemap.deco_tiles = nil
-	}
-	if tilemap.entities != nil {
-		for &entity in tilemap.entities {
-			delete(entity.required_triggers)
-		}
-		delete(tilemap.entities)
-		tilemap.entities = nil
-	}
-	if tilemap.tileset.id != 0 {
-		renderer.unload_texture(tilemap.tileset)
-	}
-	// Clean up metadata strings
-	delete(tilemap.tileset_path)
-	delete(tilemap.room_id)
-	delete(tilemap.room_name)
-	delete(tilemap.music_path)
+	destroy_tilemap(&tilemap)
 }
