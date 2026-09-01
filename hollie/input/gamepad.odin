@@ -16,15 +16,21 @@ is_gamepad_available :: proc(gamepad: Player_Index) -> bool {
 }
 
 is_gamepad_button_pressed :: proc(gamepad: Player_Index, button: Gamepad_Button) -> bool {
-	return rl.IsGamepadButtonPressed(i32(gamepad), button)
+	pressed := rl.IsGamepadButtonPressed(i32(gamepad), button)
+	if pressed do note_device_input(.Gamepad)
+	return pressed
 }
 
 is_gamepad_button_down :: proc(gamepad: Player_Index, button: Gamepad_Button) -> bool {
-	return rl.IsGamepadButtonDown(i32(gamepad), button)
+	down := rl.IsGamepadButtonDown(i32(gamepad), button)
+	if down do note_device_input(.Gamepad)
+	return down
 }
 
 get_gamepad_axis_movement :: proc(gamepad: Player_Index, axis: Gamepad_Axis) -> f32 {
-	return rl.GetGamepadAxisMovement(i32(gamepad), axis)
+	value := rl.GetGamepadAxisMovement(i32(gamepad), axis)
+	if abs(value) >= JS_DEADZONE do note_device_input(.Gamepad)
+	return value
 }
 
 @(private)

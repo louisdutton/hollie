@@ -40,6 +40,9 @@ Editor_State :: struct {
 	hovered_entity:     ^tilemap.EntityData,
 	is_editing_entity:  bool,
 	edit_input_timer:   f32,
+	save_message:       string,
+	save_succeeded:     bool,
+	save_message_timer: f32,
 }
 
 @(private)
@@ -109,6 +112,13 @@ editor_reload_current_level :: proc() {
 
 editor_update :: proc() {
 	if editor_state.mode != .EDITING do return
+	if editor_state.save_message_timer > 0 {
+		editor_state.save_message_timer -= window.get_frame_time()
+		if editor_state.save_message_timer <= 0 {
+			delete(editor_state.save_message)
+			editor_state.save_message = ""
+		}
+	}
 
 	editor_handle_camera_input()
 	editor_handle_tile_selection()
@@ -141,7 +151,7 @@ editor_handle_entity_editing :: proc() {
 	editor_state.edit_input_timer -= dt
 
 	// Enter/exit edit mode
-	if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_UP) &&
+	if input.action_pressed(.Editor_Edit_Entity) &&
 	   (editor_state.hovered_entity != nil || editor_state.is_editing_entity) {
 		editor_state.is_editing_entity = !editor_state.is_editing_entity
 		editor_state.edit_input_timer = 0.2
@@ -156,53 +166,53 @@ editor_handle_entity_editing :: proc() {
 	// Handle editing based on entity type
 	#partial switch entity.entity_type {
 	case .PRESSURE_PLATE:
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+		if input.action_pressed(.Editor_Value_Next) {
 			entity.trigger_id += 1
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) && entity.trigger_id > 0 {
+		if input.action_pressed(.Editor_Value_Previous) && entity.trigger_id > 0 {
 			entity.trigger_id -= 1
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+		if input.action_pressed(.Editor_Value_Toggle) {
 			entity.requires_both = !entity.requires_both
 			editor_state.edit_input_timer = 0.15
 		}
 
 	case .GATE:
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+		if input.action_pressed(.Editor_Value_Next) {
 			entity.gate_id += 1
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) && entity.gate_id > 0 {
+		if input.action_pressed(.Editor_Value_Previous) && entity.gate_id > 0 {
 			entity.gate_id -= 1
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+		if input.action_pressed(.Editor_Value_Toggle) {
 			entity.inverted = !entity.inverted
 			editor_state.edit_input_timer = 0.15
 		}
 
 	case .DOOR:
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+		if input.action_pressed(.Editor_Value_Next) {
 			editor_cycle_room_name(&entity.target_room, 1)
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
+		if input.action_pressed(.Editor_Value_Previous) {
 			editor_cycle_room_name(&entity.target_room, -1)
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+		if input.action_pressed(.Editor_Value_Toggle) {
 			editor_cycle_door_name(&entity.target_door)
 			editor_state.edit_input_timer = 0.15
 		}
 
 	case .ENEMY:
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+		if input.action_pressed(.Editor_Value_Next) {
 			editor_cycle_character_kind(entity, 1)
 			editor_state.edit_input_timer = 0.15
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
+		if input.action_pressed(.Editor_Value_Previous) {
 			editor_cycle_character_kind(entity, -1)
 			editor_state.edit_input_timer = 0.15
 		}
@@ -243,8 +253,8 @@ editor_handle_camera_input :: proc() {
 
 	zoom_change: f32 = 0
 
-	if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_2) do zoom_change = 0.125
-	if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_2) do zoom_change = -0.125
+	if input.action_pressed(.Editor_Zoom_In) do zoom_change = 0.125
+	if input.action_pressed(.Editor_Zoom_Out) do zoom_change = -0.125
 
 	if zoom_change != 0 {
 		camera.zoom += zoom_change
@@ -296,13 +306,11 @@ editor_handle_tile_selection :: proc() {
 			}
 		}
 
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_1) ||
-		   input.is_key_pressed(.RIGHT) {
+		if input.action_pressed(.Editor_Select_Next) {
 			current_index = (current_index + 1) % len(entities)
 			editor_state.selected_entity = entities[current_index]
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_1) ||
-		   input.is_key_pressed(.LEFT) {
+		if input.action_pressed(.Editor_Select_Previous) {
 			current_index = (current_index - 1 + len(entities)) % len(entities)
 			editor_state.selected_entity = entities[current_index]
 		}
@@ -323,13 +331,11 @@ editor_handle_tile_selection :: proc() {
 			current_index = 0
 		}
 
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_TRIGGER_1) ||
-		   input.is_key_pressed(.RIGHT) {
+		if input.action_pressed(.Editor_Select_Next) {
 			current_index = (current_index + 1) % len(tiles)
 			editor_state.selected_tile = tiles[current_index]
 		}
-		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_TRIGGER_1) ||
-		   input.is_key_pressed(.LEFT) {
+		if input.action_pressed(.Editor_Select_Previous) {
 			current_index = (current_index - 1 + len(tiles)) % len(tiles)
 			editor_state.selected_tile = tiles[current_index]
 		}
@@ -386,7 +392,7 @@ editor_handle_painting_input :: proc() {
 		return
 	}
 
-	if input.is_gamepad_button_down(.PLAYER_1, .RIGHT_FACE_RIGHT) {
+	if input.action_down(.Editor_Paint) {
 		if !editor_state.is_painting {
 			editor_state.is_painting = true
 		}
@@ -395,7 +401,7 @@ editor_handle_painting_input :: proc() {
 		editor_state.is_painting = false
 	}
 
-	if input.is_gamepad_button_down(.PLAYER_1, .RIGHT_FACE_DOWN) {
+	if input.action_down(.Editor_Erase) {
 		if !editor_state.is_erasing {
 			editor_state.is_erasing = true
 		}
@@ -406,7 +412,7 @@ editor_handle_painting_input :: proc() {
 }
 
 editor_handle_ui_input :: proc() {
-	if input.is_key_pressed(.TAB) || input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_LEFT) {
+	if !editor_state.is_editing_entity && input.action_pressed(.Editor_Change_Layer) {
 		switch editor_state.selected_layer {
 		case .BASE: editor_state.selected_layer = .DECORATION
 		case .DECORATION: editor_state.selected_layer = .ENTITY
@@ -414,7 +420,7 @@ editor_handle_ui_input :: proc() {
 		}
 	}
 
-	if input.is_key_pressed(.G) || input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_THUMB) {
+	if input.action_pressed(.Editor_Toggle_Grid) {
 		editor_state.show_grid = !editor_state.show_grid
 	}
 
@@ -426,9 +432,7 @@ editor_handle_ui_input :: proc() {
 		editor_state.show_hud = !editor_state.show_hud
 	}
 
-	if (input.is_key_down(.LEFT_CONTROL) || input.is_key_down(.RIGHT_CONTROL)) &&
-		   input.is_key_pressed(.S) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_THUMB) {
+	if input.action_pressed(.Editor_Save) {
 		editor_save_current_tilemap()
 	}
 
@@ -452,9 +456,19 @@ editor_save_current_tilemap :: proc() {
 	defer tilemap.destroy_room_file_io_error(&save_error)
 	if save_error.kind == .none {
 		fmt.println("Tilemap saved to:", full_path)
+		editor_set_save_message("Room saved", true)
 	} else {
 		fmt.println("Failed to save tilemap:", save_error.message)
+		message := fmt.tprintf("Save failed: %s", save_error.message)
+		editor_set_save_message(message, false)
 	}
+}
+
+editor_set_save_message :: proc(message: string, succeeded: bool) {
+	delete(editor_state.save_message)
+	editor_state.save_message = strings.clone(message)
+	editor_state.save_succeeded = succeeded
+	editor_state.save_message_timer = 4
 }
 
 editor_paint_tile :: proc(tile_x, tile_y: int) {
@@ -579,4 +593,5 @@ editor_replace_string :: proc(destination: ^string, value: string) {
 
 editor_fini :: proc() {
 	delete(editor_state.pre_edit_players)
+	delete(editor_state.save_message)
 }

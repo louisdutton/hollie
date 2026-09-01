@@ -76,7 +76,7 @@ update_gameplay_screen :: proc() {
 	pause_update(rl.GetFrameTime())
 
 	when ODIN_DEBUG {
-		if input.is_key_pressed(.F1) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_LEFT) {
+		if input.action_pressed(.Editor_Toggle) {
 			editor_toggle()
 		}
 

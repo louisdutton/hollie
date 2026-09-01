@@ -1,10 +1,53 @@
 package hollie
 
+import "core:fmt"
+import "input"
+import "renderer"
 import rl "vendor:raylib"
 import "window"
 
+UI_Anchor :: enum {
+	Top_Left,
+	Top_Right,
+}
+
+UI_Theme :: struct {
+	panel_background: renderer.Colour,
+	panel_border:     renderer.Colour,
+	text:             renderer.Colour,
+	muted_text:       renderer.Colour,
+	value_text:       renderer.Colour,
+	padding:          f32,
+	line_height:      f32,
+}
+
+UI_Layout :: struct {
+	bounds:   renderer.Rect,
+	cursor_y: f32,
+}
+
+UI_Context :: struct {
+	layouts: [8]UI_Layout,
+	depth:   int,
+	theme:   UI_Theme,
+}
+
+@(private)
+ui_context := UI_Context {
+	theme = {
+		panel_background = {0, 0, 0, 210},
+		panel_border = {255, 255, 255, 120},
+		text = {255, 255, 255, 255},
+		muted_text = {165, 165, 165, 255},
+		value_text = {165, 210, 255, 255},
+		padding = 8,
+		line_height = 20,
+	},
+}
+
 // Ensure ui scale is proportional to window size
 ui_begin :: proc() {
+	ui_context.depth = 0
 	ui_scale := window.get_ui_scale()
 	rl.BeginMode2D({zoom = ui_scale})
 }
@@ -16,6 +59,180 @@ ui_end :: proc() {
 // Returns the width of the provided text at the provided size.
 ui_measure_text :: proc(text: string, size: int) -> int {
 	return int(rl.MeasureText(cstring(raw_data(text)), i32(size)))
+}
+
+ui_anchored_rect :: proc(
+	anchor: UI_Anchor,
+	width, height: f32,
+	margin: f32 = 10,
+) -> renderer.Rect {
+	switch anchor {
+	case .Top_Left: return {margin, margin, width, height}
+	case .Top_Right:
+		return{f32(window.get_design_width()) - width - margin, margin, width, height}
+	}
+	return {}
+}
+
+ui_begin_panel :: proc(
+	title: string,
+	bounds: renderer.Rect,
+	border_color := ui_context.theme.panel_border,
+) {
+	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
+	renderer.draw_rect(
+		bounds.x,
+		bounds.y,
+		bounds.width,
+		bounds.height,
+		ui_context.theme.panel_background,
+	)
+	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border_color)
+
+	padding := ui_context.theme.padding
+	renderer.draw_text(title, int(bounds.x + padding), int(bounds.y + padding), 14, border_color)
+
+	ui_context.layouts[ui_context.depth] = {
+		bounds   = bounds,
+		cursor_y = bounds.y + padding + ui_context.theme.line_height,
+	}
+	ui_context.depth += 1
+}
+
+ui_end_panel :: proc() {
+	assert(ui_context.depth > 0, "UI panel stack underflow")
+	ui_context.depth -= 1
+}
+
+ui_text :: proc(text: string, color := ui_context.theme.text, size: int = 13) {
+	layout := ui_current_layout()
+	renderer.draw_text(
+		text,
+		int(layout.bounds.x + ui_context.theme.padding),
+		int(layout.cursor_y),
+		size,
+		color,
+	)
+	layout.cursor_y += ui_context.theme.line_height
+}
+
+ui_field :: proc(
+	label, value: string,
+	actions: []input.Action = {},
+	value_color := ui_context.theme.value_text,
+) {
+	layout := ui_current_layout()
+	padding := ui_context.theme.padding
+	x := layout.bounds.x + padding
+	y := layout.cursor_y
+	label_text := fmt.tprintf("%s:", label)
+	renderer.draw_text(label_text, int(x), int(y), 13, ui_context.theme.muted_text)
+	value_x := x + f32(renderer.measure_text(label_text, 13)) + 7
+	renderer.draw_text(value, int(value_x), int(y), 13, value_color)
+
+	right := layout.bounds.x + layout.bounds.width - padding
+	hints_width: f32 = 0
+	for action in actions {
+		hint := input.action_hint(action)
+		if hint == "" do continue
+		hints_width += f32(renderer.measure_text(hint, 10)) + 10
+	}
+
+	hint_y := y + 2
+	field_height := ui_context.theme.line_height
+	value_right := value_x + f32(renderer.measure_text(value, 13))
+	if hints_width > 0 && value_right > right - hints_width {
+		hint_y += ui_context.theme.line_height
+		field_height += ui_context.theme.line_height
+	}
+
+	for action_index := len(actions) - 1; action_index >= 0; action_index -= 1 {
+		hint := input.action_hint(actions[action_index])
+		if hint == "" do continue
+		hint_width := f32(renderer.measure_text(hint, 10))
+		right -= hint_width
+		renderer.draw_text(hint, int(right), int(hint_y), 10, ui_context.theme.muted_text)
+		right -= 10
+	}
+
+	layout.cursor_y += field_height
+}
+
+ui_spacer :: proc(height: f32 = 8) {
+	layout := ui_current_layout()
+	layout.cursor_y += height
+}
+
+ui_status :: proc(message: string, succeeded: bool) {
+	if message == "" do return
+	color := succeeded ? renderer.Colour{120, 255, 150, 255} : renderer.Colour{255, 120, 120, 255}
+	ui_text(message, color, 12)
+}
+
+ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
+	rows := ui_action_bar_rows(actions, width)
+	return f32(rows) * 19 + ui_context.theme.padding * 2
+}
+
+ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
+	renderer.draw_rect(
+		bounds.x,
+		bounds.y,
+		bounds.width,
+		bounds.height,
+		ui_context.theme.panel_background,
+	)
+	renderer.draw_rect_outline(
+		bounds.x,
+		bounds.y,
+		bounds.width,
+		bounds.height,
+		2,
+		ui_context.theme.panel_border,
+	)
+
+	padding := ui_context.theme.padding
+	x := bounds.x + padding
+	y := bounds.y + padding
+	right := bounds.x + bounds.width - padding
+
+	for action in actions {
+		hint := input.action_hint(action)
+		if hint == "" do continue
+		text_width := f32(renderer.measure_text(hint, 11))
+		if x > bounds.x + padding && x + text_width > right {
+			x = bounds.x + padding
+			y += 19
+		}
+		renderer.draw_text(hint, int(x), int(y), 11, ui_context.theme.text)
+		x += text_width + 20
+	}
+}
+
+@(private)
+ui_action_bar_rows :: proc(actions: []input.Action, width: f32) -> int {
+	padding := ui_context.theme.padding
+	available_width := width - padding * 2
+	x: f32 = 0
+	rows := 1
+
+	for action in actions {
+		hint := input.action_hint(action)
+		if hint == "" do continue
+		item_width := f32(renderer.measure_text(hint, 11))
+		if x > 0 && x + item_width > available_width {
+			rows += 1
+			x = 0
+		}
+		x += item_width + 20
+	}
+	return rows
+}
+
+@(private)
+ui_current_layout :: proc() -> ^UI_Layout {
+	assert(ui_context.depth > 0, "UI widget must be inside a panel")
+	return &ui_context.layouts[ui_context.depth - 1]
 }
 
 // Convert design coordinates to screen coordinates
