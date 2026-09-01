@@ -4,6 +4,7 @@ import "asset"
 import "input"
 import "renderer"
 import rl "vendor:raylib"
+import "window"
 
 UI_Key_Prompt :: enum {
 	Arrows,
@@ -63,6 +64,7 @@ UI_Prompt_View :: struct {
 UI_Assets :: struct {
 	frames:          [UI_Frame_Style]renderer.Texture2D,
 	title_divider:   renderer.Texture2D,
+	horizontal_fade: rl.Shader,
 	key_prompts:     [UI_Key_Prompt]renderer.Texture2D,
 	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]renderer.Texture2D,
 }
@@ -83,6 +85,10 @@ ui_assets_init :: proc() {
 		),
 	)
 	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
+	ui_assets.horizontal_fade = rl.LoadShader(
+		nil,
+		cstring(raw_data(asset.path("shaders/ui_horizontal_fade.frag"))),
+	)
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
@@ -107,6 +113,7 @@ ui_assets_init :: proc() {
 ui_assets_fini :: proc() {
 	for texture in ui_assets.frames do renderer.unload_texture(texture)
 	renderer.unload_texture(ui_assets.title_divider)
+	rl.UnloadShader(ui_assets.horizontal_fade)
 	for texture in ui_assets.key_prompts do renderer.unload_texture(texture)
 	for prompts in ui_assets.gamepad_prompts {
 		for texture in prompts do renderer.unload_texture(texture)
@@ -125,6 +132,28 @@ ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := rend
 		layout = .NINE_PATCH,
 	}
 	rl.DrawTextureNPatch(texture, patch, bounds, {}, 0, tint)
+}
+
+ui_draw_horizontally_faded_frame :: proc(
+	style: UI_Frame_Style,
+	bounds: renderer.Rect,
+	fade_width: f32,
+	tint := renderer.WHITE,
+) {
+	scale := window.get_ui_scale()
+	screen_bounds := [2]f32{bounds.x * scale, (bounds.x + bounds.width) * scale}
+	screen_fade_width := fade_width * scale
+	shader := ui_assets.horizontal_fade
+	rl.SetShaderValue(shader, rl.GetShaderLocation(shader, "fadeBounds"), &screen_bounds[0], .VEC2)
+	rl.SetShaderValue(
+		shader,
+		rl.GetShaderLocation(shader, "fadeWidth"),
+		&screen_fade_width,
+		.FLOAT,
+	)
+	rl.BeginShaderMode(shader)
+	ui_draw_frame(style, bounds, tint)
+	rl.EndShaderMode()
 }
 
 ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := renderer.WHITE) {
