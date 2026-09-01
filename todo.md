@@ -19,11 +19,11 @@ The target workflow is:
 - [ ] Readable identifiers in room JSON are converted to those enums during decoding; unchecked content strings do not reach gameplay code.
 - [ ] Dialogue is authored in a dedicated Odin content module outside `room.odin` and referenced by a typed ID.
 - [ ] Entity data has typed, entity-specific properties rather than one flat collection of mostly irrelevant fields.
-- [ ] Rooms are the only editable file-driven game content; their JSON DTOs are explicit, typed, deterministic, and covered by round-trip tests.
+- [ ] Rooms are the only editable file-driven game content; their JSON DTOs are explicit, typed, and deterministic.
 - [ ] Invalid syntax, missing assets, broken room links, duplicate IDs, and invalid mechanism links fail validation with the file path and actionable context.
 - [ ] The editor can author every property required by the runtime and never presents fields that the runtime ignores.
 - [ ] Reusable conditions and actions can express at least the existing plate/gate puzzle plus dialogue, encounter, and room-state interactions.
-- [ ] All room serialization, validation, typed-ID conversion, and runtime integration tests pass.
+- [ ] Focused unit tests pass for pure room serialization, validation, and typed-ID conversion logic.
 - [ ] One representative room is built entirely through the finished content workflow as an end-to-end proof.
 - [ ] The authoring workflow and content formats are documented.
 
@@ -38,6 +38,7 @@ The target workflow is:
 - Content is validated before runtime systems consume it.
 - Loading errors are returned with context rather than silently replaced with defaults.
 - The editor and runtime consume the same room schema, room registry, enums, and Odin definition tables.
+- Automated tests are reserved for pure library behavior such as parsing, conversion, serialization, and validation; gameplay and editor workflows are verified by quick playtests.
 - New abstractions should first prove themselves against real content needs.
 - Existing maps remain playable after each coordinated code-and-content change.
 
@@ -205,7 +206,8 @@ The target workflow is:
 - [ ] Allow an NPC room instance to override its kind's default typed dialogue ID.
 - [ ] Decode any dialogue name present in a room directly into `Dialogue_ID` and reject unknown names at the file boundary.
 - [ ] Make definition lookup exhaustive and validate speaker references.
-- [ ] Add tests for Unicode, empty dialogue, missing dialogue, and multi-page progression.
+- [ ] Unit test pure dialogue definition lookup and validation for Unicode, empty dialogue, and missing dialogue.
+- [ ] Playtest multi-page dialogue progression.
 - [ ] Defer branching dialogue until a concrete content requirement needs it.
 
 ### Reusable condition/action mechanism
@@ -284,7 +286,7 @@ The target workflow is:
 
 - [ ] Add one new interactive entity type using the documented extension points.
 - [ ] Measure how many files and switches must change and simplify the extension path if it remains scattered.
-- [ ] Add a focused integration test for spawning, updating, saving, loading, and destroying the new type.
+- [ ] Playtest spawning, updating, saving, loading, and destroying the new type.
 
 ### Exit criteria
 
@@ -302,7 +304,7 @@ The target workflow is:
 - [ ] Include a typed holdable/item ID.
 - [ ] Include a multi-source condition and at least two different actions.
 - [ ] Include working entry and exit links to existing rooms.
-- [ ] Run the validator and full automated test suite.
+- [ ] Run the validator and focused pure-library unit tests.
 - [ ] Playtest in both one-player and two-player modes.
 
 ### Documentation
@@ -321,16 +323,13 @@ The target workflow is:
 - [ ] The proof room survives save, reload, validation, and a release-mode run.
 - [ ] No proof-room-specific runtime code exists.
 
-## Cross-cutting test matrix
+## Verification approach
 
-- [ ] Unit tests cover room parsing, serialization, room-registry resolution, typed-ID conversion, validation rules, conditions, and actions.
+- [ ] Focused unit tests cover pure room parsing, serialization, typed-ID conversion, and validation rules where failures are cheap to isolate.
 - [x] The retired legacy-format tests were removed with the legacy parser.
-- [ ] Room JSON DTO round-trip tests cover every supported entity and property type.
 - [x] Golden fixtures are used only where exact output stability matters.
-- [ ] Integration tests load every shipped room and instantiate each code-defined content ID used by those rooms.
-- [ ] Negative fixtures cover corrupt syntax, missing assets, unknown enum names, broken doors, invalid links, and duplicates.
-- [ ] Memory tracking covers repeated room load/unload and editor save/reload cycles.
-- [ ] Manual smoke tests cover one-player, two-player, editor entry/exit, room transitions, dialogue, combat, carrying, and mechanisms.
+- [ ] Do not add integration tests for runtime entity lifecycles, shipped-room loading, editor workflows, or gameplay behavior.
+- [ ] Quick manual playtests cover one-player, two-player, editor entry/exit, room transitions, dialogue, combat, carrying, and mechanisms.
 
 ## Recommended implementation order
 
@@ -362,7 +361,7 @@ The target workflow is:
 When starting a task:
 
 - Check its dependencies and relevant exit criteria.
-- Add or update a test before changing a serialized contract.
-- Update all affected shipped maps and their tests in the same change as a content-format change.
-- Mark the checkbox only after automated verification and the relevant manual smoke test.
+- Add or update a focused unit test when changing pure serialized-contract, conversion, or validation behavior.
+- Update all affected shipped maps in the same change as a content-format change.
+- Run focused unit tests for pure logic and use the relevant quick playtest for runtime or editor behavior.
 - Record intentional scope changes in this file so the roadmap remains authoritative.
