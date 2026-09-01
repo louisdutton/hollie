@@ -73,7 +73,7 @@ ui_assets_init :: proc() {
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
 		texture := renderer.load_texture(asset.path(ui_frame_path(style)))
-		rl.SetTextureFilter(texture, .BILINEAR)
+		rl.SetTextureFilter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
 	ui_assets.title_divider = renderer.load_texture(
@@ -81,7 +81,7 @@ ui_assets_init :: proc() {
 			"art/ui/kenney/fantasy-ui-borders/PNG/Default/Divider Fade/divider-fade-005.png",
 		),
 	)
-	rl.SetTextureFilter(ui_assets.title_divider, .BILINEAR)
+	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
