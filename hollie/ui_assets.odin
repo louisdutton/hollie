@@ -64,21 +64,24 @@ ui_assets_init :: proc() {
 	ui_assets.border = renderer.load_texture(
 		asset.path("art/ui/kenney/fantasy-ui-borders/PNG/Default/Border/panel-border-000.png"),
 	)
+	rl.SetTextureFilter(ui_assets.border, .BILINEAR)
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
-		ui_assets.key_prompts[prompt] = renderer.load_texture(
-			asset.path(ui_key_prompt_path(prompt)),
-		)
+		texture := renderer.load_texture(asset.path(ui_key_prompt_path(prompt)))
+		rl.GenTextureMipmaps(&texture)
+		rl.SetTextureFilter(texture, .TRILINEAR)
+		ui_assets.key_prompts[prompt] = texture
 	}
 
 	for layout_index in 0 ..< len(ui_assets.gamepad_prompts) {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
-			ui_assets.gamepad_prompts[layout][prompt] = renderer.load_texture(
-				asset.path(ui_gamepad_prompt_path(layout, prompt)),
-			)
+			texture := renderer.load_texture(asset.path(ui_gamepad_prompt_path(layout, prompt)))
+			rl.GenTextureMipmaps(&texture)
+			rl.SetTextureFilter(texture, .TRILINEAR)
+			ui_assets.gamepad_prompts[layout][prompt] = texture
 		}
 	}
 }
