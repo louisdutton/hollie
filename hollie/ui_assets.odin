@@ -47,7 +47,8 @@ UI_Gamepad_Prompt :: enum {
 }
 
 UI_Frame_Style :: enum {
-	Panel,
+	Panel_Surface,
+	Panel_Outline,
 	Action_Bar,
 	Focus_Outline,
 	Focus_Fill,
@@ -121,7 +122,8 @@ ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := rend
 ui_frame_path :: proc(style: UI_Frame_Style) -> string {
 	root :: "art/ui/kenney/fantasy-ui-borders/PNG/Default/"
 	switch style {
-	case .Panel: return root + "Border/panel-border-000.png"
+	case .Panel_Surface: return root + "Panel/panel-000.png"
+	case .Panel_Outline: return root + "Border/panel-border-000.png"
 	case .Action_Bar: return root + "Border/panel-border-005.png"
 	case .Focus_Outline: return root + "Border/panel-border-008.png"
 	case .Focus_Fill: return root + "Panel/panel-008.png"

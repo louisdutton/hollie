@@ -277,14 +277,8 @@ ui_panel :: proc(
 	title: string,
 	border_color := ui_context.theme.panel_border,
 ) {
-	renderer.draw_rect(
-		bounds.x,
-		bounds.y,
-		bounds.width,
-		bounds.height,
-		ui_context.theme.panel_background,
-	)
-	ui_draw_frame(.Panel, bounds, border_color)
+	ui_draw_frame(.Panel_Surface, bounds, ui_context.theme.panel_background)
+	ui_draw_frame(.Panel_Outline, bounds, border_color)
 	title_size := 15
 	title_width := f32(renderer.measure_text(title, i32(title_size)))
 	renderer.draw_text(
