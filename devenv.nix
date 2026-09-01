@@ -1,5 +1,8 @@
 {pkgs, ...}: {
-  packages = [pkgs.raylib];
+  packages = [
+    # Let SDL filter duplicate physical and Steam Input virtual gamepads.
+    (pkgs.raylib.override {platform = "SDL";})
+  ];
 
   languages = {
     nix.enable = true;
@@ -12,7 +15,13 @@
   };
 
   tasks = {
-    "hollie:run".exec = "odin run hollie -debug";
+    "hollie:run" = {
+      exec = "odin run hollie -debug";
+      env = {
+        # Raylib's face-button constants are positional, including on Nintendo pads.
+        SDL_GAMECONTROLLER_USE_BUTTON_LABELS = "0";
+      };
+    };
     "hollie:check".exec = "odin check hollie -debug";
     "hollie:test".exec = "odin test hollie -all-packages -out:/tmp/hollie-tests";
     "hollie:validate-content".exec = "odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json";
