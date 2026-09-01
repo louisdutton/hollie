@@ -257,7 +257,7 @@ room_draw_name :: proc() {
 		.Title_Backdrop,
 		{band_left, band_y, band_right - band_left, band_height},
 		band_fade_width,
-		rl.Color{42, 56, 63, u8(room_state.room_name_opacity * 155)},
+		rl.Color{42, 56, 63, u8(room_state.room_name_opacity * 255)},
 	)
 
 	if divider_width >= 24 {
