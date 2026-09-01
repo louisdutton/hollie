@@ -240,6 +240,44 @@ room_draw_name :: proc() {
 		max((available_width - f32(text_width) - divider_gap * 2) / 2, 0),
 	)
 	divider_y := f32(y) + (f32(text_size) - divider_height) / 2
+
+	content_left := f32(x)
+	content_right := f32(x + text_width)
+	if divider_width >= 24 {
+		content_left -= divider_gap + divider_width
+		content_right += divider_gap + divider_width
+	}
+	band_fade_width: f32 = 52
+	band_y := f32(y) - 12
+	band_height := f32(text_size) + 24
+	band_left := max(content_left - band_fade_width, 0)
+	band_right := min(content_right + band_fade_width, f32(design_width))
+	band_color := rl.Color{7, 12, 16, u8(room_state.room_name_opacity * 180)}
+	transparent_band := rl.Color{7, 12, 16, 0}
+	rl.DrawRectangleGradientH(
+		i32(band_left),
+		i32(band_y),
+		i32(band_fade_width),
+		i32(band_height),
+		transparent_band,
+		band_color,
+	)
+	renderer.draw_rect(
+		band_left + band_fade_width,
+		band_y,
+		max(band_right - band_left - band_fade_width * 2, 0),
+		band_height,
+		band_color,
+	)
+	rl.DrawRectangleGradientH(
+		i32(band_right - band_fade_width),
+		i32(band_y),
+		i32(band_fade_width),
+		i32(band_height),
+		band_color,
+		transparent_band,
+	)
+
 	if divider_width >= 24 {
 		ui_draw_title_divider(
 			{f32(x) - divider_gap - divider_width, divider_y, divider_width, divider_height},
