@@ -4,6 +4,7 @@ import "../asset"
 import "../content"
 import "../renderer"
 import "../window"
+import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
 
@@ -300,8 +301,27 @@ get_collision_bounds :: proc() -> renderer.Rect {
 	return tilemap.collision_bounds
 }
 
+@(private)
+next_entity_instance_id :: proc(entity_type: EntityType) -> string {
+	for suffix := 1;; suffix += 1 {
+		candidate := fmt.aprintf("%v_%d", entity_type, suffix)
+		available := true
+
+		for entity in tilemap.entities {
+			if strings.equal_fold(entity.instance_id, candidate) {
+				available = false
+				break
+			}
+		}
+
+		if available do return candidate
+		delete(candidate)
+	}
+}
+
 add_entity :: proc(x, y: int, entity_type: EntityType) {
 	entity := EntityData {
+		instance_id       = next_entity_instance_id(entity_type),
 		x                 = x,
 		y                 = y,
 		entity_type       = entity_type,
