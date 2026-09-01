@@ -221,7 +221,7 @@ room_draw_name :: proc() {
 	if room_name == "" do return
 
 	// Match the ornamental location title treatment from the Fantasy UI Borders sample.
-	text_size := 30
+	text_size := 42
 	text_width := ui_measure_text(room_name, text_size)
 
 	x := (int(design_width) - text_width) / 2
