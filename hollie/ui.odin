@@ -33,6 +33,8 @@ UI_Theme :: struct {
 	text:             renderer.Colour,
 	muted_text:       renderer.Colour,
 	value_text:       renderer.Colour,
+	focus_background: renderer.Colour,
+	focus_text:       renderer.Colour,
 	padding:          f32,
 	line_height:      f32,
 }
@@ -54,13 +56,15 @@ UI_Context :: struct {
 @(private)
 ui_context := UI_Context {
 	theme = {
-		panel_background = {0, 0, 0, 210},
-		panel_border = {255, 255, 255, 120},
-		text = {255, 255, 255, 255},
-		muted_text = {165, 165, 165, 255},
-		value_text = {165, 210, 255, 255},
-		padding = 8,
-		line_height = 20,
+		panel_background = {7, 12, 16, 238},
+		panel_border = {48, 65, 72, 255},
+		text = {244, 242, 234, 255},
+		muted_text = {158, 168, 169, 255},
+		value_text = {190, 224, 112, 255},
+		focus_background = {241, 239, 230, 255},
+		focus_text = {18, 23, 25, 255},
+		padding = 12,
+		line_height = 22,
 	},
 }
 
@@ -280,29 +284,29 @@ ui_panel :: proc(
 		bounds.height,
 		ui_context.theme.panel_background,
 	)
-	ui_draw_fantasy_border(bounds, border_color)
+	ui_draw_frame(.Panel, bounds, border_color)
+	title_size := 15
+	title_width := f32(renderer.measure_text(title, i32(title_size)))
 	renderer.draw_text(
 		title,
-		int(bounds.x + ui_context.theme.padding),
+		int(bounds.x + (bounds.width - title_width) / 2),
 		int(bounds.y + ui_context.theme.padding),
-		14,
-		border_color,
+		title_size,
+		ui_context.theme.text,
 	)
 }
 
 ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) {
-	background := renderer.Colour{35, 35, 35, 235}
-	if selected do background = {65, 105, 150, 255}
+	if selected {
+		ui_draw_frame(.Focus_Fill, bounds, ui_context.theme.focus_background)
+	}
 
-	border := selected ? ui_context.theme.value_text : ui_context.theme.panel_border
-	renderer.draw_rect(bounds.x, bounds.y, bounds.width, bounds.height, background)
-	ui_draw_fantasy_border(bounds, border)
-
-	font_size := 13
+	font_size := 14
 	text_width := f32(renderer.measure_text(text, i32(font_size)))
 	text_x := bounds.x + (bounds.width - text_width) / 2
 	text_y := bounds.y + (bounds.height - f32(font_size)) / 2
-	renderer.draw_text(text, int(text_x), int(text_y), font_size, ui_context.theme.text)
+	text_color := selected ? ui_context.theme.focus_text : ui_context.theme.muted_text
+	renderer.draw_text(text, int(text_x), int(text_y), font_size, text_color)
 }
 
 ui_menu_panel :: proc(
@@ -311,8 +315,8 @@ ui_menu_panel :: proc(
 	focus: UI_Focus,
 	width: f32 = 300,
 	button_width: f32 = 220,
-	button_height: f32 = 40,
-	gap: f32 = 15,
+	button_height: f32 = 34,
+	gap: f32 = 6,
 ) {
 	content_height := f32(len(items)) * button_height + f32(max(len(items) - 1, 0)) * gap
 	panel_height :=
@@ -355,7 +359,8 @@ ui_slider :: proc(
 	}
 
 	if selected {
-		ui_draw_fantasy_border(
+		ui_draw_frame(
+			.Focus_Outline,
 			{bounds.x - 5, bounds.y - 5, bounds.width + 10, bounds.height + 10},
 			ui_context.theme.value_text,
 		)
@@ -429,7 +434,7 @@ ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
 		bounds.height,
 		ui_context.theme.panel_background,
 	)
-	ui_draw_fantasy_border(bounds, ui_context.theme.panel_border)
+	ui_draw_frame(.Action_Bar, bounds, ui_context.theme.panel_border)
 
 	padding := ui_context.theme.padding
 	x := bounds.x + padding

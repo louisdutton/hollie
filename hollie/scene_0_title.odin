@@ -41,10 +41,10 @@ draw_title_screen :: proc() {
 	ui_begin()
 	defer ui_end()
 
-	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.GREEN)
+	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{20, 29, 35, 255})
 
 	pos := Vec2{20, 10}
-	renderer.draw_text_ex(game.title_font, "Hollie", pos, 64, 2, renderer.WHITE)
+	renderer.draw_text_ex(game.font, "Hollie", pos, 64, 2, renderer.WHITE)
 
 	switch title_state.menu_state {
 	case .MAIN: title_draw_main_menu()

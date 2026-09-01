@@ -46,13 +46,20 @@ UI_Gamepad_Prompt :: enum {
 	Dpad_Horizontal,
 }
 
+UI_Frame_Style :: enum {
+	Panel,
+	Action_Bar,
+	Focus_Outline,
+	Focus_Fill,
+}
+
 UI_Prompt_View :: struct {
 	textures: [4]renderer.Texture2D,
 	count:    int,
 }
 
 UI_Assets :: struct {
-	border:          renderer.Texture2D,
+	frames:          [UI_Frame_Style]renderer.Texture2D,
 	key_prompts:     [UI_Key_Prompt]renderer.Texture2D,
 	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]renderer.Texture2D,
 }
@@ -61,10 +68,12 @@ UI_Assets :: struct {
 ui_assets: UI_Assets
 
 ui_assets_init :: proc() {
-	ui_assets.border = renderer.load_texture(
-		asset.path("art/ui/kenney/fantasy-ui-borders/PNG/Default/Border/panel-border-000.png"),
-	)
-	rl.SetTextureFilter(ui_assets.border, .BILINEAR)
+	for style_index in 0 ..< len(ui_assets.frames) {
+		style := UI_Frame_Style(style_index)
+		texture := renderer.load_texture(asset.path(ui_frame_path(style)))
+		rl.SetTextureFilter(texture, .BILINEAR)
+		ui_assets.frames[style] = texture
+	}
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
@@ -87,7 +96,7 @@ ui_assets_init :: proc() {
 }
 
 ui_assets_fini :: proc() {
-	renderer.unload_texture(ui_assets.border)
+	for texture in ui_assets.frames do renderer.unload_texture(texture)
 	for texture in ui_assets.key_prompts do renderer.unload_texture(texture)
 	for prompts in ui_assets.gamepad_prompts {
 		for texture in prompts do renderer.unload_texture(texture)
@@ -95,16 +104,29 @@ ui_assets_fini :: proc() {
 	ui_assets = {}
 }
 
-ui_draw_fantasy_border :: proc(bounds: renderer.Rect, tint := renderer.WHITE) {
+ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := renderer.WHITE) {
+	texture := ui_assets.frames[style]
 	patch := rl.NPatchInfo {
-		source = {0, 0, 48, 48},
+		source = {0, 0, f32(texture.width), f32(texture.height)},
 		left   = 16,
 		top    = 16,
 		right  = 16,
 		bottom = 16,
 		layout = .NINE_PATCH,
 	}
-	rl.DrawTextureNPatch(ui_assets.border, patch, bounds, {}, 0, tint)
+	rl.DrawTextureNPatch(texture, patch, bounds, {}, 0, tint)
+}
+
+@(private)
+ui_frame_path :: proc(style: UI_Frame_Style) -> string {
+	root :: "art/ui/kenney/fantasy-ui-borders/PNG/Default/"
+	switch style {
+	case .Panel: return root + "Border/panel-border-000.png"
+	case .Action_Bar: return root + "Border/panel-border-005.png"
+	case .Focus_Outline: return root + "Border/panel-border-008.png"
+	case .Focus_Fill: return root + "Panel/panel-008.png"
+	}
+	return ""
 }
 
 ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
