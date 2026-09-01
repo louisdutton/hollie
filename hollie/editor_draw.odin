@@ -247,13 +247,14 @@ editor_draw_tile_carousel :: proc() {
 	carousel_x: f32 = 10
 	tile_preview_size: f32 = 32
 	spacing: f32 = 40
+	label_y := carousel_y + tile_preview_size + 8
 	bg_colour := renderer.fade(renderer.BLACK, 0.5)
-	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT) * spacing
+	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT - 1) * spacing + tile_preview_size
 	renderer.draw_rect(
 		carousel_x - 5,
 		carousel_y - 5,
 		carousel_width + 10,
-		tile_preview_size + 10,
+		tile_preview_size + 30,
 		bg_colour,
 	)
 
@@ -287,6 +288,12 @@ editor_draw_tile_carousel :: proc() {
 				slot.alpha,
 			)
 		}
+		editor_draw_carousel_label(
+			fmt.tprintf("%v", editor_state.selected_entity),
+			carousel_x,
+			carousel_width,
+			label_y,
+		)
 		return
 	}
 
@@ -314,6 +321,18 @@ editor_draw_tile_carousel :: proc() {
 			slot.alpha,
 		)
 	}
+	editor_draw_carousel_label(
+		fmt.tprintf("%v", editor_state.selected_tile),
+		carousel_x,
+		carousel_width,
+		label_y,
+	)
+}
+
+editor_draw_carousel_label :: proc(text: string, carousel_x, carousel_width, y: f32) {
+	text_width := f32(renderer.measure_text(text, 13))
+	x := carousel_x + (carousel_width - text_width) / 2
+	renderer.draw_text(text, int(x), int(y), 13, renderer.WHITE)
 }
 
 editor_carousel_slot :: proc(
@@ -350,29 +369,18 @@ editor_draw_minimal_hud :: proc() {
 	layer_color := renderer.Colour{255, 255, 255, 200}
 	switch editor_state.selected_layer {
 	case .BASE:
-		layer_text = "BASE"
+		layer_text = "Base"
 		layer_color = {100, 255, 100, 200}
 	case .DECORATION:
-		layer_text = "DECO"
+		layer_text = "Decoration"
 		layer_color = {255, 255, 100, 200}
 	case .ENTITY:
-		layer_text = "ENTS"
+		layer_text = "Entities"
 		layer_color = {255, 100, 255, 200}
 	}
 
-	selected_text := ""
-	if editor_state.selected_layer == .ENTITY {
-		selected_text = fmt.tprintf("%v", editor_state.selected_entity)
-	} else {
-		selected_text = fmt.tprintf("%v", editor_state.selected_tile)
-	}
-
-	ui_begin_panel(
-		fmt.tprintf("%s LAYER", layer_text),
-		ui_anchored_rect(.Top_Left, 180, 76),
-		layer_color,
-	)
-	ui_field("Selected", selected_text)
+	panel_height: f32 = editor_state.save_message == "" ? 40 : 60
+	ui_begin_panel(layer_text, ui_anchored_rect(.Top_Left, 180, panel_height), layer_color)
 	ui_status(editor_state.save_message, editor_state.save_succeeded)
 	ui_end_panel()
 
