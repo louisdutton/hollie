@@ -248,6 +248,7 @@ room_draw_name :: proc() {
 		content_right += divider_gap + divider_width
 	}
 	band_padding: f32 = 48
+	band_fade_width: f32 = 24
 	band_y := f32(y) - 10
 	band_height := f32(text_size) + 20
 	band_left := max(content_left - band_padding, 0)
@@ -255,7 +256,7 @@ room_draw_name :: proc() {
 	ui_draw_horizontally_faded_frame(
 		.Title_Backdrop,
 		{band_left, band_y, band_right - band_left, band_height},
-		band_padding,
+		band_fade_width,
 		rl.Color{42, 56, 63, u8(room_state.room_name_opacity * 105)},
 	)
 
