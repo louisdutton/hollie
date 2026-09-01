@@ -700,7 +700,7 @@
         "y": 128
       },
       "properties": {
-        "kind": "goblin"
+        "kind": "Goblin"
       }
     },
     {
@@ -711,7 +711,7 @@
         "y": 192
       },
       "properties": {
-        "kind": "goblin"
+        "kind": "Goblin"
       }
     },
     {
@@ -722,7 +722,7 @@
         "y": 96
       },
       "properties": {
-        "kind": "goblin"
+        "kind": "Goblin"
       }
     },
     {

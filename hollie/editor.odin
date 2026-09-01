@@ -563,7 +563,7 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 editor_cycle_character_kind :: proc(entity: ^tilemap.EntityData, direction: int) {
 	if entity.entity_type != .ENEMY do return
 
-	kind_count := len(content.CHARACTER_KIND_WIRE_NAMES)
+	kind_count := len(content.Character_Kind)
 	current_index := int(entity.character_kind)
 	if current_index < 0 || current_index >= kind_count do current_index = 0
 

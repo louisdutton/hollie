@@ -33,7 +33,7 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 			id: 'goblin_one',
 			type: 'enemy',
 			position: {x: 16, y: 0},
-			properties: {kind: 'goblin'},
+			properties: {kind: 'Goblin'},
 		},
 		{
 			id: 'villager',
@@ -119,7 +119,7 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 
 	enemy, enemy_ok := room.entities[1].properties.(Room_File_Enemy)
 	testing.expect(t, enemy_ok, "enemy properties should be typed")
-	if enemy_ok do testing.expect_value(t, enemy.kind, content.Character_Kind.GOBLIN)
+	if enemy_ok do testing.expect_value(t, enemy.kind, content.Character_Kind.Goblin)
 
 	_, npc_ok := room.entities[2].properties.(Room_File_NPC)
 	testing.expect(t, npc_ok, "NPC properties should be typed")
@@ -245,7 +245,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 			id: 'orc',
 			type: 'enemy',
 			position: {x: 0, y: 0},
-			properties: {kind: 'orc'},
+			properties: {kind: 'Orc'},
 		}],
 	}`,
 	)
@@ -256,7 +256,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 		Room_File_Decode_Error_Kind.unknown_content_variant,
 	)
 	testing.expect_value(t, unknown_kind_error.entity_index, 0)
-	testing.expect_value(t, unknown_kind_error.message, `unknown enemy kind "orc"`)
+	testing.expect_value(t, unknown_kind_error.message, `unknown enemy kind "Orc"`)
 }
 
 @(test)
@@ -276,7 +276,7 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	if len(tm.entities) == 7 {
 		testing.expect_value(t, tm.entities[0].instance_id, "player_one_spawn")
 		testing.expect_value(t, tm.entities[0].player_index, 1)
-		testing.expect_value(t, tm.entities[1].character_kind, content.Character_Kind.GOBLIN)
+		testing.expect_value(t, tm.entities[1].character_kind, content.Character_Kind.Goblin)
 		testing.expect_value(t, tm.entities[6].instance_id, "gate_one")
 	}
 

@@ -1,26 +1,17 @@
 package content
 
-Character_Kind :: enum {
-	GOBLIN,
-	SKELETON,
-	HUMAN,
-}
+import "core:reflect"
 
-CHARACTER_KIND_WIRE_NAMES := [Character_Kind]string {
-	.GOBLIN   = "goblin",
-	.SKELETON = "skeleton",
-	.HUMAN    = "human",
+Character_Kind :: enum {
+	Goblin,
+	Skeleton,
+	Human,
 }
 
 character_kind_from_wire :: proc(name: string) -> (Character_Kind, bool) {
-	for candidate, kind in CHARACTER_KIND_WIRE_NAMES {
-		if candidate == name do return kind, true
-	}
-	return {}, false
+	return reflect.enum_from_name(Character_Kind, name)
 }
 
 character_kind_to_wire :: proc(kind: Character_Kind) -> (string, bool) {
-	index := int(kind)
-	if index < 0 || index >= len(CHARACTER_KIND_WIRE_NAMES) do return "", false
-	return CHARACTER_KIND_WIRE_NAMES[kind], true
+	return reflect.enum_name_from_value(kind)
 }

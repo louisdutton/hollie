@@ -164,8 +164,8 @@ The target workflow is:
 ### Typed variants at the room boundary
 
 - [x] Move the existing `NPC_Race` enum to a dependency-light package usable by serde, runtime, and editor code and rename it to `Character_Kind` to reflect its shared role.
-- [x] Decode readable enemy names such as `goblin`, `skeleton`, and `human` directly into that existing enum.
-- [x] Encode enum values back to stable lowercase names explicitly so Odin symbol renames cannot silently change room files.
+- [x] Decode room-file enemy names such as `Goblin`, `Skeleton`, and `Human` directly from the corresponding enum member names.
+- [x] Encode enum member names directly so code and room files share one canonical representation.
 - [x] Report an unknown character variant as a path-aware decode error before semantic validation or runtime conversion.
 - [x] Replace the flat runtime `archetype_id` string with the typed character variant needed by enemies.
 - [x] Remove `archetype_id` and empty `properties` objects from NPC and holdable room/runtime data while each has only one valid variant.
@@ -195,7 +195,7 @@ The target workflow is:
 - [x] Adding a fourth room requires only a room JSON file.
 - [x] Adding another enemy variant is an intentional enum/definition change in Odin and requires no stringly typed runtime branching.
 - [x] No current closed-set content variant remains an unchecked runtime string.
-- [x] Runtime and editor use the same character-kind enum and stable wire-name mapping.
+- [x] Runtime, editor, and room files use the same character-kind enum names.
 - [ ] Shared definition assets are loaded and unloaded once through a clear ownership model.
 
 ## Milestone 3 — Make typed narrative and room interactions authorable

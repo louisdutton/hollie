@@ -700,7 +700,7 @@
         "y": 96
       },
       "properties": {
-        "kind": "skeleton"
+        "kind": "Skeleton"
       }
     },
     {
@@ -711,7 +711,7 @@
         "y": 128
       },
       "properties": {
-        "kind": "skeleton"
+        "kind": "Skeleton"
       }
     },
     {
@@ -722,7 +722,7 @@
         "y": 192
       },
       "properties": {
-        "kind": "skeleton"
+        "kind": "Skeleton"
       }
     },
     {
@@ -733,7 +733,7 @@
         "y": 208
       },
       "properties": {
-        "kind": "skeleton"
+        "kind": "Skeleton"
       }
     },
     {
@@ -744,7 +744,7 @@
         "y": 224
       },
       "properties": {
-        "kind": "skeleton"
+        "kind": "Skeleton"
       }
     },
     {
