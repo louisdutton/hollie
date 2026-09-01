@@ -1,5 +1,6 @@
 package hollie
 
+import "content"
 import "core:fmt"
 import "renderer"
 import "tilemap"
@@ -470,15 +471,18 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 			"[Y: next]",
 		)
 
-	case .ENEMY, .NPC, .HOLDABLE:
+	case .ENEMY:
+		kind, _ := content.character_kind_to_wire(entity.character_kind)
 		editor_draw_string_field(
-				panel_x,
-				panel_y,
-				&y_offset,
-				"Archetype ID:",
-				&entity.archetype_id,
-				"[A/B: next/previous]",
-			)
+			panel_x,
+			panel_y,
+			&y_offset,
+			"Kind:",
+			&kind,
+			"[A/B: next/previous]",
+		)
+
+	case .NPC, .HOLDABLE:
 	}
 
 	// Instructions

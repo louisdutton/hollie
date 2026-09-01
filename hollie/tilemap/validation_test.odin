@@ -1,5 +1,6 @@
 package tilemap
 
+import "../content"
 import "core:strings"
 import "core:testing"
 
@@ -8,19 +9,6 @@ validation_contains :: proc(errors: []Validation_Error, text: string, entity_ind
 		if err.entity_index == entity_index && strings.contains(err.message, text) do return true
 	}
 	return false
-}
-
-@(test)
-test_valid_map_has_no_validation_errors :: proc(t: ^testing.T) {
-	tm, load_error := load_tilemap_file("res/maps/olivewood.json", "res")
-	defer destroy_room_file_io_error(&load_error)
-	testing.expect_value(t, load_error.kind, Room_File_IO_Error_Kind.none)
-	if load_error.kind != .none do return
-	defer destroy_tilemap(&tm)
-
-	errors := validate_tilemap(&tm)
-	defer destroy_validation_errors(&errors)
-	testing.expect_value(t, len(errors), 0)
 }
 
 @(test)
@@ -77,7 +65,7 @@ test_invalid_room_file_reports_typed_semantic_errors :: proc(t: ^testing.T) {
 			position = {x = 16, y = 0},
 			properties = Room_File_Player{player_index = 3},
 		},
-		{id = "duplicate", properties = Room_File_Enemy{}},
+		{id = "duplicate", properties = Room_File_Enemy{kind = content.Character_Kind(99)}},
 		{id = "gate", properties = Room_File_Gate{required_trigger_ids = []int{99, 99}}},
 		{id = "door", properties = Room_File_Door{}},
 	}
@@ -89,7 +77,7 @@ test_invalid_room_file_reports_typed_semantic_errors :: proc(t: ^testing.T) {
 	testing.expect(t, validation_contains(errors[:], "entity origin lies outside", 0))
 	testing.expect(t, validation_contains(errors[:], "player_index must be 1 or 2", 0))
 	testing.expect(t, validation_contains(errors[:], "entity id \"duplicate\" is duplicated", 1))
-	testing.expect(t, validation_contains(errors[:], "enemy archetype_id must not be empty", 1))
+	testing.expect(t, validation_contains(errors[:], "enemy kind is invalid", 1))
 	testing.expect(t, validation_contains(errors[:], "gate references missing trigger ID 99", 2))
 	testing.expect(t, validation_contains(errors[:], "door target_room_id must not be empty", 3))
 }

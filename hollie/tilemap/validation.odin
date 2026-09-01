@@ -1,5 +1,6 @@
 package tilemap
 
+import "../content"
 import "core:fmt"
 import "core:os"
 import "core:strings"
@@ -152,29 +153,12 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				}
 			}
 
-		case Room_File_Enemy: if properties.archetype_id == "" {
-					validation_add_error(
-						&errors,
-						"enemy archetype_id must not be empty",
-						entity_index,
-					)
+		case Room_File_Enemy:
+			if _, valid := content.character_kind_to_wire(properties.kind); !valid {
+					validation_add_error(&errors, "enemy kind is invalid", entity_index)
 				}
 
-		case Room_File_NPC: if properties.archetype_id == "" {
-					validation_add_error(
-						&errors,
-						"NPC archetype_id must not be empty",
-						entity_index,
-					)
-				}
-
-		case Room_File_Holdable: if properties.archetype_id == "" {
-					validation_add_error(
-						&errors,
-						"holdable archetype_id must not be empty",
-						entity_index,
-					)
-				}
+		case Room_File_NPC, Room_File_Holdable:
 
 		case Room_File_Door:
 			if properties.size.width <= 0 || properties.size.height <= 0 {
@@ -425,9 +409,11 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				}
 			}
 
-		case .ENEMY, .NPC, .HOLDABLE: if entity.archetype_id == "" {
-					validation_add_error(&errors, "archetype_id must not be empty", entity_index)
+		case .ENEMY: if _, valid := content.character_kind_to_wire(entity.character_kind); !valid {
+					validation_add_error(&errors, "enemy kind is invalid", entity_index)
 				}
+
+		case .NPC, .HOLDABLE:
 
 		case .DOOR:
 			if entity.target_room == "" {

@@ -52,6 +52,7 @@ Room_File_Decode_Error_Kind :: enum {
 	invalid_json5,
 	unknown_entity_type,
 	unknown_entity_property,
+	unknown_content_variant,
 	invalid_entity_properties,
 }
 

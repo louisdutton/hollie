@@ -15,22 +15,23 @@ The target workflow is:
 ## Definition of done
 
 - [ ] A new room can be added without editing an Odin enum, switch, or hardcoded room list.
-- [ ] Enemy, NPC, holdable, dialogue, and behavior IDs are strongly typed Odin enums with concise code-owned definitions.
-- [ ] Readable identifiers in room JSON are converted to those enums during decoding; unchecked content strings do not reach gameplay code.
+- [ ] Content variants reuse existing semantic Odin enums where possible and have concise code-owned definitions.
+- [ ] Readable variant names in room JSON are converted to typed values during decoding; unchecked content strings do not reach gameplay code.
 - [ ] Dialogue is authored in a dedicated Odin content module outside `room.odin` and referenced by a typed ID.
 - [ ] Entity data has typed, entity-specific properties rather than one flat collection of mostly irrelevant fields.
 - [ ] Rooms are the only editable file-driven game content; their JSON DTOs are explicit, typed, and deterministic.
 - [ ] Invalid syntax, missing assets, broken room links, duplicate IDs, and invalid mechanism links fail validation with the file path and actionable context.
 - [ ] The editor can author every property required by the runtime and never presents fields that the runtime ignores.
 - [ ] Reusable conditions and actions can express at least the existing plate/gate puzzle plus dialogue, encounter, and room-state interactions.
-- [ ] Focused unit tests pass for pure room serialization, validation, and typed-ID conversion logic.
+- [ ] Focused unit tests pass for pure room serialization, validation, and typed variant conversion logic.
 - [ ] One representative room is built entirely through the finished content workflow as an end-to-end proof.
 - [ ] The authoring workflow and content formats are documented.
 
 ## Working principles
 
 - Dynamic room IDs and placed-instance IDs remain strings because rooms are discovered from files.
-- Closed sets such as enemy IDs, NPC IDs, holdable IDs, dialogue IDs, signals, actions, and behaviors are Odin enums.
+- Reuse an existing semantic type before introducing another ID or enum; keep one canonical representation and one source of choices.
+- Closed sets with multiple real values use Odin enums; single-variant categories do not carry redundant IDs solely for possible future variants.
 - Spatial layout and per-room configuration belong in room files; reusable definitions belong in typed Odin modules.
 - Room file DTOs contain persistence data only; runtime structures own loaded assets and mutable state.
 - Built-in `core:encoding/json` handles syntax; Hollie code handles entity discrimination, defaults, conversion, and semantic validation.
@@ -52,7 +53,7 @@ The target workflow is:
 - Reusable enemies, NPCs, holdables, dialogue, and behaviors are not loaded from data files; they are defined and compiled in Odin.
 - The in-game, gamepad-first editor remains the primary room authoring surface.
 - Third-party map formats may be supported later through optional one-way importers, but are not canonical.
-- Format changes update all shipped content and tests together; no compatibility or migration framework is maintained.
+- Format changes update all shipped content and focused pure-contract tests together; no compatibility or migration framework is maintained.
 
 ## Milestone 0 — Restore a trustworthy baseline
 
@@ -62,7 +63,7 @@ The target workflow is:
 - [x] Replace exact whole-file fixture comparison where appropriate with focused field assertions plus a serialize-deserialize round-trip test.
 - [x] Add coverage for every current entity type and every optional entity field.
 - [x] Add explicit tests for comments, empty sections, default values, malformed rectangles, invalid numbers, and truncated entity records.
-- [x] Add a test that loads every file under `res/maps/`.
+- [x] Keep shipped-room loading in the standalone content validator rather than the unit-test suite.
 - [x] Record the intended current behavior of all three rooms before changing the format.
 
 ### Repeatable developer checks
@@ -75,7 +76,7 @@ The target workflow is:
 
 - [x] `odin check hollie -debug` passes.
 - [x] All existing automated tests pass.
-- [x] All current maps load and round-trip without unintended changes.
+- [x] All current maps pass standalone content validation.
 - [ ] Current room transitions, enemies, NPC interaction, holdables, and the Olivewood puzzle are manually verified.
 
 ## Milestone 1 — Move rooms to a typed JSON contract
@@ -105,7 +106,7 @@ The target workflow is:
 - [x] Replace numeric entity types and positional fields with stable names and named properties.
 - [x] Define required fields, optional fields, and defaults once for each entity type.
 - [x] Reject unknown entity type names and report unsupported or unknown properties clearly.
-- [ ] Replace string archetype fields with category-specific Odin enums during entity-property decoding.
+- [x] Replace the enemy archetype string with the existing character-kind enum during entity-property decoding, and remove redundant single-variant NPC and holdable archetype fields.
 
 ### JSON serde and diagnostics
 
@@ -136,7 +137,7 @@ The target workflow is:
 - [x] Convert all three shipped maps to JSON in one coordinated content change.
 - [x] Switch runtime room loading to the JSON DTO pipeline.
 - [x] Switch in-game editor saving and reloading to the same JSON DTO pipeline.
-- [x] Switch the standalone validator and shipped-map tests to discover and read JSON rooms.
+- [x] Switch the standalone validator to discover and read JSON rooms.
 - [x] Verify semantic parity for room metadata, tile layers, every entity, and every entity property.
 - [x] Remove the legacy positional serializer, parser, fixtures, and tests after parity checks pass.
 
@@ -145,7 +146,7 @@ The target workflow is:
 - [x] No runtime-only resource or state is serialized into room files.
 - [ ] Corrupt or semantically invalid content cannot reach runtime assertions or unchecked indexing.
 - [x] Every converted map passes the standalone validator.
-- [x] Every converted map produces deterministic JSON and round-trips without semantic changes.
+- [x] Focused pure DTO tests produce deterministic JSON and round-trip without semantic changes.
 - [x] Runtime loading, editor saving, and validation all use the same file DTO definitions.
 - [x] The legacy custom syntax and parser are no longer used.
 
@@ -160,47 +161,48 @@ The target workflow is:
 - [x] Populate editor room choices from the same registry.
 - [x] Validate duplicate IDs and room/file mismatches during catalog loading.
 
-### Typed identifiers at the room boundary
+### Typed variants at the room boundary
 
-- [ ] Put shared typed IDs and their explicit wire-name conversions in a dependency-light Odin content package usable by serde, runtime, and editor code.
-- [ ] Define separate `Enemy_ID`, `NPC_ID`, and `Holdable_ID` enums rather than one untyped content-ID namespace.
-- [ ] Decode readable room-file names such as `goblin`, `human`, and `wood` directly into their category-specific enums.
-- [ ] Encode those enum values back to stable lowercase names explicitly so Odin symbol renames cannot silently change room files.
-- [ ] Report an unknown typed identifier as a path-aware decode error before semantic validation or runtime conversion.
-- [ ] Replace the flat runtime `archetype_id` string with category-specific typed fields or a typed entity-property union.
-- [ ] Populate editor choices from the enum-backed Odin definitions; do not maintain a second list of string IDs.
+- [x] Move the existing `NPC_Race` enum to a dependency-light package usable by serde, runtime, and editor code and rename it to `Character_Kind` to reflect its shared role.
+- [x] Decode readable enemy names such as `goblin`, `skeleton`, and `human` directly into that existing enum.
+- [x] Encode enum values back to stable lowercase names explicitly so Odin symbol renames cannot silently change room files.
+- [x] Report an unknown character variant as a path-aware decode error before semantic validation or runtime conversion.
+- [x] Replace the flat runtime `archetype_id` string with the typed character variant needed by enemies.
+- [x] Remove `archetype_id` and empty `properties` objects from NPC and holdable room/runtime data while each has only one valid variant.
+- [x] Populate editor enemy choices from the same enum-backed mapping; do not maintain a second list of string IDs.
+- [x] Avoid introducing NPC or holdable variant enums before a second real variant requires a choice.
 
 ### Code-owned definitions
 
-- [ ] Add concise enemy definitions keyed by `Enemy_ID`, containing animations, health, movement, combat values, collider, and behavior enum.
-- [ ] Add concise NPC definitions keyed by `NPC_ID`, containing appearance, animations, collider, movement behavior, and default dialogue enum.
-- [ ] Add concise holdable definitions keyed by `Holdable_ID`, containing texture, collider, and interaction behavior enum.
-- [ ] Keep player configuration separate while using the same typed-definition style where useful.
-- [ ] Make definition lookup exhaustive so adding an enum member produces an obvious compile-time or test failure until its definition and factory handling exist.
+- [x] Dispatch enemy-specific animations exhaustively from the existing character-kind enum while keeping shared enemy stats in one constructor.
+- [x] Keep the single human NPC configuration in one code-owned spawn path while its collider and movement defaults remain shared.
+- [x] Keep the single wood holdable configuration in one code-owned spawn path while its collider defaults remain shared.
+- [x] Keep player configuration separate while using the same shared character primitives where useful.
+- [x] Make enemy variant dispatch exhaustive so adding an enum member requires explicit spawn handling.
 - [ ] Cache shared textures and animations so repeated definitions do not load duplicate GPU resources per entity.
 - [ ] Define ownership and unloading rules for shared definition assets and runtime instances.
 
 ### Convert existing content
 
-- [ ] Define goblin, skeleton, and human enemy IDs in Odin.
-- [ ] Make the Desert enemy markers actually select skeletons through map data.
-- [ ] Define the existing human NPC and wood holdable in Odin.
-- [ ] Remove runtime defaults that silently turn all enemies into goblins or all NPCs into the same human.
-- [ ] Remove the temporary `wood` texture switch from `room.odin` in favor of typed definition lookup.
+- [x] Reuse the existing goblin, skeleton, and human enum values for enemy definitions.
+- [x] Make the Desert enemy markers actually select skeletons through map data.
+- [x] Define the existing human NPC and wood holdable once in Odin without redundant room identifiers.
+- [x] Remove the runtime default that silently turns all enemies into goblins.
+- [x] Remove the temporary `wood` texture switch from `room.odin` in favor of the single code-owned holdable definition.
 
 ### Exit criteria
 
 - [x] Adding a fourth room requires only a room JSON file.
-- [ ] Adding a character or item variant is an intentional typed-ID/definition change in Odin and requires no stringly typed runtime branching.
-- [ ] No enemy, NPC, holdable, dialogue, or behavior identifier remains an unchecked runtime string.
-- [ ] Runtime and editor use exactly the same typed definitions.
+- [x] Adding another enemy variant is an intentional enum/definition change in Odin and requires no stringly typed runtime branching.
+- [x] No current closed-set content variant remains an unchecked runtime string.
+- [x] Runtime and editor use the same character-kind enum and stable wire-name mapping.
 - [ ] Shared definition assets are loaded and unloaded once through a clear ownership model.
 
 ## Milestone 3 — Make typed narrative and room interactions authorable
 
 ### Dialogue definitions
 
-- [ ] Move the hardcoded test dialogue out of `room.odin`.
+- [x] Move the hardcoded test dialogue out of `room.odin`.
 - [ ] Define `Dialogue_ID` and code-owned dialogue definitions in a focused Odin module.
 - [ ] Support the current linear sequence of speaker/text messages first.
 - [ ] Allow an NPC room instance to override its kind's default typed dialogue ID.
@@ -299,9 +301,9 @@ The target workflow is:
 ### End-to-end proof room
 
 - [ ] Build a new room using only code-defined content and the editor.
-- [ ] Include at least two enemy IDs.
+- [ ] Include at least two enemy variants.
 - [ ] Include an NPC with typed, code-owned dialogue.
-- [ ] Include a typed holdable/item ID.
+- [ ] Include the code-defined holdable/item.
 - [ ] Include a multi-source condition and at least two different actions.
 - [ ] Include working entry and exit links to existing rooms.
 - [ ] Run the validator and focused pure-library unit tests.
@@ -314,7 +316,7 @@ The target workflow is:
 - [ ] Document each entity type and its properties.
 - [ ] Document how to add typed enemies, NPCs, holdables, dialogue, and their asset requirements in Odin.
 - [ ] Document conditions, actions, state lifetimes, and debugging tools.
-- [ ] Document the current content contract and how intentional format changes should update shipped content and tests together.
+- [ ] Document the current content contract and how intentional format changes should update shipped content and focused pure-contract tests together.
 - [ ] Add minimal valid example files suitable for copying.
 
 ### Exit criteria
@@ -325,10 +327,10 @@ The target workflow is:
 
 ## Verification approach
 
-- [ ] Focused unit tests cover pure room parsing, serialization, typed-ID conversion, and validation rules where failures are cheap to isolate.
+- [x] Focused unit tests cover pure room parsing, serialization, typed variant conversion, and validation rules where failures are cheap to isolate.
 - [x] The retired legacy-format tests were removed with the legacy parser.
 - [x] Golden fixtures are used only where exact output stability matters.
-- [ ] Do not add integration tests for runtime entity lifecycles, shipped-room loading, editor workflows, or gameplay behavior.
+- [x] Do not add integration tests for runtime entity lifecycles, shipped-room loading, editor workflows, or gameplay behavior.
 - [ ] Quick manual playtests cover one-player, two-player, editor entry/exit, room transitions, dialogue, combat, carrying, and mechanisms.
 
 ## Recommended implementation order

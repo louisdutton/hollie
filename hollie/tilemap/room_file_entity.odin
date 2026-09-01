@@ -1,5 +1,6 @@
 package tilemap
 
+import "../content"
 import json "core:encoding/json"
 import "core:fmt"
 import "core:strings"
@@ -14,16 +15,16 @@ Room_File_Player :: struct {
 }
 
 Room_File_Enemy :: struct {
-	archetype_id: string,
+	kind: content.Character_Kind,
 }
 
-Room_File_NPC :: struct {
-	archetype_id: string,
+Room_File_Enemy_Wire :: struct {
+	kind: string,
 }
 
-Room_File_Holdable :: struct {
-	archetype_id: string,
-}
+Room_File_NPC :: struct {}
+
+Room_File_Holdable :: struct {}
 
 Room_File_Door :: struct {
 	size:           Room_File_Size,
@@ -63,7 +64,7 @@ Room_File_Entity_Wire :: struct {
 	id:         string,
 	type:       string,
 	position:   Room_File_Position,
-	properties: json.Value,
+	properties: json.Value `json:"properties,omitempty"`,
 }
 
 room_file_entity_type_is_known :: proc(entity_type: string) -> bool {
@@ -76,7 +77,8 @@ room_file_entity_type_is_known :: proc(entity_type: string) -> bool {
 room_file_entity_property_is_allowed :: proc(entity_type, property: string) -> bool {
 	switch entity_type {
 	case "player": return property == "player_index"
-	case "enemy", "npc", "holdable": return property == "archetype_id"
+	case "enemy": return property == "kind"
+	case "npc", "holdable": return false
 	case "door":
 		return property == "size" || property == "target_room_id" || property == "target_door_id"
 	case "pressure_plate": return property == "trigger_id" || property == "requires_both"
@@ -158,7 +160,9 @@ decode_room_file_entity :: proc(
 		return
 	}
 
-	if _, ok := wire.properties.(json.Object); !ok {
+	properties_are_empty := wire.type == "npc" || wire.type == "holdable"
+	if _, ok := wire.properties.(json.Object);
+	   !ok && !(properties_are_empty && wire.properties == nil) {
 		err = {
 			kind         = .invalid_entity_properties,
 			entity_index = entity_index,
@@ -192,38 +196,36 @@ decode_room_file_entity :: proc(
 			}
 		}
 	case "enemy":
-		properties: Room_File_Enemy
-		ok := decode_room_file_entity_properties(wire.properties, &properties, allocator)
-		entity.properties = properties
+		properties_wire: Room_File_Enemy_Wire
+		ok := decode_room_file_entity_properties(wire.properties, &properties_wire, allocator)
 		if !ok {
 			err = {
 				kind         = .invalid_entity_properties,
 				entity_index = entity_index,
 				message      = strings.clone("enemy properties have invalid types", allocator),
 			}
+			break
+		}
+		defer delete(properties_wire.kind, allocator)
+
+		kind, known := content.character_kind_from_wire(properties_wire.kind)
+		if !known {
+			err = {
+				kind         = .unknown_content_variant,
+				entity_index = entity_index,
+				message      = fmt.aprintf("unknown enemy kind %q", properties_wire.kind),
+			}
+			break
+		}
+		entity.properties = Room_File_Enemy {
+			kind = kind,
 		}
 	case "npc":
 		properties: Room_File_NPC
-		ok := decode_room_file_entity_properties(wire.properties, &properties, allocator)
 		entity.properties = properties
-		if !ok {
-			err = {
-				kind         = .invalid_entity_properties,
-				entity_index = entity_index,
-				message      = strings.clone("NPC properties have invalid types", allocator),
-			}
-		}
 	case "holdable":
 		properties: Room_File_Holdable
-		ok := decode_room_file_entity_properties(wire.properties, &properties, allocator)
 		entity.properties = properties
-		if !ok {
-			err = {
-				kind         = .invalid_entity_properties,
-				entity_index = entity_index,
-				message      = strings.clone("holdable properties have invalid types", allocator),
-			}
-		}
 	case "door":
 		properties: Room_File_Door
 		ok := decode_room_file_entity_properties(wire.properties, &properties, allocator)
@@ -306,13 +308,19 @@ encode_room_file_entity :: proc(
 		wire.properties, properties_ok = encode_room_file_entity_properties(properties, allocator)
 	case Room_File_Enemy:
 		wire.type = "enemy"
-		wire.properties, properties_ok = encode_room_file_entity_properties(properties, allocator)
+		kind, known := content.character_kind_to_wire(properties.kind)
+		if known {
+			wire.properties, properties_ok = encode_room_file_entity_properties(
+				Room_File_Enemy_Wire{kind = kind},
+				allocator,
+			)
+		}
 	case Room_File_NPC:
 		wire.type = "npc"
-		wire.properties, properties_ok = encode_room_file_entity_properties(properties, allocator)
+		properties_ok = true
 	case Room_File_Holdable:
 		wire.type = "holdable"
-		wire.properties, properties_ok = encode_room_file_entity_properties(properties, allocator)
+		properties_ok = true
 	case Room_File_Door:
 		wire.type = "door"
 		wire.properties, properties_ok = encode_room_file_entity_properties(properties, allocator)
@@ -338,10 +346,11 @@ destroy_room_file_entity :: proc(entity: ^Room_File_Entity, allocator := context
 
 	delete(entity.id, allocator)
 	switch &properties in entity.properties {
-	case Room_File_Player, Room_File_Pressure_Plate:
-	case Room_File_Enemy: delete(properties.archetype_id, allocator)
-	case Room_File_NPC: delete(properties.archetype_id, allocator)
-	case Room_File_Holdable: delete(properties.archetype_id, allocator)
+	case Room_File_Player,
+	     Room_File_Enemy,
+	     Room_File_NPC,
+	     Room_File_Holdable,
+	     Room_File_Pressure_Plate:
 	case Room_File_Door:
 		delete(properties.target_room_id, allocator)
 		delete(properties.target_door_id, allocator)

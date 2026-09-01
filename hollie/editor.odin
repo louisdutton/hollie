@@ -1,6 +1,7 @@
 package hollie
 
 import "asset"
+import "content"
 import "core:fmt"
 import "core:strings"
 import "input"
@@ -196,13 +197,13 @@ editor_handle_entity_editing :: proc() {
 			editor_state.edit_input_timer = 0.15
 		}
 
-	case .ENEMY, .NPC, .HOLDABLE:
+	case .ENEMY:
 		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
-			editor_cycle_archetype_id(entity, 1)
+			editor_cycle_character_kind(entity, 1)
 			editor_state.edit_input_timer = 0.15
 		}
 		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_DOWN) {
-			editor_cycle_archetype_id(entity, -1)
+			editor_cycle_character_kind(entity, -1)
 			editor_state.edit_input_timer = 0.15
 		}
 	}
@@ -213,7 +214,7 @@ editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
 	case .PRESSURE_PLATE: return entity.trigger_id != 0
 	case .GATE: return entity.gate_id != 0 || len(entity.required_triggers) > 0
 	case .DOOR: return entity.target_room != "" || entity.target_door != ""
-	case .ENEMY, .NPC, .HOLDABLE: return entity.archetype_id != ""
+	case .ENEMY: return true
 	}
 	return false
 }
@@ -559,27 +560,15 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 	editor_replace_string(door_name, door_names[new_index])
 }
 
-editor_cycle_archetype_id :: proc(entity: ^tilemap.EntityData, direction: int) {
-	archetype_ids: []string
-	#partial switch entity.entity_type {
-	case .ENEMY: archetype_ids = []string{"goblin"}
-	case .NPC: archetype_ids = []string{"human"}
-	case .HOLDABLE: archetype_ids = []string{"wood"}
-	case: return
-	}
+editor_cycle_character_kind :: proc(entity: ^tilemap.EntityData, direction: int) {
+	if entity.entity_type != .ENEMY do return
 
-	current_index := -1
-	for archetype_id, i in archetype_ids {
-		if archetype_id == entity.archetype_id {
-			current_index = i
-			break
-		}
-	}
+	kind_count := len(content.CHARACTER_KIND_WIRE_NAMES)
+	current_index := int(entity.character_kind)
+	if current_index < 0 || current_index >= kind_count do current_index = 0
 
-	if current_index == -1 do current_index = 0
-
-	new_index := (current_index + direction + len(archetype_ids)) % len(archetype_ids)
-	editor_replace_string(&entity.archetype_id, archetype_ids[new_index])
+	new_index := (current_index + direction + kind_count) % kind_count
+	entity.character_kind = content.Character_Kind(new_index)
 }
 
 editor_replace_string :: proc(destination: ^string, value: string) {

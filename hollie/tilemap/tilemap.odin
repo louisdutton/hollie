@@ -1,6 +1,7 @@
 package tilemap
 
 import "../asset"
+import "../content"
 import "../renderer"
 import "../window"
 import "core:strings"
@@ -97,7 +98,7 @@ EntityData :: struct {
 	y:                 int,
 	entity_type:       EntityType,
 	player_index:      int,
-	archetype_id:      string,
+	character_kind:    content.Character_Kind,
 	trigger_id:        int,
 	gate_id:           int,
 	requires_both:     bool,
@@ -130,7 +131,6 @@ TileMap :: struct {
 clone_entity_data :: proc(entity: EntityData, allocator := context.allocator) -> EntityData {
 	cloned := entity
 	cloned.instance_id = strings.clone(entity.instance_id, allocator)
-	cloned.archetype_id = strings.clone(entity.archetype_id, allocator)
 	cloned.texture_path = strings.clone(entity.texture_path, allocator)
 	cloned.target_room = strings.clone(entity.target_room, allocator)
 	cloned.target_door = strings.clone(entity.target_door, allocator)
@@ -143,7 +143,6 @@ destroy_entity_data :: proc(entity: ^EntityData, allocator := context.allocator)
 	if entity == nil do return
 
 	delete(entity.instance_id, allocator)
-	delete(entity.archetype_id, allocator)
 	delete(entity.texture_path, allocator)
 	delete(entity.target_room, allocator)
 	delete(entity.target_door, allocator)

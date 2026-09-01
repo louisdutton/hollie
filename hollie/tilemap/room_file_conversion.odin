@@ -81,13 +81,9 @@ room_file_to_tilemap_unchecked :: proc(
 			entity.player_index = properties.player_index
 		case Room_File_Enemy:
 			entity.entity_type = .ENEMY
-			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
-		case Room_File_NPC:
-			entity.entity_type = .NPC
-			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
-		case Room_File_Holdable:
-			entity.entity_type = .HOLDABLE
-			entity.archetype_id = strings.clone(properties.archetype_id, allocator)
+			entity.character_kind = properties.kind
+		case Room_File_NPC: entity.entity_type = .NPC
+		case Room_File_Holdable: entity.entity_type = .HOLDABLE
 		case Room_File_Door:
 			entity.entity_type = .DOOR
 			entity.width = properties.size.width
@@ -175,14 +171,10 @@ tilemap_to_room_file :: proc(
 					player_index = entity.player_index,
 				}
 		case .ENEMY: file_entity.properties = Room_File_Enemy {
-					archetype_id = strings.clone(entity.archetype_id, allocator),
+					kind = entity.character_kind,
 				}
-		case .NPC: file_entity.properties = Room_File_NPC {
-					archetype_id = strings.clone(entity.archetype_id, allocator),
-				}
-		case .HOLDABLE: file_entity.properties = Room_File_Holdable {
-					archetype_id = strings.clone(entity.archetype_id, allocator),
-				}
+		case .NPC: file_entity.properties = Room_File_NPC{}
+		case .HOLDABLE: file_entity.properties = Room_File_Holdable{}
 		case .DOOR: file_entity.properties = Room_File_Door {
 					size = {width = entity.width, height = entity.height},
 					target_room_id = strings.clone(entity.target_room, allocator),

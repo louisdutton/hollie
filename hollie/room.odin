@@ -83,13 +83,6 @@ when ODIN_DEBUG {
 	}
 }
 
-// TODO: clone this so it doesn't need to be in block memory
-test_dialog := []Dialog_Message {
-	{text = "Hello there, traveler!", speaker = "Village NPC"},
-	{text = "Welcome to our peaceful village.", speaker = "Village NPC"},
-	{text = "Feel free to explore around.", speaker = "Village NPC"},
-}
-
 room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	if room_state.is_loaded do room_fini()
 
@@ -114,9 +107,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		switch entity.entity_type {
 		case .PLAYER: // Player spawn markers are editor metadata; spawning is handled below.
 				continue
-		case .ENEMY:
-			race := NPC_Race.GOBLIN // TODO: derive from map
-			enemy_spawn_race_at(position, race)
+		case .ENEMY: enemy_spawn_kind_at(position, entity.character_kind)
 		case .PRESSURE_PLATE:
 			entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
 		case .GATE:
@@ -129,14 +120,8 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case .HOLDABLE:
-			texture_path := ""
-			switch entity.archetype_id {
-			case "wood": texture_path = "art/elements/crops/wood.png"
-			case: assert(false, "unknown holdable archetype")
-			}
-			entity_create_holdable(position, asset.path(texture_path))
-		case .NPC: entity_create_npc(position, human_animations[:], test_dialog)
+		case .HOLDABLE: holdable_spawn_at(position)
+		case .NPC: npc_spawn_at(position)
 		case .DOOR:
 			entity_create_door(
 					position,

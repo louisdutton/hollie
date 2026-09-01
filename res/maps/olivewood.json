@@ -700,7 +700,7 @@
         "y": 128
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "goblin"
       }
     },
     {
@@ -711,7 +711,7 @@
         "y": 192
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "goblin"
       }
     },
     {
@@ -722,7 +722,7 @@
         "y": 96
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "goblin"
       }
     },
     {
@@ -775,9 +775,6 @@
       "position": {
         "x": 144,
         "y": 192
-      },
-      "properties": {
-        "archetype_id": "wood"
       }
     },
     {

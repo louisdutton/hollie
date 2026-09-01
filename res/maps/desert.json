@@ -700,7 +700,7 @@
         "y": 96
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "skeleton"
       }
     },
     {
@@ -711,7 +711,7 @@
         "y": 128
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "skeleton"
       }
     },
     {
@@ -722,7 +722,7 @@
         "y": 192
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "skeleton"
       }
     },
     {
@@ -733,7 +733,7 @@
         "y": 208
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "skeleton"
       }
     },
     {
@@ -744,7 +744,7 @@
         "y": 224
       },
       "properties": {
-        "archetype_id": "goblin"
+        "kind": "skeleton"
       }
     },
     {
