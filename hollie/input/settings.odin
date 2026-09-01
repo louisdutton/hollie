@@ -60,36 +60,6 @@ get_key_bindings :: proc() -> []Control_Binding {
 	return key_bindings
 }
 
-/// Get display name for a key
-get_key_name :: proc(key: Key) -> string {
-	#partial switch key {
-	case .W: return "W"
-	case .A: return "A"
-	case .S: return "S"
-	case .D: return "D"
-	case .E: return "E"
-	case .G: return "G"
-	case .R: return "R"
-	case .T: return "T"
-	case .P: return "P"
-	case .SPACE: return "Space"
-	case .LEFT_SHIFT: return "Left Shift"
-	case .RIGHT_SHIFT: return "Right Shift"
-	case .LEFT_CONTROL: return "Left Ctrl"
-	case .RIGHT_CONTROL: return "Right Ctrl"
-	case .ESCAPE: return "Escape"
-	case .ENTER: return "Enter"
-	case .TAB: return "Tab"
-	case .F1: return "F1"
-	case .BACKSPACE: return "Backspace"
-	case .UP: return "Up Arrow"
-	case .DOWN: return "Down Arrow"
-	case .LEFT: return "Left Arrow"
-	case .RIGHT: return "Right Arrow"
-	case: return "Unknown"
-	}
-}
-
 /// Movement input using current key bindings
 is_move_up_pressed :: proc() -> bool {
 	return is_key_down(settings.move_up)

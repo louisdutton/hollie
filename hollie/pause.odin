@@ -183,9 +183,8 @@ menu_draw_controls :: proc(focus: UI_Focus) {
 		name_rect := ui_next_rect(150, 20)
 		ui_label(name_rect, fmt.tprintf("%s:", binding.name))
 
-		key_name := input.get_key_name(binding.key^)
 		key_rect := ui_next_rect(120, 20)
-		ui_keycap(key_rect, key_name)
+		ui_keycap(key_rect, binding.key^)
 		ui_end_layout()
 
 		if i >= 8 do break

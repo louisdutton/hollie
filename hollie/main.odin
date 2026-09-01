@@ -51,6 +51,7 @@ init :: proc() {
 
 	design_width = window.get_design_width()
 	design_height = window.get_design_height()
+	ui_assets_init()
 
 	audio.init()
 
@@ -80,6 +81,7 @@ fini :: proc() {
 	audio.music_fini(game.music)
 
 	audio.fini()
+	ui_assets_fini()
 	window.fini()
 }
 

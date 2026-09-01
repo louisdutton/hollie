@@ -280,7 +280,7 @@ ui_panel :: proc(
 		bounds.height,
 		ui_context.theme.panel_background,
 	)
-	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border_color)
+	ui_draw_fantasy_border(bounds, border_color)
 	renderer.draw_text(
 		title,
 		int(bounds.x + ui_context.theme.padding),
@@ -296,7 +296,7 @@ ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) {
 
 	border := selected ? ui_context.theme.value_text : ui_context.theme.panel_border
 	renderer.draw_rect(bounds.x, bounds.y, bounds.width, bounds.height, background)
-	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border)
+	ui_draw_fantasy_border(bounds, border)
 
 	font_size := 13
 	text_width := f32(renderer.measure_text(text, i32(font_size)))
@@ -338,8 +338,8 @@ ui_label :: proc(bounds: renderer.Rect, text: string) {
 	renderer.draw_text(text, int(bounds.x), int(bounds.y + 2), 13, ui_context.theme.text)
 }
 
-ui_keycap :: proc(bounds: renderer.Rect, text: string) {
-	ui_draw_control_glyph(text, .UNKNOWN, bounds.x, bounds.y + 2)
+ui_keycap :: proc(bounds: renderer.Rect, key: input.Key) {
+	ui_draw_prompt_view(ui_key_prompt_view(key), bounds.x, bounds.y + 1, 18)
 }
 
 ui_slider :: proc(
@@ -355,12 +355,8 @@ ui_slider :: proc(
 	}
 
 	if selected {
-		renderer.draw_rect_outline(
-			bounds.x - 4,
-			bounds.y - 4,
-			bounds.width + 8,
-			bounds.height + 8,
-			2,
+		ui_draw_fantasy_border(
+			{bounds.x - 5, bounds.y - 5, bounds.width + 10, bounds.height + 10},
 			ui_context.theme.value_text,
 		)
 	}
@@ -389,12 +385,12 @@ ui_slider :: proc(
 }
 
 ui_action_hint_width :: proc(action: input.Action, font_size: int = 11) -> f32 {
-	control := input.action_control_name_for(action)
-	if control == "" do return 0
+	prompt := ui_action_prompt_view(action)
+	prompt_width := ui_prompt_view_width(prompt)
+	if prompt_width == 0 do return 0
 	binding := input.action_binding(action)
-	control_width := ui_control_glyph_width(control, binding.gamepad_button)
 	label_width := f32(renderer.measure_text(binding.label, i32(font_size)))
-	return control_width + 6 + label_width
+	return prompt_width + 6 + label_width
 }
 
 ui_draw_action_hint :: proc(
@@ -403,13 +399,14 @@ ui_draw_action_hint :: proc(
 	font_size: int = 11,
 	color := ui_context.theme.text,
 ) -> f32 {
-	control := input.action_control_name_for(action)
-	if control == "" do return 0
+	prompt := ui_action_prompt_view(action)
+	prompt_width := ui_prompt_view_width(prompt)
+	if prompt_width == 0 do return 0
 	binding := input.action_binding(action)
-	glyph_width := ui_draw_control_glyph(control, binding.gamepad_button, x, y)
-	label_x := x + glyph_width + 6
+	ui_draw_prompt_view(prompt, x, y)
+	label_x := x + prompt_width + 6
 	renderer.draw_text(binding.label, int(label_x), int(y + 2), font_size, color)
-	return glyph_width + 6 + f32(renderer.measure_text(binding.label, i32(font_size)))
+	return prompt_width + 6 + f32(renderer.measure_text(binding.label, i32(font_size)))
 }
 
 ui_action_hint :: proc(action: input.Action, color := ui_context.theme.muted_text) {
@@ -417,72 +414,6 @@ ui_action_hint :: proc(action: input.Action, color := ui_context.theme.muted_tex
 	x := layout.bounds.x + ui_context.theme.padding
 	ui_draw_action_hint(action, x, layout.cursor_y, 11, color)
 	layout.cursor_y += 22
-}
-
-@(private)
-ui_control_glyph_width :: proc(control: string, button: input.Gamepad_Button) -> f32 {
-	text_width := f32(renderer.measure_text(control, 9))
-	if ui_uses_face_graphic(button) do return 18
-	return max(text_width + 10, 20)
-}
-
-@(private)
-ui_draw_control_glyph :: proc(control: string, button: input.Gamepad_Button, x, y: f32) -> f32 {
-	width := ui_control_glyph_width(control, button)
-	background := renderer.Colour{25, 25, 25, 255}
-	border := renderer.Colour{220, 220, 220, 255}
-	if ui_uses_face_graphic(button) {
-		renderer.draw_circle(x + 9, y + 9, 8, background)
-		rl.DrawCircleLines(i32(x + 9), i32(y + 9), 8, border)
-		ui_draw_face_symbol(button, control, x + 9, y + 9)
-		return width
-	} else {
-		renderer.draw_rect_rounded(x, y + 1, width, 16, .SMALL, background)
-		renderer.draw_rect_outline(x, y + 1, width, 16, 1, border)
-	}
-
-	text_width := f32(renderer.measure_text(control, 9))
-	renderer.draw_text(control, int(x + (width - text_width) / 2), int(y + 4), 9, renderer.WHITE)
-	return width
-}
-
-@(private)
-ui_uses_face_graphic :: proc(button: input.Gamepad_Button) -> bool {
-	return input.active_device() == .Gamepad && ui_is_face_button(button)
-}
-
-@(private)
-ui_draw_face_symbol :: proc(button: input.Gamepad_Button, label: string, x, y: f32) {
-	if input.active_gamepad_layout() != .Playstation {
-		text_width := f32(renderer.measure_text(label, 9))
-		renderer.draw_text(label, int(x - text_width / 2), int(y - 5), 9, renderer.WHITE)
-		return
-	}
-
-	#partial switch button {
-	case .RIGHT_FACE_UP:
-		color := renderer.Colour{90, 220, 130, 255}
-		renderer.draw_line(x, y - 5, x - 5, y + 4, color)
-		renderer.draw_line(x - 5, y + 4, x + 5, y + 4, color)
-		renderer.draw_line(x + 5, y + 4, x, y - 5, color)
-	case .RIGHT_FACE_RIGHT:
-		rl.DrawCircleLines(i32(x), i32(y), 5, renderer.Colour{255, 100, 110, 255})
-	case .RIGHT_FACE_DOWN:
-		color := renderer.Colour{100, 170, 255, 255}
-		renderer.draw_line(x - 4, y - 4, x + 4, y + 4, color)
-		renderer.draw_line(x + 4, y - 4, x - 4, y + 4, color)
-	case .RIGHT_FACE_LEFT:
-		renderer.draw_rect_outline(x - 4, y - 4, 8, 8, 1, renderer.Colour{255, 130, 220, 255})
-	case:
-	}
-}
-
-@(private)
-ui_is_face_button :: proc(button: input.Gamepad_Button) -> bool {
-	#partial switch button {
-	case .RIGHT_FACE_UP, .RIGHT_FACE_RIGHT, .RIGHT_FACE_DOWN, .RIGHT_FACE_LEFT: return true
-	case: return false
-	}
 }
 
 ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
@@ -498,14 +429,7 @@ ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
 		bounds.height,
 		ui_context.theme.panel_background,
 	)
-	renderer.draw_rect_outline(
-		bounds.x,
-		bounds.y,
-		bounds.width,
-		bounds.height,
-		2,
-		ui_context.theme.panel_border,
-	)
+	ui_draw_fantasy_border(bounds, ui_context.theme.panel_border)
 
 	padding := ui_context.theme.padding
 	x := bounds.x + padding

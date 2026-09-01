@@ -1,6 +1,5 @@
 package input
 
-import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
 
@@ -33,29 +32,19 @@ Key_Modifier :: enum {
 }
 
 Action_Binding :: struct {
-	label:            string,
-	key:              Key,
-	key_modifier:     Key_Modifier,
-	gamepad_button:   Gamepad_Button,
-	keyboard_display: string,
-	gamepad_display:  string,
+	label:          string,
+	key:            Key,
+	key_modifier:   Key_Modifier,
+	gamepad_button: Gamepad_Button,
 }
 
 ACTION_BINDINGS := [Action]Action_Binding {
-	.Menu_Navigate = {
-		label = "Navigate",
-		keyboard_display = "Arrows / WASD",
-		gamepad_display = "LS / D-pad",
-	},
-	.Menu_Adjust = {
-		label = "Adjust",
-		keyboard_display = "Left / Right",
-		gamepad_display = "Left / Right",
-	},
+	.Menu_Navigate = {label = "Navigate"},
+	.Menu_Adjust = {label = "Adjust"},
 	.Menu_Confirm = {label = "Select", key = .ENTER, gamepad_button = .RIGHT_FACE_RIGHT},
 	.Menu_Back = {label = "Back", key = .ESCAPE, gamepad_button = .RIGHT_FACE_DOWN},
-	.Editor_Move_Cursor = {label = "Move", gamepad_display = "LS / D-pad"},
-	.Editor_Move_Camera = {label = "Camera", keyboard_display = "WASD", gamepad_display = "RS"},
+	.Editor_Move_Cursor = {label = "Move"},
+	.Editor_Move_Camera = {label = "Camera"},
 	.Editor_Paint = {label = "Paint", gamepad_button = .RIGHT_FACE_RIGHT},
 	.Editor_Erase = {label = "Erase", gamepad_button = .RIGHT_FACE_DOWN},
 	.Editor_Change_Layer = {label = "Layer", key = .TAB, gamepad_button = .RIGHT_FACE_LEFT},
@@ -105,10 +94,6 @@ action_down :: proc(action: Action) -> bool {
 	return key_down || gamepad_down
 }
 
-action_control_name_for :: proc(action: Action) -> string {
-	return action_control_name(action_binding(action))
-}
-
 active_gamepad_layout :: proc() -> Gamepad_Layout {
 	return gamepad_layout()
 }
@@ -120,23 +105,6 @@ action_modifier_down :: proc(modifier: Key_Modifier) -> bool {
 	case .Control: return is_key_down(.LEFT_CONTROL) || is_key_down(.RIGHT_CONTROL)
 	}
 	return false
-}
-
-@(private)
-action_control_name :: proc(binding: Action_Binding) -> string {
-	if active_device() == .Gamepad && is_gamepad_available(.PLAYER_1) {
-		if binding.gamepad_display != "" do return binding.gamepad_display
-		if binding.gamepad_button != .UNKNOWN {
-			return gamepad_button_name(binding.gamepad_button, gamepad_layout())
-		}
-	}
-
-	if binding.keyboard_display != "" do return binding.keyboard_display
-	if binding.key == .KEY_NULL do return ""
-
-	key_name := get_key_name(binding.key)
-	if binding.key_modifier == .Control do return fmt.tprintf("Ctrl+%s", key_name)
-	return key_name
 }
 
 Gamepad_Layout :: enum {
@@ -163,56 +131,4 @@ gamepad_layout :: proc() -> Gamepad_Layout {
 		return .Playstation
 	}
 	return .Xbox
-}
-
-@(private)
-gamepad_button_name :: proc(button: Gamepad_Button, layout: Gamepad_Layout) -> string {
-	switch layout {
-	case .Xbox: #partial switch button {
-			case .RIGHT_FACE_UP: return "Y"
-			case .RIGHT_FACE_RIGHT: return "B"
-			case .RIGHT_FACE_DOWN: return "A"
-			case .RIGHT_FACE_LEFT: return "X"
-			case .LEFT_TRIGGER_1: return "LB"
-			case .LEFT_TRIGGER_2: return "LT"
-			case .RIGHT_TRIGGER_1: return "RB"
-			case .RIGHT_TRIGGER_2: return "RT"
-			case .MIDDLE_LEFT: return "View"
-			case .MIDDLE_RIGHT: return "Menu"
-			case .LEFT_THUMB: return "L3"
-			case .RIGHT_THUMB: return "R3"
-			case: return "Gamepad"
-			}
-	case .Playstation: #partial switch button {
-			case .RIGHT_FACE_UP: return "Triangle"
-			case .RIGHT_FACE_RIGHT: return "Circle"
-			case .RIGHT_FACE_DOWN: return "Cross"
-			case .RIGHT_FACE_LEFT: return "Square"
-			case .LEFT_TRIGGER_1: return "L1"
-			case .LEFT_TRIGGER_2: return "L2"
-			case .RIGHT_TRIGGER_1: return "R1"
-			case .RIGHT_TRIGGER_2: return "R2"
-			case .MIDDLE_LEFT: return "Create"
-			case .MIDDLE_RIGHT: return "Options"
-			case .LEFT_THUMB: return "L3"
-			case .RIGHT_THUMB: return "R3"
-			case: return "Gamepad"
-			}
-	case .Nintendo: #partial switch button {
-			case .RIGHT_FACE_UP: return "X"
-			case .RIGHT_FACE_RIGHT: return "A"
-			case .RIGHT_FACE_DOWN: return "B"
-			case .RIGHT_FACE_LEFT: return "Y"
-			case .LEFT_TRIGGER_1: return "L"
-			case .LEFT_TRIGGER_2: return "ZL"
-			case .RIGHT_TRIGGER_1: return "R"
-			case .RIGHT_TRIGGER_2: return "ZR"
-			case .MIDDLE_LEFT: return "Minus"
-			case .MIDDLE_RIGHT: return "Plus"
-			case .LEFT_THUMB: return "L3"
-			case .RIGHT_THUMB: return "R3"
-			case: return "Gamepad"
-			}
-	}
-	return "Gamepad"
 }
