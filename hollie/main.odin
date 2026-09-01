@@ -24,7 +24,8 @@ Game_State :: struct {
 	state:        App_State,
 	scene:        Scene,
 	player_count: int,
-	font:         renderer.Font,
+	ui_font:      renderer.Font,
+	title_font:   renderer.Font,
 	music:        audio.Music,
 	sounds:       audio.Sound_Map,
 }
@@ -55,7 +56,11 @@ init :: proc() {
 
 	audio.init()
 
-	game.font = renderer.load_font(asset.path("font/mecha.png"))
+	game.ui_font = renderer.load_font(asset.path("font/alegreya-sans/AlegreyaSans-Medium.ttf"))
+	game.title_font = renderer.load_font(
+		asset.path("font/alegreya-sans/AlegreyaSans-ExtraBold.ttf"),
+	)
+	renderer.set_default_font(game.ui_font)
 	game.music = audio.music_init(asset.path("audio/music/ambient.ogg"))
 	game.sounds = audio.sound_init()
 	audio.music_set_volume(game.music, audio.get_effective_music_volume())
@@ -77,7 +82,8 @@ fini :: proc() {
 	case .GAMEPLAY: unload_gameplay_screen()
 	}
 
-	renderer.unload_font(game.font)
+	renderer.unload_font(game.title_font)
+	renderer.unload_font(game.ui_font)
 	audio.music_fini(game.music)
 
 	audio.fini()

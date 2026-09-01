@@ -5,7 +5,6 @@ import "core:unicode/utf8"
 import "input"
 import "renderer"
 import "tween"
-import rl "vendor:raylib"
 
 TIME_PER_CHARACTER :: 0.025 * f32(time.Second)
 
@@ -180,7 +179,7 @@ dialog_draw :: proc() {
 			continue_text = "[close]"
 		}
 
-		text_w := rl.MeasureText(cstring(raw_data(continue_text)), 20)
+		text_w := renderer.measure_text(continue_text, 20)
 		continue_x := int(design_width) - MARGIN_X - PADDING_X - int(text_w)
 		continue_y := int(bg_y) + bg_height - PADDING_Y - 20
 

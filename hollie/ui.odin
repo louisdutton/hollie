@@ -77,7 +77,7 @@ ui_end :: proc() {
 
 // Returns the width of the provided text at the provided size.
 ui_measure_text :: proc(text: string, size: int) -> int {
-	return int(rl.MeasureText(cstring(raw_data(text)), i32(size)))
+	return int(renderer.measure_text(text, i32(size)))
 }
 
 ui_anchored_rect :: proc(
