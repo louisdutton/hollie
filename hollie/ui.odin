@@ -11,6 +11,22 @@ UI_Anchor :: enum {
 	Top_Right,
 }
 
+UI_Layout_Direction :: enum {
+	Column,
+	Row,
+}
+
+UI_Focus :: struct {
+	index:        int,
+	repeat_timer: f32,
+}
+
+UI_Navigation :: struct {
+	adjust:  int,
+	confirm: bool,
+	back:    bool,
+}
+
 UI_Theme :: struct {
 	panel_background: renderer.Colour,
 	panel_border:     renderer.Colour,
@@ -22,8 +38,11 @@ UI_Theme :: struct {
 }
 
 UI_Layout :: struct {
-	bounds:   renderer.Rect,
-	cursor_y: f32,
+	bounds:    renderer.Rect,
+	cursor_x:  f32,
+	cursor_y:  f32,
+	direction: UI_Layout_Direction,
+	gap:       f32,
 }
 
 UI_Context :: struct {
@@ -74,6 +93,12 @@ ui_anchored_rect :: proc(
 	return {}
 }
 
+ui_centered_rect :: proc(width, height: f32) -> renderer.Rect {
+	design_width := f32(window.get_design_width())
+	design_height := f32(window.get_design_height())
+	return {(design_width - width) / 2, (design_height - height) / 2, width, height}
+}
+
 ui_begin_panel :: proc(
 	title: string,
 	bounds: renderer.Rect,
@@ -83,8 +108,10 @@ ui_begin_panel :: proc(
 	ui_panel(bounds, title, border_color)
 	padding := ui_context.theme.padding
 	ui_context.layouts[ui_context.depth] = {
-		bounds   = bounds,
-		cursor_y = bounds.y + padding + ui_context.theme.line_height,
+		bounds    = bounds,
+		cursor_x  = bounds.x + padding,
+		cursor_y  = bounds.y + padding + ui_context.theme.line_height,
+		direction = .Column,
 	}
 	ui_context.depth += 1
 }
@@ -92,6 +119,89 @@ ui_begin_panel :: proc(
 ui_end_panel :: proc() {
 	assert(ui_context.depth > 0, "UI panel stack underflow")
 	ui_context.depth -= 1
+}
+
+ui_begin_layout :: proc(direction: UI_Layout_Direction, bounds: renderer.Rect, gap: f32 = 0) {
+	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
+	ui_context.layouts[ui_context.depth] = {
+		bounds    = bounds,
+		cursor_x  = bounds.x,
+		cursor_y  = bounds.y,
+		direction = direction,
+		gap       = gap,
+	}
+	ui_context.depth += 1
+}
+
+ui_end_layout :: proc() {
+	assert(ui_context.depth > 0, "UI layout stack underflow")
+	ui_context.depth -= 1
+}
+
+ui_next_rect :: proc(width, height: f32) -> renderer.Rect {
+	layout := ui_current_layout()
+	bounds := renderer.Rect{layout.cursor_x, layout.cursor_y, width, height}
+	switch layout.direction {
+	case .Column: layout.cursor_y += height + layout.gap
+	case .Row: layout.cursor_x += width + layout.gap
+	}
+	return bounds
+}
+
+ui_focus_reset :: proc(focus: ^UI_Focus) {
+	focus.index = 0
+	focus.repeat_timer = 0
+}
+
+ui_focus_update :: proc(focus: ^UI_Focus, item_count: int, delta_time: f32) -> UI_Navigation {
+	navigation := UI_Navigation {
+		confirm = input.action_pressed(.Menu_Confirm),
+		back    = input.action_pressed(.Menu_Back),
+	}
+	if item_count <= 0 do return navigation
+
+	focus.index = clamp(focus.index, 0, item_count - 1)
+	focus.repeat_timer = max(focus.repeat_timer - delta_time, 0)
+
+	vertical := 0
+	horizontal := 0
+	if input.is_key_pressed(.UP) ||
+	   input.is_key_pressed(.W) ||
+	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP) {
+		vertical = -1
+	}
+	if input.is_key_pressed(.DOWN) ||
+	   input.is_key_pressed(.S) ||
+	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN) {
+		vertical = 1
+	}
+	if input.is_key_pressed(.LEFT) ||
+	   input.is_key_pressed(.A) ||
+	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT) {
+		horizontal = -1
+	}
+	if input.is_key_pressed(.RIGHT) ||
+	   input.is_key_pressed(.D) ||
+	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT) {
+		horizontal = 1
+	}
+
+	if focus.repeat_timer <= 0 && input.is_gamepad_available(.PLAYER_1) {
+		x := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X)
+		y := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y)
+		if vertical == 0 && abs(y) > 0.5 do vertical = y < 0 ? -1 : 1
+		if horizontal == 0 && abs(x) > 0.5 do horizontal = x < 0 ? -1 : 1
+	}
+
+	if vertical != 0 {
+		focus.index = (focus.index + vertical + item_count) % item_count
+		focus.repeat_timer = 0.2
+	}
+	if horizontal != 0 {
+		navigation.adjust = horizontal
+		focus.repeat_timer = 0.2
+	}
+	return navigation
 }
 
 ui_text :: proc(text: string, color := ui_context.theme.text, size: int = 13) {
@@ -123,9 +233,9 @@ ui_field :: proc(
 	right := layout.bounds.x + layout.bounds.width - padding
 	hints_width: f32 = 0
 	for action in actions {
-		hint := input.action_hint(action)
-		if hint == "" do continue
-		hints_width += f32(renderer.measure_text(hint, 10)) + 10
+		hint_width := ui_action_hint_width(action, 10)
+		if hint_width == 0 do continue
+		hints_width += hint_width + 10
 	}
 
 	hint_y := y + 2
@@ -137,11 +247,10 @@ ui_field :: proc(
 	}
 
 	for action_index := len(actions) - 1; action_index >= 0; action_index -= 1 {
-		hint := input.action_hint(actions[action_index])
-		if hint == "" do continue
-		hint_width := f32(renderer.measure_text(hint, 10))
+		hint_width := ui_action_hint_width(actions[action_index], 10)
+		if hint_width == 0 do continue
 		right -= hint_width
-		renderer.draw_text(hint, int(right), int(hint_y), 10, ui_context.theme.muted_text)
+		ui_draw_action_hint(actions[action_index], right, hint_y, 10, ui_context.theme.muted_text)
 		right -= 10
 	}
 
@@ -196,8 +305,41 @@ ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) {
 	renderer.draw_text(text, int(text_x), int(text_y), font_size, ui_context.theme.text)
 }
 
+ui_menu_panel :: proc(
+	title: string,
+	items: []string,
+	focus: UI_Focus,
+	width: f32 = 300,
+	button_width: f32 = 220,
+	button_height: f32 = 40,
+	gap: f32 = 15,
+) {
+	content_height := f32(len(items)) * button_height + f32(max(len(items) - 1, 0)) * gap
+	panel_height :=
+		ui_context.theme.padding * 2 + ui_context.theme.line_height + 16 + content_height
+	panel_bounds := ui_centered_rect(width, panel_height)
+	ui_begin_panel(title, panel_bounds)
+
+	content_bounds := renderer.Rect {
+		panel_bounds.x + (panel_bounds.width - button_width) / 2,
+		panel_bounds.y + ui_context.theme.padding + ui_context.theme.line_height + 16,
+		button_width,
+		content_height,
+	}
+	ui_begin_layout(.Column, content_bounds, gap)
+	for item, index in items {
+		ui_button(ui_next_rect(button_width, button_height), item, focus.index == index)
+	}
+	ui_end_layout()
+	ui_end_panel()
+}
+
 ui_label :: proc(bounds: renderer.Rect, text: string) {
 	renderer.draw_text(text, int(bounds.x), int(bounds.y + 2), 13, ui_context.theme.text)
+}
+
+ui_keycap :: proc(bounds: renderer.Rect, text: string) {
+	ui_draw_control_glyph(text, .UNKNOWN, bounds.x, bounds.y + 2)
 }
 
 ui_slider :: proc(
@@ -246,9 +388,106 @@ ui_slider :: proc(
 	)
 }
 
+ui_action_hint_width :: proc(action: input.Action, font_size: int = 11) -> f32 {
+	control := input.action_control_name_for(action)
+	if control == "" do return 0
+	binding := input.action_binding(action)
+	control_width := ui_control_glyph_width(control, binding.gamepad_button)
+	label_width := f32(renderer.measure_text(binding.label, i32(font_size)))
+	return control_width + 6 + label_width
+}
+
+ui_draw_action_hint :: proc(
+	action: input.Action,
+	x, y: f32,
+	font_size: int = 11,
+	color := ui_context.theme.text,
+) -> f32 {
+	control := input.action_control_name_for(action)
+	if control == "" do return 0
+	binding := input.action_binding(action)
+	glyph_width := ui_draw_control_glyph(control, binding.gamepad_button, x, y)
+	label_x := x + glyph_width + 6
+	renderer.draw_text(binding.label, int(label_x), int(y + 2), font_size, color)
+	return glyph_width + 6 + f32(renderer.measure_text(binding.label, i32(font_size)))
+}
+
+ui_action_hint :: proc(action: input.Action, color := ui_context.theme.muted_text) {
+	layout := ui_current_layout()
+	x := layout.bounds.x + ui_context.theme.padding
+	ui_draw_action_hint(action, x, layout.cursor_y, 11, color)
+	layout.cursor_y += 22
+}
+
+@(private)
+ui_control_glyph_width :: proc(control: string, button: input.Gamepad_Button) -> f32 {
+	text_width := f32(renderer.measure_text(control, 9))
+	if ui_uses_face_graphic(button) do return 18
+	return max(text_width + 10, 20)
+}
+
+@(private)
+ui_draw_control_glyph :: proc(control: string, button: input.Gamepad_Button, x, y: f32) -> f32 {
+	width := ui_control_glyph_width(control, button)
+	background := renderer.Colour{25, 25, 25, 255}
+	border := renderer.Colour{220, 220, 220, 255}
+	if ui_uses_face_graphic(button) {
+		renderer.draw_circle(x + 9, y + 9, 8, background)
+		rl.DrawCircleLines(i32(x + 9), i32(y + 9), 8, border)
+		ui_draw_face_symbol(button, control, x + 9, y + 9)
+		return width
+	} else {
+		renderer.draw_rect_rounded(x, y + 1, width, 16, .SMALL, background)
+		renderer.draw_rect_outline(x, y + 1, width, 16, 1, border)
+	}
+
+	text_width := f32(renderer.measure_text(control, 9))
+	renderer.draw_text(control, int(x + (width - text_width) / 2), int(y + 4), 9, renderer.WHITE)
+	return width
+}
+
+@(private)
+ui_uses_face_graphic :: proc(button: input.Gamepad_Button) -> bool {
+	return input.active_device() == .Gamepad && ui_is_face_button(button)
+}
+
+@(private)
+ui_draw_face_symbol :: proc(button: input.Gamepad_Button, label: string, x, y: f32) {
+	if input.active_gamepad_layout() != .Playstation {
+		text_width := f32(renderer.measure_text(label, 9))
+		renderer.draw_text(label, int(x - text_width / 2), int(y - 5), 9, renderer.WHITE)
+		return
+	}
+
+	#partial switch button {
+	case .RIGHT_FACE_UP:
+		color := renderer.Colour{90, 220, 130, 255}
+		renderer.draw_line(x, y - 5, x - 5, y + 4, color)
+		renderer.draw_line(x - 5, y + 4, x + 5, y + 4, color)
+		renderer.draw_line(x + 5, y + 4, x, y - 5, color)
+	case .RIGHT_FACE_RIGHT:
+		rl.DrawCircleLines(i32(x), i32(y), 5, renderer.Colour{255, 100, 110, 255})
+	case .RIGHT_FACE_DOWN:
+		color := renderer.Colour{100, 170, 255, 255}
+		renderer.draw_line(x - 4, y - 4, x + 4, y + 4, color)
+		renderer.draw_line(x + 4, y - 4, x - 4, y + 4, color)
+	case .RIGHT_FACE_LEFT:
+		renderer.draw_rect_outline(x - 4, y - 4, 8, 8, 1, renderer.Colour{255, 130, 220, 255})
+	case:
+	}
+}
+
+@(private)
+ui_is_face_button :: proc(button: input.Gamepad_Button) -> bool {
+	#partial switch button {
+	case .RIGHT_FACE_UP, .RIGHT_FACE_RIGHT, .RIGHT_FACE_DOWN, .RIGHT_FACE_LEFT: return true
+	case: return false
+	}
+}
+
 ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
 	rows := ui_action_bar_rows(actions, width)
-	return f32(rows) * 19 + ui_context.theme.padding * 2
+	return f32(rows) * 22 + ui_context.theme.padding * 2
 }
 
 ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
@@ -274,16 +513,25 @@ ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
 	right := bounds.x + bounds.width - padding
 
 	for action in actions {
-		hint := input.action_hint(action)
-		if hint == "" do continue
-		text_width := f32(renderer.measure_text(hint, 11))
-		if x > bounds.x + padding && x + text_width > right {
+		hint_width := ui_action_hint_width(action)
+		if hint_width == 0 do continue
+		if x > bounds.x + padding && x + hint_width > right {
 			x = bounds.x + padding
-			y += 19
+			y += 22
 		}
-		renderer.draw_text(hint, int(x), int(y), 11, ui_context.theme.text)
-		x += text_width + 20
+		ui_draw_action_hint(action, x, y)
+		x += hint_width + 20
 	}
+}
+
+ui_menu_action_bar :: proc(show_adjust: bool) {
+	base_actions := [?]input.Action{.Menu_Navigate, .Menu_Confirm, .Menu_Back}
+	adjust_actions := [?]input.Action{.Menu_Navigate, .Menu_Adjust, .Menu_Confirm, .Menu_Back}
+	actions := show_adjust ? adjust_actions[:] : base_actions[:]
+	width := f32(window.get_design_width()) - 20
+	height := ui_action_bar_height(actions, width)
+	y := f32(window.get_design_height()) - height - 10
+	ui_action_bar(actions, {10, y, width, height})
 }
 
 @(private)
@@ -294,9 +542,8 @@ ui_action_bar_rows :: proc(actions: []input.Action, width: f32) -> int {
 	rows := 1
 
 	for action in actions {
-		hint := input.action_hint(action)
-		if hint == "" do continue
-		item_width := f32(renderer.measure_text(hint, 11))
+		item_width := ui_action_hint_width(action)
+		if item_width == 0 do continue
 		if x > 0 && x + item_width > available_width {
 			rows += 1
 			x = 0

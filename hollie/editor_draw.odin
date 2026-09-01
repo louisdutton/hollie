@@ -439,7 +439,7 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 	if editor_state.is_editing_entity {
 		ui_text("Editing entity", {255, 255, 100, 255})
 	} else {
-		ui_text(input.action_hint(.Editor_Edit_Entity), {180, 180, 180, 255}, 11)
+		ui_action_hint(.Editor_Edit_Entity)
 	}
 }
 

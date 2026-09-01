@@ -5,6 +5,10 @@ import "core:strings"
 import rl "vendor:raylib"
 
 Action :: enum {
+	Menu_Navigate,
+	Menu_Adjust,
+	Menu_Confirm,
+	Menu_Back,
 	Editor_Move_Cursor,
 	Editor_Move_Camera,
 	Editor_Paint,
@@ -38,6 +42,18 @@ Action_Binding :: struct {
 }
 
 ACTION_BINDINGS := [Action]Action_Binding {
+	.Menu_Navigate = {
+		label = "Navigate",
+		keyboard_display = "Arrows / WASD",
+		gamepad_display = "LS / D-pad",
+	},
+	.Menu_Adjust = {
+		label = "Adjust",
+		keyboard_display = "Left / Right",
+		gamepad_display = "Left / Right",
+	},
+	.Menu_Confirm = {label = "Select", key = .ENTER, gamepad_button = .RIGHT_FACE_DOWN},
+	.Menu_Back = {label = "Back", key = .ESCAPE, gamepad_button = .RIGHT_FACE_RIGHT},
 	.Editor_Move_Cursor = {label = "Move", gamepad_display = "LS / D-pad"},
 	.Editor_Move_Camera = {label = "Camera", keyboard_display = "WASD", gamepad_display = "RS"},
 	.Editor_Paint = {label = "Paint", gamepad_button = .RIGHT_FACE_RIGHT},
@@ -89,11 +105,12 @@ action_down :: proc(action: Action) -> bool {
 	return key_down || gamepad_down
 }
 
-action_hint :: proc(action: Action) -> string {
-	binding := action_binding(action)
-	control := action_control_name(binding)
-	if control == "" do return ""
-	return fmt.tprintf("%s  %s", control, binding.label)
+action_control_name_for :: proc(action: Action) -> string {
+	return action_control_name(action_binding(action))
+}
+
+active_gamepad_layout :: proc() -> Gamepad_Layout {
+	return gamepad_layout()
 }
 
 @(private)

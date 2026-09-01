@@ -69,8 +69,7 @@ update_gameplay_screen :: proc() {
 		pause_toggle()
 	}
 
-	pause_handle_input()
-	pause_update(rl.GetFrameTime())
+	pause_handle_input(rl.GetFrameTime())
 
 	when ODIN_DEBUG {
 		if input.action_pressed(.Editor_Toggle) {

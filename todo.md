@@ -242,7 +242,7 @@ The target workflow is:
 
 - [x] Centralize editor actions so input handling and displayed control hints use the same bindings.
 - [x] Introduce reusable panel, field, status, and wrapping action-bar primitives and migrate the editor HUD and inspector.
-- [ ] Add row/column layout, stable widget focus, and gamepad navigation as interactive controls require them.
+- [x] Add row/column layout, stable widget focus, and gamepad navigation as interactive controls require them.
 - [x] Migrate title and pause menus after the editor UI primitives have proven stable.
 - [ ] Generate entity palettes from typed Odin entity and content definitions.
 - [ ] Generate property controls from the same enums and field definitions used for room loading and validation.
