@@ -2,7 +2,6 @@
 package hollie
 
 import "audio"
-import "gui"
 import "input"
 import "renderer"
 import rl "vendor:raylib"
@@ -61,9 +60,6 @@ draw_title_screen :: proc() {
 		4,
 		renderer.WHITE,
 	)
-
-	gui.begin()
-	defer gui.end()
 
 	switch title_state.menu_state {
 	case .MAIN: title_draw_main_menu()
@@ -140,7 +136,7 @@ title_draw_main_menu :: proc() {
 
 	// Main menu panel
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "MAIN MENU")
+	ui_panel(menu_rect, "MAIN MENU")
 
 	button_width: f32 = 200
 	button_height: f32 = 40
@@ -149,27 +145,27 @@ title_draw_main_menu :: proc() {
 
 	// Game mode buttons
 	one_player_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(one_player_rect, "1 Player", title_state.selected_index == 0) {
+	if ui_button(one_player_rect, "1 Player", title_state.selected_index == 0) {
 		game.player_count = 1
 		set_scene(.GAMEPLAY)
 	}
 
 	two_player_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(two_player_rect, "2 Players", title_state.selected_index == 1) {
+	if ui_button(two_player_rect, "2 Players", title_state.selected_index == 1) {
 		game.player_count = 2
 		set_scene(.GAMEPLAY)
 	}
 
 	// Options button
 	options_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(options_rect, "Options", title_state.selected_index == 2) {
+	if ui_button(options_rect, "Options", title_state.selected_index == 2) {
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}
 
 	// Exit Game button
 	exit_rect := renderer.Rect{button_x, start_y + 180, button_width, button_height}
-	if gui.button(exit_rect, "Exit Game", title_state.selected_index == 3) {
+	if ui_button(exit_rect, "Exit Game", title_state.selected_index == 3) {
 		game.state = .EXITING
 	}
 }
@@ -185,7 +181,7 @@ title_draw_options_menu :: proc() {
 
 	// Options menu panel
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "OPTIONS")
+	ui_panel(menu_rect, "OPTIONS")
 
 	button_width: f32 = 200
 	button_height: f32 = 40
@@ -194,28 +190,28 @@ title_draw_options_menu :: proc() {
 
 	// Audio options button
 	audio_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(audio_rect, "Audio", title_state.selected_index == 0) {
+	if ui_button(audio_rect, "Audio", title_state.selected_index == 0) {
 		title_state.menu_state = .AUDIO
 		title_state.selected_index = 0
 	}
 
 	// Visual options button
 	visual_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(visual_rect, "Visual", title_state.selected_index == 1) {
+	if ui_button(visual_rect, "Visual", title_state.selected_index == 1) {
 		title_state.menu_state = .VISUAL
 		title_state.selected_index = 0
 	}
 
 	// Controls options button
 	controls_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(controls_rect, "Controls", title_state.selected_index == 2) {
+	if ui_button(controls_rect, "Controls", title_state.selected_index == 2) {
 		title_state.menu_state = .CONTROLS
 		title_state.selected_index = 0
 	}
 
 	// Back button
 	back_rect := renderer.Rect{button_x, start_y + 200, button_width, button_height}
-	if gui.button(back_rect, "Back", title_state.selected_index == 3) {
+	if ui_button(back_rect, "Back", title_state.selected_index == 3) {
 		title_state.menu_state = .MAIN
 		title_state.selected_index = 0
 	}
@@ -231,7 +227,7 @@ title_draw_audio_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "AUDIO OPTIONS")
+	ui_panel(menu_rect, "AUDIO OPTIONS")
 
 	slider_width: f32 = 200
 	slider_height: f32 = 20
@@ -241,7 +237,7 @@ title_draw_audio_menu :: proc() {
 	// Master volume slider
 	master_volume := audio.get_master_volume()
 	master_rect := renderer.Rect{slider_x, start_y, slider_width, slider_height}
-	if gui.slider(master_rect, "Master Volume:", &master_volume, 0.0, 1.0) {
+	if ui_slider(master_rect, "Master Volume:", &master_volume, 0.0, 1.0) {
 		audio.set_master_volume(master_volume)
 		audio.music_set_volume(game.music, audio.get_effective_music_volume())
 	}
@@ -249,7 +245,7 @@ title_draw_audio_menu :: proc() {
 	// Music volume slider
 	music_volume := audio.get_music_volume()
 	music_rect := renderer.Rect{slider_x, start_y + 60, slider_width, slider_height}
-	if gui.slider(music_rect, "Music Volume:", &music_volume, 0.0, 1.0) {
+	if ui_slider(music_rect, "Music Volume:", &music_volume, 0.0, 1.0) {
 		audio.set_music_volume(music_volume)
 		audio.music_set_volume(game.music, audio.get_effective_music_volume())
 	}
@@ -257,7 +253,7 @@ title_draw_audio_menu :: proc() {
 	// SFX volume slider
 	sfx_volume := audio.get_sfx_volume()
 	sfx_rect := renderer.Rect{slider_x, start_y + 120, slider_width, slider_height}
-	if gui.slider(sfx_rect, "SFX Volume:", &sfx_volume, 0.0, 1.0) {
+	if ui_slider(sfx_rect, "SFX Volume:", &sfx_volume, 0.0, 1.0) {
 		audio.set_sfx_volume(sfx_volume)
 	}
 
@@ -265,7 +261,7 @@ title_draw_audio_menu :: proc() {
 	button_width: f32 = 100
 	button_height: f32 = 30
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
-	if gui.button(back_rect, "Back", title_state.selected_index == 3) {
+	if ui_button(back_rect, "Back", title_state.selected_index == 3) {
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}
@@ -284,7 +280,7 @@ title_draw_visual_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back", title_state.selected_index == 0) {
+	if ui_button(back_rect, "Back", title_state.selected_index == 0) {
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}
@@ -303,7 +299,7 @@ title_draw_controls_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back", title_state.selected_index == 0) {
+	if ui_button(back_rect, "Back", title_state.selected_index == 0) {
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}

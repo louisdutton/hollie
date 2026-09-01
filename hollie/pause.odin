@@ -3,7 +3,6 @@ package hollie
 
 import "audio"
 import "core:fmt"
-import "gui"
 import "input"
 import "renderer"
 import "window"
@@ -129,9 +128,6 @@ pause_draw :: proc() {
 	// Draw semi-transparent background
 	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.fade(renderer.BLACK, 0.75))
 
-	gui.begin()
-	defer gui.end()
-
 	switch pause_state.menu_state {
 	case .MAIN: pause_draw_main_menu()
 	case .OPTIONS: pause_draw_options_menu()
@@ -155,7 +151,7 @@ pause_draw_main_menu :: proc() {
 
 	// Main menu panel
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "PAUSED")
+	ui_panel(menu_rect, "PAUSED")
 
 	button_width: f32 = 200
 	button_height: f32 = 40
@@ -164,26 +160,26 @@ pause_draw_main_menu :: proc() {
 
 	// Resume button
 	resume_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(resume_rect, "Resume", pause_state.selected_index == 0) {
+	if ui_button(resume_rect, "Resume", pause_state.selected_index == 0) {
 		pause_close()
 	}
 
 	// Options button
 	options_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(options_rect, "Options", pause_state.selected_index == 1) {
+	if ui_button(options_rect, "Options", pause_state.selected_index == 1) {
 		pause_state.menu_state = .OPTIONS
 		pause_state.selected_index = 0
 	}
 
 	// Return to Menu button
 	menu_button_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(menu_button_rect, "Return to Menu", pause_state.selected_index == 2) {
+	if ui_button(menu_button_rect, "Return to Menu", pause_state.selected_index == 2) {
 		set_scene(.TITLE)
 	}
 
 	// Quit button
 	quit_rect := renderer.Rect{button_x, start_y + 180, button_width, button_height}
-	if gui.button(quit_rect, "Quit Game", pause_state.selected_index == 3) {
+	if ui_button(quit_rect, "Quit Game", pause_state.selected_index == 3) {
 		pause_quit_game()
 	}
 }
@@ -200,7 +196,7 @@ pause_draw_options_menu :: proc() {
 
 	// Options menu panel
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "OPTIONS")
+	ui_panel(menu_rect, "OPTIONS")
 
 	button_width: f32 = 200
 	button_height: f32 = 40
@@ -209,28 +205,28 @@ pause_draw_options_menu :: proc() {
 
 	// Audio options button
 	audio_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if gui.button(audio_rect, "Audio", pause_state.selected_index == 0) {
+	if ui_button(audio_rect, "Audio", pause_state.selected_index == 0) {
 		pause_state.menu_state = .AUDIO
 		pause_state.selected_index = 0
 	}
 
 	// Visual options button
 	visual_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if gui.button(visual_rect, "Visual", pause_state.selected_index == 1) {
+	if ui_button(visual_rect, "Visual", pause_state.selected_index == 1) {
 		pause_state.menu_state = .VISUAL
 		pause_state.selected_index = 0
 	}
 
 	// Controls options button
 	controls_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if gui.button(controls_rect, "Controls", pause_state.selected_index == 2) {
+	if ui_button(controls_rect, "Controls", pause_state.selected_index == 2) {
 		pause_state.menu_state = .CONTROLS
 		pause_state.selected_index = 0
 	}
 
 	// Back button
 	back_rect := renderer.Rect{button_x, start_y + 200, button_width, button_height}
-	if gui.button(back_rect, "Back", pause_state.selected_index == 3) {
+	if ui_button(back_rect, "Back", pause_state.selected_index == 3) {
 		pause_state.menu_state = .MAIN
 		pause_state.selected_index = 0
 	}
@@ -247,7 +243,7 @@ pause_draw_audio_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "AUDIO OPTIONS")
+	ui_panel(menu_rect, "AUDIO OPTIONS")
 
 	slider_width: f32 = 200
 	slider_height: f32 = 20
@@ -257,7 +253,7 @@ pause_draw_audio_menu :: proc() {
 	// Master volume slider
 	master_volume := audio.get_master_volume()
 	master_rect := renderer.Rect{slider_x, start_y, slider_width, slider_height}
-	if gui.slider(master_rect, "Master Volume:", &master_volume, 0.0, 1.0) {
+	if ui_slider(master_rect, "Master Volume:", &master_volume, 0.0, 1.0) {
 		audio.set_master_volume(master_volume)
 		// Update currently playing music
 		if !pause_is_active() {
@@ -270,7 +266,7 @@ pause_draw_audio_menu :: proc() {
 	// Music volume slider
 	music_volume := audio.get_music_volume()
 	music_rect := renderer.Rect{slider_x, start_y + 60, slider_width, slider_height}
-	if gui.slider(music_rect, "Music Volume:", &music_volume, 0.0, 1.0) {
+	if ui_slider(music_rect, "Music Volume:", &music_volume, 0.0, 1.0) {
 		audio.set_music_volume(music_volume)
 		// Update currently playing music
 		if !pause_is_active() {
@@ -283,7 +279,7 @@ pause_draw_audio_menu :: proc() {
 	// SFX volume slider
 	sfx_volume := audio.get_sfx_volume()
 	sfx_rect := renderer.Rect{slider_x, start_y + 120, slider_width, slider_height}
-	if gui.slider(sfx_rect, "SFX Volume:", &sfx_volume, 0.0, 1.0) {
+	if ui_slider(sfx_rect, "SFX Volume:", &sfx_volume, 0.0, 1.0) {
 		audio.set_sfx_volume(sfx_volume)
 	}
 
@@ -291,7 +287,7 @@ pause_draw_audio_menu :: proc() {
 	button_width: f32 = 100
 	button_height: f32 = 30
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
-	if gui.button(back_rect, "Back", pause_state.selected_index == 3) {
+	if ui_button(back_rect, "Back", pause_state.selected_index == 3) {
 		pause_state.menu_state = .OPTIONS
 		pause_state.selected_index = 0
 	}
@@ -308,7 +304,7 @@ pause_draw_visual_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "VISUAL OPTIONS")
+	ui_panel(menu_rect, "VISUAL OPTIONS")
 
 	button_width: f32 = 150
 	button_height: f32 = 30
@@ -318,13 +314,13 @@ pause_draw_visual_menu :: proc() {
 	// Fullscreen toggle
 	fullscreen_rect := renderer.Rect{option_x, start_y, button_width, button_height}
 	fullscreen_text := window.is_fullscreen() ? "Fullscreen: ON" : "Fullscreen: OFF"
-	if gui.button(fullscreen_rect, fullscreen_text) {
+	if ui_button(fullscreen_rect, fullscreen_text) {
 		window.toggle_fullscreen()
 	}
 
 	// Resolution buttons (only available in windowed mode)
 	if !window.is_fullscreen() {
-		gui.label(renderer.Rect{option_x, start_y + 50, 200, 20}, "Resolution:")
+		ui_label(renderer.Rect{option_x, start_y + 50, 200, 20}, "Resolution:")
 
 		resolutions := window.get_available_resolutions()
 		current_width, current_height := window.get_window_size()
@@ -337,7 +333,7 @@ pause_draw_visual_menu :: proc() {
 			is_current := resolution.width == current_width && resolution.height == current_height
 			text := is_current ? fmt.tprintf("* %s", resolution.name) : resolution.name
 
-			if gui.button(res_rect, text) {
+			if ui_button(res_rect, text) {
 				window.set_resolution(resolution.width, resolution.height)
 			}
 
@@ -352,13 +348,13 @@ pause_draw_visual_menu :: proc() {
 	vsync_y := window.is_fullscreen() ? start_y + 50 : start_y + 200
 	vsync_rect := renderer.Rect{option_x, vsync_y, button_width, button_height}
 	vsync_text := window.is_vsync_enabled() ? "VSync: ON" : "VSync: OFF"
-	if gui.button(vsync_rect, vsync_text) {
+	if ui_button(vsync_rect, vsync_text) {
 		window.toggle_vsync()
 	}
 
 	// Back button
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back", pause_state.selected_index == 0) {
+	if ui_button(back_rect, "Back", pause_state.selected_index == 0) {
 		pause_state.menu_state = .OPTIONS
 		pause_state.selected_index = 0
 	}
@@ -375,7 +371,7 @@ pause_draw_controls_menu :: proc() {
 	menu_y := (design_h - menu_height) / 2
 
 	menu_rect := renderer.Rect{menu_x, menu_y, menu_width, menu_height}
-	gui.panel(menu_rect, "CONTROLS")
+	ui_panel(menu_rect, "CONTROLS")
 
 	start_y := menu_y + 60
 	label_x := menu_x + 20
@@ -388,12 +384,12 @@ pause_draw_controls_menu :: proc() {
 
 		// Action name
 		name_rect := renderer.Rect{label_x, y_pos, 150, 25}
-		gui.label(name_rect, fmt.tprintf("%s:", binding.name))
+		ui_label(name_rect, fmt.tprintf("%s:", binding.name))
 
 		// Key name
 		key_name := input.get_key_name(binding.key^)
 		key_rect := renderer.Rect{key_x, y_pos, 100, 25}
-		gui.label(key_rect, key_name)
+		ui_label(key_rect, key_name)
 
 		// Don't overflow the menu
 		if y_pos > menu_y + menu_height - 100 do break
@@ -402,11 +398,11 @@ pause_draw_controls_menu :: proc() {
 	// Instructions
 	info_y := menu_y + menu_height - 80
 	info_rect := renderer.Rect{menu_x + 20, info_y, menu_width - 40, 20}
-	gui.label(info_rect, "Key remapping coming soon!")
+	ui_label(info_rect, "Key remapping coming soon!")
 
 	// Back button
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if gui.button(back_rect, "Back", pause_state.selected_index == 0) {
+	if ui_button(back_rect, "Back", pause_state.selected_index == 0) {
 		pause_state.menu_state = .OPTIONS
 		pause_state.selected_index = 0
 	}

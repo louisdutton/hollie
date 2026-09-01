@@ -4,7 +4,6 @@ import "asset"
 import "audio"
 import "core:strings"
 import "core:time"
-import "gui"
 import "input"
 import "renderer"
 import "tilemap"
@@ -56,8 +55,6 @@ init_gameplay_screen :: proc() {
 	entity_system_init()
 	particle_system_init()
 	shader_init()
-	gui.init()
-
 	when ODIN_DEBUG {
 		gameplay_debug_ui_visible = false
 		editor_init()

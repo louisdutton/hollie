@@ -80,18 +80,8 @@ ui_begin_panel :: proc(
 	border_color := ui_context.theme.panel_border,
 ) {
 	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
-	renderer.draw_rect(
-		bounds.x,
-		bounds.y,
-		bounds.width,
-		bounds.height,
-		ui_context.theme.panel_background,
-	)
-	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border_color)
-
+	ui_panel(bounds, title, border_color)
 	padding := ui_context.theme.padding
-	renderer.draw_text(title, int(bounds.x + padding), int(bounds.y + padding), 14, border_color)
-
 	ui_context.layouts[ui_context.depth] = {
 		bounds   = bounds,
 		cursor_y = bounds.y + padding + ui_context.theme.line_height,
@@ -169,6 +159,99 @@ ui_status :: proc(message: string, succeeded: bool) {
 	ui_text(message, color, 12)
 }
 
+ui_panel :: proc(
+	bounds: renderer.Rect,
+	title: string,
+	border_color := ui_context.theme.panel_border,
+) {
+	renderer.draw_rect(
+		bounds.x,
+		bounds.y,
+		bounds.width,
+		bounds.height,
+		ui_context.theme.panel_background,
+	)
+	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border_color)
+	renderer.draw_text(
+		title,
+		int(bounds.x + ui_context.theme.padding),
+		int(bounds.y + ui_context.theme.padding),
+		14,
+		border_color,
+	)
+}
+
+ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) -> bool {
+	mouse := ui_mouse_position()
+	hovered := rl.CheckCollisionPointRec(mouse, bounds)
+	pressed := hovered && rl.IsMouseButtonPressed(.LEFT)
+
+	background := renderer.Colour{35, 35, 35, 235}
+	if selected do background = {65, 105, 150, 255}
+	else if hovered do background = {55, 55, 55, 245}
+	if pressed do background = {45, 75, 110, 255}
+
+	border := selected ? ui_context.theme.value_text : ui_context.theme.panel_border
+	renderer.draw_rect(bounds.x, bounds.y, bounds.width, bounds.height, background)
+	renderer.draw_rect_outline(bounds.x, bounds.y, bounds.width, bounds.height, 2, border)
+
+	font_size := 13
+	text_width := f32(renderer.measure_text(text, i32(font_size)))
+	text_x := bounds.x + (bounds.width - text_width) / 2
+	text_y := bounds.y + (bounds.height - f32(font_size)) / 2
+	renderer.draw_text(text, int(text_x), int(text_y), font_size, ui_context.theme.text)
+	return pressed
+}
+
+ui_label :: proc(bounds: renderer.Rect, text: string) {
+	renderer.draw_text(text, int(bounds.x), int(bounds.y + 2), 13, ui_context.theme.text)
+}
+
+ui_slider :: proc(
+	bounds: renderer.Rect,
+	label: string,
+	value: ^f32,
+	min_value, max_value: f32,
+) -> bool {
+	if label != "" {
+		renderer.draw_text(label, int(bounds.x), int(bounds.y - 18), 13, ui_context.theme.text)
+	}
+
+	mouse := ui_mouse_position()
+	changed := false
+	if rl.IsMouseButtonDown(.LEFT) && rl.CheckCollisionPointRec(mouse, bounds) {
+		normalized := clamp((mouse.x - bounds.x) / bounds.width, 0, 1)
+		new_value := min_value + normalized * (max_value - min_value)
+		if new_value != value^ {
+			value^ = new_value
+			changed = true
+		}
+	}
+
+	track_y := bounds.y + bounds.height / 2 - 3
+	renderer.draw_rect(bounds.x, track_y, bounds.width, 6, renderer.Colour{45, 45, 45, 255})
+	normalized := clamp((value^ - min_value) / (max_value - min_value), 0, 1)
+	renderer.draw_rect(
+		bounds.x,
+		track_y,
+		bounds.width * normalized,
+		6,
+		ui_context.theme.value_text,
+	)
+	handle_x := bounds.x + bounds.width * normalized
+	renderer.draw_rect(handle_x - 4, bounds.y, 8, bounds.height, ui_context.theme.text)
+
+	value_text := fmt.tprintf("%.0f%%", normalized * 100)
+	renderer.draw_text(
+		value_text,
+		int(bounds.x + bounds.width + 10),
+		int(bounds.y + 2),
+		13,
+		ui_context.theme.value_text,
+	)
+	return changed
+}
+
 ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
 	rows := ui_action_bar_rows(actions, width)
 	return f32(rows) * 19 + ui_context.theme.padding * 2
@@ -233,6 +316,11 @@ ui_action_bar_rows :: proc(actions: []input.Action, width: f32) -> int {
 ui_current_layout :: proc() -> ^UI_Layout {
 	assert(ui_context.depth > 0, "UI widget must be inside a panel")
 	return &ui_context.layouts[ui_context.depth - 1]
+}
+
+@(private)
+ui_mouse_position :: proc() -> renderer.Vec2 {
+	return rl.GetScreenToWorld2D(rl.GetMousePosition(), {zoom = window.get_ui_scale()})
 }
 
 // Convert design coordinates to screen coordinates
