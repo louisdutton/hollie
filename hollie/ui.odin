@@ -181,15 +181,9 @@ ui_panel :: proc(
 	)
 }
 
-ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) -> bool {
-	mouse := ui_mouse_position()
-	hovered := rl.CheckCollisionPointRec(mouse, bounds)
-	pressed := hovered && rl.IsMouseButtonPressed(.LEFT)
-
+ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) {
 	background := renderer.Colour{35, 35, 35, 235}
 	if selected do background = {65, 105, 150, 255}
-	else if hovered do background = {55, 55, 55, 245}
-	if pressed do background = {45, 75, 110, 255}
 
 	border := selected ? ui_context.theme.value_text : ui_context.theme.panel_border
 	renderer.draw_rect(bounds.x, bounds.y, bounds.width, bounds.height, background)
@@ -200,7 +194,6 @@ ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) -
 	text_x := bounds.x + (bounds.width - text_width) / 2
 	text_y := bounds.y + (bounds.height - f32(font_size)) / 2
 	renderer.draw_text(text, int(text_x), int(text_y), font_size, ui_context.theme.text)
-	return pressed
 }
 
 ui_label :: proc(bounds: renderer.Rect, text: string) {
@@ -210,27 +203,29 @@ ui_label :: proc(bounds: renderer.Rect, text: string) {
 ui_slider :: proc(
 	bounds: renderer.Rect,
 	label: string,
-	value: ^f32,
+	value: f32,
 	min_value, max_value: f32,
-) -> bool {
+	selected: bool = false,
+) {
 	if label != "" {
-		renderer.draw_text(label, int(bounds.x), int(bounds.y - 18), 13, ui_context.theme.text)
+		label_color := selected ? ui_context.theme.value_text : ui_context.theme.text
+		renderer.draw_text(label, int(bounds.x), int(bounds.y - 18), 13, label_color)
 	}
 
-	mouse := ui_mouse_position()
-	changed := false
-	if rl.IsMouseButtonDown(.LEFT) && rl.CheckCollisionPointRec(mouse, bounds) {
-		normalized := clamp((mouse.x - bounds.x) / bounds.width, 0, 1)
-		new_value := min_value + normalized * (max_value - min_value)
-		if new_value != value^ {
-			value^ = new_value
-			changed = true
-		}
+	if selected {
+		renderer.draw_rect_outline(
+			bounds.x - 4,
+			bounds.y - 4,
+			bounds.width + 8,
+			bounds.height + 8,
+			2,
+			ui_context.theme.value_text,
+		)
 	}
 
 	track_y := bounds.y + bounds.height / 2 - 3
 	renderer.draw_rect(bounds.x, track_y, bounds.width, 6, renderer.Colour{45, 45, 45, 255})
-	normalized := clamp((value^ - min_value) / (max_value - min_value), 0, 1)
+	normalized := clamp((value - min_value) / (max_value - min_value), 0, 1)
 	renderer.draw_rect(
 		bounds.x,
 		track_y,
@@ -249,7 +244,6 @@ ui_slider :: proc(
 		13,
 		ui_context.theme.value_text,
 	)
-	return changed
 }
 
 ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
@@ -316,11 +310,6 @@ ui_action_bar_rows :: proc(actions: []input.Action, width: f32) -> int {
 ui_current_layout :: proc() -> ^UI_Layout {
 	assert(ui_context.depth > 0, "UI widget must be inside a panel")
 	return &ui_context.layouts[ui_context.depth - 1]
-}
-
-@(private)
-ui_mouse_position :: proc() -> renderer.Vec2 {
-	return rl.GetScreenToWorld2D(rl.GetMousePosition(), {zoom = window.get_ui_scale()})
 }
 
 // Convert design coordinates to screen coordinates

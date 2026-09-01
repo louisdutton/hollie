@@ -28,7 +28,7 @@ title_state := struct {
 		.MAIN     = 4, // 1 Player, 2 Players, Options, Exit Game
 		.OPTIONS  = 4, // Audio, Visual, Controls, Back
 		.AUDIO    = 4, // Master Volume, Music Volume, SFX Volume, Back
-		.VISUAL   = 1, // Back (non-interactive elements don't count for navigation)
+		.VISUAL   = 4, // Fullscreen, resolution, VSync, Back
 		.CONTROLS = 1, // Back
 	},
 }
@@ -102,6 +102,20 @@ title_handle_input :: proc() {
 			title_reset_navigation_timer()
 		}
 
+		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT) ||
+		   (input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X) < -0.5 &&
+				   title_gamepad_can_navigate()) {
+			title_adjust_selected(-1)
+			title_reset_navigation_timer()
+		}
+
+		if input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT) ||
+		   (input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X) > 0.5 &&
+				   title_gamepad_can_navigate()) {
+			title_adjust_selected(1)
+			title_reset_navigation_timer()
+		}
+
 		// Select with A button
 		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_FACE_RIGHT) {
 			title_activate_selected_item()
@@ -118,6 +132,9 @@ title_handle_input :: proc() {
 		menu_count := title_state.menu_item_counts[title_state.menu_state]
 		title_state.selected_index = (title_state.selected_index + 1) % menu_count
 	}
+
+	if input.is_key_pressed(.LEFT) || input.is_key_pressed(.A) do title_adjust_selected(-1)
+	if input.is_key_pressed(.RIGHT) || input.is_key_pressed(.D) do title_adjust_selected(1)
 
 	// Select with Enter or Space
 	if input.is_key_pressed(.ENTER) || input.is_key_pressed(.SPACE) {
@@ -145,29 +162,18 @@ title_draw_main_menu :: proc() {
 
 	// Game mode buttons
 	one_player_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if ui_button(one_player_rect, "1 Player", title_state.selected_index == 0) {
-		game.player_count = 1
-		set_scene(.GAMEPLAY)
-	}
+	ui_button(one_player_rect, "1 Player", title_state.selected_index == 0)
 
 	two_player_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if ui_button(two_player_rect, "2 Players", title_state.selected_index == 1) {
-		game.player_count = 2
-		set_scene(.GAMEPLAY)
-	}
+	ui_button(two_player_rect, "2 Players", title_state.selected_index == 1)
 
 	// Options button
 	options_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if ui_button(options_rect, "Options", title_state.selected_index == 2) {
-		title_state.menu_state = .OPTIONS
-		title_state.selected_index = 0
-	}
+	ui_button(options_rect, "Options", title_state.selected_index == 2)
 
 	// Exit Game button
 	exit_rect := renderer.Rect{button_x, start_y + 180, button_width, button_height}
-	if ui_button(exit_rect, "Exit Game", title_state.selected_index == 3) {
-		game.state = .EXITING
-	}
+	ui_button(exit_rect, "Exit Game", title_state.selected_index == 3)
 }
 
 title_draw_options_menu :: proc() {
@@ -190,31 +196,19 @@ title_draw_options_menu :: proc() {
 
 	// Audio options button
 	audio_rect := renderer.Rect{button_x, start_y, button_width, button_height}
-	if ui_button(audio_rect, "Audio", title_state.selected_index == 0) {
-		title_state.menu_state = .AUDIO
-		title_state.selected_index = 0
-	}
+	ui_button(audio_rect, "Audio", title_state.selected_index == 0)
 
 	// Visual options button
 	visual_rect := renderer.Rect{button_x, start_y + 60, button_width, button_height}
-	if ui_button(visual_rect, "Visual", title_state.selected_index == 1) {
-		title_state.menu_state = .VISUAL
-		title_state.selected_index = 0
-	}
+	ui_button(visual_rect, "Visual", title_state.selected_index == 1)
 
 	// Controls options button
 	controls_rect := renderer.Rect{button_x, start_y + 120, button_width, button_height}
-	if ui_button(controls_rect, "Controls", title_state.selected_index == 2) {
-		title_state.menu_state = .CONTROLS
-		title_state.selected_index = 0
-	}
+	ui_button(controls_rect, "Controls", title_state.selected_index == 2)
 
 	// Back button
 	back_rect := renderer.Rect{button_x, start_y + 200, button_width, button_height}
-	if ui_button(back_rect, "Back", title_state.selected_index == 3) {
-		title_state.menu_state = .MAIN
-		title_state.selected_index = 0
-	}
+	ui_button(back_rect, "Back", title_state.selected_index == 3)
 }
 
 title_draw_audio_menu :: proc() {
@@ -237,72 +231,38 @@ title_draw_audio_menu :: proc() {
 	// Master volume slider
 	master_volume := audio.get_master_volume()
 	master_rect := renderer.Rect{slider_x, start_y, slider_width, slider_height}
-	if ui_slider(master_rect, "Master Volume:", &master_volume, 0.0, 1.0) {
-		audio.set_master_volume(master_volume)
-		audio.music_set_volume(game.music, audio.get_effective_music_volume())
-	}
+	ui_slider(
+		master_rect,
+		"Master Volume:",
+		master_volume,
+		0.0,
+		1.0,
+		title_state.selected_index == 0,
+	)
 
 	// Music volume slider
 	music_volume := audio.get_music_volume()
 	music_rect := renderer.Rect{slider_x, start_y + 60, slider_width, slider_height}
-	if ui_slider(music_rect, "Music Volume:", &music_volume, 0.0, 1.0) {
-		audio.set_music_volume(music_volume)
-		audio.music_set_volume(game.music, audio.get_effective_music_volume())
-	}
+	ui_slider(music_rect, "Music Volume:", music_volume, 0.0, 1.0, title_state.selected_index == 1)
 
 	// SFX volume slider
 	sfx_volume := audio.get_sfx_volume()
 	sfx_rect := renderer.Rect{slider_x, start_y + 120, slider_width, slider_height}
-	if ui_slider(sfx_rect, "SFX Volume:", &sfx_volume, 0.0, 1.0) {
-		audio.set_sfx_volume(sfx_volume)
-	}
+	ui_slider(sfx_rect, "SFX Volume:", sfx_volume, 0.0, 1.0, title_state.selected_index == 2)
 
 	// Back button
 	button_width: f32 = 100
 	button_height: f32 = 30
 	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
-	if ui_button(back_rect, "Back", title_state.selected_index == 3) {
-		title_state.menu_state = .OPTIONS
-		title_state.selected_index = 0
-	}
+	ui_button(back_rect, "Back", title_state.selected_index == 3)
 }
 
 title_draw_visual_menu :: proc() {
-	// Reuse the same visual menu from pause
-	pause_draw_visual_menu()
-
-	// Override the back button behavior
-	design_w := f32(design_width)
-	design_h := f32(design_height)
-	menu_width: f32 = 400
-	menu_height: f32 = 350
-	menu_x := (design_w - menu_width) / 2
-	menu_y := (design_h - menu_height) / 2
-
-	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if ui_button(back_rect, "Back", title_state.selected_index == 0) {
-		title_state.menu_state = .OPTIONS
-		title_state.selected_index = 0
-	}
+	menu_draw_visual_options(title_state.selected_index)
 }
 
 title_draw_controls_menu :: proc() {
-	// Reuse the same controls menu from pause
-	pause_draw_controls_menu()
-
-	// Override the back button behavior
-	design_w := f32(design_width)
-	design_h := f32(design_height)
-	menu_width: f32 = 400
-	menu_height: f32 = 450
-	menu_x := (design_w - menu_width) / 2
-	menu_y := (design_h - menu_height) / 2
-
-	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, 100, 30}
-	if ui_button(back_rect, "Back", title_state.selected_index == 0) {
-		title_state.menu_state = .OPTIONS
-		title_state.selected_index = 0
-	}
+	menu_draw_controls(title_state.selected_index)
 }
 
 title_gamepad_can_navigate :: proc() -> bool {
@@ -316,6 +276,14 @@ title_reset_navigation_timer :: proc() {
 title_update :: proc(delta_time: f32) {
 	if title_state.gamepad_nav_timer > 0.0 {
 		title_state.gamepad_nav_timer -= delta_time
+	}
+}
+
+title_adjust_selected :: proc(direction: int) {
+	switch title_state.menu_state {
+	case .AUDIO: menu_adjust_audio(title_state.selected_index, direction, false)
+	case .VISUAL: if title_state.selected_index == 1 do menu_cycle_resolution(direction)
+	case .MAIN, .OPTIONS, .CONTROLS:
 	}
 }
 
@@ -347,8 +315,17 @@ title_activate_selected_item :: proc() {
 				title_state.menu_state = .MAIN
 				title_state.selected_index = 0
 			}
-	case .AUDIO, .VISUAL, .CONTROLS:
-		// For these menus, the only selectable item is Back
+	case .AUDIO: if title_state.selected_index == 3 {
+				title_state.menu_state = .OPTIONS
+				title_state.selected_index = 0
+			}
+	case .VISUAL: if title_state.selected_index == 3 {
+				title_state.menu_state = .OPTIONS
+				title_state.selected_index = 0
+			} else {
+				menu_activate_visual_option(title_state.selected_index)
+			}
+	case .CONTROLS:
 		title_state.menu_state = .OPTIONS
 		title_state.selected_index = 0
 	}
