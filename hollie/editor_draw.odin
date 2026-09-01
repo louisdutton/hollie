@@ -242,21 +242,11 @@ editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: 
 	renderer.draw_text(icon_text, int(text_x), int(text_y), 12, renderer.BLACK)
 }
 
-editor_draw_tile_carousel :: proc() {
-	carousel_y: f32 = 96
-	carousel_x: f32 = 10
+editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 	tile_preview_size: f32 = 32
 	spacing: f32 = 40
 	label_y := carousel_y + tile_preview_size + 8
-	bg_colour := renderer.fade(renderer.BLACK, 0.5)
 	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT - 1) * spacing + tile_preview_size
-	renderer.draw_rect(
-		carousel_x - 5,
-		carousel_y - 5,
-		carousel_width + 10,
-		tile_preview_size + 30,
-		bg_colour,
-	)
 
 	if editor_state.selected_layer == .ENTITY {
 		entities := []tilemap.EntityType{.ENEMY, .NPC, .HOLDABLE, .PRESSURE_PLATE, .GATE, .DOOR}
@@ -379,12 +369,13 @@ editor_draw_minimal_hud :: proc() {
 		layer_color = {255, 100, 255, 200}
 	}
 
-	panel_height: f32 = editor_state.save_message == "" ? 40 : 60
-	ui_begin_panel(layer_text, ui_anchored_rect(.Top_Left, 180, panel_height), layer_color)
+	panel_height: f32 = editor_state.save_message == "" ? 98 : 118
+	panel_bounds := ui_anchored_rect(.Top_Left, 208, panel_height)
+	ui_begin_panel(layer_text, panel_bounds, layer_color)
+	editor_draw_tile_carousel(panel_bounds.x + 8, panel_bounds.y + 32)
+	ui_spacer(62)
 	ui_status(editor_state.save_message, editor_state.save_succeeded)
 	ui_end_panel()
-
-	editor_draw_tile_carousel()
 
 	actions := editor_state.is_editing_entity ? EDITOR_EDIT_ACTIONS : EDITOR_ACTIONS
 	controls_width := design_width - 20
