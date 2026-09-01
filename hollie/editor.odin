@@ -27,7 +27,6 @@ Editor_State :: struct {
 	selected_layer:     Editor_Layer,
 	is_painting:        bool,
 	is_erasing:         bool,
-	brush_size:         int,
 	show_grid:          bool,
 	show_layer_overlay: bool,
 	show_hud:           bool,
@@ -51,7 +50,6 @@ editor_state := Editor_State {
 	selected_tile      = .GRASS_1,
 	selected_entity    = .ENEMY,
 	selected_layer     = .BASE,
-	brush_size         = 1,
 	show_grid          = true,
 	show_layer_overlay = false,
 	show_hud           = true,
@@ -436,12 +434,6 @@ editor_handle_ui_input :: proc() {
 		editor_save_current_tilemap()
 	}
 
-	if input.is_key_pressed(.EQUAL) {
-		editor_state.brush_size = min(editor_state.brush_size + 1, 5)
-	}
-	if input.is_key_pressed(.MINUS) {
-		editor_state.brush_size = max(editor_state.brush_size - 1, 1)
-	}
 }
 
 editor_save_current_tilemap :: proc() {
@@ -472,62 +464,41 @@ editor_set_save_message :: proc(message: string, succeeded: bool) {
 }
 
 editor_paint_tile :: proc(tile_x, tile_y: int) {
-	for dy in -(editor_state.brush_size / 2) ..= (editor_state.brush_size / 2) {
-		for dx in -(editor_state.brush_size / 2) ..= (editor_state.brush_size / 2) {
-			x := tile_x + dx
-			y := tile_y + dy
-
-			switch editor_state.selected_layer {
-			case .BASE: if tile := tilemap.get_base_tile(x, y); tile != nil {
-						tile^ = editor_state.selected_tile
-					}
-			case .DECORATION: if tile := tilemap.get_deco_tile(x, y); tile != nil {
-						tile^ = editor_state.selected_tile
-					}
-			case .ENTITY:
-				// Only place one entity per tile, so check if there's already one
-				entities := tilemap.get_entities()
-				tile_size := tilemap.get_tile_size()
-				world_x := x * tile_size
-				world_y := y * tile_size
-
-				entity_exists := false
-				for entity in entities {
-					if entity.x == world_x && entity.y == world_y {
-						entity_exists = true
-						break
-					}
-				}
-
-				if !entity_exists {
-					tilemap.add_entity(world_x, world_y, editor_state.selected_entity)
-				}
+	switch editor_state.selected_layer {
+	case .BASE: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
+				tile^ = editor_state.selected_tile
 			}
+	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
+				tile^ = editor_state.selected_tile
+			}
+	case .ENTITY:
+		// Only place one entity per tile, so check if there's already one
+		entities := tilemap.get_entities()
+		tile_size := tilemap.get_tile_size()
+		world_x := tile_x * tile_size
+		world_y := tile_y * tile_size
+
+		for entity in entities {
+			if entity.x == world_x && entity.y == world_y do return
 		}
+
+		tilemap.add_entity(world_x, world_y, editor_state.selected_entity)
 	}
 }
 
 editor_erase_tile :: proc(tile_x, tile_y: int) {
-	for dy in -(editor_state.brush_size / 2) ..= (editor_state.brush_size / 2) {
-		for dx in -(editor_state.brush_size / 2) ..= (editor_state.brush_size / 2) {
-			x := tile_x + dx
-			y := tile_y + dy
-
-			switch editor_state.selected_layer {
-			case .BASE: if tile := tilemap.get_base_tile(x, y); tile != nil {
-						tile^ = .GRASS_1
-					}
-			case .DECORATION: if tile := tilemap.get_deco_tile(x, y); tile != nil {
-						tile^ = .EMPTY
-					}
-			case .ENTITY:
-				// Remove entity at this position
-				tile_size := tilemap.get_tile_size()
-				world_x := x * tile_size
-				world_y := y * tile_size
-				tilemap.remove_entity_at(world_x, world_y)
+	switch editor_state.selected_layer {
+	case .BASE: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
+				tile^ = .GRASS_1
 			}
-		}
+	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
+				tile^ = .EMPTY
+			}
+	case .ENTITY:
+		tile_size := tilemap.get_tile_size()
+		world_x := tile_x * tile_size
+		world_y := tile_y * tile_size
+		tilemap.remove_entity_at(world_x, world_y)
 	}
 }
 

@@ -177,50 +177,23 @@ editor_draw_cursor :: proc() {
 	if !editor_state.cursor_visible do return
 
 	cursor_x, cursor_y := editor_state.cursor_x, editor_state.cursor_y
-	brush_half := editor_state.brush_size / 2
 	tile_size := tilemap.get_tile_size()
+	world_x := f32(cursor_x * tile_size)
+	world_y := f32(cursor_y * tile_size)
 
-	for dy in -brush_half ..= brush_half {
-		for dx in -brush_half ..= brush_half {
-			x := cursor_x + dx
-			y := cursor_y + dy
-
-			if x >= 0 &&
-			   x < tilemap.get_tilemap_width() &&
-			   y >= 0 &&
-			   y < tilemap.get_tilemap_height() {
-				world_x := f32(x * tile_size)
-				world_y := f32(y * tile_size)
-
-				if editor_state.selected_layer == .ENTITY {
-					editor_draw_entity_preview(
-						editor_state.selected_entity,
-						world_x,
-						world_y,
-						f32(tile_size),
-						128,
-					)
-				} else {
-					editor_draw_tile_preview(
-						editor_state.selected_tile,
-						world_x,
-						world_y,
-						f32(tile_size),
-						128,
-					)
-				}
-
-				renderer.draw_rect_outline(
-					world_x,
-					world_y,
-					f32(tile_size),
-					f32(tile_size),
-					1,
-					renderer.WHITE,
-				)
-			}
-		}
+	if editor_state.selected_layer == .ENTITY {
+		editor_draw_entity_preview(
+			editor_state.selected_entity,
+			world_x,
+			world_y,
+			f32(tile_size),
+			128,
+		)
+	} else {
+		editor_draw_tile_preview(editor_state.selected_tile, world_x, world_y, f32(tile_size), 128)
 	}
+
+	renderer.draw_rect_outline(world_x, world_y, f32(tile_size), f32(tile_size), 1, renderer.WHITE)
 }
 
 editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
@@ -399,7 +372,6 @@ editor_draw_minimal_hud :: proc() {
 		ui_anchored_rect(.Top_Left, 180, 76),
 		layer_color,
 	)
-	ui_field("Brush", fmt.tprintf("%d", editor_state.brush_size))
 	ui_field("Selected", selected_text)
 	ui_status(editor_state.save_message, editor_state.save_succeeded)
 	ui_end_panel()
