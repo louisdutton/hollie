@@ -50,6 +50,7 @@ UI_Frame_Style :: enum {
 	Panel_Surface,
 	Panel_Outline,
 	Action_Bar,
+	Title_Backdrop,
 	Focus_Outline,
 	Focus_Fill,
 }
@@ -142,6 +143,7 @@ ui_frame_path :: proc(style: UI_Frame_Style) -> string {
 	case .Panel_Surface: return root + "Panel/panel-000.png"
 	case .Panel_Outline: return root + "Border/panel-border-000.png"
 	case .Action_Bar: return root + "Border/panel-border-005.png"
+	case .Title_Backdrop: return root + "Transparent center/panel-transparent-center-015.png"
 	case .Focus_Outline: return root + "Border/panel-border-008.png"
 	case .Focus_Fill: return root + "Panel/panel-008.png"
 	}
