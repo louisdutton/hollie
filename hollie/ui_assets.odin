@@ -13,6 +13,7 @@ UI_Key_Prompt :: enum {
 	D,
 	E,
 	G,
+	H,
 	P,
 	R,
 	S,
@@ -260,6 +261,22 @@ ui_key_prompt_view :: proc(key: input.Key) -> UI_Prompt_View {
 	return view
 }
 
+ui_control_prompt_view :: proc(
+	key: input.Key,
+	gamepad_button: input.Gamepad_Button,
+) -> UI_Prompt_View {
+	if input.active_device() == .Gamepad && input.is_gamepad_available(.PLAYER_1) {
+		prompt, found := ui_gamepad_prompt_for_button(gamepad_button)
+		if !found do return {}
+		view := UI_Prompt_View {
+			count = 1,
+		}
+		view.textures[0] = ui_assets.gamepad_prompts[input.active_gamepad_layout()][prompt]
+		return view
+	}
+	return ui_key_prompt_view(key)
+}
+
 ui_prompt_view_width :: proc(view: UI_Prompt_View, size: f32 = 18, gap: f32 = 2) -> f32 {
 	if view.count == 0 do return 0
 	return f32(view.count) * size + f32(view.count - 1) * gap
@@ -287,6 +304,7 @@ ui_key_prompt_for_key :: proc(key: input.Key) -> (UI_Key_Prompt, bool) {
 	case .D: return .D, true
 	case .E: return .E, true
 	case .G: return .G, true
+	case .H: return .H, true
 	case .P: return .P, true
 	case .R: return .R, true
 	case .S: return .S, true
@@ -335,6 +353,7 @@ ui_key_prompt_path :: proc(prompt: UI_Key_Prompt) -> string {
 	case .D: return root + "keyboard_d.png"
 	case .E: return root + "keyboard_e.png"
 	case .G: return root + "keyboard_g.png"
+	case .H: return root + "keyboard_h.png"
 	case .P: return root + "keyboard_p.png"
 	case .R: return root + "keyboard_r.png"
 	case .S: return root + "keyboard_s.png"

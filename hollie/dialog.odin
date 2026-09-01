@@ -132,57 +132,52 @@ dialog_draw :: proc() {
 		return
 	}
 
-	MARGIN_X :: 150
-	MARGIN_Y :: 10
-	PADDING_X :: 15
-	PADDING_Y :: 15
-	SPEAKER_OFFSET :: 25
+	MARGIN_X :: 90
+	MARGIN_Y :: 18
+	PADDING_X :: 24
+	PANEL_HEIGHT :: 120
+	TEXT_SIZE :: 16
 
-	// Use design resolution for consistent UI layout
 	design_w := f32(design_width)
 	design_h := f32(design_height)
-
-	bg_height :: 100
-	bg_x := f32(MARGIN_X)
-	bg_y := f32(design_h - bg_height - MARGIN_Y)
-	renderer.draw_rect_rounded(
-		bg_x,
-		bg_y,
-		f32(design_w - MARGIN_X * 2),
-		bg_height,
-		.MEDIUM,
-		renderer.DARKGREEN,
+	panel_bounds := renderer.Rect {
+		f32(MARGIN_X),
+		design_h - PANEL_HEIGHT - MARGIN_Y,
+		design_w - MARGIN_X * 2,
+		PANEL_HEIGHT,
+	}
+	current_msg := dialog_state.messages[dialog_state.current_page]
+	ui_panel(
+		panel_bounds,
+		current_msg.speaker,
+		ui_context.theme.panel_border,
+		ui_context.theme.value_text,
 	)
 
-	current_msg := dialog_state.messages[dialog_state.current_page]
-
-	if current_msg.speaker != "" {
-		renderer.draw_text(current_msg.speaker, MARGIN_X + PADDING_X, int(bg_y) + PADDING_Y)
-	}
-
 	if len(dialog_state.current_runes) > 0 {
-		visible_chars := int(dialog_state.message_progress * f32(len(dialog_state.current_runes)))
+		visible_chars := clamp(
+			int(dialog_state.message_progress * f32(len(dialog_state.current_runes))),
+			0,
+			len(dialog_state.current_runes),
+		)
 		str := utf8.runes_to_string(dialog_state.current_runes[:visible_chars])
 		defer delete(str)
 
-		text_y := int(bg_y) + PADDING_Y
-		if current_msg.speaker != "" {
-			text_y += SPEAKER_OFFSET
-		}
-
-		renderer.draw_text(str, MARGIN_X + PADDING_X, text_y)
+		full_text_width := f32(renderer.measure_text(current_msg.text, TEXT_SIZE))
+		text_x := max(
+			panel_bounds.x + PADDING_X,
+			panel_bounds.x + (panel_bounds.width - full_text_width) / 2,
+		)
+		text_y := panel_bounds.y + (current_msg.speaker != "" ? 48 : 30)
+		renderer.draw_text(str, int(text_x), int(text_y), TEXT_SIZE, ui_context.theme.text)
 	}
 
 	if dialog_state.text_complete {
-		continue_text := "->"
-		if dialog_state.current_page >= len(dialog_state.messages) - 1 {
-			continue_text = "[close]"
-		}
-
-		text_w := renderer.measure_text(continue_text, 20)
-		continue_x := int(design_width) - MARGIN_X - PADDING_X - int(text_w)
-		continue_y := int(bg_y) + bg_height - PADDING_Y - 20
-
-		renderer.draw_text(continue_text, continue_x, continue_y)
+		label := dialog_state.current_page >= len(dialog_state.messages) - 1 ? "Close" : "Continue"
+		prompt := ui_control_prompt_view(.H, .RIGHT_FACE_RIGHT)
+		hint_width := ui_prompt_label_width(prompt, label, 12)
+		hint_x := panel_bounds.x + panel_bounds.width - PADDING_X - hint_width
+		hint_y := panel_bounds.y + panel_bounds.height - 28
+		ui_draw_prompt_label(prompt, label, hint_x, hint_y, 12, ui_context.theme.muted_text)
 	}
 }

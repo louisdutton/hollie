@@ -107,9 +107,10 @@ ui_begin_panel :: proc(
 	title: string,
 	bounds: renderer.Rect,
 	border_color := ui_context.theme.panel_border,
+	title_color := ui_context.theme.text,
 ) {
 	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
-	ui_panel(bounds, title, border_color)
+	ui_panel(bounds, title, border_color, title_color)
 	padding := ui_context.theme.padding
 	title_height := title != "" ? ui_context.theme.line_height : 0
 	ui_context.layouts[ui_context.depth] = {
@@ -277,6 +278,7 @@ ui_panel :: proc(
 	bounds: renderer.Rect,
 	title: string,
 	border_color := ui_context.theme.panel_border,
+	title_color := ui_context.theme.text,
 ) {
 	ui_draw_frame(.Panel_Surface, bounds, ui_context.theme.panel_background)
 	ui_draw_frame(.Panel_Outline, bounds, border_color)
@@ -289,7 +291,7 @@ ui_panel :: proc(
 		int(bounds.x + (bounds.width - title_width) / 2),
 		int(bounds.y + ui_context.theme.padding),
 		title_size,
-		ui_context.theme.text,
+		title_color,
 	)
 }
 
@@ -388,11 +390,8 @@ ui_slider :: proc(
 
 ui_action_hint_width :: proc(action: input.Action, font_size: int = 11) -> f32 {
 	prompt := ui_action_prompt_view(action)
-	prompt_width := ui_prompt_view_width(prompt)
-	if prompt_width == 0 do return 0
 	binding := input.action_binding(action)
-	label_width := f32(renderer.measure_text(binding.label, i32(font_size)))
-	return prompt_width + 6 + label_width
+	return ui_prompt_label_width(prompt, binding.label, font_size)
 }
 
 ui_draw_action_hint :: proc(
@@ -402,13 +401,29 @@ ui_draw_action_hint :: proc(
 	color := ui_context.theme.text,
 ) -> f32 {
 	prompt := ui_action_prompt_view(action)
+	binding := input.action_binding(action)
+	return ui_draw_prompt_label(prompt, binding.label, x, y, font_size, color)
+}
+
+ui_prompt_label_width :: proc(prompt: UI_Prompt_View, label: string, font_size: int = 11) -> f32 {
 	prompt_width := ui_prompt_view_width(prompt)
 	if prompt_width == 0 do return 0
-	binding := input.action_binding(action)
+	return prompt_width + 6 + f32(renderer.measure_text(label, i32(font_size)))
+}
+
+ui_draw_prompt_label :: proc(
+	prompt: UI_Prompt_View,
+	label: string,
+	x, y: f32,
+	font_size: int = 11,
+	color := ui_context.theme.text,
+) -> f32 {
+	prompt_width := ui_prompt_view_width(prompt)
+	if prompt_width == 0 do return 0
 	ui_draw_prompt_view(prompt, x, y)
 	label_x := x + prompt_width + 6
-	renderer.draw_text(binding.label, int(label_x), int(y + 2), font_size, color)
-	return prompt_width + 6 + f32(renderer.measure_text(binding.label, i32(font_size)))
+	renderer.draw_text(label, int(label_x), int(y + 2), font_size, color)
+	return prompt_width + 6 + f32(renderer.measure_text(label, i32(font_size)))
 }
 
 ui_action_hint :: proc(action: input.Action, color := ui_context.theme.muted_text) {
