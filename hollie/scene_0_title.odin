@@ -12,7 +12,7 @@ Title_Menu_State :: enum {
 	CONTROLS,
 }
 
-TITLE_MAIN_MENU_ITEMS := [?]string{"1 Player", "2 Players", "Options", "Exit Game"}
+TITLE_MAIN_MENU_ITEMS := [?]string{"1 player", "2 players", "Options", "Exit game"}
 
 @(private = "file")
 title_state := struct {
@@ -71,11 +71,11 @@ title_handle_input :: proc(navigation: UI_Navigation) {
 }
 
 title_draw_main_menu :: proc() {
-	ui_menu_panel("MAIN MENU", TITLE_MAIN_MENU_ITEMS[:], title_state.focus)
+	ui_menu_panel("Main menu", TITLE_MAIN_MENU_ITEMS[:], title_state.focus)
 }
 
 title_draw_options_menu :: proc() {
-	ui_menu_panel("OPTIONS", MENU_OPTIONS_ITEMS[:], title_state.focus)
+	ui_menu_panel("Options", MENU_OPTIONS_ITEMS[:], title_state.focus)
 }
 
 title_draw_audio_menu :: proc() {

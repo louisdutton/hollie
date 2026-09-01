@@ -44,10 +44,10 @@ Control_Binding :: struct {
 
 @(private)
 key_bindings := []Control_Binding {
-	{"Move Up", &settings.move_up},
-	{"Move Down", &settings.move_down},
-	{"Move Left", &settings.move_left},
-	{"Move Right", &settings.move_right},
+	{"Move up", &settings.move_up},
+	{"Move down", &settings.move_down},
+	{"Move left", &settings.move_left},
+	{"Move right", &settings.move_right},
 	{"Interact", &settings.interact},
 	{"Attack", &settings.attack},
 	{"Dodge", &settings.dodge},

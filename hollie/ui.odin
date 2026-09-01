@@ -111,10 +111,11 @@ ui_begin_panel :: proc(
 	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
 	ui_panel(bounds, title, border_color)
 	padding := ui_context.theme.padding
+	title_height := title != "" ? ui_context.theme.line_height : 0
 	ui_context.layouts[ui_context.depth] = {
 		bounds    = bounds,
 		cursor_x  = bounds.x + padding,
-		cursor_y  = bounds.y + padding + ui_context.theme.line_height,
+		cursor_y  = bounds.y + padding + title_height,
 		direction = .Column,
 	}
 	ui_context.depth += 1
@@ -279,6 +280,8 @@ ui_panel :: proc(
 ) {
 	ui_draw_frame(.Panel_Surface, bounds, ui_context.theme.panel_background)
 	ui_draw_frame(.Panel_Outline, bounds, border_color)
+	if title == "" do return
+
 	title_size := 15
 	title_width := f32(renderer.measure_text(title, i32(title_size)))
 	renderer.draw_text(
@@ -313,14 +316,14 @@ ui_menu_panel :: proc(
 	gap: f32 = 6,
 ) {
 	content_height := f32(len(items)) * button_height + f32(max(len(items) - 1, 0)) * gap
-	panel_height :=
-		ui_context.theme.padding * 2 + ui_context.theme.line_height + 16 + content_height
+	header_height := title != "" ? ui_context.theme.line_height + 16 : 0
+	panel_height := ui_context.theme.padding * 2 + header_height + content_height
 	panel_bounds := ui_centered_rect(width, panel_height)
 	ui_begin_panel(title, panel_bounds)
 
 	content_bounds := renderer.Rect {
 		panel_bounds.x + (panel_bounds.width - button_width) / 2,
-		panel_bounds.y + ui_context.theme.padding + ui_context.theme.line_height + 16,
+		panel_bounds.y + ui_context.theme.padding + header_height,
 		button_width,
 		content_height,
 	}

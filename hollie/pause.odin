@@ -16,7 +16,7 @@ Pause_Menu_State :: enum {
 	CONTROLS,
 }
 
-PAUSE_MAIN_MENU_ITEMS := [?]string{"Resume", "Options", "Return to Menu", "Quit Game"}
+PAUSE_MAIN_MENU_ITEMS := [?]string{"Resume", "Options", "Return to menu", "Quit game"}
 MENU_OPTIONS_ITEMS := [?]string{"Audio", "Visual", "Controls", "Back"}
 
 @(private = "file")
@@ -97,12 +97,12 @@ pause_draw :: proc() {
 
 // Draw the main pause menu
 pause_draw_main_menu :: proc() {
-	ui_menu_panel("PAUSED", PAUSE_MAIN_MENU_ITEMS[:], pause_state.focus)
+	ui_menu_panel("", PAUSE_MAIN_MENU_ITEMS[:], pause_state.focus)
 }
 
 // Draw the options submenu
 pause_draw_options_menu :: proc() {
-	ui_menu_panel("OPTIONS", MENU_OPTIONS_ITEMS[:], pause_state.focus)
+	ui_menu_panel("Options", MENU_OPTIONS_ITEMS[:], pause_state.focus)
 }
 
 // Audio options menu with volume controls
@@ -115,7 +115,7 @@ menu_draw_audio_options :: proc(focus: UI_Focus) {
 	menu_height: f32 = 280
 	menu_rect := ui_centered_rect(menu_width, menu_height)
 	menu_x, menu_y := menu_rect.x, menu_rect.y
-	ui_begin_panel("AUDIO OPTIONS", menu_rect)
+	ui_begin_panel("Audio options", menu_rect)
 
 	slider_width: f32 = 200
 	slider_height: f32 = 20
@@ -126,17 +126,17 @@ menu_draw_audio_options :: proc(focus: UI_Focus) {
 	master_volume := audio.get_master_volume()
 	master_row := ui_next_rect(slider_width, 45)
 	master_rect := renderer.Rect{master_row.x, master_row.y, slider_width, slider_height}
-	ui_slider(master_rect, "Master Volume:", master_volume, 0.0, 1.0, focus.index == 0)
+	ui_slider(master_rect, "Master volume:", master_volume, 0.0, 1.0, focus.index == 0)
 
 	music_volume := audio.get_music_volume()
 	music_row := ui_next_rect(slider_width, 45)
 	music_rect := renderer.Rect{music_row.x, music_row.y, slider_width, slider_height}
-	ui_slider(music_rect, "Music Volume:", music_volume, 0.0, 1.0, focus.index == 1)
+	ui_slider(music_rect, "Music volume:", music_volume, 0.0, 1.0, focus.index == 1)
 
 	sfx_volume := audio.get_sfx_volume()
 	sfx_row := ui_next_rect(slider_width, 45)
 	sfx_rect := renderer.Rect{sfx_row.x, sfx_row.y, slider_width, slider_height}
-	ui_slider(sfx_rect, "SFX Volume:", sfx_volume, 0.0, 1.0, focus.index == 2)
+	ui_slider(sfx_rect, "SFX volume:", sfx_volume, 0.0, 1.0, focus.index == 2)
 	ui_end_layout()
 
 	button_width: f32 = 100
@@ -152,12 +152,12 @@ pause_draw_visual_menu :: proc() {
 }
 
 menu_draw_visual_options :: proc(focus: UI_Focus) {
-	fullscreen_text := window.is_fullscreen() ? "Fullscreen: ON" : "Fullscreen: OFF"
+	fullscreen_text := window.is_fullscreen() ? "Fullscreen: on" : "Fullscreen: off"
 	current_width, current_height := window.get_window_size()
 	resolution_text := fmt.tprintf("Resolution: %dx%d", current_width, current_height)
-	vsync_text := window.is_vsync_enabled() ? "VSync: ON" : "VSync: OFF"
+	vsync_text := window.is_vsync_enabled() ? "VSync: on" : "VSync: off"
 	items := [?]string{fullscreen_text, resolution_text, vsync_text, "Back"}
-	ui_menu_panel("VISUAL OPTIONS", items[:], focus)
+	ui_menu_panel("Visual options", items[:], focus)
 }
 
 // Controls menu showing current key bindings
@@ -170,7 +170,7 @@ menu_draw_controls :: proc(focus: UI_Focus) {
 	menu_height: f32 = 350
 	menu_rect := ui_centered_rect(menu_width, menu_height)
 	menu_x, menu_y := menu_rect.x, menu_rect.y
-	ui_begin_panel("CONTROLS", menu_rect)
+	ui_begin_panel("Controls", menu_rect)
 
 	start_y := menu_y + 45
 	ui_begin_layout(.Column, {menu_x + 20, start_y, menu_width - 40, 210}, 3)
