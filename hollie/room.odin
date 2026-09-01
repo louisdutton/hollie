@@ -220,16 +220,38 @@ room_draw_name :: proc() {
 	room_name := room_state.current_tilemap.room_name
 	if room_name == "" do return
 
-	// Calculate text size and position for centering using design resolution
-	text_size := 48
+	// Match the ornamental location title treatment from the Fantasy UI Borders sample.
+	text_size := 30
 	text_width := ui_measure_text(room_name, text_size)
 
 	x := (int(design_width) - text_width) / 2
-	y := 50
+	y := 48
 
 	// Create color with opacity for fade effect
 	alpha := u8(room_state.room_name_opacity * 255)
-	color := rl.Color{255, 255, 255, alpha}
+	color := rl.Color{244, 242, 234, alpha}
+
+	divider_gap: f32 = 14
+	divider_height: f32 = 16
+	max_divider_width: f32 = 96
+	available_width := f32(design_width) - 40
+	divider_width := min(
+		max_divider_width,
+		max((available_width - f32(text_width) - divider_gap * 2) / 2, 0),
+	)
+	divider_y := f32(y) + (f32(text_size) - divider_height) / 2
+	if divider_width >= 24 {
+		ui_draw_title_divider(
+			{f32(x) - divider_gap - divider_width, divider_y, divider_width, divider_height},
+			false,
+			color,
+		)
+		ui_draw_title_divider(
+			{f32(x + text_width) + divider_gap, divider_y, divider_width, divider_height},
+			true,
+			color,
+		)
+	}
 
 	renderer.draw_text(room_name, x, y, text_size, color)
 }

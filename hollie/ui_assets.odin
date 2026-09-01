@@ -61,6 +61,7 @@ UI_Prompt_View :: struct {
 
 UI_Assets :: struct {
 	frames:          [UI_Frame_Style]renderer.Texture2D,
+	title_divider:   renderer.Texture2D,
 	key_prompts:     [UI_Key_Prompt]renderer.Texture2D,
 	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]renderer.Texture2D,
 }
@@ -75,6 +76,12 @@ ui_assets_init :: proc() {
 		rl.SetTextureFilter(texture, .BILINEAR)
 		ui_assets.frames[style] = texture
 	}
+	ui_assets.title_divider = renderer.load_texture(
+		asset.path(
+			"art/ui/kenney/fantasy-ui-borders/PNG/Default/Divider Fade/divider-fade-005.png",
+		),
+	)
+	rl.SetTextureFilter(ui_assets.title_divider, .BILINEAR)
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
@@ -98,6 +105,7 @@ ui_assets_init :: proc() {
 
 ui_assets_fini :: proc() {
 	for texture in ui_assets.frames do renderer.unload_texture(texture)
+	renderer.unload_texture(ui_assets.title_divider)
 	for texture in ui_assets.key_prompts do renderer.unload_texture(texture)
 	for prompts in ui_assets.gamepad_prompts {
 		for texture in prompts do renderer.unload_texture(texture)
@@ -116,6 +124,15 @@ ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := rend
 		layout = .NINE_PATCH,
 	}
 	rl.DrawTextureNPatch(texture, patch, bounds, {}, 0, tint)
+}
+
+ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := renderer.WHITE) {
+	texture := ui_assets.title_divider
+	source := renderer.Rect{0, 0, f32(texture.width), f32(texture.height)}
+	if mirrored {
+		source.width = -source.width
+	}
+	renderer.draw_texture_pro(texture, source, bounds, {}, 0, tint)
 }
 
 @(private)
