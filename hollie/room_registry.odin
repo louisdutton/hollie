@@ -50,10 +50,7 @@ room_registry_load :: proc(
 	files, read_error := os.read_all_directory_by_path(directory, allocator)
 	if read_error != nil {
 		destroy_room_registry(&registry, allocator)
-		return {}, room_registry_error(
-			.directory_read_failed,
-			fmt.tprintf("%s: could not discover rooms: %v", directory, read_error),
-		)
+		return {}, room_registry_error(.directory_read_failed, fmt.tprintf("%s: could not discover rooms: %v", directory, read_error))
 	}
 	defer os.file_info_slice_delete(files, allocator)
 
@@ -63,11 +60,7 @@ room_registry_load :: proc(
 			continue
 		}
 
-		room, load_error := tilemap.load_room_file_json5(
-			file.fullpath,
-			resource_root,
-			allocator,
-		)
+		room, load_error := tilemap.load_room_file_json5(file.fullpath, resource_root, allocator)
 		if load_error.kind != .none {
 			err = room_registry_error(.room_load_failed, load_error.message)
 			tilemap.destroy_room_file_io_error(&load_error, allocator)
@@ -122,10 +115,7 @@ room_registry_load :: proc(
 
 	if len(registry.entries) == 0 {
 		destroy_room_registry(&registry, allocator)
-		return {}, room_registry_error(
-			.no_rooms_found,
-			fmt.tprintf("%s: no %s room files found", directory, tilemap.ROOM_FILE_EXTENSION),
-		)
+		return {}, room_registry_error(.no_rooms_found, fmt.tprintf("%s: no %s room files found", directory, tilemap.ROOM_FILE_EXTENSION))
 	}
 
 	slice.sort_by(
@@ -138,7 +128,10 @@ room_registry_load :: proc(
 room_registry_find :: proc(
 	registry: ^Room_Registry,
 	room_id: string,
-) -> (^Room_Registry_Entry, bool) {
+) -> (
+	^Room_Registry_Entry,
+	bool,
+) {
 	if registry == nil do return nil, false
 	for &entry in registry.entries {
 		if entry.id == room_id do return &entry, true
@@ -146,10 +139,7 @@ room_registry_find :: proc(
 	return nil, false
 }
 
-destroy_room_registry :: proc(
-	registry: ^Room_Registry,
-	allocator := context.allocator,
-) {
+destroy_room_registry :: proc(registry: ^Room_Registry, allocator := context.allocator) {
 	if registry == nil do return
 	for entry in registry.entries {
 		delete(entry.id, allocator)
@@ -160,10 +150,7 @@ destroy_room_registry :: proc(
 	registry^ = {}
 }
 
-destroy_room_registry_error :: proc(
-	err: ^Room_Registry_Error,
-	allocator := context.allocator,
-) {
+destroy_room_registry_error :: proc(err: ^Room_Registry_Error, allocator := context.allocator) {
 	if err == nil do return
 	delete(err.message, allocator)
 	err^ = {}

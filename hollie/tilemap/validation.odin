@@ -14,13 +14,7 @@ validation_add_error :: proc(
 	message: string,
 	entity_index := -1,
 ) {
-	append(
-		errors,
-		Validation_Error {
-			entity_index = entity_index,
-			message = strings.clone(message),
-		},
-	)
+	append(errors, Validation_Error{entity_index = entity_index, message = strings.clone(message)})
 }
 
 validation_add_owned_error :: proc(
@@ -431,10 +425,9 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				}
 			}
 
-		case .ENEMY, .NPC, .HOLDABLE:
-			if entity.archetype_id == "" {
-				validation_add_error(&errors, "archetype_id must not be empty", entity_index)
-			}
+		case .ENEMY, .NPC, .HOLDABLE: if entity.archetype_id == "" {
+					validation_add_error(&errors, "archetype_id must not be empty", entity_index)
+				}
 
 		case .DOOR:
 			if entity.target_room == "" {

@@ -153,7 +153,7 @@ update_gameplay_screen :: proc() {
 			for player in players {
 				door := entity_check_door_collision(player.position)
 				if door != nil {
-				target_room, found := room_registry_find(
+					target_room, found := room_registry_find(
 						&gameplay_room_registry,
 						door.target_room,
 					)
