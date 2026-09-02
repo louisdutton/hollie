@@ -1,48 +1,20 @@
 # Art pipeline
 
-Gameplay geometry and source-image resolution are independent. Replacing prototype art must not require changing collision, entity positions, or room dimensions.
+The world-art pipeline is 3D and resolution independent. Room files store logical grid, collision, structure bounds, and entities; they do not reference tileset or scenery images.
 
-## Tiles
+## Coordinate contract
 
-Room tilesets define two sizes:
+- `grid.tile_size` defines one gameplay cell in world units.
+- Gameplay `x/y` maps to 3D `x/z`.
+- Model scale is derived from gameplay bounds, independently of source mesh dimensions.
+- Collision and interaction bounds never come from render meshes.
 
-- `tile_size` is the logical size of one tile in world units.
-- `source_tile_size` is the pixel size of one cell in the tileset image.
-- `smooth` selects bilinear filtering for hand-drawn source art. It defaults to point filtering for legacy pixel assets.
-
-For example, a 64-pixel hand-drawn tile can continue to occupy a 16-unit gameplay cell:
-
-```json
-"tileset": {
-  "path": "art/tileset/placeholder.png",
-  "tile_size": 16,
-  "source_tile_size": 64,
-  "columns": 8,
-  "smooth": true
-}
-```
-
-## Animated characters
-
-Each character animation profile independently defines:
-
-- `source_frame_size`: the pixel dimensions of a frame in its source strip;
-- `world_size`: the size at which that frame is drawn in the game world;
-- `anchor`: the normalized point in the drawn image placed at the entity position;
-- `smooth`: whether to use bilinear filtering.
-
-An anchor of `{0.5, 1.0}` places the character's feet at its entity position. Collider sizes remain independent.
-
-## Props and scenery
-
-Standalone scenery images use map-defined world bounds and optional smooth filtering. Single-image entity sprites are also drawn from their full source image into independent world bounds. Prototype images should therefore be replaced in place rather than baked into the legacy 16-pixel tileset.
+This keeps map behavior stable when prototype models are replaced with final models.
 
 ## Prototype asset policy
 
-Active world art lives under `res/art/prototype`. It is deliberately generic:
+Active prototype world art is a minimal GLB subset of the Kenney Prototype Kit in `res/art/kenney/prototype-kit`. Use the same anonymous figurine for every character and the same generic models for repeated gameplay roles. The goal is legibility and mechanics, not visual identity.
 
-- every player, NPC, and enemy uses the same anonymous character animation strips while retaining its original states and frame counts;
-- all ground uses the same neutral texture and decoration tiles are empty;
-- carryable objects and puzzle elements share one generic object marker.
+Do not introduce runtime-generated primitives as world art or a second 2D world renderer. Debug overlays may use renderer primitives because they visualize collision and authoring state rather than shipped art. UI may continue to use raster assets.
 
-The old production-style files may remain in the repository as references, but gameplay code and room files should not point at them during the prototype phase.
+Final art should use a stylized, hand-crafted 3D look rather than pixel art, entering through this existing GLB loading, transform, material, and native-animation path.

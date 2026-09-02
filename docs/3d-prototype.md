@@ -1,31 +1,25 @@
-# 3D prototype
+# 3D world architecture
 
-Hollie's gameplay remains a two-dimensional simulation. Rendering maps the existing room plane into 3D as follows:
+Hollie has one world implementation: a two-dimensional gameplay simulation rendered as a 3D scene. Gameplay `x/y` maps to world `x/z`, while model height uses world `y`. Collision maps, AI, combat, doors, and room transitions remain planar by design.
 
-- gameplay `x` becomes world `x`;
-- gameplay `y` becomes world `z`;
-- model height uses world `y`;
-- collision maps, AI, combat, doors, and room files remain unchanged.
+Both gameplay and the debug editor use the same fixed orthographic 3D view. The editor overlays collision cells, entity markers, and its cursor in that scene.
 
-The gameplay view uses a fixed orthographic 3D camera. The debug editor deliberately retains its direct 2D view so room geometry and collision cells remain easy to author.
+## Prototype models
 
-## Prototype assets
+Prototype world models are a checked-in subset of Kenney's Prototype Kit under `res/art/kenney/prototype-kit`:
 
-File-backed OBJ models live under `res/art/prototype/3d`:
+- `floor-square.glb` builds the ground grid;
+- `figurine.glb` is shared by every player, NPC, and enemy;
+- `crate-color.glb`, `button-floor-round.glb`, and `shape-cube.glb` represent interactive objects;
+- `wall.glb` and `wall-doorway-wide.glb` build room and house boundaries;
+- `indicator-doorway.glb` marks transitions.
 
-- `tile.obj` is the textured ground plane;
-- `pawn.obj` is shared by every character;
-- `object.obj` represents holdables, pressure plates, and gates;
-- `house.obj` replaces flat scenery in the current Olivewood slice.
+The bundled models are licensed CC0; the original `License.txt` is stored beside them.
 
-The secret room derives low prototype walls from the boundary of its non-rectangular floor. Door collider edges are left open, so its two-cell entrance extrusion remains visible and traversable.
+The secret room derives walls from its non-rectangular floor mask. Door collider edges stay open, preserving its two-cell bottom entrance extrusion. Olivewood's house is assembled from the same model kit, with its south doorway aligned to the transition collider.
 
-Character animation state and frame timing still come from the existing animator. For this experiment, frames drive simple model transforms such as bobbing, jumping, attacking, falling, and rolling. A production 3D direction would replace those transforms with rigged model clips without changing gameplay state selection.
+## Animation
 
-## Intentional experiment boundaries
+Gameplay owns animation states and timing. Those states select native clips embedded in Kenney's rigged figurine (`idle`, `walk`, `die`, `attack-melee-right`, and `holding-both`). Jump and roll retain gameplay-driven motion on top of the model animation. Every character intentionally shares this model during prototyping.
 
-- The room editor is still 2D.
-- Gameplay collision is still planar.
-- Models use deliberately plain prototype materials.
-- There is no production lighting, skeletal animation, or camera occlusion handling yet.
-- The 2D renderer and raster assets remain available, making the experiment reversible.
+Production models should replace these GLBs through the same model-loading and animation-selection path. There is no parallel sprite renderer to maintain.

@@ -1,10 +1,8 @@
 package hollie
 
-import "asset"
 import "audio"
 import "core:math"
 import "core:math/rand"
-import "core:slice"
 import "input"
 import "renderer"
 import "tilemap"
@@ -105,20 +103,6 @@ Holdable :: struct {
 	using transform: Transform,
 	using collider:  Collider,
 	held_by:         ^Player,
-	sprite_texture:  renderer.Texture2D,
-	sprite_profile:  Sprite_Profile,
-}
-
-Sprite_Profile :: struct {
-	world_size: Vec2,
-	anchor:     Vec2,
-	smooth:     bool,
-}
-
-ENTITY_SHADOW_PROFILE :: Sprite_Profile {
-	world_size = {12, 5},
-	anchor     = {0.5, -1},
-	smooth     = true,
 }
 
 Door :: struct {
@@ -141,25 +125,13 @@ Entity :: union {
 
 // Global entity storage
 entities: [dynamic]Entity
-entity_shadow_texture: renderer.Texture2D
-prototype_object_texture: renderer.Texture2D
 
 // Entity system functions
 entity_system_init :: proc() {
 	entities = make([dynamic]Entity)
-	entity_shadow_texture = renderer.load_texture(asset.path("art/prototype/shadow.png"))
-	rl.SetTextureFilter(entity_shadow_texture, ENTITY_SHADOW_PROFILE.smooth ? .BILINEAR : .POINT)
-	prototype_object_texture = renderer.load_texture(asset.path("art/prototype/object.png"))
-	rl.SetTextureFilter(prototype_object_texture, .BILINEAR)
 }
 
 entity_system_fini :: proc() {
-	if entity_shadow_texture.id != 0 {
-		renderer.unload_texture(entity_shadow_texture)
-	}
-	if prototype_object_texture.id != 0 {
-		renderer.unload_texture(prototype_object_texture)
-	}
 	delete(entities)
 }
 
@@ -168,7 +140,6 @@ entity_create_player :: proc(
 	pos: Vec2,
 	index: input.Player_Index,
 	animations: []Animation,
-	animation_profile: Animation_Profile,
 ) -> ^Player {
 	player := Player {
 		transform = {position = pos},
@@ -180,18 +151,14 @@ entity_create_player :: proc(
 	}
 
 	if len(animations) > 0 {
-		animation_init(&player.anim_data, animations, animation_profile)
+		animation_init(&player.anim_data, animations)
 	}
 
 	append(&entities, player)
 	return &entities[len(entities) - 1].(Player)
 }
 
-entity_create_enemy :: proc(
-	pos: Vec2,
-	animations: []Animation,
-	animation_profile: Animation_Profile,
-) -> ^Enemy {
+entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
@@ -201,7 +168,7 @@ entity_create_enemy :: proc(
 	}
 
 	if len(animations) > 0 {
-		animation_init(&enemy.anim_data, animations, animation_profile)
+		animation_init(&enemy.anim_data, animations)
 	}
 
 	append(&entities, enemy)
@@ -240,7 +207,6 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 entity_create_npc :: proc(
 	pos: Vec2,
 	animations: []Animation,
-	animation_profile: Animation_Profile,
 	dialog_messages: []Dialog_Message = {},
 ) -> ^NPC {
 	npc := NPC {
@@ -252,25 +218,18 @@ entity_create_npc :: proc(
 	}
 
 	if len(animations) > 0 {
-		animation_init(&npc.anim_data, animations, animation_profile)
+		animation_init(&npc.anim_data, animations)
 	}
 
 	append(&entities, npc)
 	return &entities[len(entities) - 1].(NPC)
 }
 
-entity_create_holdable :: proc(
-	pos: Vec2,
-	texture_path: string,
-	sprite_profile: Sprite_Profile,
-) -> ^Holdable {
+entity_create_holdable :: proc(pos: Vec2) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}},
-		sprite_texture = renderer.load_texture(texture_path),
-		sprite_profile = sprite_profile,
 	}
-	rl.SetTextureFilter(holdable.sprite_texture, sprite_profile.smooth ? .BILINEAR : .POINT)
 
 	append(&entities, holdable)
 	return &entities[len(entities) - 1].(Holdable)
@@ -569,7 +528,7 @@ entity_update_movement :: proc() {
 					}
 					e.velocity = e.ai.move_direction * e.move_speed
 
-					// Update sprite flip
+					// Update model facing
 					if abs(e.ai.move_direction.x) > 0 {
 						e.is_flipped = e.ai.move_direction.x < 0
 					}
@@ -595,7 +554,7 @@ entity_update_movement :: proc() {
 					}
 					e.velocity = e.ai.move_direction * e.move_speed
 
-					// Update sprite flip
+					// Update model facing
 					if abs(e.ai.move_direction.x) > 0 {
 						e.is_flipped = e.ai.move_direction.x < 0
 					}
@@ -774,7 +733,7 @@ entity_update_animations :: proc() {
 		switch &e in entity {
 		case Player:
 			if e.is_attacking {
-				// Use attack direction to determine sprite flip for attack animation
+				// Use attack direction to determine model facing for the attack animation.
 				e.is_flipped = e.attack_direction.x < 0
 				animation_set_state(&e.anim_data, .ATTACK)
 			} else if e.is_rolling {
@@ -816,277 +775,6 @@ entity_update_animations :: proc() {
 }
 
 npc_update_animation :: proc() {
-}
-
-
-entity_system_draw :: proc() {
-	// Collect and sort entities by Y position for proper depth
-	drawable_entities := make([dynamic]^Entity, 0, len(entities))
-	defer delete(drawable_entities)
-
-	for &entity in entities {
-		switch e in entity {
-		case Player, Enemy, NPC: append(&drawable_entities, &entity)
-		case Holdable: append(&drawable_entities, &entity)
-		case Pressure_Plate, Gate, Door: // These are drawn by the room system
-				continue
-		}
-	}
-
-	// Sort by Y position
-	slice.sort_by(drawable_entities[:], proc(a, b: ^Entity) -> bool {
-		pos_a := entity_get_world_collider_pos(a)
-		pos_b := entity_get_world_collider_pos(b)
-		return pos_a.y < pos_b.y
-	})
-
-	// Draw entities
-	for entity in drawable_entities {
-		switch &e in entity {
-		case Player:
-			entity_draw_shadow(e.position)
-
-			// Draw with hit flash if needed
-			if e.hit_flash_timer > 0 {
-				intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, intensity)
-			} else {
-				animation_draw(&e.anim_data, e.position)
-			}
-
-			if game.player_count == 2 {
-				player_text := e.index == .PLAYER_1 ? "P1" : "P2"
-				player_color := e.index == .PLAYER_1 ? renderer.BLUE : renderer.RED
-				renderer.draw_text(
-					player_text,
-					int(e.position.x) - 8,
-					int(e.position.y - 20),
-					12,
-					color = player_color,
-				)
-			}
-
-		case Enemy:
-			entity_draw_shadow(e.position)
-
-			// Draw with hit flash if needed
-			if e.hit_flash_timer > 0 {
-				intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, intensity)
-			} else {
-				animation_draw(&e.anim_data, e.position)
-			}
-
-		case NPC:
-			entity_draw_shadow(e.position)
-
-			can_interact := false
-			if len(e.dialog_messages) > 0 {
-				players := entity_get_players()
-				defer delete(players)
-
-				for player in players {
-					distance := get_distance(e.position, player.position)
-					if distance <= PLAYER_INTERACT_RANGE {
-						can_interact = true
-						break
-					}
-				}
-			}
-
-			shader_draw_outline :: proc() {
-			}
-
-			// Draw with hit flash if needed
-			if e.hit_flash_timer > 0 {
-				intensity := e.hit_flash_timer / 0.2
-				animation_draw_with_flash(&e.anim_data, e.position, intensity)
-			} else if can_interact {
-
-				offsets := [8][2]f32 {
-					{-1, -1},
-					{0, -1},
-					{1, -1},
-					{-1, 0},
-					{1, 0},
-					{-1, 1},
-					{0, 1},
-					{1, 1},
-				}
-
-				for offset in offsets {
-					animation_draw_with_flash(
-						&e.anim_data,
-						e.position + Vec2{offset[0], offset[1]},
-						1,
-					)
-				}
-
-				animation_draw(&e.anim_data, e.position)
-			} else {
-				animation_draw(&e.anim_data, e.position)
-			}
-
-		case Holdable:
-			draw_pos := e.position
-			if e.held_by != nil {
-				draw_pos = e.held_by.position + Vec2{0, -10}
-			} else {
-				entity_draw_shadow(draw_pos)
-			}
-
-			can_pickup := false
-			if e.held_by == nil {
-				players := entity_get_players()
-				defer delete(players)
-
-				for player in players {
-					if player.carrying == nil {
-						distance := math.sqrt(
-							(e.position.x - player.position.x) *
-								(e.position.x - player.position.x) +
-							(e.position.y - player.position.y) *
-								(e.position.y - player.position.y),
-						)
-						if distance <= 24 {
-							can_pickup = true
-							break
-						}
-					}
-				}
-			}
-
-			if can_pickup {
-				// Draw 8-directional outline using white flash shader
-				offsets := [8][2]f32 {
-					{-1, -1},
-					{0, -1},
-					{1, -1},
-					{-1, 0},
-					{1, 0},
-					{-1, 1},
-					{0, 1},
-					{1, 1},
-				}
-
-				texture_2d := rl.Texture2D(e.sprite_texture)
-				source_rect := rl.Rectangle{0, 0, f32(texture_2d.width), f32(texture_2d.height)}
-				dest_rect := renderer.Rect {
-					draw_pos.x - e.sprite_profile.world_size.x * e.sprite_profile.anchor.x,
-					draw_pos.y - e.sprite_profile.world_size.y * e.sprite_profile.anchor.y,
-					e.sprite_profile.world_size.x,
-					e.sprite_profile.world_size.y,
-				}
-
-				// Draw outline using the same positioning system
-				for offset in offsets {
-					shader_draw_with_white_flash_pro(
-						texture_2d,
-						source_rect,
-						renderer.Rect {
-							dest_rect.x + offset[0],
-							dest_rect.y + offset[1],
-							dest_rect.width,
-							dest_rect.height,
-						},
-						1.0,
-					)
-				}
-
-				// Draw original sprite on top using the same positioning
-				renderer.draw_texture_pro(
-					texture_2d,
-					source_rect,
-					dest_rect,
-					{},
-					0,
-					renderer.WHITE,
-				)
-			} else {
-				texture_2d := rl.Texture2D(e.sprite_texture)
-				renderer.draw_texture_pro(
-					texture_2d,
-					{0, 0, f32(texture_2d.width), f32(texture_2d.height)},
-					{
-						draw_pos.x - e.sprite_profile.world_size.x * e.sprite_profile.anchor.x,
-						draw_pos.y - e.sprite_profile.world_size.y * e.sprite_profile.anchor.y,
-						e.sprite_profile.world_size.x,
-						e.sprite_profile.world_size.y,
-					},
-					{},
-					0,
-					renderer.WHITE,
-				)
-			}
-
-		case Pressure_Plate, Gate, Door: // These shouldn't be in drawable_entities
-				continue
-		}
-	}
-
-	when ODIN_DEBUG {
-		if gameplay_debug_ui_visible {
-			// Draw collider bounds for all entities
-			for &entity in entities {
-				collider_pos := entity_get_world_collider_pos(&entity)
-				collider_size := entity_get_collider_size(&entity)
-
-				// Choose color based on entity type
-				color: renderer.Colour
-				switch e in entity {
-				case Player: color = renderer.GREEN
-				case Enemy: color = renderer.RED
-				case NPC: color = renderer.WHITE
-				case Pressure_Plate: color = renderer.BLUE
-				case Gate: color = renderer.SKYBLUE
-				case Holdable: color = renderer.YELLOW
-				case Door: color = renderer.PURPLE
-				}
-
-				renderer.draw_rect_outline(
-					collider_pos.x,
-					collider_pos.y,
-					collider_size.x,
-					collider_size.y,
-					thickness = 1,
-					color = color,
-				)
-
-				// Draw attack collider for attacking players
-				switch &e in entity {
-				case Player: if e.is_attacking {
-							attack_offset := e.attack_direction * e.range
-							attack_pos := e.position + attack_offset
-							renderer.draw_rect_outline(
-								attack_pos.x - e.attack_width / 2,
-								attack_pos.y - e.attack_height / 2,
-								e.attack_width,
-								e.attack_height,
-								thickness = 2,
-								color = renderer.RED,
-							)
-						}
-				case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
-				}
-			}
-		}
-	}
-}
-
-entity_draw_shadow :: proc(position: Vec2) {
-	renderer.draw_texture_pro(
-		entity_shadow_texture,
-		{0, 0, f32(entity_shadow_texture.width), f32(entity_shadow_texture.height)},
-		{
-			position.x - ENTITY_SHADOW_PROFILE.world_size.x * ENTITY_SHADOW_PROFILE.anchor.x,
-			position.y - ENTITY_SHADOW_PROFILE.world_size.y * ENTITY_SHADOW_PROFILE.anchor.y,
-			ENTITY_SHADOW_PROFILE.world_size.x,
-			ENTITY_SHADOW_PROFILE.world_size.y,
-		},
-		{},
-		0,
-		renderer.WHITE,
-	)
 }
 
 

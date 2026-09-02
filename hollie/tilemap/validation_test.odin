@@ -34,10 +34,9 @@ test_invalid_map_reports_semantic_errors :: proc(t: ^testing.T) {
 			},
 			{x = 64, y = 0, entity_type = .DOOR, width = 16, height = 16},
 		},
-		config = {world_tile_size = 16, source_tile_size = 16, tileset_cols = 32},
+		config = {world_tile_size = 16},
 		room_id = "invalid",
 		room_name = "Invalid",
-		tileset_path = "tiles.png",
 		camera_bounds = {0, 0, 32, 32},
 		collision_bounds = {0, 0, 32, 32},
 	}
@@ -55,7 +54,7 @@ test_invalid_room_file_reports_typed_semantic_errors :: proc(t: ^testing.T) {
 		width  = 1,
 		height = 1,
 	}
-	room.tileset = {
+	room.grid = {
 		tile_size = 16,
 	}
 	room.layers.decoration = []u16{0, 0}

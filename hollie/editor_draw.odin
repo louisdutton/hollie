@@ -43,16 +43,6 @@ Editor_Carousel_Slot :: struct {
 	selected:   bool,
 }
 
-editor_draw :: proc() {
-	if editor_state.mode != .EDITING do return
-
-	editor_draw_grid()
-	editor_draw_layer_overlay()
-	editor_draw_collision_overlay()
-	editor_draw_entities()
-	editor_draw_cursor()
-}
-
 editor_draw_ui :: proc() {
 	if editor_state.mode != .EDITING do return
 
@@ -68,172 +58,12 @@ editor_draw_ui :: proc() {
 	}
 }
 
-editor_draw_grid :: proc() {
-	if !editor_state.show_grid do return
-
-	screen_width := f32(window.get_screen_width())
-	screen_height := f32(window.get_screen_height())
-
-	world_min := renderer.get_screen_to_world_2d({0, 0}, camera)
-	world_max := renderer.get_screen_to_world_2d({screen_width, screen_height}, camera)
-
-	tile_size := f32(tilemap.get_tile_size())
-	start_x := max(0, int(world_min.x / tile_size))
-	end_x := min(tilemap.get_tilemap_width(), int(world_max.x / tile_size) + 1)
-	start_y := max(0, int(world_min.y / tile_size))
-	end_y := min(tilemap.get_tilemap_height(), int(world_max.y / tile_size) + 1)
-
-	grid_color := renderer.Colour{255, 255, 255, 64}
-
-	for x in start_x ..= end_x {
-		world_x := f32(x * tilemap.get_tile_size())
-		start_world_y := f32(start_y * tilemap.get_tile_size())
-		end_world_y := f32(end_y * tilemap.get_tile_size())
-		renderer.draw_line(world_x, start_world_y, world_x, end_world_y, grid_color)
-	}
-
-	for y in start_y ..= end_y {
-		world_y := f32(y * tilemap.get_tile_size())
-		start_world_x := f32(start_x * tilemap.get_tile_size())
-		end_world_x := f32(end_x * tilemap.get_tile_size())
-		renderer.draw_line(start_world_x, world_y, end_world_x, world_y, grid_color)
-	}
-}
-
-editor_draw_layer_overlay :: proc() {
-	if !editor_state.show_layer_overlay do return
-
-	overlay_color := renderer.Colour{}
-	switch editor_state.selected_layer {
-	case .BASE: return // No overlay for base layer
-	case .DECORATION: overlay_color = {0, 255, 0, 32}
-	case .COLLISION: return // Collision is visualized per tile below.
-	case .ENTITY: overlay_color = {255, 0, 255, 32}
-	}
-
-	screen_min := renderer.get_world_to_screen_2d({0, 0}, camera)
-	screen_max := renderer.get_world_to_screen_2d(
-		{
-			f32(tilemap.get_tilemap_width() * tilemap.get_tile_size()),
-			f32(tilemap.get_tilemap_height() * tilemap.get_tile_size()),
-		},
-		camera,
-	)
-
-	renderer.draw_rect_i(
-		i32(screen_min.x),
-		i32(screen_min.y),
-		i32(screen_max.x - screen_min.x),
-		i32(screen_max.y - screen_min.y),
-		overlay_color,
-	)
-}
-
-editor_draw_collision_overlay :: proc() {
-	if editor_state.selected_layer != .COLLISION && !editor_state.show_layer_overlay do return
-
-	tile_size := tilemap.get_tile_size()
-	for y in 0 ..< tilemap.get_tilemap_height() {
-		for x in 0 ..< tilemap.get_tilemap_width() {
-			tile := tilemap.get_collision_tile(x, y)
-			if tile == nil || tile^ != .SOLID do continue
-			renderer.draw_rect(
-				f32(x * tile_size),
-				f32(y * tile_size),
-				f32(tile_size),
-				f32(tile_size),
-				renderer.Colour{255, 64, 64, 112},
-			)
-		}
-	}
-}
-
-editor_draw_entities :: proc() {
-	entities := tilemap.get_entities()
-	tile_size := f32(tilemap.get_tile_size())
-
-	for entity in entities {
-		x := f32(entity.x)
-		y := f32(entity.y)
-
-		// Choose color based on entity type
-		color := renderer.Colour{}
-		icon_text := ""
-		switch entity.entity_type {
-		case .PLAYER:
-			color = {80, 160, 255, 180}
-			icon_text = "P"
-		case .ENEMY:
-			color = {255, 0, 0, 180}
-			icon_text = "E"
-		case .NPC:
-			color = {0, 0, 255, 180}
-			icon_text = "N"
-		case .HOLDABLE:
-			color = {255, 165, 0, 180}
-			icon_text = "H"
-		case .PRESSURE_PLATE:
-			color = {128, 128, 128, 180}
-			icon_text = "PP"
-		case .GATE:
-			color = {139, 69, 19, 180}
-			icon_text = "G"
-		case .DOOR:
-			color = {255, 255, 255, 180}
-			icon_text = "D"
-		}
-
-		// Draw entity rectangle
-		renderer.draw_rect(x, y, tile_size, tile_size, color)
-		renderer.draw_rect_outline(x, y, tile_size, tile_size, color = renderer.BLACK)
-
-		// Draw entity icon/text
-		text_x := x + tile_size / 2 - 4
-		text_y := y + tile_size / 2 - 6
-		renderer.draw_text(icon_text, int(text_x), int(text_y), 12, renderer.BLACK)
-	}
-}
-
-editor_draw_cursor :: proc() {
-	if !editor_state.cursor_visible do return
-
-	cursor_x, cursor_y := editor_state.cursor_x, editor_state.cursor_y
-	tile_size := tilemap.get_tile_size()
-	world_x := f32(cursor_x * tile_size)
-	world_y := f32(cursor_y * tile_size)
-
-	if editor_state.selected_layer == .ENTITY {
-		editor_draw_entity_preview(
-			editor_state.selected_entity,
-			world_x,
-			world_y,
-			f32(tile_size),
-			128,
-		)
-	} else if editor_state.selected_layer == .COLLISION {
-		renderer.draw_rect(
-			world_x,
-			world_y,
-			f32(tile_size),
-			f32(tile_size),
-			renderer.Colour{255, 64, 64, 128},
-		)
-	} else {
-		editor_draw_tile_preview(editor_state.selected_tile, world_x, world_y, f32(tile_size), 128)
-	}
-
-	renderer.draw_rect_outline(world_x, world_y, f32(tile_size), f32(tile_size), 1, renderer.WHITE)
-}
-
 editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
 	if tile_type == .EMPTY do return
 
-	source_rect := tilemap.get_tile_source_rect(tile_type)
-	dest_rect := renderer.Rect{x, y, size, size}
-	tileset := tilemap.get_tileset()
-
-	color := renderer.Colour{255, 255, 255, alpha}
-	renderer.draw_texture_pro(tileset, source_rect, dest_rect, {0, 0}, 0, color)
+	color := renderer.Colour{120, 170, 120, alpha}
+	renderer.draw_rect(x, y, size, size, color)
+	renderer.draw_rect_outline(x, y, size, size, color = renderer.WHITE)
 }
 
 editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: f32, alpha: u8) {

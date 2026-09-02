@@ -14,15 +14,10 @@ test_collision_map_supports_non_rectangular_walkable_areas :: proc(t: ^testing.T
 		width = 3,
 		height = 2,
 		tile_size = 16,
-		config = {world_tile_size = 16, source_tile_size = 64, tileset_cols = 2},
+		config = {world_tile_size = 16},
 		collision_tiles = []CollisionType{.SOLID, .WALKABLE, .SOLID, .SOLID, .WALKABLE, .SOLID},
 	}
 	config = tilemap.config
-	testing.expect_value(
-		t,
-		get_tile_source_rect(TileType(2)),
-		renderer.Rect{x = 64, y = 0, width = 64, height = 64},
-	)
 
 	testing.expect(t, is_tile_solid(0, 0))
 	testing.expect(t, !is_tile_solid(1, 0))

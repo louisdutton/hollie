@@ -6,12 +6,8 @@
     "width": 20,
     "height": 16
   },
-  "tileset": {
-    "path": "art/prototype/ground.png",
-    "tile_size": 16,
-    "source_tile_size": 128,
-    "columns": 1,
-    "smooth": true
+  "grid": {
+    "tile_size": 16
   },
   "camera_bounds": {
     "x": -64.00000000,
@@ -993,10 +989,9 @@
       0
     ]
   },
-  "scenery": [
+  "structures": [
     {
       "id": "secret_house",
-      "texture_path": "art/scenery/olivewood_house_placeholder.png",
       "position": {
         "x": 16,
         "y": 0
@@ -1004,8 +999,7 @@
       "size": {
         "width": 96,
         "height": 96
-      },
-      "smooth": true
+      }
     }
   ],
   "entities": [

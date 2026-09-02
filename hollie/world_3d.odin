@@ -1,18 +1,26 @@
 package hollie
 
 import "asset"
+import "core:c"
 import "renderer"
 import "tilemap"
 import rl "vendor:raylib"
 
-WORLD_3D_CHARACTER_SCALE :: f32(8)
-WORLD_3D_OBJECT_SIZE :: f32(12)
+WORLD_3D_CHARACTER_SCALE :: f32(32)
+WORLD_3D_CRATE_SCALE :: f32(24)
 
 World_3D_Assets :: struct {
-	tile:      rl.Model,
-	character: rl.Model,
-	object:    rl.Model,
-	house:     rl.Model,
+	floor:                       rl.Model,
+	character:                   rl.Model,
+	crate:                       rl.Model,
+	button:                      rl.Model,
+	cube:                        rl.Model,
+	wall:                        rl.Model,
+	doorway_wall:                rl.Model,
+	door_indicator:              rl.Model,
+	character_animations:        [^]rl.ModelAnimation,
+	character_animation_count:   c.int,
+	character_animation_indices: [7]int,
 }
 
 world_3d_assets: World_3D_Assets
@@ -24,17 +32,60 @@ world_3d_load_model :: proc(relative_path: string) -> rl.Model {
 }
 
 world_3d_init :: proc() {
-	world_3d_assets.tile = world_3d_load_model("art/prototype/3d/tile.obj")
-	world_3d_assets.character = world_3d_load_model("art/prototype/3d/pawn.obj")
-	world_3d_assets.object = world_3d_load_model("art/prototype/3d/object.obj")
-	world_3d_assets.house = world_3d_load_model("art/prototype/3d/house.obj")
+	root :: "art/kenney/prototype-kit/"
+	world_3d_assets.floor = world_3d_load_model(root + "floor-square.glb")
+	world_3d_assets.character = world_3d_load_model(root + "figurine.glb")
+	world_3d_assets.crate = world_3d_load_model(root + "crate-color.glb")
+	world_3d_assets.button = world_3d_load_model(root + "button-floor-round.glb")
+	world_3d_assets.cube = world_3d_load_model(root + "shape-cube.glb")
+	world_3d_assets.wall = world_3d_load_model(root + "wall.glb")
+	world_3d_assets.doorway_wall = world_3d_load_model(root + "wall-doorway-wide.glb")
+	world_3d_assets.door_indicator = world_3d_load_model(root + "indicator-doorway.glb")
+
+	for &index in world_3d_assets.character_animation_indices do index = -1
+	path := asset.path(root + "figurine.glb")
+	defer delete(path)
+	world_3d_assets.character_animations = rl.LoadModelAnimations(
+		cstring(raw_data(path)),
+		&world_3d_assets.character_animation_count,
+	)
+	clip_names := [7]string {
+		"idle",
+		"walk",
+		"walk",
+		"die",
+		"attack-melee-right",
+		"die",
+		"holding-both",
+	}
+	for animation_index in 0 ..< int(world_3d_assets.character_animation_count) {
+		animation_name := string(
+			cstring(&world_3d_assets.character_animations[animation_index].name[0]),
+		)
+		for clip_name, state_index in clip_names {
+			if animation_name == clip_name &&
+			   world_3d_assets.character_animation_indices[state_index] == -1 {
+				world_3d_assets.character_animation_indices[state_index] = animation_index
+			}
+		}
+	}
 }
 
 world_3d_fini :: proc() {
-	if world_3d_assets.tile.meshCount > 0 do rl.UnloadModel(world_3d_assets.tile)
+	if world_3d_assets.character_animation_count > 0 {
+		rl.UnloadModelAnimations(
+			world_3d_assets.character_animations,
+			world_3d_assets.character_animation_count,
+		)
+	}
+	if world_3d_assets.floor.meshCount > 0 do rl.UnloadModel(world_3d_assets.floor)
 	if world_3d_assets.character.meshCount > 0 do rl.UnloadModel(world_3d_assets.character)
-	if world_3d_assets.object.meshCount > 0 do rl.UnloadModel(world_3d_assets.object)
-	if world_3d_assets.house.meshCount > 0 do rl.UnloadModel(world_3d_assets.house)
+	if world_3d_assets.crate.meshCount > 0 do rl.UnloadModel(world_3d_assets.crate)
+	if world_3d_assets.button.meshCount > 0 do rl.UnloadModel(world_3d_assets.button)
+	if world_3d_assets.cube.meshCount > 0 do rl.UnloadModel(world_3d_assets.cube)
+	if world_3d_assets.wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.wall)
+	if world_3d_assets.doorway_wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.doorway_wall)
+	if world_3d_assets.door_indicator.meshCount > 0 do rl.UnloadModel(world_3d_assets.door_indicator)
 	world_3d_assets = {}
 }
 
@@ -97,17 +148,49 @@ world_3d_draw_interior_walls :: proc() {
 			center_x := (f32(x) + 0.5) * tile_size
 			center_z := (f32(y) + 0.5) * tile_size
 
-			if !world_3d_has_floor(x, y - 1) && !world_3d_edge_is_door({center_x, f32(y) * tile_size}) {
-				rl.DrawModelEx(world_3d_assets.object, {center_x, 0, f32(y) * tile_size}, {0, 1, 0}, 0, {tile_size, wall_height, wall_thickness}, wall_color)
+			if !world_3d_has_floor(x, y - 1) &&
+			   !world_3d_edge_is_door({center_x, f32(y) * tile_size}) {
+				rl.DrawModelEx(
+					world_3d_assets.wall,
+					{center_x, 0, f32(y) * tile_size},
+					{0, 1, 0},
+					90,
+					{wall_thickness / 0.2, wall_height, tile_size},
+					wall_color,
+				)
 			}
-			if !world_3d_has_floor(x, y + 1) && !world_3d_edge_is_door({center_x, f32(y + 1) * tile_size}) {
-				rl.DrawModelEx(world_3d_assets.object, {center_x, 0, f32(y + 1) * tile_size}, {0, 1, 0}, 0, {tile_size, wall_height, wall_thickness}, wall_color)
+			if !world_3d_has_floor(x, y + 1) &&
+			   !world_3d_edge_is_door({center_x, f32(y + 1) * tile_size}) {
+				rl.DrawModelEx(
+					world_3d_assets.wall,
+					{center_x, 0, f32(y + 1) * tile_size},
+					{0, 1, 0},
+					90,
+					{wall_thickness / 0.2, wall_height, tile_size},
+					wall_color,
+				)
 			}
-			if !world_3d_has_floor(x - 1, y) && !world_3d_edge_is_door({f32(x) * tile_size, center_z}) {
-				rl.DrawModelEx(world_3d_assets.object, {f32(x) * tile_size, 0, center_z}, {0, 1, 0}, 0, {wall_thickness, wall_height, tile_size}, wall_color)
+			if !world_3d_has_floor(x - 1, y) &&
+			   !world_3d_edge_is_door({f32(x) * tile_size, center_z}) {
+				rl.DrawModelEx(
+					world_3d_assets.wall,
+					{f32(x) * tile_size, 0, center_z},
+					{0, 1, 0},
+					0,
+					{wall_thickness / 0.2, wall_height, tile_size},
+					wall_color,
+				)
 			}
-			if !world_3d_has_floor(x + 1, y) && !world_3d_edge_is_door({f32(x + 1) * tile_size, center_z}) {
-				rl.DrawModelEx(world_3d_assets.object, {f32(x + 1) * tile_size, 0, center_z}, {0, 1, 0}, 0, {wall_thickness, wall_height, tile_size}, wall_color)
+			if !world_3d_has_floor(x + 1, y) &&
+			   !world_3d_edge_is_door({f32(x + 1) * tile_size, center_z}) {
+				rl.DrawModelEx(
+					world_3d_assets.wall,
+					{f32(x + 1) * tile_size, 0, center_z},
+					{0, 1, 0},
+					0,
+					{wall_thickness / 0.2, wall_height, tile_size},
+					wall_color,
+				)
 			}
 		}
 	}
@@ -124,7 +207,7 @@ world_3d_draw_ground :: proc() {
 			if tile == nil || tile^ == .EMPTY do continue
 
 			rl.DrawModelEx(
-				world_3d_assets.tile,
+				world_3d_assets.floor,
 				{(f32(x) + 0.5) * tile_size, 0, (f32(y) + 0.5) * tile_size},
 				{0, 1, 0},
 				0,
@@ -134,17 +217,54 @@ world_3d_draw_ground :: proc() {
 		}
 	}
 
-	for scenery in tm.scenery {
-		center := scenery.position + scenery.size / 2
-		rl.DrawModelEx(
-			world_3d_assets.house,
-			world_3d_position(center),
-			{0, 1, 0},
-			0,
-			{scenery.size.x, min(scenery.size.x, scenery.size.y) * 0.75, scenery.size.y},
-			rl.WHITE,
-		)
-	}
+	for structure in tm.structures do world_3d_draw_house(structure.position, structure.size)
+}
+
+world_3d_draw_house :: proc(position, size: Vec2) {
+	center := position + size / 2
+	wall_height: f32 = 44
+	wall_thickness: f32 = 8
+	// Kenney's wide doorway wall spans 1.5 model units along its local Z axis.
+	rl.DrawModelEx(
+		world_3d_assets.doorway_wall,
+		{center.x, 0, position.y + size.y},
+		{0, 1, 0},
+		90,
+		{wall_thickness, wall_height, size.x / 1.5},
+		rl.WHITE,
+	)
+	rl.DrawModelEx(
+		world_3d_assets.wall,
+		{center.x, 0, position.y},
+		{0, 1, 0},
+		90,
+		{wall_thickness, wall_height, size.x},
+		rl.WHITE,
+	)
+	rl.DrawModelEx(
+		world_3d_assets.wall,
+		{position.x, 0, center.y},
+		{0, 1, 0},
+		0,
+		{wall_thickness, wall_height, size.y},
+		rl.WHITE,
+	)
+	rl.DrawModelEx(
+		world_3d_assets.wall,
+		{position.x + size.x, 0, center.y},
+		{0, 1, 0},
+		0,
+		{wall_thickness, wall_height, size.y},
+		rl.WHITE,
+	)
+	rl.DrawModelEx(
+		world_3d_assets.cube,
+		{center.x, wall_height, center.y},
+		{0, 1, 0},
+		0,
+		{size.x + 8, 7, size.y + 8},
+		rl.Color{120, 150, 105, 255},
+	)
 }
 
 World_3D_Character_Pose :: struct {
@@ -202,11 +322,25 @@ world_3d_character_pose :: proc(anim: ^Animator) -> World_3D_Character_Pose {
 world_3d_draw_character :: proc(anim: ^Animator, position: Vec2, tint: rl.Color) {
 	pose := world_3d_character_pose(anim)
 	scale := pose.scale * WORLD_3D_CHARACTER_SCALE
+	state_index := int(anim.current_anim)
+	clip_index := world_3d_assets.character_animation_indices[state_index]
+	if clip_index >= 0 {
+		clip := world_3d_assets.character_animations[clip_index]
+		logic_frame_count := max(anim.frame_counts[state_index], 1)
+		clip_frame := f32(anim.frame) / f32(logic_frame_count) * f32(clip.keyframeCount)
+		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
+	}
+	angle := pose.angle
+	axis := pose.axis
+	if anim.current_anim != .ROLL {
+		angle = anim.is_flipped ? 90 : -90
+		axis = {0, 1, 0}
+	}
 	rl.DrawModelEx(
 		world_3d_assets.character,
 		world_3d_position(position, pose.height),
-		pose.axis,
-		pose.angle,
+		axis,
+		angle,
 		scale,
 		tint,
 	)
@@ -234,17 +368,17 @@ world_3d_draw_entities :: proc() {
 				position = world_3d_position(e.held_by.position, 20)
 			}
 			rl.DrawModelEx(
-				world_3d_assets.object,
+				world_3d_assets.crate,
 				position,
 				{0, 1, 0},
 				0,
-				{WORLD_3D_OBJECT_SIZE, WORLD_3D_OBJECT_SIZE, WORLD_3D_OBJECT_SIZE},
+				{WORLD_3D_CRATE_SCALE, WORLD_3D_CRATE_SCALE, WORLD_3D_CRATE_SCALE},
 				rl.WHITE,
 			)
 		case Pressure_Plate:
 			tint := e.active ? rl.GREEN : rl.Color{150, 150, 150, 255}
 			rl.DrawModelEx(
-				world_3d_assets.object,
+				world_3d_assets.button,
 				world_3d_position(e.position),
 				{0, 1, 0},
 				0,
@@ -257,7 +391,7 @@ world_3d_draw_entities :: proc() {
 			for y in 0 ..< int(e.collider.size.y / block_size) {
 				for x in 0 ..< int(e.collider.size.x / block_size) {
 					rl.DrawModelEx(
-						world_3d_assets.object,
+						world_3d_assets.cube,
 						{
 							e.position.x + (f32(x) + 0.5) * block_size,
 							0,
@@ -270,7 +404,17 @@ world_3d_draw_entities :: proc() {
 					)
 				}
 			}
-		case Door: continue
+		case Door:
+			collider_position := e.position + e.collider.offset
+			center := collider_position + e.collider.size / 2
+			rl.DrawModelEx(
+				world_3d_assets.door_indicator,
+				world_3d_position(center, 0.2),
+				{0, 1, 0},
+				0,
+				{e.collider.size.x / 0.6, 1, e.collider.size.y / 0.6},
+				rl.Color{142, 104, 190, 255},
+			)
 		}
 	}
 }
@@ -293,6 +437,50 @@ world_3d_draw_labels :: proc(camera_3d: rl.Camera3D) {
 		label := player.index == .PLAYER_1 ? "P1" : "P2"
 		color := player.index == .PLAYER_1 ? renderer.BLUE : renderer.GREEN
 		renderer.draw_text(label, int(position.x) - 8, int(position.y) - 6, 12, color = color)
+	}
+}
+
+when ODIN_DEBUG {
+	world_3d_draw_editor_entities :: proc() {
+		for entity in tilemap.get_entities() {
+			position := rl.Vector3{f32(entity.x), 4, f32(entity.y)}
+			color: rl.Color
+			switch entity.entity_type {
+			case .PLAYER: color = rl.BLUE
+			case .ENEMY: color = rl.RED
+			case .NPC: color = rl.GOLD
+			case .HOLDABLE: color = rl.ORANGE
+			case .PRESSURE_PLATE: color = rl.GRAY
+			case .GATE: color = rl.BROWN
+			case .DOOR: color = rl.PURPLE
+			}
+			rl.DrawCubeV(position, {8, 8, 8}, color)
+			rl.DrawCubeWiresV(position, {8, 8, 8}, rl.WHITE)
+		}
+	}
+
+	world_3d_draw_editor_cursor :: proc() {
+		if !editor_state.cursor_visible do return
+		tile_size := f32(tilemap.get_tile_size())
+		center := rl.Vector3 {
+			(f32(editor_state.cursor_x) + 0.5) * tile_size,
+			1,
+			(f32(editor_state.cursor_y) + 0.5) * tile_size,
+		}
+		color := editor_state.selected_layer == .COLLISION ? rl.RED : rl.WHITE
+		rl.DrawCubeWiresV(center, {tile_size, 2, tile_size}, color)
+	}
+
+	world_3d_draw_editor :: proc() {
+		rl.ClearBackground({12, 14, 18, 255})
+		camera_3d := world_3d_camera()
+		rl.BeginMode3D(camera_3d)
+		world_3d_draw_ground()
+		world_3d_draw_interior_walls()
+		world_3d_draw_editor_entities()
+		world_3d_draw_debug()
+		world_3d_draw_editor_cursor()
+		rl.EndMode3D()
 	}
 }
 
@@ -338,7 +526,13 @@ when ODIN_DEBUG {
 		for door in doors {
 			center := door.position + door.collider.size / 2
 			position := rl.GetWorldToScreen(world_3d_position(center, 4), camera_3d)
-			renderer.draw_text(door.target_room, int(position.x), int(position.y), 12, color = renderer.PURPLE)
+			renderer.draw_text(
+				door.target_room,
+				int(position.x),
+				int(position.y),
+				12,
+				color = renderer.PURPLE,
+			)
 		}
 	}
 }

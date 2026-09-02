@@ -14,7 +14,7 @@ test_world_3d_pose_uses_existing_animation_frames :: proc(t: ^testing.T) {
 	frame_counts := []int{9, 8, 10, 13, 10, 10, 8}
 	anim := Animator {
 		frame_counts = frame_counts,
-		frame = 4,
+		frame        = 4,
 		current_anim = .JUMP,
 	}
 	jump_pose := world_3d_character_pose(&anim)

@@ -15,12 +15,8 @@ Room_File_Bounds :: struct {
 	height: f32,
 }
 
-Room_File_Tileset :: struct {
-	path:             string,
-	tile_size:        int,
-	source_tile_size: int `json:"source_tile_size,omitempty"`,
-	columns:          int,
-	smooth:           bool `json:"smooth,omitempty"`,
+Room_File_Grid :: struct {
+	tile_size: int,
 }
 
 Room_File_Layers :: struct {
@@ -29,12 +25,10 @@ Room_File_Layers :: struct {
 	collision:  []u8,
 }
 
-Room_File_Scenery :: struct {
-	id:           string,
-	texture_path: string,
-	position:     Room_File_Position,
-	size:         Room_File_Size,
-	smooth:       bool `json:"smooth,omitempty"`,
+Room_File_Structure :: struct {
+	id:       string,
+	position: Room_File_Position,
+	size:     Room_File_Size,
 }
 
 Room_File_Common :: struct {
@@ -42,22 +36,22 @@ Room_File_Common :: struct {
 	name:             string,
 	music_path:       string `json:"music_path,omitempty"`,
 	size:             Room_File_Size,
-	tileset:          Room_File_Tileset,
+	grid:             Room_File_Grid,
 	camera_bounds:    Room_File_Bounds,
 	collision_bounds: Room_File_Bounds,
 	layers:           Room_File_Layers,
 }
 
 Room_File :: struct {
-	using _:  Room_File_Common,
-	scenery:  []Room_File_Scenery `json:"scenery,omitempty"`,
-	entities: []Room_File_Entity `json:"entities,omitempty"`,
+	using _:    Room_File_Common,
+	structures: []Room_File_Structure `json:"structures,omitempty"`,
+	entities:   []Room_File_Entity `json:"entities,omitempty"`,
 }
 
 Room_File_Wire :: struct {
-	using _:  Room_File_Common,
-	scenery:  []Room_File_Scenery `json:"scenery,omitempty"`,
-	entities: []Room_File_Entity_Wire `json:"entities,omitempty"`,
+	using _:    Room_File_Common,
+	structures: []Room_File_Structure `json:"structures,omitempty"`,
+	entities:   []Room_File_Entity_Wire `json:"entities,omitempty"`,
 }
 
 Room_File_Decode_Error_Kind :: enum {
@@ -120,14 +114,13 @@ decode_room_file_json5 :: proc(
 	room.music_path = wire.music_path
 	wire.music_path = ""
 	room.size = wire.size
-	room.tileset = wire.tileset
-	wire.tileset.path = ""
+	room.grid = wire.grid
 	room.camera_bounds = wire.camera_bounds
 	room.collision_bounds = wire.collision_bounds
 	room.layers = wire.layers
 	wire.layers = {}
-	room.scenery = wire.scenery
-	wire.scenery = nil
+	room.structures = wire.structures
+	wire.structures = nil
 
 	room.entities = make([]Room_File_Entity, len(wire.entities), allocator)
 	for wire_entity, entity_index in wire.entities {
@@ -156,11 +149,11 @@ encode_room_file_json5 :: proc(
 	wire.name = room.name
 	wire.music_path = room.music_path
 	wire.size = room.size
-	wire.tileset = room.tileset
+	wire.grid = room.grid
 	wire.camera_bounds = room.camera_bounds
 	wire.collision_bounds = room.collision_bounds
 	wire.layers = room.layers
-	wire.scenery = room.scenery
+	wire.structures = room.structures
 	wire.entities = make([]Room_File_Entity_Wire, len(room.entities), allocator)
 	defer destroy_encoded_room_file_wire(&wire, allocator)
 
@@ -186,15 +179,13 @@ destroy_room_file :: proc(room: ^Room_File, allocator := context.allocator) {
 	delete(room.id, allocator)
 	delete(room.name, allocator)
 	delete(room.music_path, allocator)
-	delete(room.tileset.path, allocator)
 	delete(room.layers.base, allocator)
 	delete(room.layers.decoration, allocator)
 	delete(room.layers.collision, allocator)
-	for &scenery in room.scenery {
-		delete(scenery.id, allocator)
-		delete(scenery.texture_path, allocator)
+	for &structure in room.structures {
+		delete(structure.id, allocator)
 	}
-	delete(room.scenery, allocator)
+	delete(room.structures, allocator)
 	for &entity in room.entities {
 		destroy_room_file_entity(&entity, allocator)
 	}
@@ -208,15 +199,13 @@ destroy_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.alloc
 	delete(wire.id, allocator)
 	delete(wire.name, allocator)
 	delete(wire.music_path, allocator)
-	delete(wire.tileset.path, allocator)
 	delete(wire.layers.base, allocator)
 	delete(wire.layers.decoration, allocator)
 	delete(wire.layers.collision, allocator)
-	for &scenery in wire.scenery {
-		delete(scenery.id, allocator)
-		delete(scenery.texture_path, allocator)
+	for &structure in wire.structures {
+		delete(structure.id, allocator)
 	}
-	delete(wire.scenery, allocator)
+	delete(wire.structures, allocator)
 	for &entity in wire.entities {
 		delete(entity.id, allocator)
 		delete(entity.type, allocator)

@@ -330,64 +330,6 @@ room_draw_name :: proc() {
 }
 
 
-// Puzzle elements share a generic raster marker during gameplay prototyping.
-room_draw_puzzle_elements :: proc() {
-	if !room_state.is_loaded do return
-
-	pressure_plates := entity_get_pressure_plates()
-	defer delete(pressure_plates)
-
-	for plate in pressure_plates {
-		tint := renderer.WHITE
-		if plate.active do tint = renderer.fade(renderer.GREEN, 0.9)
-		renderer.draw_texture_pro(
-			prototype_object_texture,
-			{0, 0, f32(prototype_object_texture.width), f32(prototype_object_texture.height)},
-			{
-				plate.position.x - plate.collider.size.x / 2,
-				plate.position.y - plate.collider.size.y / 2,
-				plate.collider.size.x,
-				plate.collider.size.y,
-			},
-			{},
-			0,
-			tint,
-		)
-	}
-
-	gates := entity_get_gates()
-	defer delete(gates)
-
-	for gate in gates {
-		if !gate.open {
-			block_size := f32(16)
-			blocks_x := int(gate.collider.size.x / block_size)
-			blocks_y := int(gate.collider.size.y / block_size)
-
-			for y in 0 ..< blocks_y {
-				for x in 0 ..< blocks_x {
-					block_x := gate.position.x + f32(x) * block_size
-					block_y := gate.position.y + f32(y) * block_size
-
-					renderer.draw_texture_pro(
-						prototype_object_texture,
-						{
-							0,
-							0,
-							f32(prototype_object_texture.width),
-							f32(prototype_object_texture.height),
-						},
-						{block_x, block_y, block_size, block_size},
-						{},
-						0,
-						renderer.fade(renderer.WHITE, 0.75),
-					)
-				}
-			}
-		}
-	}
-}
-
 when ODIN_DEBUG {
 	room_draw_puzzle_debug :: proc() {
 		if !room_state.is_loaded do return

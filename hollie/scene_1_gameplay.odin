@@ -55,7 +55,6 @@ init_gameplay_screen :: proc() {
 	entity_system_init()
 	world_3d_init()
 	particle_system_init()
-	shader_init()
 	when ODIN_DEBUG {
 		gameplay_debug_ui_visible = false
 		editor_init()
@@ -182,13 +181,7 @@ update_gameplay_screen :: proc() {
 draw_gameplay_screen :: proc() {
 	when ODIN_DEBUG {
 		if editor_is_active() {
-			// The room editor intentionally keeps its direct orthographic 2D view.
-			renderer.begin_mode_2d(camera)
-			{
-				defer renderer.end_mode_2d()
-				tilemap.draw(camera)
-				editor_draw()
-			}
+			world_3d_draw_editor()
 		} else {
 			world_3d_draw(gameplay_debug_ui_visible)
 		}
@@ -223,7 +216,6 @@ unload_gameplay_screen :: proc() {
 	}
 
 	pause_close()
-	shader_fini()
 	room_fini()
 	tilemap.destroy_tilemap(&gameplay_state.current_tilemap)
 	delete(gameplay_state.pending_target_door)

@@ -7,12 +7,7 @@ VILLAGER_DIALOG := []Dialog_Message {
 }
 
 npc_spawn_at :: proc(position: Vec2) -> ^NPC {
-	return entity_create_npc(
-		position,
-		human_animations[:],
-		human_animation_profile,
-		VILLAGER_DIALOG,
-	)
+	return entity_create_npc(position, human_animations[:], VILLAGER_DIALOG)
 }
 
 npc_get_all :: proc() -> [dynamic]^NPC {

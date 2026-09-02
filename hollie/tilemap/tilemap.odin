@@ -1,9 +1,7 @@
 package tilemap
 
-import "../asset"
 import "../content"
 import "../renderer"
-import "../window"
 import "core:encoding/uuid"
 import "core:strings"
 import rl "vendor:raylib"
@@ -24,17 +22,12 @@ EntityType :: enum {
 
 /// Configuration for tilemap rendering and behavior
 TilemapConfig :: struct {
-	world_tile_size:  int,
-	source_tile_size: int,
-	tileset_cols:     int,
-	smooth:           bool,
+	world_tile_size: int,
 }
 
 @(private)
 config := TilemapConfig {
-	world_tile_size  = TILE_SIZE,
-	source_tile_size = TILE_SIZE,
-	tileset_cols     = 32,
+	world_tile_size = TILE_SIZE,
 }
 
 TileType :: enum u16 {
@@ -100,13 +93,10 @@ CollisionType :: enum u8 {
 	SOLID    = 1,
 }
 
-SceneryData :: struct {
-	instance_id:  string,
-	texture_path: string,
-	position:     Vec2,
-	size:         Vec2,
-	texture:      renderer.Texture2D,
-	smooth:       bool,
+Structure_Data :: struct {
+	instance_id: string,
+	position:    Vec2,
+	size:        Vec2,
 }
 
 
@@ -123,7 +113,6 @@ EntityData :: struct {
 	inverted:          bool,
 	width:             int,
 	height:            int,
-	texture_path:      string,
 	target_room:       string,
 	target_door:       string,
 	required_triggers: [dynamic]int,
@@ -135,11 +124,9 @@ TileMap :: struct {
 	base_tiles:       []TileType,
 	deco_tiles:       []TileType,
 	collision_tiles:  []CollisionType,
-	scenery:          []SceneryData,
+	structures:       []Structure_Data,
 	entities:         []EntityData,
-	tileset:          renderer.Texture2D,
 	tile_size:        int,
-	tileset_path:     string,
 	config:           TilemapConfig,
 	room_id:          string,
 	room_name:        string,
@@ -151,7 +138,6 @@ TileMap :: struct {
 clone_entity_data :: proc(entity: EntityData, allocator := context.allocator) -> EntityData {
 	cloned := entity
 	cloned.instance_id = strings.clone(entity.instance_id, allocator)
-	cloned.texture_path = strings.clone(entity.texture_path, allocator)
 	cloned.target_room = strings.clone(entity.target_room, allocator)
 	cloned.target_door = strings.clone(entity.target_door, allocator)
 	cloned.required_triggers = make([dynamic]int, len(entity.required_triggers), allocator)
@@ -163,7 +149,6 @@ destroy_entity_data :: proc(entity: ^EntityData, allocator := context.allocator)
 	if entity == nil do return
 
 	delete(entity.instance_id, allocator)
-	delete(entity.texture_path, allocator)
 	delete(entity.target_room, allocator)
 	delete(entity.target_door, allocator)
 	delete(entity.required_triggers)
@@ -176,20 +161,14 @@ destroy_tilemap :: proc(tm: ^TileMap, allocator := context.allocator) {
 	delete(tm.base_tiles, allocator)
 	delete(tm.deco_tiles, allocator)
 	delete(tm.collision_tiles, allocator)
-	for &scenery in tm.scenery {
-		delete(scenery.instance_id, allocator)
-		delete(scenery.texture_path, allocator)
-		if scenery.texture.id != 0 do renderer.unload_texture(scenery.texture)
+	for &structure in tm.structures {
+		delete(structure.instance_id, allocator)
 	}
-	delete(tm.scenery, allocator)
+	delete(tm.structures, allocator)
 	for &entity in tm.entities {
 		destroy_entity_data(&entity, allocator)
 	}
 	delete(tm.entities, allocator)
-	if tm.tileset.id != 0 {
-		renderer.unload_texture(tm.tileset)
-	}
-	delete(tm.tileset_path, allocator)
 	delete(tm.room_id, allocator)
 	delete(tm.room_name, allocator)
 	delete(tm.music_path, allocator)
@@ -201,7 +180,7 @@ tilemap := TileMap {
 	width = 50,
 	height = 30,
 	tile_size = TILE_SIZE,
-	config = {world_tile_size = TILE_SIZE, source_tile_size = TILE_SIZE, tileset_cols = 32},
+	config = {world_tile_size = TILE_SIZE},
 }
 
 load_tilemap :: proc(new_tilemap: TileMap) {
@@ -214,17 +193,12 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	tilemap.width = new_tilemap.width
 	tilemap.height = new_tilemap.height
 	tilemap.tile_size = new_tilemap.config.world_tile_size
-	tilemap.tileset_path = strings.clone(new_tilemap.tileset_path)
 	tilemap.config = new_tilemap.config
 	tilemap.room_id = strings.clone(new_tilemap.room_id)
 	tilemap.room_name = strings.clone(new_tilemap.room_name)
 	tilemap.music_path = strings.clone(new_tilemap.music_path)
 	tilemap.camera_bounds = new_tilemap.camera_bounds
 	tilemap.collision_bounds = new_tilemap.collision_bounds
-
-	// Load texture
-	tilemap.tileset = renderer.load_texture(asset.path(new_tilemap.tileset_path))
-	rl.SetTextureFilter(tilemap.tileset, new_tilemap.config.smooth ? .BILINEAR : .POINT)
 
 	// Copy tile data
 	tilemap.base_tiles = make([]TileType, len(new_tilemap.base_tiles))
@@ -236,13 +210,10 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	tilemap.collision_tiles = make([]CollisionType, len(new_tilemap.collision_tiles))
 	copy(tilemap.collision_tiles, new_tilemap.collision_tiles)
 
-	tilemap.scenery = make([]SceneryData, len(new_tilemap.scenery))
-	for scenery, index in new_tilemap.scenery {
-		tilemap.scenery[index] = scenery
-		tilemap.scenery[index].instance_id = strings.clone(scenery.instance_id)
-		tilemap.scenery[index].texture_path = strings.clone(scenery.texture_path)
-		tilemap.scenery[index].texture = renderer.load_texture(asset.path(scenery.texture_path))
-		rl.SetTextureFilter(tilemap.scenery[index].texture, scenery.smooth ? .BILINEAR : .POINT)
+	tilemap.structures = make([]Structure_Data, len(new_tilemap.structures))
+	for structure, index in new_tilemap.structures {
+		tilemap.structures[index] = structure
+		tilemap.structures[index].instance_id = strings.clone(structure.instance_id)
 	}
 
 	// Copy entity data
@@ -286,29 +257,6 @@ get_collision_tile :: proc(x, y: int) -> ^CollisionType {
 		return nil
 	}
 	return &tilemap.collision_tiles[index]
-}
-
-get_tile_source_rect :: proc(tile_type: TileType) -> renderer.Rect {
-	if tile_type == .EMPTY {
-		return {}
-	}
-
-	tile_id := int(tile_type) - 1
-	tiles_per_row := config.tileset_cols
-
-	source_x := (tile_id % tiles_per_row) * config.source_tile_size
-	source_y := (tile_id / tiles_per_row) * config.source_tile_size
-
-	return renderer.Rect {
-		x = f32(source_x),
-		y = f32(source_y),
-		width = f32(config.source_tile_size),
-		height = f32(config.source_tile_size),
-	}
-}
-
-get_tileset :: proc() -> renderer.Texture2D {
-	return tilemap.tileset
 }
 
 get_tile_size :: proc() -> int {
@@ -434,91 +382,6 @@ check_collision :: proc(rect: renderer.Rect) -> bool {
 		}
 	}
 	return false
-}
-
-draw :: proc(camera: renderer.Camera2D) {
-	screen_width := f32(window.get_screen_width())
-	screen_height := f32(window.get_screen_height())
-
-	world_min := renderer.get_screen_to_world_2d({0, 0}, camera)
-	world_max := renderer.get_screen_to_world_2d({screen_width, screen_height}, camera)
-
-	tile_size_f := f32(config.world_tile_size)
-	start_x := max(0, int(world_min.x / tile_size_f) - 1)
-	end_x := min(tilemap.width, int(world_max.x / tile_size_f) + 2)
-	start_y := max(0, int(world_min.y / tile_size_f) - 1)
-	end_y := min(tilemap.height, int(world_max.y / tile_size_f) + 2)
-
-	// Draw base layer first
-	for y in start_y ..< end_y {
-		world_y := f32(y * tilemap.tile_size)
-
-		for x in start_x ..< end_x {
-			base_tile := get_base_tile(x, y)
-			if base_tile == nil || base_tile^ == .EMPTY do continue
-
-			world_x := f32(x * tilemap.tile_size)
-
-			source_rect := get_tile_source_rect(base_tile^)
-			dest_rect := renderer.Rect {
-				x      = world_x,
-				y      = world_y,
-				width  = f32(config.world_tile_size),
-				height = f32(config.world_tile_size),
-			}
-
-			renderer.draw_texture_pro(
-				tilemap.tileset,
-				source_rect,
-				dest_rect,
-				{0, 0},
-				0,
-				renderer.WHITE,
-			)
-		}
-	}
-
-	// Draw decorative layer on top
-	for y in start_y ..< end_y {
-		world_y := f32(y * tilemap.tile_size)
-
-		for x in start_x ..< end_x {
-			deco_tile := get_deco_tile(x, y)
-			if deco_tile == nil || deco_tile^ == .EMPTY do continue
-
-			world_x := f32(x * tilemap.tile_size)
-
-			source_rect := get_tile_source_rect(deco_tile^)
-			dest_rect := renderer.Rect {
-				x      = world_x,
-				y      = world_y,
-				width  = f32(config.world_tile_size),
-				height = f32(config.world_tile_size),
-			}
-
-			renderer.draw_texture_pro(
-				tilemap.tileset,
-				source_rect,
-				dest_rect,
-				{0, 0},
-				0,
-				renderer.WHITE,
-			)
-		}
-	}
-
-	// Draw standalone scenery images after tiles and before gameplay entities.
-	for scenery in tilemap.scenery {
-		if scenery.texture.id == 0 do continue
-		renderer.draw_texture_pro(
-			scenery.texture,
-			{0, 0, f32(scenery.texture.width), f32(scenery.texture.height)},
-			{scenery.position.x, scenery.position.y, scenery.size.x, scenery.size.y},
-			{},
-			0,
-			renderer.WHITE,
-		)
-	}
 }
 
 fini :: proc() {

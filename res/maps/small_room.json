@@ -6,12 +6,8 @@
     "width": 8,
     "height": 9
   },
-  "tileset": {
-    "path": "art/prototype/ground.png",
-    "tile_size": 16,
-    "source_tile_size": 128,
-    "columns": 1,
-    "smooth": true
+  "grid": {
+    "tile_size": 16
   },
   "camera_bounds": {
     "x": -200.00000000,

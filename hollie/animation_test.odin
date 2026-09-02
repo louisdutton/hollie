@@ -1,24 +1,17 @@
 package hollie
 
 import "core:testing"
-import rl "vendor:raylib"
 
 @(test)
-test_animation_source_and_world_geometry_are_independent :: proc(t: ^testing.T) {
-	animator := Animator {
-		rect = {128, 0, 128, 96},
-		profile = {source_frame_size = {128, 96}, world_size = {32, 24}, anchor = {0.5, 0.75}},
-	}
+test_animation_init_copies_logical_frame_counts :: proc(t: ^testing.T) {
+	animations := [2]Animation{{frame_count = 9}, {frame_count = 8}}
+	animator: Animator
+	animation_init(&animator, animations[:])
+	defer animation_fini(&animator)
 
-	testing.expect_value(t, animation_source_rect(&animator), rl.Rectangle{128, 0, 128, 96})
-	testing.expect_value(
-		t,
-		animation_destination_rect(&animator, {100, 80}),
-		rl.Rectangle{84, 62, 32, 24},
-	)
-
-	animator.is_flipped = true
-	testing.expect_value(t, animation_source_rect(&animator), rl.Rectangle{128, 0, -128, 96})
+	testing.expect_value(t, len(animator.frame_counts), 2)
+	testing.expect_value(t, animator.frame_counts[0], 9)
+	testing.expect_value(t, animator.frame_counts[1], 8)
 }
 
 @(test)

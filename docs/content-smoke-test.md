@@ -20,7 +20,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Olivewood
 
 - Confirm the room title is `Olivewood`.
-- Confirm the grid ground, shared character pawns, gameplay objects, and cottage render as 3D models.
+- Confirm the Kenney grid ground, shared figurines, gameplay objects, and house render as 3D models.
 - Toggle the gameplay debug UI and confirm solid collision cells appear with a translucent red overlay, including the house footprint around its walkable doorway.
 - Confirm three enemies, two pressure plates, one gate, one holdable, and one door appear.
 - Pick up and drop the generic holdable.
@@ -37,7 +37,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Editor persistence
 
 - In a debug build, press `F1` to enter the editor.
-- Confirm the editor switches to its direct 2D authoring view and returns to 3D when closed.
+- Confirm the editor remains in the orthographic 3D view and overlays its authoring markers there.
 - Paint and erase one base tile and one decoration tile.
 - Paint and erase one collision tile and confirm solid cells use the red overlay.
 - Place, inspect, and remove an entity marker.
