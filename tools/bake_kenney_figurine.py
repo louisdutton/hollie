@@ -6,7 +6,7 @@ Run with Blender in background mode:
         res/art/kenney/prototype-kit/figurine-raylib.glb
 
 The source animation is sampled verbatim. Each mesh part is rigidly weighted to
-one bone; no procedural or replacement animation is introduced.
+one bone. A carry-walk clip layers Kenney's holding arms over Kenney's walk.
 """
 
 import math
@@ -32,15 +32,17 @@ def arguments():
     return tuple(pathlib.Path(value).resolve() for value in values)
 
 
-def set_source_action(action, nodes, rest_basis):
-    slots = {slot.identifier: slot for slot in action.slots}
+def set_source_action(action, nodes, rest_basis, overrides=None):
+    overrides = overrides or {}
     for node in nodes:
         node.animation_data_clear()
         node.matrix_basis = rest_basis[node.name].copy()
+        node_action = overrides.get(node.name, action)
+        slots = {slot.identifier: slot for slot in node_action.slots}
         slot = slots.get(f"OB{node.name}")
         if slot is not None:
             node.animation_data_create()
-            node.animation_data.action = action
+            node.animation_data.action = node_action
             node.animation_data.action_slot = slot
 
 
@@ -50,6 +52,44 @@ def sample_frames(action):
     if not math.isclose(frames[-1], end):
         frames.append(float(end))
     return frames
+
+
+def bake_action(
+    clip_name,
+    source_action,
+    nodes,
+    parts,
+    rest_basis,
+    rest_world,
+    armature,
+    overrides=None,
+    post_rotations=None,
+):
+    post_rotations = post_rotations or {}
+    baked_action = bpy.data.actions.new(clip_name)
+    armature.animation_data.action = baked_action
+    for pose_bone in armature.pose.bones:
+        pose_bone.rotation_mode = "QUATERNION"
+
+    set_source_action(source_action, nodes, rest_basis, overrides)
+    for frame in sample_frames(source_action):
+        bpy.context.scene.frame_set(int(frame), subframe=frame - int(frame))
+        bpy.context.view_layer.update()
+        for part in parts:
+            pose_bone = armature.pose.bones[part.name]
+            # Armature deformation is pose * inverse(bind). Include the bind
+            # matrix explicitly so Blender's bone-axis conversion cannot move
+            # the authored hinge during GLB export.
+            animated_world = part.matrix_world @ post_rotations.get(
+                part.name, Matrix.Identity(4)
+            )
+            deformation = animated_world @ rest_world[part.name].inverted()
+            pose_bone.matrix = deformation @ pose_bone.bone.matrix_local
+            pose_bone.keyframe_insert("location", frame=frame, group=part.name)
+            pose_bone.keyframe_insert(
+                "rotation_quaternion", frame=frame, group=part.name
+            )
+            pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
 
 
 def main():
@@ -66,6 +106,7 @@ def main():
     nodes = [bpy.data.objects[name] for name in ANIMATED_NODE_NAMES]
     parts = [bpy.data.objects[name] for name in PART_NAMES]
     source_actions = [(action.name, action) for action in bpy.data.actions]
+    source_actions_by_name = dict(source_actions)
     static_action = bpy.data.actions["static"]
 
     # The imported static clip contains the authored rest transforms.
@@ -144,25 +185,31 @@ def main():
 
     armature.animation_data_create()
     for clip_name, source_action in source_actions:
-        baked_action = bpy.data.actions.new(clip_name)
-        armature.animation_data.action = baked_action
-        for pose_bone in armature.pose.bones:
-            pose_bone.rotation_mode = "QUATERNION"
+        bake_action(
+            clip_name,
+            source_action,
+            nodes,
+            parts,
+            rest_basis,
+            rest_world,
+            armature,
+        )
 
-        set_source_action(source_action, nodes, rest_basis)
-        for frame in sample_frames(source_action):
-            bpy.context.scene.frame_set(int(frame), subframe=frame - int(frame))
-            bpy.context.view_layer.update()
-            for part in parts:
-                pose_bone = armature.pose.bones[part.name]
-                # Armature deformation is pose * inverse(bind). Include the bind
-                # matrix explicitly so Blender's bone-axis conversion cannot
-                # move the authored hinge during GLB export.
-                deformation = part.matrix_world @ rest_world[part.name].inverted()
-                pose_bone.matrix = deformation @ pose_bone.bone.matrix_local
-                pose_bone.keyframe_insert("location", frame=frame, group=part.name)
-                pose_bone.keyframe_insert("rotation_quaternion", frame=frame, group=part.name)
-                pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
+    holding_action = source_actions_by_name["holding-both"]
+    bake_action(
+        "walk-holding-both",
+        source_actions_by_name["walk"],
+        nodes,
+        parts,
+        rest_basis,
+        rest_world,
+        armature,
+        overrides={"arm-left": holding_action, "arm-right": holding_action},
+        post_rotations={
+            "arm-left": Matrix.Rotation(-math.pi / 2, 4, "X"),
+            "arm-right": Matrix.Rotation(-math.pi / 2, 4, "X"),
+        },
+    )
 
     # Remove the source hierarchy and source-only actions before export.
     armature.animation_data.action = None
@@ -185,7 +232,7 @@ def main():
         export_bake_animation=True,
         export_skins=True,
     )
-    print(f"Baked {len(source_actions)} Kenney clips to {output_path}")
+    print(f"Baked {len(source_actions)} Kenney clips and carry-walk layer to {output_path}")
 
 
 if __name__ == "__main__":

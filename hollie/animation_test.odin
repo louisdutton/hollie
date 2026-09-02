@@ -16,7 +16,9 @@ test_animation_init_copies_logical_frame_counts :: proc(t: ^testing.T) {
 
 @(test)
 test_animation_tracks_visual_elapsed_time :: proc(t: ^testing.T) {
-	animator := Animator{frame_counts = []int{9}}
+	animator := Animator {
+		frame_counts = []int{9},
+	}
 	animation_update(&animator, 0.125)
 	testing.expect_value(t, animator.visual_time, f32(0.125))
 	animation_set_state(&animator, .RUN)

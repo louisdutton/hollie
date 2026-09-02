@@ -10,7 +10,6 @@ import rl "vendor:raylib"
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
 WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
-WORLD_3D_CHARACTER_PLAYBACK_RATE :: f32(0.8)
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -18,7 +17,7 @@ WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"die",
 	"attack-melee-right",
 	"sprint",
-	"holding-both",
+	"walk-holding-both",
 }
 WORLD_3D_CHARACTER_MODEL :: "figurine-raylib.glb"
 
@@ -358,8 +357,7 @@ world_3d_draw_character :: proc(
 	}
 	if clip_index >= 0 && state_index < len(anim.frame_counts) {
 		clip := world_3d_assets.character_animations[clip_index]
-		clip_frame := anim.visual_time *
-			WORLD_3D_CHARACTER_CLIP_FPS * WORLD_3D_CHARACTER_PLAYBACK_RATE
+		clip_frame := anim.visual_time * WORLD_3D_CHARACTER_CLIP_FPS
 		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
 	}
 	flash := min(max(flash_amount, 0), 1)
