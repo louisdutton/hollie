@@ -23,6 +23,8 @@ WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES := [7]int{1, 2, 3, 6, 16, 3, 12}
 World_3D_Assets :: struct {
 	lighting_shader:             rl.Shader,
 	character_lighting_shader:   rl.Shader,
+	active_character_shader:     rl.Shader,
+	character_flash_location:    c.int,
 	floor:                       rl.Model,
 	character:                   rl.Model,
 	crate:                       rl.Model,
@@ -48,6 +50,14 @@ world_3d_apply_shader :: proc(model: ^rl.Model, shader: rl.Shader) {
 	for material_index in 0 ..< int(model.materialCount) {
 		model.materials[material_index].shader = shader
 	}
+}
+
+world_3d_uses_gpu_skinning :: proc(model: ^rl.Model) -> bool {
+	for mesh_index in 0 ..< int(model.meshCount) {
+		mesh := &model.meshes[mesh_index]
+		if mesh.boneWeights != nil && mesh.animVertices == nil do return true
+	}
+	return false
 }
 
 world_3d_set_shader_vec3 :: proc(shader: rl.Shader, name: cstring, value: rl.Vector3) {
@@ -88,9 +98,17 @@ world_3d_init :: proc() {
 		cstring(raw_data(skinned_vertex_shader_path)),
 		cstring(raw_data(fragment_shader_path)),
 	)
+	world_3d_assets.active_character_shader = world_3d_assets.lighting_shader
+	if world_3d_uses_gpu_skinning(&world_3d_assets.character) {
+		world_3d_assets.active_character_shader = world_3d_assets.character_lighting_shader
+	}
+	world_3d_assets.character_flash_location = rl.GetShaderLocation(
+		world_3d_assets.active_character_shader,
+		"flashAmount",
+	)
 
 	world_3d_apply_shader(&world_3d_assets.floor, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.character_lighting_shader)
+	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.active_character_shader)
 	world_3d_apply_shader(&world_3d_assets.crate, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.button, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.cube, world_3d_assets.lighting_shader)
@@ -323,7 +341,12 @@ world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
 	return math.to_degrees(math.atan2(-direction.x, -direction.y))
 }
 
-world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: rl.Color) {
+world_3d_draw_character :: proc(
+	anim: ^Animator,
+	position, facing: Vec2,
+	tint: rl.Color,
+	flash_amount: f32,
+) {
 	state_index := int(anim.current_anim)
 	clip_index := -1
 	if state_index >= 0 && state_index < len(world_3d_assets.character_animation_indices) {
@@ -335,6 +358,13 @@ world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: r
 		clip_frame := f32(anim.frame) / f32(logic_frame_count) * f32(clip.keyframeCount)
 		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
 	}
+	flash := min(max(flash_amount, 0), 1)
+	rl.SetShaderValue(
+		world_3d_assets.active_character_shader,
+		world_3d_assets.character_flash_location,
+		&flash,
+		.FLOAT,
+	)
 	rl.DrawModelEx(
 		world_3d_assets.character,
 		world_3d_position(position),
@@ -342,6 +372,13 @@ world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: r
 		world_3d_facing_angle(facing),
 		{WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE},
 		tint,
+	)
+	flash = 0
+	rl.SetShaderValue(
+		world_3d_assets.active_character_shader,
+		world_3d_assets.character_flash_location,
+		&flash,
+		.FLOAT,
 	)
 }
 
@@ -351,16 +388,31 @@ world_3d_draw_entities :: proc() {
 		case Player:
 			tint :=
 				e.index == .PLAYER_1 ? rl.Color{92, 156, 214, 255} : rl.Color{102, 190, 132, 255}
-			if e.hit_flash_timer > 0 do tint = rl.WHITE
-			world_3d_draw_character(&e.anim_data, e.position, e.facing_direction, tint)
+			world_3d_draw_character(
+				&e.anim_data,
+				e.position,
+				e.facing_direction,
+				tint,
+				e.hit_flash_timer / 0.2,
+			)
 		case Enemy:
 			tint := rl.Color{196, 92, 88, 255}
-			if e.hit_flash_timer > 0 do tint = rl.WHITE
-			world_3d_draw_character(&e.anim_data, e.position, e.facing_direction, tint)
+			world_3d_draw_character(
+				&e.anim_data,
+				e.position,
+				e.facing_direction,
+				tint,
+				e.hit_flash_timer / 0.2,
+			)
 		case NPC:
 			tint := rl.Color{220, 190, 96, 255}
-			if e.hit_flash_timer > 0 do tint = rl.WHITE
-			world_3d_draw_character(&e.anim_data, e.position, e.facing_direction, tint)
+			world_3d_draw_character(
+				&e.anim_data,
+				e.position,
+				e.facing_direction,
+				tint,
+				e.hit_flash_timer / 0.2,
+			)
 		case Holdable:
 			position := world_3d_position(e.position)
 			if e.held_by != nil {

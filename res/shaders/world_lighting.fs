@@ -11,6 +11,7 @@ uniform vec3 keyDirection;
 uniform vec3 keyColor;
 uniform vec3 fillDirection;
 uniform vec3 fillColor;
+uniform float flashAmount;
 
 out vec4 finalColor;
 
@@ -19,7 +20,8 @@ void main()
     vec3 normal = normalize(fragNormal);
     float keyAmount = max(dot(normal, -normalize(keyDirection)), 0.0);
     float fillAmount = max(dot(normal, -normalize(fillDirection)), 0.0);
-    vec3 lighting = ambientColor + keyColor*keyAmount + fillColor*fillAmount;
-    vec4 albedo = texture(texture0, fragTexCoord)*colDiffuse*fragColor;
-    finalColor = vec4(albedo.rgb*lighting, albedo.a);
+	vec3 lighting = ambientColor + keyColor*keyAmount + fillColor*fillAmount;
+	vec4 albedo = texture(texture0, fragTexCoord)*colDiffuse*fragColor;
+	vec3 litColor = albedo.rgb*lighting;
+	finalColor = vec4(mix(litColor, vec3(1.0), clamp(flashAmount, 0.0, 1.0)), albedo.a);
 }

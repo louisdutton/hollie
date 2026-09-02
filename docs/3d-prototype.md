@@ -4,7 +4,7 @@ Hollie has one world implementation: a two-dimensional gameplay simulation rende
 
 Both gameplay and the debug editor use the same fixed orthographic 3D view. The editor overlays collision cells, entity markers, and its cursor in that scene.
 
-All world models use directional lighting with restrained ambient, warm key, and cool fill contributions. Lighting is implemented in file-backed GLSL shaders under `res/shaders`; rigged characters use the skinning-aware vertex variant while static models use the simpler variant, with both sharing the same fragment-lighting model.
+All world models use directional lighting with restrained ambient, warm key, and cool fill contributions. Lighting is implemented in file-backed GLSL shaders under `res/shaders`. Characters automatically select the CPU- or GPU-skinning-compatible vertex path used by the active raylib build. Both paths share one fragment-lighting model, including the pure-white damage-flash blend.
 
 ## Prototype models
 
