@@ -37,7 +37,7 @@ when ODIN_DEBUG {
 	gameplay_debug_ui_visible := false
 }
 
-init_gameplay_screen :: proc() {
+gameplay_init :: proc() {
 	if gameplay_state.current_room_id == "" {
 		gameplay_state.current_room_id = INITIAL_ROOM_ID
 	}
@@ -64,7 +64,7 @@ init_gameplay_screen :: proc() {
 	gameplay_state.doors_enabled = false // Disable doors until players move away from spawn
 }
 
-update_gameplay_screen :: proc() {
+gameplay_update :: proc() {
 	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_RIGHT) {
 		pause_toggle()
 	}
@@ -178,7 +178,7 @@ update_gameplay_screen :: proc() {
 	}
 }
 
-prepare_gameplay_screen_draw :: proc() {
+gameplay_prepare_draw :: proc() {
 	when ODIN_DEBUG {
 		if editor_is_active() do return
 	}
@@ -186,7 +186,7 @@ prepare_gameplay_screen_draw :: proc() {
 	world_3d_render_shadow_map(world_3d_camera())
 }
 
-draw_gameplay_screen :: proc() {
+gameplay_draw :: proc() {
 	when ODIN_DEBUG {
 		if editor_is_active() {
 			world_3d_draw_editor()
@@ -218,7 +218,7 @@ draw_gameplay_screen :: proc() {
 	}
 }
 
-unload_gameplay_screen :: proc() {
+gameplay_fini :: proc() {
 	when ODIN_DEBUG {
 		editor_fini()
 	}

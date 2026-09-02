@@ -66,7 +66,7 @@ init :: proc() {
 	switch game.scene {
 	case .GAMEPLAY:
 		audio.music_stop(game.music)
-		init_gameplay_screen()
+		gameplay_init()
 	case .TITLE: init_title_screen()
 	}
 }
@@ -75,7 +75,7 @@ fini :: proc() {
 	defer tween.destroy()
 	switch game.scene {
 	case .TITLE: unload_title_screen()
-	case .GAMEPLAY: unload_gameplay_screen()
+	case .GAMEPLAY: gameplay_fini()
 	}
 
 	renderer.unload_font(game.font)
@@ -105,7 +105,7 @@ update :: proc() {
 	case .TITLE:
 		audio.music_update(game.music)
 		update_title_screen()
-	case .GAMEPLAY: update_gameplay_screen()
+	case .GAMEPLAY: gameplay_update()
 	}
 }
 
@@ -128,7 +128,7 @@ update_app_suspension :: proc() -> bool {
 
 draw :: proc() {
 	if game.state != .SUSPENDED && game.scene == .GAMEPLAY {
-		prepare_gameplay_screen_draw()
+		gameplay_prepare_draw()
 	}
 
 	renderer.begin_drawing()
@@ -139,7 +139,7 @@ draw :: proc() {
 
 	switch game.scene {
 	case .TITLE: draw_title_screen()
-	case .GAMEPLAY: draw_gameplay_screen()
+	case .GAMEPLAY: gameplay_draw()
 	}
 
 	renderer.draw_fps(10, 10)

@@ -3,18 +3,18 @@ package tween
 import "core:math/ease"
 import "core:time"
 
-f :: f32
+F :: f32
 
-flux: ease.Flux_Map(f)
+flux: ease.Flux_Map(F)
 
 init :: proc() {
-	flux = ease.flux_init(f)
+	flux = ease.flux_init(F)
 }
 
 // creates a tween
 to :: #force_inline proc(
-	from: ^f,
-	to: f,
+	from: ^F,
+	to: F,
 	easing := ease.Ease.Quadratic_Out,
 	duration := time.Second,
 	delay: f64 = 0,

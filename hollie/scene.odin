@@ -11,7 +11,7 @@ set_scene :: proc(screen: Scene) {
 	// Unload current screen
 	switch game.scene {
 	case .TITLE: unload_title_screen()
-	case .GAMEPLAY: unload_gameplay_screen()
+	case .GAMEPLAY: gameplay_fini()
 	}
 
 	// Init next screen
@@ -21,7 +21,7 @@ set_scene :: proc(screen: Scene) {
 		init_title_screen()
 	case .GAMEPLAY:
 		audio.music_stop(game.music)
-		init_gameplay_screen()
+		gameplay_init()
 	}
 
 	game.scene = screen
