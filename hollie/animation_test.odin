@@ -15,6 +15,12 @@ test_animation_init_copies_logical_frame_counts :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_animation_frame_phase_includes_partial_frame_progress :: proc(t: ^testing.T) {
+	animator := Animator{frame = 4, frame_counter = 1}
+	testing.expect_value(t, animation_frame_phase(&animator), f32(4) + f32(1) / 3)
+}
+
+@(test)
 test_prototype_characters_retain_original_animation_frames :: proc(t: ^testing.T) {
 	testing.expect_value(t, len(goblin_animations), 4)
 	testing.expect_value(t, goblin_animations[0].frame_count, 9)

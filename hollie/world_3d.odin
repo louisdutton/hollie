@@ -357,7 +357,8 @@ world_3d_draw_character :: proc(
 	if clip_index >= 0 && state_index < len(anim.frame_counts) {
 		clip := world_3d_assets.character_animations[clip_index]
 		logic_frame_count := max(anim.frame_counts[state_index], 1)
-		clip_frame := f32(anim.frame) / f32(logic_frame_count) * f32(clip.keyframeCount)
+		clip_frame := animation_frame_phase(anim) /
+			f32(logic_frame_count) * f32(clip.keyframeCount)
 		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
 	}
 	flash := min(max(flash_amount, 0), 1)

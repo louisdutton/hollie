@@ -48,6 +48,12 @@ animation_update :: proc(anim_data: ^Animator) {
 	}
 }
 
+// The legacy gameplay frame remains discrete, but rendering can interpolate the
+// time accumulated toward the next frame instead of visibly stepping at 20 Hz.
+animation_frame_phase :: proc(anim_data: ^Animator) -> f32 {
+	return f32(anim_data.frame) + f32(anim_data.frame_counter) / f32(INTERVAL + 1)
+}
+
 animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
 	// detect state change
 	if anim_data.current_anim != state {
