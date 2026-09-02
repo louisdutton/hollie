@@ -15,6 +15,7 @@ WORLD_3D_GATE_HEIGHT :: f32(18)
 WORLD_3D_CARRIED_ITEM_HEIGHT :: f32(20)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_LABEL_TEXT_SIZE :: 12
+WORLD_3D_BACKGROUND_COLOR :: rl.Color{54, 54, 60, 255}
 WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
@@ -90,11 +91,12 @@ world_3d_set_shader_vec3 :: proc(shader: rl.Shader, name: cstring, value: rl.Vec
 }
 
 world_3d_configure_lighting :: proc(shader: rl.Shader) {
-	world_3d_set_shader_vec3(shader, "ambientColor", {0.18, 0.2, 0.24})
+	// Cool, high-fill studio lighting based on Kenney's Prototype Kit preview.
+	world_3d_set_shader_vec3(shader, "ambientColor", {0.36, 0.36, 0.5})
 	world_3d_set_shader_vec3(shader, "keyDirection", {-0.45, -0.82, -0.35})
-	world_3d_set_shader_vec3(shader, "keyColor", {0.55, 0.49, 0.42})
+	world_3d_set_shader_vec3(shader, "keyColor", {0.42, 0.4, 0.4})
 	world_3d_set_shader_vec3(shader, "fillDirection", {0.65, -0.35, 0.55})
-	world_3d_set_shader_vec3(shader, "fillColor", {0.08, 0.11, 0.16})
+	world_3d_set_shader_vec3(shader, "fillColor", {0.06, 0.07, 0.1})
 }
 
 world_3d_init :: proc() {
@@ -712,7 +714,7 @@ when ODIN_DEBUG {
 	}
 
 	world_3d_draw_editor :: proc() {
-		rl.ClearBackground({12, 14, 18, 255})
+		rl.ClearBackground(WORLD_3D_BACKGROUND_COLOR)
 		camera_3d := world_3d_camera()
 		rl.BeginMode3D(camera_3d)
 		world_3d_draw_ground()
@@ -777,7 +779,7 @@ when ODIN_DEBUG {
 }
 
 world_3d_draw :: proc(show_debug: bool = false) {
-	rl.ClearBackground({12, 14, 18, 255})
+	rl.ClearBackground(WORLD_3D_BACKGROUND_COLOR)
 	camera_3d := world_3d_camera()
 	rl.BeginMode3D(camera_3d)
 

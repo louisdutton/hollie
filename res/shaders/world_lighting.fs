@@ -22,6 +22,8 @@ void main()
     float fillAmount = max(dot(normal, -normalize(fillDirection)), 0.0);
 	vec3 lighting = ambientColor + keyColor*keyAmount + fillColor*fillAmount;
 	vec4 albedo = texture(texture0, fragTexCoord)*colDiffuse*fragColor;
-	vec3 litColor = albedo.rgb*lighting;
+	vec3 linearAlbedo = pow(max(albedo.rgb, vec3(0.0)), vec3(2.2));
+	vec3 linearLitColor = linearAlbedo*lighting;
+	vec3 litColor = pow(max(linearLitColor, vec3(0.0)), vec3(1.0/2.2));
 	finalColor = vec4(mix(litColor, vec3(1.0), clamp(flashAmount, 0.0, 1.0)), albedo.a);
 }
