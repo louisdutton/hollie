@@ -6,11 +6,13 @@ import "core:math"
 import "renderer"
 import "tilemap"
 import rl "vendor:raylib"
+import "window"
 
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
 WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
+WORLD_3D_LABEL_TEXT_SIZE :: 12
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -514,15 +516,41 @@ world_3d_draw_particles :: proc() {
 	}
 }
 
+world_3d_scaled_text_size :: proc(design_size: int, screen_scale: f32) -> int {
+	return max(int(f32(design_size) * screen_scale + 0.5), 1)
+}
+
+world_3d_draw_label :: proc(
+	text: string,
+	world_position: rl.Vector3,
+	camera_3d: rl.Camera3D,
+	color: renderer.Colour,
+) {
+	position := rl.GetWorldToScreen(world_position, camera_3d)
+	text_size := world_3d_scaled_text_size(WORLD_3D_LABEL_TEXT_SIZE, window.get_ui_scale())
+	text_width := int(renderer.measure_text(text, i32(text_size)))
+	renderer.draw_text(
+		text,
+		int(position.x) - text_width / 2,
+		int(position.y) - text_size / 2,
+		text_size,
+		color = color,
+	)
+}
+
 world_3d_draw_labels :: proc(camera_3d: rl.Camera3D) {
 	if game.player_count != 2 do return
 	players := entity_get_players()
 	defer delete(players)
 	for player in players {
-		position := rl.GetWorldToScreen(world_3d_position(player.position, 24), camera_3d)
 		label := player.index == .PLAYER_1 ? "P1" : "P2"
 		color := player.index == .PLAYER_1 ? renderer.BLUE : renderer.GREEN
-		renderer.draw_text(label, int(position.x) - 8, int(position.y) - 6, 12, color = color)
+		world_3d_draw_label(
+			label,
+			world_3d_position(player.position, 24),
+			camera_3d,
+			color,
+		)
 	}
 }
 
@@ -611,13 +639,11 @@ when ODIN_DEBUG {
 		defer delete(doors)
 		for door in doors {
 			center := door.position + door.collider.size / 2
-			position := rl.GetWorldToScreen(world_3d_position(center, 4), camera_3d)
-			renderer.draw_text(
+			world_3d_draw_label(
 				door.target_room,
-				int(position.x),
-				int(position.y),
-				12,
-				color = renderer.PURPLE,
+				world_3d_position(center, 4),
+				camera_3d,
+				renderer.PURPLE,
 			)
 		}
 	}

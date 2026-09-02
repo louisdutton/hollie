@@ -25,6 +25,12 @@ test_world_3d_one_shot_clip_holds_its_final_frame :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_world_3d_text_scales_with_the_display :: proc(t: ^testing.T) {
+	testing.expect_value(t, world_3d_scaled_text_size(12, 1), 12)
+	testing.expect_value(t, world_3d_scaled_text_size(12, 2.4), 29)
+}
+
+@(test)
 test_every_character_state_maps_to_a_native_kenney_clip :: proc(t: ^testing.T) {
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.IDLE)], "idle")
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.RUN)], "walk")
