@@ -37,7 +37,60 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 	return room_state.current_tilemap
 }
 
+@(private = "file")
+room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
+	player_size := Vec2{16, 16}
+	door_center := door.position + door.collider.size / 2
+	candidates := [5]Vec2 {
+		{door_center.x, door.position.y + door.collider.size.y + player_size.y},
+		{door_center.x, door.position.y - player_size.y},
+		{door.position.x + door.collider.size.x + player_size.x, door_center.y},
+		{door.position.x - player_size.x, door_center.y},
+		door_center,
+	}
+
+	for candidate in candidates {
+		rect := renderer.Rect {
+			x      = candidate.x - player_size.x / 2,
+			y      = candidate.y - player_size.y / 2,
+			width  = player_size.x,
+			height = player_size.y,
+		}
+		if !tilemap.check_collision(rect) do return candidate
+	}
+
+	return door_center
+}
+
 when ODIN_DEBUG {
+	room_draw_collision_debug :: proc() {
+		if !room_state.is_loaded do return
+
+		tile_size := tilemap.get_tile_size()
+		for y in 0 ..< tilemap.get_tilemap_height() {
+			for x in 0 ..< tilemap.get_tilemap_width() {
+				collision := tilemap.get_collision_tile(x, y)
+				if collision == nil || collision^ != .SOLID do continue
+				world_x := f32(x * tile_size)
+				world_y := f32(y * tile_size)
+				renderer.draw_rect(
+					world_x,
+					world_y,
+					f32(tile_size),
+					f32(tile_size),
+					renderer.Colour{255, 48, 48, 104},
+				)
+				renderer.draw_rect_outline(
+					world_x,
+					world_y,
+					f32(tile_size),
+					f32(tile_size),
+					color = renderer.Colour{255, 96, 96, 192},
+				)
+			}
+		}
+	}
+
 	room_draw_doors_debug :: proc() {
 		if !room_state.is_loaded do return
 
@@ -153,7 +206,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	}
 
 	if spawn_door != nil {
-		spawn_pos := spawn_door.position + Vec2{0, 48} // Offset further down from door
+		spawn_pos := room_find_door_spawn_position(spawn_door)
 		player_spawn_at(spawn_pos, input.Player_Index.PLAYER_1)
 		if game.player_count == 2 {
 			player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.PLAYER_2)

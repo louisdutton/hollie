@@ -33,12 +33,19 @@ room_file_to_tilemap_unchecked :: proc(
 	room: Room_File,
 	allocator := context.allocator,
 ) -> TileMap {
+	source_tile_size := room.tileset.source_tile_size
+	if source_tile_size == 0 do source_tile_size = room.tileset.tile_size
 	tm := TileMap {
 		width = room.size.width,
 		height = room.size.height,
 		tile_size = room.tileset.tile_size,
 		tileset_path = strings.clone(room.tileset.path, allocator),
-		config = {tile_size = room.tileset.tile_size, tileset_cols = room.tileset.columns},
+		config = {
+			world_tile_size = room.tileset.tile_size,
+			source_tile_size = source_tile_size,
+			tileset_cols = room.tileset.columns,
+			smooth = room.tileset.smooth,
+		},
 		room_id = strings.clone(room.id, allocator),
 		room_name = strings.clone(room.name, allocator),
 		music_path = strings.clone(room.music_path, allocator),
@@ -63,6 +70,20 @@ room_file_to_tilemap_unchecked :: proc(
 	tm.deco_tiles = make([]TileType, len(room.layers.decoration), allocator)
 	for tile, index in room.layers.decoration {
 		tm.deco_tiles[index] = TileType(tile)
+	}
+	tm.collision_tiles = make([]CollisionType, room.size.width * room.size.height, allocator)
+	for tile, index in room.layers.collision {
+		tm.collision_tiles[index] = CollisionType(tile)
+	}
+	tm.scenery = make([]SceneryData, len(room.scenery), allocator)
+	for scenery, index in room.scenery {
+		tm.scenery[index] = {
+			instance_id  = strings.clone(scenery.id, allocator),
+			texture_path = strings.clone(scenery.texture_path, allocator),
+			position     = {f32(scenery.position.x), f32(scenery.position.y)},
+			size         = {f32(scenery.size.width), f32(scenery.size.height)},
+			smooth       = scenery.smooth,
+		}
 	}
 
 	tm.entities = make([]EntityData, len(room.entities), allocator)
@@ -126,9 +147,11 @@ tilemap_to_room_file :: proc(
 		height = tm.height,
 	}
 	room.tileset = {
-		path      = strings.clone(tm.tileset_path, allocator),
-		tile_size = tm.config.tile_size,
-		columns   = tm.config.tileset_cols,
+		path             = strings.clone(tm.tileset_path, allocator),
+		tile_size        = tm.config.world_tile_size,
+		source_tile_size = tm.config.source_tile_size,
+		columns          = tm.config.tileset_cols,
+		smooth           = tm.config.smooth,
 	}
 	room.camera_bounds = {
 		x      = tm.camera_bounds.x,
@@ -149,6 +172,20 @@ tilemap_to_room_file :: proc(
 	room.layers.decoration = make([]u16, len(tm.deco_tiles), allocator)
 	for tile, index in tm.deco_tiles {
 		room.layers.decoration[index] = u16(tile)
+	}
+	room.layers.collision = make([]u8, len(tm.collision_tiles), allocator)
+	for tile, index in tm.collision_tiles {
+		room.layers.collision[index] = u8(tile)
+	}
+	room.scenery = make([]Room_File_Scenery, len(tm.scenery), allocator)
+	for scenery, index in tm.scenery {
+		room.scenery[index] = {
+			id           = strings.clone(scenery.instance_id, allocator),
+			texture_path = strings.clone(scenery.texture_path, allocator),
+			position     = {int(scenery.position.x), int(scenery.position.y)},
+			size         = {int(scenery.size.x), int(scenery.size.y)},
+			smooth       = scenery.smooth,
+		}
 	}
 
 	room.entities = make([]Room_File_Entity, len(tm.entities), allocator)

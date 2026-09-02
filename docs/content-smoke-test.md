@@ -18,10 +18,11 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Olivewood
 
 - Confirm the room title is `Olivewood`.
+- Toggle the gameplay debug UI and confirm solid collision cells appear with a translucent red overlay, including the house footprint around its walkable doorway.
 - Confirm three goblin enemies, two pressure plates, one gate, one wood holdable, and two doors appear.
 - Pick up and drop the wood holdable.
 - Activate pressure plates 1 and 2 and confirm the gate opens only while both required triggers are active.
-- Use the left door and confirm it returns to the small room at the matching door marker.
+- Enter the cottage through its centered south-facing door and confirm it transitions to the small room at the matching door marker.
 - Return to Olivewood, use the right door, and confirm it transitions to the Desert at the matching door marker.
 
 ## Desert
@@ -41,6 +42,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 
 - In a debug build, press `F1` to enter the editor.
 - Paint and erase one base tile and one decoration tile.
+- Paint and erase one collision tile and confirm solid cells use the red overlay.
 - Place, inspect, and remove an entity marker.
 - Save with `Ctrl+S`, leave the editor, and confirm the room reloads cleanly.
 - Revert deliberate smoke-test content edits before committing.

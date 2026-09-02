@@ -17,6 +17,7 @@ Editor_Mode :: enum {
 Editor_Layer :: enum {
 	BASE,
 	DECORATION,
+	COLLISION,
 	ENTITY,
 }
 
@@ -287,6 +288,7 @@ editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
 	switch layer {
 	case .BASE: return BASE_TILES
 	case .DECORATION: return DECORATION_TILES
+	case .COLLISION: return {}
 	case .ENTITY: return {}
 	}
 	return {}
@@ -413,7 +415,8 @@ editor_handle_ui_input :: proc() {
 	if !editor_state.is_editing_entity && input.action_pressed(.Editor_Change_Layer) {
 		switch editor_state.selected_layer {
 		case .BASE: editor_state.selected_layer = .DECORATION
-		case .DECORATION: editor_state.selected_layer = .ENTITY
+		case .DECORATION: editor_state.selected_layer = .COLLISION
+		case .COLLISION: editor_state.selected_layer = .ENTITY
 		case .ENTITY: editor_state.selected_layer = .BASE
 		}
 	}
@@ -471,6 +474,9 @@ editor_paint_tile :: proc(tile_x, tile_y: int) {
 	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
 				tile^ = editor_state.selected_tile
 			}
+	case .COLLISION: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
+				tile^ = .SOLID
+			}
 	case .ENTITY:
 		// Only place one entity per tile, so check if there's already one
 		entities := tilemap.get_entities()
@@ -493,6 +499,9 @@ editor_erase_tile :: proc(tile_x, tile_y: int) {
 			}
 	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
 				tile^ = .EMPTY
+			}
+	case .COLLISION: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
+				tile^ = .WALKABLE
 			}
 	case .ENTITY:
 		tile_size := tilemap.get_tile_size()

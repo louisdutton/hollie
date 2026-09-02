@@ -9,6 +9,7 @@
   "tileset": {
     "path": "art/tileset/spr_tileset_sunnysideworld_16px.png",
     "tile_size": 16,
+    "source_tile_size": 16,
     "columns": 32
   },
   "camera_bounds": {

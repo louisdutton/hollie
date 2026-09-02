@@ -48,6 +48,7 @@ editor_draw :: proc() {
 
 	editor_draw_grid()
 	editor_draw_layer_overlay()
+	editor_draw_collision_overlay()
 	editor_draw_entities()
 	editor_draw_cursor()
 }
@@ -106,6 +107,7 @@ editor_draw_layer_overlay :: proc() {
 	switch editor_state.selected_layer {
 	case .BASE: return // No overlay for base layer
 	case .DECORATION: overlay_color = {0, 255, 0, 32}
+	case .COLLISION: return // Collision is visualized per tile below.
 	case .ENTITY: overlay_color = {255, 0, 255, 32}
 	}
 
@@ -125,6 +127,25 @@ editor_draw_layer_overlay :: proc() {
 		i32(screen_max.y - screen_min.y),
 		overlay_color,
 	)
+}
+
+editor_draw_collision_overlay :: proc() {
+	if editor_state.selected_layer != .COLLISION && !editor_state.show_layer_overlay do return
+
+	tile_size := tilemap.get_tile_size()
+	for y in 0 ..< tilemap.get_tilemap_height() {
+		for x in 0 ..< tilemap.get_tilemap_width() {
+			tile := tilemap.get_collision_tile(x, y)
+			if tile == nil || tile^ != .SOLID do continue
+			renderer.draw_rect(
+				f32(x * tile_size),
+				f32(y * tile_size),
+				f32(tile_size),
+				f32(tile_size),
+				renderer.Colour{255, 64, 64, 112},
+			)
+		}
+	}
 }
 
 editor_draw_entities :: proc() {
@@ -189,6 +210,14 @@ editor_draw_cursor :: proc() {
 			f32(tile_size),
 			128,
 		)
+	} else if editor_state.selected_layer == .COLLISION {
+		renderer.draw_rect(
+			world_x,
+			world_y,
+			f32(tile_size),
+			f32(tile_size),
+			renderer.Colour{255, 64, 64, 128},
+		)
 	} else {
 		editor_draw_tile_preview(editor_state.selected_tile, world_x, world_y, f32(tile_size), 128)
 	}
@@ -247,6 +276,17 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 	spacing: f32 = 40
 	label_y := carousel_y + tile_preview_size + 8
 	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT - 1) * spacing + tile_preview_size
+	if editor_state.selected_layer == .COLLISION {
+		renderer.draw_rect(
+			carousel_x + f32(EDITOR_CAROUSEL_SELECTED_SLOT) * spacing,
+			carousel_y,
+			tile_preview_size,
+			tile_preview_size,
+			renderer.Colour{255, 64, 64, 180},
+		)
+		editor_draw_carousel_label("Solid", carousel_x, carousel_width, label_y)
+		return
+	}
 
 	if editor_state.selected_layer == .ENTITY {
 		entities := []tilemap.EntityType{.ENEMY, .NPC, .HOLDABLE, .PRESSURE_PLATE, .GATE, .DOOR}
@@ -364,6 +404,9 @@ editor_draw_minimal_hud :: proc() {
 	case .DECORATION:
 		layer_text = "Decoration"
 		layer_color = {255, 255, 100, 200}
+	case .COLLISION:
+		layer_text = "Collision"
+		layer_color = {255, 100, 100, 200}
 	case .ENTITY:
 		layer_text = "Entities"
 		layer_color = {255, 100, 255, 200}

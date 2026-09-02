@@ -4,11 +4,12 @@
   "music_path": "audio/music/ambient.ogg",
   "size": {
     "width": 8,
-    "height": 8
+    "height": 9
   },
   "tileset": {
     "path": "art/tileset/spr_tileset_sunnysideworld_16px.png",
     "tile_size": 16,
+    "source_tile_size": 16,
     "columns": 32
   },
   "camera_bounds": {
@@ -21,7 +22,7 @@
     "x": 0.00000000,
     "y": 0.00000000,
     "width": 128.00000000,
-    "height": 128.00000000
+    "height": 144.00000000
   },
   "layers": {
     "base": [
@@ -88,7 +89,15 @@
       1,
       1,
       1,
-      1
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0
     ],
     "decoration": [
       0,
@@ -154,7 +163,89 @@
       0,
       0,
       0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       0
+    ],
+    "collision": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1
     ]
   },
   "entities": [
@@ -162,12 +253,12 @@
       "id": "to_olivewood",
       "type": "door",
       "position": {
-        "x": 16,
-        "y": 64
+        "x": 48,
+        "y": 128
       },
       "properties": {
         "size": {
-          "height": 32,
+          "height": 16,
           "width": 32
         },
         "target_door_id": "from_small_room",

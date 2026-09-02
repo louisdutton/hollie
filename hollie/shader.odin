@@ -35,6 +35,19 @@ shader_draw_with_white_flash :: proc(
 	}
 }
 
+shader_draw_with_white_flash_pro :: proc(
+	texture: renderer.Texture2D,
+	source, destination: renderer.Rect,
+	intensity: f32,
+) {
+	if intensity > 0 {
+		shader_set_value(white_flash_shader, "flashAmount", intensity, .FLOAT)
+		shader_begin(white_flash_shader)
+	}
+	renderer.draw_texture_pro(texture, source, destination, {}, 0, renderer.WHITE)
+	if intensity > 0 do shader_end()
+}
+
 // -----------------------------------------------------------------------------------------------
 
 @(private = "file")

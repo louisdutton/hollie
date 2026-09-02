@@ -7,6 +7,7 @@ import "core:math/rand"
 import "core:slice"
 import "input"
 import "renderer"
+import "tilemap"
 import rl "vendor:raylib"
 
 // Common components that can be reused
@@ -105,6 +106,18 @@ Holdable :: struct {
 	using collider:  Collider,
 	held_by:         ^Player,
 	sprite_texture:  renderer.Texture2D,
+	sprite_profile:  Sprite_Profile,
+}
+
+Sprite_Profile :: struct {
+	world_size: Vec2,
+	anchor:     Vec2,
+	smooth:     bool,
+}
+
+ENTITY_SHADOW_PROFILE :: Sprite_Profile {
+	world_size = {12, 5},
+	anchor     = {0.5, -1},
 }
 
 Door :: struct {
@@ -133,6 +146,7 @@ entity_shadow_texture: renderer.Texture2D
 entity_system_init :: proc() {
 	entities = make([dynamic]Entity)
 	entity_shadow_texture = renderer.load_texture(asset.path("art/elements/other/spr_shadow.png"))
+	rl.SetTextureFilter(entity_shadow_texture, ENTITY_SHADOW_PROFILE.smooth ? .BILINEAR : .POINT)
 }
 
 entity_system_fini :: proc() {
@@ -147,6 +161,7 @@ entity_create_player :: proc(
 	pos: Vec2,
 	index: input.Player_Index,
 	animations: []Animation,
+	animation_profile: Animation_Profile,
 ) -> ^Player {
 	player := Player {
 		transform = {position = pos},
@@ -158,14 +173,18 @@ entity_create_player :: proc(
 	}
 
 	if len(animations) > 0 {
-		animation_init(&player.anim_data, animations)
+		animation_init(&player.anim_data, animations, animation_profile)
 	}
 
 	append(&entities, player)
 	return &entities[len(entities) - 1].(Player)
 }
 
-entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
+entity_create_enemy :: proc(
+	pos: Vec2,
+	animations: []Animation,
+	animation_profile: Animation_Profile,
+) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
@@ -175,7 +194,7 @@ entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 	}
 
 	if len(animations) > 0 {
-		animation_init(&enemy.anim_data, animations)
+		animation_init(&enemy.anim_data, animations, animation_profile)
 	}
 
 	append(&entities, enemy)
@@ -214,6 +233,7 @@ entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool =
 entity_create_npc :: proc(
 	pos: Vec2,
 	animations: []Animation,
+	animation_profile: Animation_Profile,
 	dialog_messages: []Dialog_Message = {},
 ) -> ^NPC {
 	npc := NPC {
@@ -225,19 +245,25 @@ entity_create_npc :: proc(
 	}
 
 	if len(animations) > 0 {
-		animation_init(&npc.anim_data, animations)
+		animation_init(&npc.anim_data, animations, animation_profile)
 	}
 
 	append(&entities, npc)
 	return &entities[len(entities) - 1].(NPC)
 }
 
-entity_create_holdable :: proc(pos: Vec2, texture_path: string) -> ^Holdable {
+entity_create_holdable :: proc(
+	pos: Vec2,
+	texture_path: string,
+	sprite_profile: Sprite_Profile,
+) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}},
 		sprite_texture = renderer.load_texture(texture_path),
+		sprite_profile = sprite_profile,
 	}
+	rl.SetTextureFilter(holdable.sprite_texture, sprite_profile.smooth ? .BILINEAR : .POINT)
 
 	append(&entities, holdable)
 	return &entities[len(entities) - 1].(Holdable)
@@ -624,13 +650,27 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 
 	// Try X movement
 	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	if !entity_check_solid_collision(test_pos_x, collider.size, moving_entity) {
+	test_rect_x := renderer.Rect {
+		x      = test_pos_x.x - collider.size.x / 2,
+		y      = test_pos_x.y - collider.size.y / 2,
+		width  = collider.size.x,
+		height = collider.size.y,
+	}
+	if !entity_check_solid_collision(test_pos_x, collider.size, moving_entity) &&
+	   !tilemap.check_collision(test_rect_x) {
 		final_pos.x = next_pos.x
 	}
 
 	// Try Y movement
 	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	if !entity_check_solid_collision(test_pos_y, collider.size, moving_entity) {
+	test_rect_y := renderer.Rect {
+		x      = test_pos_y.x - collider.size.x / 2,
+		y      = test_pos_y.y - collider.size.y / 2,
+		width  = collider.size.x,
+		height = collider.size.y,
+	}
+	if !entity_check_solid_collision(test_pos_y, collider.size, moving_entity) &&
+	   !tilemap.check_collision(test_rect_y) {
 		final_pos.y = next_pos.y
 	}
 
@@ -867,20 +907,11 @@ entity_system_draw :: proc() {
 					{1, 1},
 				}
 
-				tex_pos := e.position
-				tex_pos.x -= f32(FRAME_WIDTH) / 2
-				tex_pos.y -= f32(FRAME_HEIGHT) / 2
-				tex_rect := e.anim_data.rect
-				if e.anim_data.is_flipped {
-					tex_rect.width *= -1
-				}
-
 				for offset in offsets {
-					shader_draw_with_white_flash(
-						e.anim_data.animations[e.anim_data.current_anim],
-						tex_rect,
-						Vec2{tex_pos.x + offset[0], tex_pos.y + offset[1]},
-						1.0,
+					animation_draw_with_flash(
+						&e.anim_data,
+						e.position + Vec2{offset[0], offset[1]},
+						1,
 					)
 				}
 
@@ -933,25 +964,50 @@ entity_system_draw :: proc() {
 
 				texture_2d := rl.Texture2D(e.sprite_texture)
 				source_rect := rl.Rectangle{0, 0, f32(texture_2d.width), f32(texture_2d.height)}
-				base_position := Vec2{draw_pos.x - 8, draw_pos.y - 8}
+				dest_rect := renderer.Rect {
+					draw_pos.x - e.sprite_profile.world_size.x * e.sprite_profile.anchor.x,
+					draw_pos.y - e.sprite_profile.world_size.y * e.sprite_profile.anchor.y,
+					e.sprite_profile.world_size.x,
+					e.sprite_profile.world_size.y,
+				}
 
 				// Draw outline using the same positioning system
 				for offset in offsets {
-					shader_draw_with_white_flash(
+					shader_draw_with_white_flash_pro(
 						texture_2d,
 						source_rect,
-						Vec2{base_position.x + offset[0], base_position.y + offset[1]},
+						renderer.Rect {
+							dest_rect.x + offset[0],
+							dest_rect.y + offset[1],
+							dest_rect.width,
+							dest_rect.height,
+						},
 						1.0,
 					)
 				}
 
 				// Draw original sprite on top using the same positioning
-				rl.DrawTextureRec(texture_2d, source_rect, base_position, rl.WHITE)
+				renderer.draw_texture_pro(
+					texture_2d,
+					source_rect,
+					dest_rect,
+					{},
+					0,
+					renderer.WHITE,
+				)
 			} else {
-				renderer.draw_texture(
-					e.sprite_texture,
-					i32(draw_pos.x - 8),
-					i32(draw_pos.y - 8),
+				texture_2d := rl.Texture2D(e.sprite_texture)
+				renderer.draw_texture_pro(
+					texture_2d,
+					{0, 0, f32(texture_2d.width), f32(texture_2d.height)},
+					{
+						draw_pos.x - e.sprite_profile.world_size.x * e.sprite_profile.anchor.x,
+						draw_pos.y - e.sprite_profile.world_size.y * e.sprite_profile.anchor.y,
+						e.sprite_profile.world_size.x,
+						e.sprite_profile.world_size.y,
+					},
+					{},
+					0,
 					renderer.WHITE,
 				)
 			}
@@ -1011,10 +1067,17 @@ entity_system_draw :: proc() {
 }
 
 entity_draw_shadow :: proc(position: Vec2) {
-	renderer.draw_texture(
+	renderer.draw_texture_pro(
 		entity_shadow_texture,
-		i32(position.x) - 6,
-		i32(position.y) + 5,
+		{0, 0, f32(entity_shadow_texture.width), f32(entity_shadow_texture.height)},
+		{
+			position.x - ENTITY_SHADOW_PROFILE.world_size.x * ENTITY_SHADOW_PROFILE.anchor.x,
+			position.y - ENTITY_SHADOW_PROFILE.world_size.y * ENTITY_SHADOW_PROFILE.anchor.y,
+			ENTITY_SHADOW_PROFILE.world_size.x,
+			ENTITY_SHADOW_PROFILE.world_size.y,
+		},
+		{},
+		0,
 		renderer.WHITE,
 	)
 }

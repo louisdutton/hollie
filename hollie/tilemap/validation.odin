@@ -68,6 +68,9 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 	if room.size.width <= 0 do validation_add_error(&errors, "room width must be positive")
 	if room.size.height <= 0 do validation_add_error(&errors, "room height must be positive")
 	if room.tileset.tile_size <= 0 do validation_add_error(&errors, "tileset tile_size must be positive")
+	if room.tileset.source_tile_size < 0 {
+		validation_add_error(&errors, "tileset source_tile_size must not be negative")
+	}
 	if room.tileset.columns <= 0 do validation_add_error(&errors, "tileset columns must be positive")
 
 	expected_tile_count := room.size.width * room.size.height
@@ -92,6 +95,24 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				),
 			)
 		}
+		if len(room.layers.collision) != 0 && len(room.layers.collision) != expected_tile_count {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf(
+					"collision layer contains %d tiles; expected %d",
+					len(room.layers.collision),
+					expected_tile_count,
+				),
+			)
+		}
+		for collision, index in room.layers.collision {
+			if collision > u8(CollisionType.SOLID) {
+				validation_add_owned_error(
+					&errors,
+					fmt.aprintf("collision tile %d must be 0 or 1", index),
+				)
+			}
+		}
 	}
 
 	if room.camera_bounds.width <= 0 || room.camera_bounds.height <= 0 {
@@ -109,6 +130,31 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 	map_width := room.size.width * room.tileset.tile_size
 	map_height := room.size.height * room.tileset.tile_size
 	valid_map_bounds := map_width > 0 && map_height > 0
+	for scenery, scenery_index in room.scenery {
+		if scenery.id == "" {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d id must not be empty", scenery_index),
+			)
+		}
+		validation_check_asset(&errors, resource_root, scenery.texture_path, "scenery texture")
+		if scenery.size.width <= 0 || scenery.size.height <= 0 {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d size must be positive", scenery_index),
+			)
+		}
+		if valid_map_bounds &&
+		   (scenery.position.x < 0 ||
+				   scenery.position.y < 0 ||
+				   scenery.position.x + scenery.size.width > map_width ||
+				   scenery.position.y + scenery.size.height > map_height) {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d lies outside the room", scenery_index),
+			)
+		}
+	}
 
 	for entity, entity_index in room.entities {
 		if entity.id == "" {
@@ -279,7 +325,8 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 
 	if tm.width <= 0 do validation_add_error(&errors, "width must be positive")
 	if tm.height <= 0 do validation_add_error(&errors, "height must be positive")
-	if tm.config.tile_size <= 0 do validation_add_error(&errors, "tile_size must be positive")
+	if tm.config.world_tile_size <= 0 do validation_add_error(&errors, "world_tile_size must be positive")
+	if tm.config.source_tile_size <= 0 do validation_add_error(&errors, "source_tile_size must be positive")
 	if tm.config.tileset_cols <= 0 do validation_add_error(&errors, "tileset_cols must be positive")
 	if tm.room_id == "" do validation_add_error(&errors, "room_id must not be empty")
 	if tm.room_name == "" do validation_add_error(&errors, "room_name must not be empty")
@@ -306,6 +353,24 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				),
 			)
 		}
+		if len(tm.collision_tiles) != expected_tile_count {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf(
+					"collision layer contains %d tiles; expected %d",
+					len(tm.collision_tiles),
+					expected_tile_count,
+				),
+			)
+		}
+		for collision, index in tm.collision_tiles {
+			if collision != .WALKABLE && collision != .SOLID {
+				validation_add_owned_error(
+					&errors,
+					fmt.aprintf("collision tile %d must be walkable or solid", index),
+				)
+			}
+		}
 	}
 
 	if tm.camera_bounds.width <= 0 || tm.camera_bounds.height <= 0 {
@@ -320,8 +385,34 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 		validation_check_asset(&errors, resource_root, tm.music_path, "music")
 	}
 
-	map_width := tm.width * tm.config.tile_size
-	map_height := tm.height * tm.config.tile_size
+	map_width := tm.width * tm.config.world_tile_size
+	map_height := tm.height * tm.config.world_tile_size
+	for scenery, scenery_index in tm.scenery {
+		if scenery.instance_id == "" {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d id must not be empty", scenery_index),
+			)
+		}
+		validation_check_asset(&errors, resource_root, scenery.texture_path, "scenery texture")
+		if scenery.size.x <= 0 || scenery.size.y <= 0 {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d size must be positive", scenery_index),
+			)
+		}
+		if map_width > 0 &&
+		   map_height > 0 &&
+		   (scenery.position.x < 0 ||
+				   scenery.position.y < 0 ||
+				   scenery.position.x + scenery.size.x > f32(map_width) ||
+				   scenery.position.y + scenery.size.y > f32(map_height)) {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf("scenery %d lies outside the room", scenery_index),
+			)
+		}
+	}
 
 	for entity, entity_index in tm.entities {
 		entity_type := int(entity.entity_type)

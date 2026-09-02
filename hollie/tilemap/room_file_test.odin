@@ -14,14 +14,24 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 	tileset: {
 		path: 'art/tileset/spr_tileset_sunnysideworld_16px.png',
 		tile_size: 16,
+		source_tile_size: 64,
 		columns: 32,
+		smooth: true,
 	},
 	camera_bounds: {x: -64, y: 0, width: 448, height: 256},
 	collision_bounds: {x: 0, y: 0, width: 32, height: 16},
 	layers: {
 		base: [1, 2],
 		decoration: [0, 257],
+		collision: [0, 1],
 	},
+	scenery: [{
+		id: 'cottage',
+		texture_path: 'art/scenery/cottage.png',
+		position: {x: 0, y: 0},
+		size: {width: 32, height: 16},
+		smooth: true,
+	}],
 	entities: [
 		{
 			id: 'player_one_spawn',
@@ -86,7 +96,9 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 		Room_File_Tileset {
 			path = "art/tileset/spr_tileset_sunnysideworld_16px.png",
 			tile_size = 16,
+			source_tile_size = 64,
 			columns = 32,
+			smooth = true,
 		},
 	)
 	testing.expect_value(
@@ -101,6 +113,7 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	)
 	testing.expect_value(t, len(room.layers.base), 2)
 	testing.expect_value(t, len(room.layers.decoration), 2)
+	testing.expect_value(t, len(room.layers.collision), 2)
 	if len(room.layers.base) == 2 {
 		testing.expect_value(t, room.layers.base[0], u16(1))
 		testing.expect_value(t, room.layers.base[1], u16(2))
@@ -108,6 +121,18 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	if len(room.layers.decoration) == 2 {
 		testing.expect_value(t, room.layers.decoration[0], u16(0))
 		testing.expect_value(t, room.layers.decoration[1], u16(257))
+	}
+	if len(room.layers.collision) == 2 {
+		testing.expect_value(t, room.layers.collision[0], u8(0))
+		testing.expect_value(t, room.layers.collision[1], u8(1))
+	}
+	testing.expect_value(t, len(room.scenery), 1)
+	if len(room.scenery) == 1 {
+		testing.expect_value(t, room.scenery[0].id, "cottage")
+		testing.expect_value(t, room.scenery[0].texture_path, "art/scenery/cottage.png")
+		testing.expect_value(t, room.scenery[0].position, Room_File_Position{x = 0, y = 0})
+		testing.expect_value(t, room.scenery[0].size, Room_File_Size{width = 32, height = 16})
+		testing.expect_value(t, room.scenery[0].smooth, true)
 	}
 
 	testing.expect_value(t, len(room.entities), 7)
@@ -272,6 +297,14 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	if len(validation_errors) != 0 do return
 	defer destroy_tilemap(&tm)
 	testing.expect_value(t, tm.tileset.id, u32(0))
+	testing.expect_value(t, tm.config.world_tile_size, 16)
+	testing.expect_value(t, tm.config.source_tile_size, 64)
+	testing.expect_value(t, tm.config.smooth, true)
+	testing.expect_value(t, len(tm.scenery), 1)
+	if len(tm.scenery) == 1 {
+		testing.expect_value(t, tm.scenery[0].size, Vec2{32, 16})
+		testing.expect_value(t, tm.scenery[0].smooth, true)
+	}
 	testing.expect_value(t, len(tm.entities), 7)
 	if len(tm.entities) == 7 {
 		testing.expect_value(t, tm.entities[0].instance_id, "player_one_spawn")

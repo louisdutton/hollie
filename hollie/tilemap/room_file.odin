@@ -16,14 +16,25 @@ Room_File_Bounds :: struct {
 }
 
 Room_File_Tileset :: struct {
-	path:      string,
-	tile_size: int,
-	columns:   int,
+	path:             string,
+	tile_size:        int,
+	source_tile_size: int `json:"source_tile_size,omitempty"`,
+	columns:          int,
+	smooth:           bool `json:"smooth,omitempty"`,
 }
 
 Room_File_Layers :: struct {
 	base:       []u16,
 	decoration: []u16,
+	collision:  []u8,
+}
+
+Room_File_Scenery :: struct {
+	id:           string,
+	texture_path: string,
+	position:     Room_File_Position,
+	size:         Room_File_Size,
+	smooth:       bool `json:"smooth,omitempty"`,
 }
 
 Room_File_Common :: struct {
@@ -39,11 +50,13 @@ Room_File_Common :: struct {
 
 Room_File :: struct {
 	using _:  Room_File_Common,
+	scenery:  []Room_File_Scenery `json:"scenery,omitempty"`,
 	entities: []Room_File_Entity `json:"entities,omitempty"`,
 }
 
 Room_File_Wire :: struct {
 	using _:  Room_File_Common,
+	scenery:  []Room_File_Scenery `json:"scenery,omitempty"`,
 	entities: []Room_File_Entity_Wire `json:"entities,omitempty"`,
 }
 
@@ -113,6 +126,8 @@ decode_room_file_json5 :: proc(
 	room.collision_bounds = wire.collision_bounds
 	room.layers = wire.layers
 	wire.layers = {}
+	room.scenery = wire.scenery
+	wire.scenery = nil
 
 	room.entities = make([]Room_File_Entity, len(wire.entities), allocator)
 	for wire_entity, entity_index in wire.entities {
@@ -145,6 +160,7 @@ encode_room_file_json5 :: proc(
 	wire.camera_bounds = room.camera_bounds
 	wire.collision_bounds = room.collision_bounds
 	wire.layers = room.layers
+	wire.scenery = room.scenery
 	wire.entities = make([]Room_File_Entity_Wire, len(room.entities), allocator)
 	defer destroy_encoded_room_file_wire(&wire, allocator)
 
@@ -173,6 +189,12 @@ destroy_room_file :: proc(room: ^Room_File, allocator := context.allocator) {
 	delete(room.tileset.path, allocator)
 	delete(room.layers.base, allocator)
 	delete(room.layers.decoration, allocator)
+	delete(room.layers.collision, allocator)
+	for &scenery in room.scenery {
+		delete(scenery.id, allocator)
+		delete(scenery.texture_path, allocator)
+	}
+	delete(room.scenery, allocator)
 	for &entity in room.entities {
 		destroy_room_file_entity(&entity, allocator)
 	}
@@ -189,6 +211,12 @@ destroy_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.alloc
 	delete(wire.tileset.path, allocator)
 	delete(wire.layers.base, allocator)
 	delete(wire.layers.decoration, allocator)
+	delete(wire.layers.collision, allocator)
+	for &scenery in wire.scenery {
+		delete(scenery.id, allocator)
+		delete(scenery.texture_path, allocator)
+	}
+	delete(wire.scenery, allocator)
 	for &entity in wire.entities {
 		delete(entity.id, allocator)
 		delete(entity.type, allocator)

@@ -1,5 +1,12 @@
 package hollie
 
+// Profiles keep source resolution independent from in-world character size.
+// These legacy defaults preserve the current assets until placeholder sheets replace them.
+goblin_animation_profile := LEGACY_ANIMATION_PROFILE
+skeleton_animation_profile := LEGACY_ANIMATION_PROFILE
+human_animation_profile := LEGACY_ANIMATION_PROFILE
+player_animation_profile := LEGACY_ANIMATION_PROFILE
+
 goblin_animations := [?]Animation {
 	{"art/characters/goblin/png/spr_idle_strip9.png", 9},
 	{"art/characters/goblin/png/spr_run_strip8.png", 8},

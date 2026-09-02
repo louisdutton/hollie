@@ -24,14 +24,17 @@ EntityType :: enum {
 
 /// Configuration for tilemap rendering and behavior
 TilemapConfig :: struct {
-	tile_size:    int,
-	tileset_cols: int,
+	world_tile_size:  int,
+	source_tile_size: int,
+	tileset_cols:     int,
+	smooth:           bool,
 }
 
 @(private)
 config := TilemapConfig {
-	tile_size    = TILE_SIZE,
-	tileset_cols = 32,
+	world_tile_size  = TILE_SIZE,
+	source_tile_size = TILE_SIZE,
+	tileset_cols     = 32,
 }
 
 TileType :: enum u16 {
@@ -92,6 +95,20 @@ TileType :: enum u16 {
 	DOOR_VERTICAL = 43,
 }
 
+CollisionType :: enum u8 {
+	WALKABLE = 0,
+	SOLID    = 1,
+}
+
+SceneryData :: struct {
+	instance_id:  string,
+	texture_path: string,
+	position:     Vec2,
+	size:         Vec2,
+	texture:      renderer.Texture2D,
+	smooth:       bool,
+}
+
 
 EntityData :: struct {
 	instance_id:       string,
@@ -117,6 +134,8 @@ TileMap :: struct {
 	height:           int,
 	base_tiles:       []TileType,
 	deco_tiles:       []TileType,
+	collision_tiles:  []CollisionType,
+	scenery:          []SceneryData,
 	entities:         []EntityData,
 	tileset:          renderer.Texture2D,
 	tile_size:        int,
@@ -156,6 +175,13 @@ destroy_tilemap :: proc(tm: ^TileMap, allocator := context.allocator) {
 
 	delete(tm.base_tiles, allocator)
 	delete(tm.deco_tiles, allocator)
+	delete(tm.collision_tiles, allocator)
+	for &scenery in tm.scenery {
+		delete(scenery.instance_id, allocator)
+		delete(scenery.texture_path, allocator)
+		if scenery.texture.id != 0 do renderer.unload_texture(scenery.texture)
+	}
+	delete(tm.scenery, allocator)
 	for &entity in tm.entities {
 		destroy_entity_data(&entity, allocator)
 	}
@@ -175,7 +201,7 @@ tilemap := TileMap {
 	width = 50,
 	height = 30,
 	tile_size = TILE_SIZE,
-	config = {tile_size = TILE_SIZE, tileset_cols = 32},
+	config = {world_tile_size = TILE_SIZE, source_tile_size = TILE_SIZE, tileset_cols = 32},
 }
 
 load_tilemap :: proc(new_tilemap: TileMap) {
@@ -187,7 +213,7 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	// Copy all metadata
 	tilemap.width = new_tilemap.width
 	tilemap.height = new_tilemap.height
-	tilemap.tile_size = new_tilemap.config.tile_size
+	tilemap.tile_size = new_tilemap.config.world_tile_size
 	tilemap.tileset_path = strings.clone(new_tilemap.tileset_path)
 	tilemap.config = new_tilemap.config
 	tilemap.room_id = strings.clone(new_tilemap.room_id)
@@ -198,6 +224,7 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 
 	// Load texture
 	tilemap.tileset = renderer.load_texture(asset.path(new_tilemap.tileset_path))
+	rl.SetTextureFilter(tilemap.tileset, new_tilemap.config.smooth ? .BILINEAR : .POINT)
 
 	// Copy tile data
 	tilemap.base_tiles = make([]TileType, len(new_tilemap.base_tiles))
@@ -205,6 +232,18 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 
 	tilemap.deco_tiles = make([]TileType, len(new_tilemap.deco_tiles))
 	copy(tilemap.deco_tiles, new_tilemap.deco_tiles)
+
+	tilemap.collision_tiles = make([]CollisionType, len(new_tilemap.collision_tiles))
+	copy(tilemap.collision_tiles, new_tilemap.collision_tiles)
+
+	tilemap.scenery = make([]SceneryData, len(new_tilemap.scenery))
+	for scenery, index in new_tilemap.scenery {
+		tilemap.scenery[index] = scenery
+		tilemap.scenery[index].instance_id = strings.clone(scenery.instance_id)
+		tilemap.scenery[index].texture_path = strings.clone(scenery.texture_path)
+		tilemap.scenery[index].texture = renderer.load_texture(asset.path(scenery.texture_path))
+		rl.SetTextureFilter(tilemap.scenery[index].texture, scenery.smooth ? .BILINEAR : .POINT)
+	}
 
 	// Copy entity data
 	if len(new_tilemap.entities) > 0 {
@@ -238,6 +277,17 @@ get_deco_tile :: proc(x, y: int) -> ^TileType {
 	return &tilemap.deco_tiles[index]
 }
 
+get_collision_tile :: proc(x, y: int) -> ^CollisionType {
+	if x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height {
+		return nil
+	}
+	index := y * tilemap.width + x
+	if index >= len(tilemap.collision_tiles) {
+		return nil
+	}
+	return &tilemap.collision_tiles[index]
+}
+
 get_tile_source_rect :: proc(tile_type: TileType) -> renderer.Rect {
 	if tile_type == .EMPTY {
 		return {}
@@ -246,14 +296,14 @@ get_tile_source_rect :: proc(tile_type: TileType) -> renderer.Rect {
 	tile_id := int(tile_type) - 1
 	tiles_per_row := config.tileset_cols
 
-	source_x := (tile_id % tiles_per_row) * config.tile_size
-	source_y := (tile_id / tiles_per_row) * config.tile_size
+	source_x := (tile_id % tiles_per_row) * config.source_tile_size
+	source_y := (tile_id / tiles_per_row) * config.source_tile_size
 
 	return renderer.Rect {
 		x = f32(source_x),
 		y = f32(source_y),
-		width = f32(config.tile_size),
-		height = f32(config.tile_size),
+		width = f32(config.source_tile_size),
+		height = f32(config.source_tile_size),
 	}
 }
 
@@ -262,7 +312,7 @@ get_tileset :: proc() -> renderer.Texture2D {
 }
 
 get_tile_size :: proc() -> int {
-	return config.tile_size
+	return config.world_tile_size
 }
 
 get_tilemap_width :: proc() -> int {
@@ -346,23 +396,35 @@ remove_entity_at :: proc(x, y: int) -> bool {
 }
 
 world_to_tile :: proc(world_pos: Vec2) -> (int, int) {
-	return int(world_pos.x / f32(config.tile_size)), int(world_pos.y / f32(config.tile_size))
+	return int(
+		world_pos.x / f32(config.world_tile_size),
+	), int(world_pos.y / f32(config.world_tile_size))
 }
 
 tile_to_world :: proc(tile_x, tile_y: int) -> Vec2 {
-	return {f32(tile_x * config.tile_size), f32(tile_y * config.tile_size)}
+	return {f32(tile_x * config.world_tile_size), f32(tile_y * config.world_tile_size)}
 }
 
 is_tile_solid :: proc(x, y: int) -> bool {
-	return false
+	tile := get_collision_tile(x, y)
+	return tile == nil || tile^ == .SOLID
 }
 
 check_collision :: proc(rect: renderer.Rect) -> bool {
-	tile_size_f := f32(config.tile_size)
+	tile_size_f := f32(config.world_tile_size)
+	map_width := f32(tilemap.width * config.world_tile_size)
+	map_height := f32(tilemap.height * config.world_tile_size)
+	if rect.x < 0 ||
+	   rect.y < 0 ||
+	   rect.x + rect.width > map_width ||
+	   rect.y + rect.height > map_height {
+		return true
+	}
+
 	left := int(rect.x / tile_size_f)
-	right := int((rect.x + rect.width) / tile_size_f)
+	right := int((rect.x + rect.width - 0.001) / tile_size_f)
 	top := int(rect.y / tile_size_f)
-	bottom := int((rect.y + rect.height) / tile_size_f)
+	bottom := int((rect.y + rect.height - 0.001) / tile_size_f)
 
 	for y in top ..= bottom {
 		for x in left ..= right {
@@ -381,7 +443,7 @@ draw :: proc(camera: renderer.Camera2D) {
 	world_min := renderer.get_screen_to_world_2d({0, 0}, camera)
 	world_max := renderer.get_screen_to_world_2d({screen_width, screen_height}, camera)
 
-	tile_size_f := f32(config.tile_size)
+	tile_size_f := f32(config.world_tile_size)
 	start_x := max(0, int(world_min.x / tile_size_f) - 1)
 	end_x := min(tilemap.width, int(world_max.x / tile_size_f) + 2)
 	start_y := max(0, int(world_min.y / tile_size_f) - 1)
@@ -393,7 +455,7 @@ draw :: proc(camera: renderer.Camera2D) {
 
 		for x in start_x ..< end_x {
 			base_tile := get_base_tile(x, y)
-			if base_tile == nil do continue
+			if base_tile == nil || base_tile^ == .EMPTY do continue
 
 			world_x := f32(x * tilemap.tile_size)
 
@@ -401,8 +463,8 @@ draw :: proc(camera: renderer.Camera2D) {
 			dest_rect := renderer.Rect {
 				x      = world_x,
 				y      = world_y,
-				width  = f32(config.tile_size),
-				height = f32(config.tile_size),
+				width  = f32(config.world_tile_size),
+				height = f32(config.world_tile_size),
 			}
 
 			renderer.draw_texture_pro(
@@ -430,8 +492,8 @@ draw :: proc(camera: renderer.Camera2D) {
 			dest_rect := renderer.Rect {
 				x      = world_x,
 				y      = world_y,
-				width  = f32(config.tile_size),
-				height = f32(config.tile_size),
+				width  = f32(config.world_tile_size),
+				height = f32(config.world_tile_size),
 			}
 
 			renderer.draw_texture_pro(
@@ -443,6 +505,19 @@ draw :: proc(camera: renderer.Camera2D) {
 				renderer.WHITE,
 			)
 		}
+	}
+
+	// Draw standalone scenery images after tiles and before gameplay entities.
+	for scenery in tilemap.scenery {
+		if scenery.texture.id == 0 do continue
+		renderer.draw_texture_pro(
+			scenery.texture,
+			{0, 0, f32(scenery.texture.width), f32(scenery.texture.height)},
+			{scenery.position.x, scenery.position.y, scenery.size.x, scenery.size.y},
+			{},
+			0,
+			renderer.WHITE,
+		)
 	}
 }
 

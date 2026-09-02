@@ -7,7 +7,7 @@ import "input"
 PLAYER_INTERACT_RANGE :: 24 // the distance within which the player can interact with interable entities
 
 player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
-	entity_create_player(pos, index, player_animations[:])
+	entity_create_player(pos, index, player_animations[:], player_animation_profile)
 }
 
 player_handle_input :: proc(p: ^Player) {

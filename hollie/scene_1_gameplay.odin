@@ -195,6 +195,7 @@ draw_gameplay_screen :: proc() {
 				particle_system_draw()
 
 				if gameplay_debug_ui_visible {
+					room_draw_collision_debug()
 					room_draw_doors_debug()
 					room_draw_puzzle_debug()
 				}

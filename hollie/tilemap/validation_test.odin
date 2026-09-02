@@ -34,7 +34,7 @@ test_invalid_map_reports_semantic_errors :: proc(t: ^testing.T) {
 			},
 			{x = 64, y = 0, entity_type = .DOOR, width = 16, height = 16},
 		},
-		config = {tile_size = 16, tileset_cols = 32},
+		config = {world_tile_size = 16, source_tile_size = 16, tileset_cols = 32},
 		room_id = "invalid",
 		room_name = "Invalid",
 		tileset_path = "tiles.png",
