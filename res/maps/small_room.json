@@ -1,5 +1,5 @@
 {
-    "id": "small_room",
+  "id": "small_room",
   "name": "???",
   "music_path": "audio/music/ambient.ogg",
   "size": {
@@ -7,10 +7,11 @@
     "height": 9
   },
   "tileset": {
-    "path": "art/tileset/spr_tileset_sunnysideworld_16px.png",
+    "path": "art/prototype/ground.png",
     "tile_size": 16,
-    "source_tile_size": 16,
-    "columns": 32
+    "source_tile_size": 128,
+    "columns": 1,
+    "smooth": true
   },
   "camera_bounds": {
     "x": -200.00000000,
@@ -19,8 +20,8 @@
     "height": 428.00000000
   },
   "collision_bounds": {
-    "x": 0.00000000,
-    "y": 0.00000000,
+    "x": 0E-8,
+    "y": 0E-8,
     "width": 128.00000000,
     "height": 144.00000000
   },

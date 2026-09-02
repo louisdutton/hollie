@@ -2,10 +2,11 @@ package hollie
 
 import "asset"
 
-WOOD_TEXTURE_PATH :: "art/elements/crops/wood.png"
+WOOD_TEXTURE_PATH :: "art/prototype/object.png"
 WOOD_SPRITE_PROFILE :: Sprite_Profile {
-	world_size = {11, 11},
-	anchor     = {8.0 / 11.0, 8.0 / 11.0},
+	world_size = {16, 16},
+	anchor     = {0.5, 0.5},
+	smooth     = true,
 }
 
 holdable_spawn_at :: proc(position: Vec2) -> ^Holdable {

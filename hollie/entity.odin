@@ -118,6 +118,7 @@ Sprite_Profile :: struct {
 ENTITY_SHADOW_PROFILE :: Sprite_Profile {
 	world_size = {12, 5},
 	anchor     = {0.5, -1},
+	smooth     = true,
 }
 
 Door :: struct {
@@ -141,17 +142,23 @@ Entity :: union {
 // Global entity storage
 entities: [dynamic]Entity
 entity_shadow_texture: renderer.Texture2D
+prototype_object_texture: renderer.Texture2D
 
 // Entity system functions
 entity_system_init :: proc() {
 	entities = make([dynamic]Entity)
-	entity_shadow_texture = renderer.load_texture(asset.path("art/elements/other/spr_shadow.png"))
+	entity_shadow_texture = renderer.load_texture(asset.path("art/prototype/shadow.png"))
 	rl.SetTextureFilter(entity_shadow_texture, ENTITY_SHADOW_PROFILE.smooth ? .BILINEAR : .POINT)
+	prototype_object_texture = renderer.load_texture(asset.path("art/prototype/object.png"))
+	rl.SetTextureFilter(prototype_object_texture, .BILINEAR)
 }
 
 entity_system_fini :: proc() {
 	if entity_shadow_texture.id != 0 {
 		renderer.unload_texture(entity_shadow_texture)
+	}
+	if prototype_object_texture.id != 0 {
+		renderer.unload_texture(prototype_object_texture)
 	}
 	delete(entities)
 }

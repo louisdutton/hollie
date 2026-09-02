@@ -1,41 +1,50 @@
 package hollie
 
-// Profiles keep source resolution independent from in-world character size.
-// These legacy defaults preserve the current assets until placeholder sheets replace them.
-goblin_animation_profile := LEGACY_ANIMATION_PROFILE
-skeleton_animation_profile := LEGACY_ANIMATION_PROFILE
-human_animation_profile := LEGACY_ANIMATION_PROFILE
-player_animation_profile := LEGACY_ANIMATION_PROFILE
+PROTOTYPE_CHARACTER_PATH :: "art/prototype/character.png"
+PROTOTYPE_CHARACTER_PROFILE :: Animation_Profile {
+	source_frame_size = {128, 128},
+	world_size        = {32, 32},
+	anchor            = {0.5, 0.75},
+	smooth            = true,
+}
+
+// During gameplay prototyping, every character intentionally uses the same
+// anonymous still image. The animation arrays remain intact so production
+// strips can be restored without changing entity state logic.
+goblin_animation_profile := PROTOTYPE_CHARACTER_PROFILE
+skeleton_animation_profile := PROTOTYPE_CHARACTER_PROFILE
+human_animation_profile := PROTOTYPE_CHARACTER_PROFILE
+player_animation_profile := PROTOTYPE_CHARACTER_PROFILE
 
 goblin_animations := [?]Animation {
-	{"art/characters/goblin/png/spr_idle_strip9.png", 9},
-	{"art/characters/goblin/png/spr_run_strip8.png", 8},
-	{"art/characters/goblin/png/spr_jump_strip9.png", 9},
-	{"art/characters/goblin/png/spr_death_strip13.png", 13},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
 }
 
 skeleton_animations := [?]Animation {
-	{"art/characters/skeleton/png/skeleton_idle_strip6.png", 6},
-	{"art/characters/skeleton/png/skeleton_walk_strip8.png", 8},
-	{"art/characters/skeleton/png/skeleton_jump_strip10.png", 10},
-	{"art/characters/skeleton/png/skeleton_death_strip10.png", 10},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
 }
 
 human_animations := [?]Animation {
-	{"art/characters/human/idle/base_idle_strip9.png", 9},
-	{"art/characters/human/run/base_run_strip8.png", 8},
-	{"art/characters/human/jump/base_jump_strip9.png", 9},
-	{"art/characters/human/death/base_death_strip13.png", 13},
-	{"art/characters/human/attack/base_attack_strip10.png", 10},
-	{"art/characters/human/roll/base_roll_strip10.png", 10},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
 }
 
 player_animations := [?]Animation {
-	{"art/characters/player/idle.png", 9},
-	{"art/characters/player/run.png", 8},
-	{"art/characters/player/jump.png", 9},
-	{"art/characters/player/death.png", 13},
-	{"art/characters/player/attack.png", 10},
-	{"art/characters/player/roll.png", 10},
-	{"art/characters/player/carry.png", 8},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
+	{PROTOTYPE_CHARACTER_PATH, 1},
 }

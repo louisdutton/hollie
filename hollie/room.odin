@@ -330,40 +330,36 @@ room_draw_name :: proc() {
 }
 
 
-// Draw puzzle elements with placeholder sprites
+// Puzzle elements share a generic raster marker during gameplay prototyping.
 room_draw_puzzle_elements :: proc() {
 	if !room_state.is_loaded do return
 
-	// Draw pressure plates with simple circular sprites
 	pressure_plates := entity_get_pressure_plates()
 	defer delete(pressure_plates)
 
 	for plate in pressure_plates {
-		center_x := plate.position.x
-		center_y := plate.position.y
-		radius := plate.collider.size.x / 2
-
-		// Draw outline first (slightly larger darker circle)
-		renderer.draw_circle(center_x, center_y, radius + 2, renderer.BLACK)
-
-		// Draw base plate (always visible)
-		base_color := renderer.fade(renderer.WHITE, 0.8)
-		renderer.draw_circle(center_x, center_y, radius, base_color)
-
-		// Draw activation indicator
-		if plate.active {
-			active_color := renderer.fade(renderer.GREEN, 0.9)
-			renderer.draw_circle(center_x, center_y, radius / 2, active_color)
-		}
+		tint := renderer.WHITE
+		if plate.active do tint = renderer.fade(renderer.GREEN, 0.9)
+		renderer.draw_texture_pro(
+			prototype_object_texture,
+			{0, 0, f32(prototype_object_texture.width), f32(prototype_object_texture.height)},
+			{
+				plate.position.x - plate.collider.size.x / 2,
+				plate.position.y - plate.collider.size.y / 2,
+				plate.collider.size.x,
+				plate.collider.size.y,
+			},
+			{},
+			0,
+			tint,
+		)
 	}
 
-	// Draw gates with stone block sprites
 	gates := entity_get_gates()
 	defer delete(gates)
 
 	for gate in gates {
 		if !gate.open {
-			// Draw stone blocks to represent the gate
 			block_size := f32(16)
 			blocks_x := int(gate.collider.size.x / block_size)
 			blocks_y := int(gate.collider.size.y / block_size)
@@ -373,21 +369,18 @@ room_draw_puzzle_elements :: proc() {
 					block_x := gate.position.x + f32(x) * block_size
 					block_y := gate.position.y + f32(y) * block_size
 
-					// Alternating gray shades for texture
-					stone_color: renderer.Colour
-					if (x + y) % 2 == 0 {
-						stone_color = renderer.fade(renderer.WHITE, 0.7)
-					} else {
-						stone_color = renderer.fade(renderer.WHITE, 0.5)
-					}
-
-					renderer.draw_rect(block_x, block_y, block_size, block_size, stone_color)
-					renderer.draw_rect_outline(
-						block_x,
-						block_y,
-						block_size,
-						block_size,
-						color = renderer.BLACK,
+					renderer.draw_texture_pro(
+						prototype_object_texture,
+						{
+							0,
+							0,
+							f32(prototype_object_texture.width),
+							f32(prototype_object_texture.height),
+						},
+						{block_x, block_y, block_size, block_size},
+						{},
+						0,
+						renderer.fade(renderer.WHITE, 0.75),
 					)
 				}
 			}

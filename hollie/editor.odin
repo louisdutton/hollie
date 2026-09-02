@@ -261,28 +261,9 @@ editor_handle_camera_input :: proc() {
 	}
 }
 
-BASE_TILES := []tilemap.TileType {
-	.GRASS_1,
-	.GRASS_2,
-	.GRASS_3,
-	.GRASS_4,
-	.GRASS_5,
-	.GRASS_6,
-	.GRASS_7,
-	.GRASS_8,
-	.SAND_1,
-	.SAND_2,
-	.SAND_3,
-}
+BASE_TILES := []tilemap.TileType{.GRASS_1}
 
-DECORATION_TILES := []tilemap.TileType {
-	.EMPTY,
-	.GRASS_DEC_1,
-	.GRASS_DEC_2,
-	.GRASS_DEC_3,
-	.GRASS_DEC_4,
-	.GRASS_DEC_5,
-}
+DECORATION_TILES := []tilemap.TileType{.EMPTY}
 
 editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
 	switch layer {
