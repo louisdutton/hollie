@@ -18,6 +18,7 @@ WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"sprint",
 	"holding-both",
 }
+WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES := [7]int{1, 2, 3, 6, 16, 3, 12}
 
 World_3D_Assets :: struct {
 	lighting_shader:             rl.Shader,
@@ -99,19 +100,14 @@ world_3d_init :: proc() {
 		cstring(raw_data(path)),
 		&world_3d_assets.character_animation_count,
 	)
-	for animation_index in 0 ..< int(world_3d_assets.character_animation_count) {
-		animation_name := string(
-			cstring(&world_3d_assets.character_animations[animation_index].name[0]),
-		)
-		for clip_name, state_index in WORLD_3D_CHARACTER_CLIP_NAMES {
-			if animation_name == clip_name &&
-			   world_3d_assets.character_animation_indices[state_index] == -1 {
-				world_3d_assets.character_animation_indices[state_index] = animation_index
-			}
+	// Raylib does not reliably preserve animation names for this GLB. The pack is
+	// checked in, so use its verified clip order and degrade to a static pose if a
+	// future replacement has a shorter table.
+	for &clip_index, state_index in world_3d_assets.character_animation_indices {
+		fallback_index := WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES[state_index]
+		if fallback_index < int(world_3d_assets.character_animation_count) {
+			clip_index = fallback_index
 		}
-	}
-	for clip_index in world_3d_assets.character_animation_indices {
-		assert(clip_index >= 0, "Kenney figurine is missing a required native animation clip")
 	}
 }
 
@@ -318,8 +314,11 @@ world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
 
 world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: rl.Color) {
 	state_index := int(anim.current_anim)
-	clip_index := world_3d_assets.character_animation_indices[state_index]
-	if clip_index >= 0 {
+	clip_index := -1
+	if state_index >= 0 && state_index < len(world_3d_assets.character_animation_indices) {
+		clip_index = world_3d_assets.character_animation_indices[state_index]
+	}
+	if clip_index >= 0 && state_index < len(anim.frame_counts) {
 		clip := world_3d_assets.character_animations[clip_index]
 		logic_frame_count := max(anim.frame_counts[state_index], 1)
 		clip_frame := f32(anim.frame) / f32(logic_frame_count) * f32(clip.keyframeCount)
