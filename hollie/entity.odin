@@ -30,11 +30,12 @@ Health :: struct {
 }
 
 Movement :: struct {
-	move_speed: f32,
-	roll_speed: f32,
-	is_rolling: bool,
-	roll_timer: u32,
-	is_busy:    bool,
+	move_speed:       f32,
+	roll_speed:       f32,
+	facing_direction: Vec2,
+	is_rolling:       bool,
+	roll_timer:       u32,
+	is_busy:          bool,
 }
 
 Combat :: struct {
@@ -145,7 +146,7 @@ entity_create_player :: proc(
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 100, max = 100, is_dying = false},
-		movement = {move_speed = 80, roll_speed = 160},
+		movement = {move_speed = 80, roll_speed = 160, facing_direction = {1, 0}},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
 		index = index,
 	}
@@ -163,7 +164,7 @@ entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 50, max = 50},
-		movement = {move_speed = 50, roll_speed = 100},
+		movement = {move_speed = 50, roll_speed = 100, facing_direction = {1, 0}},
 		combat = {damage = 15, range = 24, attack_width = 24, attack_height = 24},
 	}
 
@@ -213,7 +214,7 @@ entity_create_npc :: proc(
 		transform = {position = pos},
 		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
 		health = {current = 50, max = 50},
-		movement = {move_speed = 30},
+		movement = {move_speed = 30, facing_direction = {1, 0}},
 		dialog_messages = dialog_messages,
 	}
 
@@ -503,8 +504,8 @@ entity_update_movement :: proc() {
 					movement_input := input.get_movement_for_player(e.index)
 					e.velocity = movement_input * e.move_speed
 
-					if abs(movement_input.x) > 0 {
-						e.is_flipped = movement_input.x < 0
+					if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
+						e.facing_direction = movement_input
 					}
 				}
 
@@ -529,8 +530,8 @@ entity_update_movement :: proc() {
 					e.velocity = e.ai.move_direction * e.move_speed
 
 					// Update model facing
-					if abs(e.ai.move_direction.x) > 0 {
-						e.is_flipped = e.ai.move_direction.x < 0
+					if abs(e.ai.move_direction.x) > 0 || abs(e.ai.move_direction.y) > 0 {
+						e.facing_direction = e.ai.move_direction
 					}
 				}
 
@@ -555,8 +556,8 @@ entity_update_movement :: proc() {
 					e.velocity = e.ai.move_direction * e.move_speed
 
 					// Update model facing
-					if abs(e.ai.move_direction.x) > 0 {
-						e.is_flipped = e.ai.move_direction.x < 0
+					if abs(e.ai.move_direction.x) > 0 || abs(e.ai.move_direction.y) > 0 {
+						e.facing_direction = e.ai.move_direction
 					}
 				}
 
@@ -734,7 +735,7 @@ entity_update_animations :: proc() {
 		case Player:
 			if e.is_attacking {
 				// Use attack direction to determine model facing for the attack animation.
-				e.is_flipped = e.attack_direction.x < 0
+				e.facing_direction = e.attack_direction
 				animation_set_state(&e.anim_data, .ATTACK)
 			} else if e.is_rolling {
 				animation_set_state(&e.anim_data, .ROLL)

@@ -11,6 +11,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Small room
 
 - Confirm gameplay uses the fixed orthographic 3D view and the room has low walls around its non-rectangular floor.
+- Confirm ground, walls, and characters respond consistently to the ambient/key/fill lighting.
 - Confirm the two-cell bottom doorway is open rather than blocked by an interior wall.
 - Start a one-player game and confirm the player appears beside the room's door.
 - Confirm the room title is `???` and ambient music plays.
@@ -24,6 +25,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 - Toggle the gameplay debug UI and confirm solid collision cells appear with a translucent red overlay, including the house footprint around its walkable doorway.
 - Confirm three enemies, two pressure plates, one gate, one holdable, and one door appear.
 - Pick up and drop the generic holdable.
+- Move horizontally, vertically, and diagonally and confirm each character faces its movement direction; confirm attacks retain their locked direction.
 - Activate pressure plates 1 and 2 and confirm the gate opens only while both required triggers are active.
 - Enter the cottage through its centered south-facing door and confirm it transitions to the small room at the matching door marker.
 

@@ -22,7 +22,6 @@ Animator :: struct {
 	frame_counter: u32,
 	frame:         u32,
 	current_anim:  AnimationState,
-	is_flipped:    bool,
 }
 
 animation_init :: proc(anim: ^Animator, animations: []Animation) {
@@ -35,7 +34,6 @@ animation_init :: proc(anim: ^Animator, animations: []Animation) {
 	anim.frame_counter = 0
 	anim.frame = 0
 	anim.current_anim = .IDLE
-	anim.is_flipped = false
 }
 
 animation_update :: proc(anim_data: ^Animator) {

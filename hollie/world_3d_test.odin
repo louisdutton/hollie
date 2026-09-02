@@ -1,5 +1,6 @@
 package hollie
 
+import "core:math"
 import "core:testing"
 import rl "vendor:raylib"
 
@@ -7,6 +8,13 @@ import rl "vendor:raylib"
 test_world_3d_maps_gameplay_y_to_depth :: proc(t: ^testing.T) {
 	testing.expect_value(t, world_3d_position({24, 48}), rl.Vector3{24, 0, 48})
 	testing.expect_value(t, world_3d_position({24, 48}, 7), rl.Vector3{24, 7, 48})
+}
+
+@(test)
+test_world_3d_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
+	testing.expect(t, math.abs(world_3d_facing_angle({1, 0}) + 90) < 0.001)
+	testing.expect(t, math.abs(world_3d_facing_angle({-1, 0}) - 90) < 0.001)
+	testing.expect(t, math.abs(world_3d_facing_angle({0, -1})) < 0.001)
 }
 
 @(test)

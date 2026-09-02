@@ -67,6 +67,7 @@ player_roll :: proc(p: ^Player) {
 			movement_input.x * movement_input.x + movement_input.y * movement_input.y,
 		)
 		p.velocity = (movement_input / length) * p.roll_speed
+		p.facing_direction = movement_input / length
 		p.is_rolling = true
 		p.roll_timer = 0
 
@@ -94,7 +95,7 @@ player_attack :: proc(p: ^Player) {
 		}
 	} else {
 		// Use current facing direction if not moving
-		p.attack_direction = Vec2{p.is_flipped ? -1 : 1, 0}
+		p.attack_direction = p.facing_direction
 	}
 
 	// Play attack grunt sound
