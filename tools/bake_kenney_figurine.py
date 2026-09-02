@@ -75,6 +75,11 @@ def main():
     bpy.context.view_layer.update()
     rest_basis = {node.name: node.matrix_basis.copy() for node in nodes}
     rest_world = {part.name: part.matrix_world.copy() for part in parts}
+    expected_vertices = sorted(
+        tuple(rest_world[part.name] @ vertex.co)
+        for part in parts
+        for vertex in part.data.vertices
+    )
 
     # Put all part geometry into armature space and retain one rigid vertex group
     # per part. Joining preserves the source materials and their texture.
@@ -84,9 +89,13 @@ def main():
         baked.data = source.data.copy()
         bpy.context.collection.objects.link(baked)
         baked.name = f"baked-{source.name}"
+        # Object.copy() also copies the source animation controller. It must not
+        # be allowed to reapply a limb transform to the joined mesh object.
+        baked.animation_data_clear()
         baked.parent = None
         baked.data.transform(rest_world[source.name])
-        baked.matrix_world = Matrix.Identity(4)
+        baked.matrix_parent_inverse = Matrix.Identity(4)
+        baked.matrix_basis = Matrix.Identity(4)
         group = baked.vertex_groups.new(name=source.name)
         group.add(range(len(baked.data.vertices)), 1.0, "REPLACE")
         baked_parts.append(baked)
@@ -98,6 +107,17 @@ def main():
     bpy.ops.object.join()
     character_mesh = bpy.context.view_layer.objects.active
     character_mesh.name = "figurine-mesh"
+    actual_vertices = sorted(
+        tuple(character_mesh.matrix_world @ vertex.co)
+        for vertex in character_mesh.data.vertices
+    )
+    rest_error = max(
+        abs(actual[axis] - expected[axis])
+        for actual, expected in zip(actual_vertices, expected_vertices)
+        for axis in range(3)
+    )
+    if rest_error > 0.000001:
+        raise RuntimeError(f"Joined rest geometry moved by {rest_error}")
 
     armature_data = bpy.data.armatures.new("figurine-armature")
     armature = bpy.data.objects.new("figurine-armature", armature_data)
