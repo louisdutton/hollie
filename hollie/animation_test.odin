@@ -29,6 +29,14 @@ test_animation_tracks_visual_elapsed_time :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_animation_playback_modes_normalize_frames_before_rendering :: proc(t: ^testing.T) {
+	testing.expect_value(t, animation_frame_at_time(0.1, 21, .LOOP), f32(6))
+	testing.expect_value(t, animation_frame_at_time(0.4, 21, .LOOP), f32(4))
+	testing.expect_value(t, animation_frame_at_time(0.4, 21, .ONCE_HOLD), f32(19))
+	testing.expect_value(t, animation_frame_at_time(10, 1, .ONCE_HOLD), f32(0))
+}
+
+@(test)
 test_prototype_characters_retain_original_animation_frames :: proc(t: ^testing.T) {
 	testing.expect_value(t, len(goblin_animations), 4)
 	testing.expect_value(t, goblin_animations[0].frame_count, 9)

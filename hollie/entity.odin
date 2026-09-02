@@ -87,6 +87,7 @@ Pressure_Plate :: struct {
 	using collider:  Collider,
 	trigger_id:      int,
 	active:          bool,
+	animation_time:  f32,
 	activated_by:    bit_set[input.Player_Index],
 	requires_both:   bool,
 }
@@ -186,6 +187,7 @@ entity_create_pressure_plate :: proc(
 		collider = {size = {32, 32}, offset = {-16, -16}, solid = false},
 		trigger_id = trigger_id,
 		requires_both = requires_both,
+		animation_time = 1e9,
 	}
 
 	append(&entities, plate)

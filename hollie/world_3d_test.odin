@@ -19,9 +19,11 @@ test_world_3d_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
 
 @(test)
 test_world_3d_one_shot_clip_holds_its_final_frame :: proc(t: ^testing.T) {
-	clip := rl.ModelAnimation{keyframeCount = 21}
-	testing.expect_value(t, world_3d_clip_frame(1, clip, false), f32(20))
-	testing.expect_value(t, world_3d_clip_frame(1, clip, true), f32(60))
+	clip := rl.ModelAnimation {
+		keyframeCount = 21,
+	}
+	testing.expect_value(t, world_3d_clip_frame(1, clip, .ONCE_HOLD), f32(19))
+	testing.expect_value(t, world_3d_clip_frame(1, clip, .LOOP), f32(0))
 }
 
 @(test)
@@ -32,7 +34,33 @@ test_world_3d_text_scales_with_the_display :: proc(t: ^testing.T) {
 
 @(test)
 test_world_3d_uses_the_full_size_square_pressure_pad :: proc(t: ^testing.T) {
-	testing.expect_value(t, WORLD_3D_PRESSURE_PAD_MODEL, "button-floor-square.glb")
+	testing.expect_value(t, WORLD_3D_PRESSURE_PAD_MODEL, "button-floor-square-raylib.glb")
+	testing.expect_value(t, WORLD_3D_PRESSURE_PAD_CLIP_NAMES[0], "toggle-off")
+	testing.expect_value(t, WORLD_3D_PRESSURE_PAD_CLIP_NAMES[1], "toggle-on")
+}
+
+@(test)
+test_character_one_shots_hold_while_continuous_states_loop :: proc(t: ^testing.T) {
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.IDLE)],
+		Animation_Playback.LOOP,
+	)
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.RUN)],
+		Animation_Playback.LOOP,
+	)
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.DEATH)],
+		Animation_Playback.ONCE_HOLD,
+	)
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.ATTACK)],
+		Animation_Playback.ONCE_HOLD,
+	)
 }
 
 @(test)

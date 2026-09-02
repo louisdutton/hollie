@@ -3,9 +3,11 @@ package hollie
 import "audio"
 import "input"
 import "renderer"
+import rl "vendor:raylib"
 
 
 entity_update_puzzle_logic :: proc() {
+	delta_time := rl.GetFrameTime()
 
 	// Update pressure plate states
 	pressure_plates := entity_get_pressure_plates()
@@ -15,6 +17,7 @@ entity_update_puzzle_logic :: proc() {
 	defer delete(players)
 
 	for plate in pressure_plates {
+		was_active := plate.active
 		// Reset activation state
 		plate.activated_by = {}
 		plate.active = false
@@ -42,6 +45,12 @@ entity_update_puzzle_logic :: proc() {
 				input.Player_Index.PLAYER_2 in plate.activated_by
 		} else {
 			plate.active = card(plate.activated_by) > 0
+		}
+
+		if plate.active != was_active {
+			plate.animation_time = 0
+		} else {
+			plate.animation_time += delta_time
 		}
 	}
 

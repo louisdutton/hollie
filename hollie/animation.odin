@@ -1,10 +1,37 @@
 package hollie
 
+import "core:math"
+
 TARGET_FPS :: 60
 FPS :: 24
 INTERVAL :: TARGET_FPS / FPS
+ANIMATION_SAMPLE_FPS :: f32(TARGET_FPS)
+
+Animation_Playback :: enum {
+	LOOP,
+	ONCE_HOLD,
+}
+
 Animation :: struct {
 	frame_count: int,
+}
+
+animation_frame_at_time :: proc(
+	elapsed_time: f32,
+	frame_count: int,
+	playback: Animation_Playback,
+) -> f32 {
+	if frame_count <= 1 do return 0
+	// raylib's GLTF loader appends the first pose as a wrap sample. Loops use
+	// that sample as their period boundary; one-shots must stop one frame prior.
+	loop_period := f32(frame_count - 1)
+	terminal_frame := f32(max(frame_count - 2, 0))
+	frame := max(elapsed_time, 0) * ANIMATION_SAMPLE_FPS
+	switch playback {
+	case .LOOP: return math.mod(frame, loop_period)
+	case .ONCE_HOLD: return min(frame, terminal_frame)
+	}
+	return 0
 }
 
 AnimationState :: enum {

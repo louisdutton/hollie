@@ -10,10 +10,9 @@ import "window"
 
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
-WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_LABEL_TEXT_SIZE :: 12
-WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square.glb"
+WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -23,24 +22,37 @@ WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"sprint",
 	"walk-holding-both",
 }
+WORLD_3D_CHARACTER_PLAYBACK :: [7]Animation_Playback {
+	.LOOP,
+	.LOOP,
+	.ONCE_HOLD,
+	.ONCE_HOLD,
+	.ONCE_HOLD,
+	.ONCE_HOLD,
+	.LOOP,
+}
+WORLD_3D_PRESSURE_PAD_CLIP_NAMES :: [2]string{"toggle-off", "toggle-on"}
 WORLD_3D_CHARACTER_MODEL :: "figurine-raylib.glb"
 
 World_3D_Assets :: struct {
-	lighting_shader:             rl.Shader,
-	character_lighting_shader:   rl.Shader,
-	active_character_shader:     rl.Shader,
-	character_flash_location:    c.int,
-	floor:                       rl.Model,
-	character:                   rl.Model,
-	crate:                       rl.Model,
-	pressure_pad:                rl.Model,
-	cube:                        rl.Model,
-	wall:                        rl.Model,
-	doorway_wall:                rl.Model,
-	door_indicator:              rl.Model,
-	character_animations:        [^]rl.ModelAnimation,
-	character_animation_count:   c.int,
-	character_animation_indices: [7]int,
+	lighting_shader:                rl.Shader,
+	character_lighting_shader:      rl.Shader,
+	active_character_shader:        rl.Shader,
+	character_flash_location:       c.int,
+	floor:                          rl.Model,
+	character:                      rl.Model,
+	crate:                          rl.Model,
+	pressure_pad:                   rl.Model,
+	cube:                           rl.Model,
+	wall:                           rl.Model,
+	doorway_wall:                   rl.Model,
+	door_indicator:                 rl.Model,
+	character_animations:           [^]rl.ModelAnimation,
+	character_animation_count:      c.int,
+	character_animation_indices:    [7]int,
+	pressure_pad_animations:        [^]rl.ModelAnimation,
+	pressure_pad_animation_count:   c.int,
+	pressure_pad_animation_indices: [2]int,
 }
 
 world_3d_assets: World_3D_Assets
@@ -115,7 +127,7 @@ world_3d_init :: proc() {
 	world_3d_apply_shader(&world_3d_assets.floor, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.active_character_shader)
 	world_3d_apply_shader(&world_3d_assets.crate, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.pressure_pad, world_3d_assets.lighting_shader)
+	world_3d_apply_shader(&world_3d_assets.pressure_pad, world_3d_assets.active_character_shader)
 	world_3d_apply_shader(&world_3d_assets.cube, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.wall, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.doorway_wall, world_3d_assets.lighting_shader)
@@ -142,6 +154,25 @@ world_3d_init :: proc() {
 			}
 		}
 	}
+
+	for &index in world_3d_assets.pressure_pad_animation_indices do index = -1
+	pressure_pad_path := asset.path(root + WORLD_3D_PRESSURE_PAD_MODEL)
+	defer delete(pressure_pad_path)
+	world_3d_assets.pressure_pad_animations = rl.LoadModelAnimations(
+		cstring(raw_data(pressure_pad_path)),
+		&world_3d_assets.pressure_pad_animation_count,
+	)
+	pressure_pad_clip_names := WORLD_3D_PRESSURE_PAD_CLIP_NAMES
+	for &clip_index, state_index in world_3d_assets.pressure_pad_animation_indices {
+		clip_name := pressure_pad_clip_names[state_index]
+		for animation_index in 0 ..< int(world_3d_assets.pressure_pad_animation_count) {
+			animation := &world_3d_assets.pressure_pad_animations[animation_index]
+			if string(cstring(&animation.name[0])) == clip_name {
+				clip_index = animation_index
+				break
+			}
+		}
+	}
 }
 
 world_3d_fini :: proc() {
@@ -149,6 +180,12 @@ world_3d_fini :: proc() {
 		rl.UnloadModelAnimations(
 			world_3d_assets.character_animations,
 			world_3d_assets.character_animation_count,
+		)
+	}
+	if world_3d_assets.pressure_pad_animation_count > 0 {
+		rl.UnloadModelAnimations(
+			world_3d_assets.pressure_pad_animations,
+			world_3d_assets.pressure_pad_animation_count,
 		)
 	}
 	if world_3d_assets.floor.meshCount > 0 do rl.UnloadModel(world_3d_assets.floor)
@@ -348,12 +385,12 @@ world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
 	return math.to_degrees(math.atan2(direction.x, direction.y))
 }
 
-world_3d_clip_frame :: proc(visual_time: f32, clip: rl.ModelAnimation, loop: bool) -> f32 {
-	frame := visual_time * WORLD_3D_CHARACTER_CLIP_FPS
-	if !loop {
-		frame = min(frame, f32(max(clip.keyframeCount - 1, 0)))
-	}
-	return frame
+world_3d_clip_frame :: proc(
+	visual_time: f32,
+	clip: rl.ModelAnimation,
+	playback: Animation_Playback,
+) -> f32 {
+	return animation_frame_at_time(visual_time, int(clip.keyframeCount), playback)
 }
 
 world_3d_draw_character :: proc(
@@ -368,8 +405,9 @@ world_3d_draw_character :: proc(
 		clip_index = world_3d_assets.character_animation_indices[state_index]
 	}
 	if clip_index >= 0 && state_index < len(anim.frame_counts) {
+		playback_modes := WORLD_3D_CHARACTER_PLAYBACK
 		clip := world_3d_assets.character_animations[clip_index]
-		clip_frame := world_3d_clip_frame(anim.visual_time, clip, anim.current_anim != .DEATH)
+		clip_frame := world_3d_clip_frame(anim.visual_time, clip, playback_modes[state_index])
 		previous_state_index := int(anim.previous_anim)
 		previous_clip_index := -1
 		if previous_state_index >= 0 &&
@@ -382,7 +420,7 @@ world_3d_draw_character :: proc(
 			previous_frame := world_3d_clip_frame(
 				anim.previous_time,
 				previous_clip,
-				anim.previous_anim != .DEATH,
+				playback_modes[previous_state_index],
 			)
 			rl.UpdateModelAnimationEx(
 				world_3d_assets.character,
@@ -465,14 +503,21 @@ world_3d_draw_entities :: proc() {
 				rl.WHITE,
 			)
 		case Pressure_Plate:
-			tint := e.active ? rl.GREEN : rl.Color{150, 150, 150, 255}
+			state_index := e.active ? 1 : 0
+			clip_index := world_3d_assets.pressure_pad_animation_indices[state_index]
+			if clip_index >= 0 {
+				clip := world_3d_assets.pressure_pad_animations[clip_index]
+				clip_frame := world_3d_clip_frame(e.animation_time, clip, .ONCE_HOLD)
+				rl.UpdateModelAnimation(world_3d_assets.pressure_pad, clip, clip_frame)
+			}
+			pad_scale := e.collider.size.x
 			rl.DrawModelEx(
 				world_3d_assets.pressure_pad,
 				world_3d_position(e.position),
 				{0, 1, 0},
 				0,
-				{e.collider.size.x, 1.5, e.collider.size.y},
-				tint,
+				{pad_scale, pad_scale, pad_scale},
+				rl.WHITE,
 			)
 		case Gate:
 			if e.open do continue
@@ -546,12 +591,7 @@ world_3d_draw_labels :: proc(camera_3d: rl.Camera3D) {
 	for player in players {
 		label := player.index == .PLAYER_1 ? "P1" : "P2"
 		color := player.index == .PLAYER_1 ? renderer.BLUE : renderer.GREEN
-		world_3d_draw_label(
-			label,
-			world_3d_position(player.position, 24),
-			camera_3d,
-			color,
-		)
+		world_3d_draw_label(label, world_3d_position(player.position, 24), camera_3d, color)
 	}
 }
 
