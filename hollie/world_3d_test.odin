@@ -31,6 +31,11 @@ test_world_3d_text_scales_with_the_display :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_world_3d_uses_the_full_size_square_pressure_pad :: proc(t: ^testing.T) {
+	testing.expect_value(t, WORLD_3D_PRESSURE_PAD_MODEL, "button-floor-square.glb")
+}
+
+@(test)
 test_every_character_state_maps_to_a_native_kenney_clip :: proc(t: ^testing.T) {
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.IDLE)], "idle")
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.RUN)], "walk")

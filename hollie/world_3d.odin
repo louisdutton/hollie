@@ -13,6 +13,7 @@ WORLD_3D_CRATE_SCALE :: f32(24)
 WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_LABEL_TEXT_SIZE :: 12
+WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square.glb"
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -32,7 +33,7 @@ World_3D_Assets :: struct {
 	floor:                       rl.Model,
 	character:                   rl.Model,
 	crate:                       rl.Model,
-	button:                      rl.Model,
+	pressure_pad:                rl.Model,
 	cube:                        rl.Model,
 	wall:                        rl.Model,
 	doorway_wall:                rl.Model,
@@ -83,7 +84,7 @@ world_3d_init :: proc() {
 	world_3d_assets.floor = world_3d_load_model(root + "floor-square.glb")
 	world_3d_assets.character = world_3d_load_model(root + WORLD_3D_CHARACTER_MODEL)
 	world_3d_assets.crate = world_3d_load_model(root + "crate-color.glb")
-	world_3d_assets.button = world_3d_load_model(root + "button-floor-round.glb")
+	world_3d_assets.pressure_pad = world_3d_load_model(root + WORLD_3D_PRESSURE_PAD_MODEL)
 	world_3d_assets.cube = world_3d_load_model(root + "shape-cube.glb")
 	world_3d_assets.wall = world_3d_load_model(root + "wall.glb")
 	world_3d_assets.doorway_wall = world_3d_load_model(root + "wall-doorway-wide.glb")
@@ -114,7 +115,7 @@ world_3d_init :: proc() {
 	world_3d_apply_shader(&world_3d_assets.floor, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.active_character_shader)
 	world_3d_apply_shader(&world_3d_assets.crate, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.button, world_3d_assets.lighting_shader)
+	world_3d_apply_shader(&world_3d_assets.pressure_pad, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.cube, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.wall, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.doorway_wall, world_3d_assets.lighting_shader)
@@ -153,7 +154,7 @@ world_3d_fini :: proc() {
 	if world_3d_assets.floor.meshCount > 0 do rl.UnloadModel(world_3d_assets.floor)
 	if world_3d_assets.character.meshCount > 0 do rl.UnloadModel(world_3d_assets.character)
 	if world_3d_assets.crate.meshCount > 0 do rl.UnloadModel(world_3d_assets.crate)
-	if world_3d_assets.button.meshCount > 0 do rl.UnloadModel(world_3d_assets.button)
+	if world_3d_assets.pressure_pad.meshCount > 0 do rl.UnloadModel(world_3d_assets.pressure_pad)
 	if world_3d_assets.cube.meshCount > 0 do rl.UnloadModel(world_3d_assets.cube)
 	if world_3d_assets.wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.wall)
 	if world_3d_assets.doorway_wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.doorway_wall)
@@ -466,7 +467,7 @@ world_3d_draw_entities :: proc() {
 		case Pressure_Plate:
 			tint := e.active ? rl.GREEN : rl.Color{150, 150, 150, 255}
 			rl.DrawModelEx(
-				world_3d_assets.button,
+				world_3d_assets.pressure_pad,
 				world_3d_position(e.position),
 				{0, 1, 0},
 				0,
