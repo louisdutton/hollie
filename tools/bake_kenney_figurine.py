@@ -108,8 +108,10 @@ def main():
     bpy.ops.object.mode_set(mode="EDIT")
     for part_name in PART_NAMES:
         bone = armature_data.edit_bones.new(part_name)
-        bone.head = (0.0, 0.0, 0.0)
-        bone.tail = (0.0, 1.0, 0.0)
+        # Bind each rigid bone at the original object's authored origin. This is
+        # the hinge used by Kenney's rotations (shoulder, hip, neck, and so on).
+        bone.matrix = rest_world[part_name]
+        bone.length = 0.1
     bpy.ops.object.mode_set(mode="OBJECT")
 
     modifier = character_mesh.modifiers.new("figurine-skin", "ARMATURE")
@@ -132,9 +134,12 @@ def main():
             bpy.context.scene.frame_set(int(frame), subframe=frame - int(frame))
             bpy.context.view_layer.update()
             for part in parts:
-                delta = part.matrix_world @ rest_world[part.name].inverted()
                 pose_bone = armature.pose.bones[part.name]
-                pose_bone.matrix_basis = delta
+                # Armature deformation is pose * inverse(bind). Include the bind
+                # matrix explicitly so Blender's bone-axis conversion cannot
+                # move the authored hinge during GLB export.
+                deformation = part.matrix_world @ rest_world[part.name].inverted()
+                pose_bone.matrix = deformation @ pose_bone.bone.matrix_local
                 pose_bone.keyframe_insert("location", frame=frame, group=part.name)
                 pose_bone.keyframe_insert("rotation_quaternion", frame=frame, group=part.name)
                 pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
