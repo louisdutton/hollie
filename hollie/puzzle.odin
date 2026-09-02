@@ -1,10 +1,23 @@
 package hollie
 
 import "audio"
-import "input"
-import "renderer"
 import rl "vendor:raylib"
 
+pressure_plate_has_required_weight :: proc(
+	player_count, crate_count: int,
+	requires_both: bool,
+) -> bool {
+	required_weight := requires_both ? 2 : 1
+	return player_count + crate_count >= required_weight
+}
+
+pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) -> bool {
+	if holdable.held_by != nil do return false
+	return rects_intersect(
+		collider_rect_at(plate.position, plate.collider),
+		collider_rect_at(holdable.position, holdable.collider),
+	)
+}
 
 entity_update_puzzle_logic :: proc() {
 	delta_time := rl.GetFrameTime()
@@ -15,6 +28,8 @@ entity_update_puzzle_logic :: proc() {
 
 	players := entity_get_players()
 	defer delete(players)
+	holdables := entity_get_holdables()
+	defer delete(holdables)
 
 	for plate in pressure_plates {
 		was_active := plate.active
@@ -22,7 +37,7 @@ entity_update_puzzle_logic :: proc() {
 		plate.activated_by = {}
 		plate.active = false
 
-		// Check if any player is standing on the plate
+		// Players and dropped crates each contribute one unit of pressure.
 		for player in players {
 			player_rect := collider_rect_at(player.position, player.collider)
 			plate_rect := collider_rect_at(plate.position, plate.collider)
@@ -32,14 +47,15 @@ entity_update_puzzle_logic :: proc() {
 			}
 		}
 
-		// Update active state based on requirements
-		if plate.requires_both {
-			plate.active =
-				input.Player_Index.PLAYER_1 in plate.activated_by &&
-				input.Player_Index.PLAYER_2 in plate.activated_by
-		} else {
-			plate.active = card(plate.activated_by) > 0
+		crate_count := 0
+		for holdable in holdables {
+			if pressure_plate_has_crate(plate, holdable) do crate_count += 1
 		}
+		plate.active = pressure_plate_has_required_weight(
+			card(plate.activated_by),
+			crate_count,
+			plate.requires_both,
+		)
 
 		if plate.active != was_active {
 			plate.animation_time = 0

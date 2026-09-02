@@ -38,4 +38,6 @@ Gameplay owns animation states and timing, while all visible character motion co
 
 Visible clips play from elapsed time at their authored speed, independently of the legacy sprite-frame counters that still govern gameplay timing. Each state declares an explicit playback mode: continuous idle, walk, and carry clips loop, while jump, death, attack, and roll play once and hold their final frame. The compatibility GLBs bake source transforms at 60 Hz, and character state changes crossfade over 120 ms. Pressure pads use Kenney's native `toggle-on` and `toggle-off` clips, play them once, and hold the depressed or raised end pose without a color tint. The figurine's authored forward axis is world `+z`, so model rotation maps that axis onto movement and attack direction.
 
+Players and dropped crates each contribute one unit of pressure to an overlapping pad. Carried crates do not contribute while elevated; pads marked `requires_both` activate from any two overlapping weights.
+
 Production models should replace these GLBs through the same model-loading and animation-selection path. There is no parallel sprite renderer to maintain.
