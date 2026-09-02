@@ -178,6 +178,14 @@ update_gameplay_screen :: proc() {
 	}
 }
 
+prepare_gameplay_screen_draw :: proc() {
+	when ODIN_DEBUG {
+		if editor_is_active() do return
+	}
+
+	world_3d_render_shadow_map(world_3d_camera())
+}
+
 draw_gameplay_screen :: proc() {
 	when ODIN_DEBUG {
 		if editor_is_active() {

@@ -127,6 +127,10 @@ update_app_suspension :: proc() -> bool {
 }
 
 draw :: proc() {
+	if game.state != .SUSPENDED && game.scene == .GAMEPLAY {
+		prepare_gameplay_screen_draw()
+	}
+
 	renderer.begin_drawing()
 	defer renderer.end_drawing()
 

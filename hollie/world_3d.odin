@@ -16,6 +16,7 @@ WORLD_3D_CARRIED_ITEM_HEIGHT :: f32(20)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_LABEL_TEXT_SIZE :: 12
 WORLD_3D_BACKGROUND_COLOR :: rl.Color{54, 54, 60, 255}
+WORLD_3D_LIGHT_DIRECTION :: rl.Vector3{-0.5, -0.7, 0.5}
 WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
@@ -42,7 +43,11 @@ World_3D_Assets :: struct {
 	lighting_shader:                rl.Shader,
 	character_lighting_shader:      rl.Shader,
 	active_character_shader:        rl.Shader,
+	shadow_shader:                  rl.Shader,
+	shadow_skinned_shader:          rl.Shader,
 	character_flash_location:       c.int,
+	shadow_map:                     rl.RenderTexture2D,
+	light_view_projection:          rl.Matrix,
 	floor:                          rl.Model,
 	character:                      rl.Model,
 	crate:                          rl.Model,
@@ -92,11 +97,11 @@ world_3d_set_shader_vec3 :: proc(shader: rl.Shader, name: cstring, value: rl.Vec
 
 world_3d_configure_lighting :: proc(shader: rl.Shader) {
 	// Cool, high-fill studio lighting based on Kenney's Prototype Kit preview.
-	world_3d_set_shader_vec3(shader, "ambientColor", {0.36, 0.36, 0.5})
-	world_3d_set_shader_vec3(shader, "keyDirection", {-0.45, -0.82, -0.35})
-	world_3d_set_shader_vec3(shader, "keyColor", {0.42, 0.4, 0.4})
+	world_3d_set_shader_vec3(shader, "ambientColor", {0.22, 0.23, 0.32})
+	world_3d_set_shader_vec3(shader, "keyDirection", WORLD_3D_LIGHT_DIRECTION)
+	world_3d_set_shader_vec3(shader, "keyColor", {0.6, 0.56, 0.52})
 	world_3d_set_shader_vec3(shader, "fillDirection", {0.65, -0.35, 0.55})
-	world_3d_set_shader_vec3(shader, "fillColor", {0.06, 0.07, 0.1})
+	world_3d_set_shader_vec3(shader, "fillColor", {0.07, 0.09, 0.13})
 }
 
 world_3d_init :: proc() {
@@ -126,6 +131,20 @@ world_3d_init :: proc() {
 		cstring(raw_data(skinned_vertex_shader_path)),
 		cstring(raw_data(fragment_shader_path)),
 	)
+	shadow_vertex_shader_path := asset.path("shaders/world_shadow.vs")
+	defer delete(shadow_vertex_shader_path)
+	shadow_skinned_vertex_shader_path := asset.path("shaders/world_shadow_skinned.vs")
+	defer delete(shadow_skinned_vertex_shader_path)
+	shadow_fragment_shader_path := asset.path("shaders/world_shadow.fs")
+	defer delete(shadow_fragment_shader_path)
+	world_3d_assets.shadow_shader = rl.LoadShader(
+		cstring(raw_data(shadow_vertex_shader_path)),
+		cstring(raw_data(shadow_fragment_shader_path)),
+	)
+	world_3d_assets.shadow_skinned_shader = rl.LoadShader(
+		cstring(raw_data(shadow_skinned_vertex_shader_path)),
+		cstring(raw_data(shadow_fragment_shader_path)),
+	)
 	world_3d_assets.active_character_shader = world_3d_assets.lighting_shader
 	if world_3d_uses_gpu_skinning(&world_3d_assets.character) {
 		world_3d_assets.active_character_shader = world_3d_assets.character_lighting_shader
@@ -135,17 +154,11 @@ world_3d_init :: proc() {
 		"flashAmount",
 	)
 
-	world_3d_apply_shader(&world_3d_assets.floor, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.active_character_shader)
-	world_3d_apply_shader(&world_3d_assets.crate, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.pressure_pad, world_3d_assets.active_character_shader)
-	world_3d_apply_shader(&world_3d_assets.cube, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.wall, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.doorway_wall, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.door_indicator, world_3d_assets.lighting_shader)
+	world_3d_apply_lighting_shaders()
 
 	world_3d_configure_lighting(world_3d_assets.lighting_shader)
 	world_3d_configure_lighting(world_3d_assets.character_lighting_shader)
+	world_3d_init_shadows()
 
 	for &index in world_3d_assets.character_animation_indices do index = -1
 	path := asset.path(root + WORLD_3D_CHARACTER_MODEL)
@@ -210,6 +223,11 @@ world_3d_fini :: proc() {
 	if rl.IsShaderValid(world_3d_assets.character_lighting_shader) {
 		rl.UnloadShader(world_3d_assets.character_lighting_shader)
 	}
+	world_3d_fini_shadows()
+	if rl.IsShaderValid(world_3d_assets.shadow_skinned_shader) {
+		rl.UnloadShader(world_3d_assets.shadow_skinned_shader)
+	}
+	if rl.IsShaderValid(world_3d_assets.shadow_shader) do rl.UnloadShader(world_3d_assets.shadow_shader)
 	if rl.IsShaderValid(world_3d_assets.lighting_shader) do rl.UnloadShader(world_3d_assets.lighting_shader)
 	world_3d_assets = {}
 }
@@ -781,6 +799,7 @@ when ODIN_DEBUG {
 world_3d_draw :: proc(show_debug: bool = false) {
 	rl.ClearBackground(WORLD_3D_BACKGROUND_COLOR)
 	camera_3d := world_3d_camera()
+	world_3d_bind_shadow_map_for_world()
 	rl.BeginMode3D(camera_3d)
 
 	world_3d_draw_ground()
@@ -795,6 +814,8 @@ world_3d_draw :: proc(show_debug: bool = false) {
 	rl.EndMode3D()
 	world_3d_draw_labels(camera_3d)
 	when ODIN_DEBUG {
-		if show_debug do world_3d_draw_debug_labels(camera_3d)
+		if show_debug {
+			world_3d_draw_debug_labels(camera_3d)
+		}
 	}
 }
