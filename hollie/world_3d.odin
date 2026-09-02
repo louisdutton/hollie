@@ -22,6 +22,7 @@ WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES := [7]int{1, 2, 3, 6, 16, 3, 12}
 
 World_3D_Assets :: struct {
 	lighting_shader:             rl.Shader,
+	character_lighting_shader:   rl.Shader,
 	floor:                       rl.Model,
 	character:                   rl.Model,
 	crate:                       rl.Model,
@@ -55,6 +56,14 @@ world_3d_set_shader_vec3 :: proc(shader: rl.Shader, name: cstring, value: rl.Vec
 	rl.SetShaderValue(shader, location, &uniform_value, .VEC3)
 }
 
+world_3d_configure_lighting :: proc(shader: rl.Shader) {
+	world_3d_set_shader_vec3(shader, "ambientColor", {0.18, 0.2, 0.24})
+	world_3d_set_shader_vec3(shader, "keyDirection", {-0.45, -0.82, -0.35})
+	world_3d_set_shader_vec3(shader, "keyColor", {0.55, 0.49, 0.42})
+	world_3d_set_shader_vec3(shader, "fillDirection", {0.65, -0.35, 0.55})
+	world_3d_set_shader_vec3(shader, "fillColor", {0.08, 0.11, 0.16})
+}
+
 world_3d_init :: proc() {
 	root :: "art/kenney/prototype-kit/"
 	world_3d_assets.floor = world_3d_load_model(root + "floor-square.glb")
@@ -67,15 +76,21 @@ world_3d_init :: proc() {
 	world_3d_assets.door_indicator = world_3d_load_model(root + "indicator-doorway.glb")
 	vertex_shader_path := asset.path("shaders/world_lighting.vs")
 	defer delete(vertex_shader_path)
+	skinned_vertex_shader_path := asset.path("shaders/world_lighting_skinned.vs")
+	defer delete(skinned_vertex_shader_path)
 	fragment_shader_path := asset.path("shaders/world_lighting.fs")
 	defer delete(fragment_shader_path)
 	world_3d_assets.lighting_shader = rl.LoadShader(
 		cstring(raw_data(vertex_shader_path)),
 		cstring(raw_data(fragment_shader_path)),
 	)
+	world_3d_assets.character_lighting_shader = rl.LoadShader(
+		cstring(raw_data(skinned_vertex_shader_path)),
+		cstring(raw_data(fragment_shader_path)),
+	)
 
 	world_3d_apply_shader(&world_3d_assets.floor, world_3d_assets.lighting_shader)
-	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.lighting_shader)
+	world_3d_apply_shader(&world_3d_assets.character, world_3d_assets.character_lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.crate, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.button, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.cube, world_3d_assets.lighting_shader)
@@ -83,15 +98,8 @@ world_3d_init :: proc() {
 	world_3d_apply_shader(&world_3d_assets.doorway_wall, world_3d_assets.lighting_shader)
 	world_3d_apply_shader(&world_3d_assets.door_indicator, world_3d_assets.lighting_shader)
 
-	world_3d_set_shader_vec3(world_3d_assets.lighting_shader, "ambientColor", {0.42, 0.45, 0.5})
-	world_3d_set_shader_vec3(
-		world_3d_assets.lighting_shader,
-		"keyDirection",
-		{-0.45, -0.82, -0.35},
-	)
-	world_3d_set_shader_vec3(world_3d_assets.lighting_shader, "keyColor", {0.82, 0.76, 0.66})
-	world_3d_set_shader_vec3(world_3d_assets.lighting_shader, "fillDirection", {0.65, -0.35, 0.55})
-	world_3d_set_shader_vec3(world_3d_assets.lighting_shader, "fillColor", {0.22, 0.28, 0.38})
+	world_3d_configure_lighting(world_3d_assets.lighting_shader)
+	world_3d_configure_lighting(world_3d_assets.character_lighting_shader)
 
 	for &index in world_3d_assets.character_animation_indices do index = -1
 	path := asset.path(root + "figurine.glb")
@@ -126,6 +134,9 @@ world_3d_fini :: proc() {
 	if world_3d_assets.wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.wall)
 	if world_3d_assets.doorway_wall.meshCount > 0 do rl.UnloadModel(world_3d_assets.doorway_wall)
 	if world_3d_assets.door_indicator.meshCount > 0 do rl.UnloadModel(world_3d_assets.door_indicator)
+	if rl.IsShaderValid(world_3d_assets.character_lighting_shader) {
+		rl.UnloadShader(world_3d_assets.character_lighting_shader)
+	}
 	if rl.IsShaderValid(world_3d_assets.lighting_shader) do rl.UnloadShader(world_3d_assets.lighting_shader)
 	world_3d_assets = {}
 }
