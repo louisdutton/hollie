@@ -11,12 +11,17 @@ All world models use directional lighting with restrained ambient, warm key, and
 Prototype world models are a checked-in subset of Kenney's Prototype Kit under `res/art/kenney/prototype-kit`:
 
 - `floor-square.glb` builds the ground grid;
-- `figurine.glb` is shared by every player, NPC, and enemy;
+- `figurine-raylib.glb` is shared by every player, NPC, and enemy;
 - `crate-color.glb`, `button-floor-round.glb`, and `shape-cube.glb` represent interactive objects;
 - `wall.glb` and `wall-doorway-wide.glb` build room and house boundaries;
 - `indicator-doorway.glb` marks transitions.
 
 The bundled models are licensed CC0; the original `License.txt` is stored beside them.
+`figurine.glb` is the untouched Kenney source. Its clips animate rigid object nodes,
+which raylib does not expose through `LoadModelAnimations`. The checked-in
+`figurine-raylib.glb` rigidly skins those same parts and bakes the exact 27 supplied
+clips onto bones. Regenerate it with `tools/bake_kenney_figurine.py`; this is a
+format-compatibility step, not a replacement animation system.
 
 The secret room derives walls from its non-rectangular floor mask. Door collider edges stay open, preserving its two-cell bottom entrance extrusion. Olivewood's house is assembled from the same model kit, with its south doorway aligned to the transition collider.
 

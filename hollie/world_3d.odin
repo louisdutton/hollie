@@ -18,7 +18,7 @@ WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"sprint",
 	"holding-both",
 }
-WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES := [7]int{1, 2, 3, 6, 16, 3, 12}
+WORLD_3D_CHARACTER_MODEL :: "figurine-raylib.glb"
 
 World_3D_Assets :: struct {
 	lighting_shader:             rl.Shader,
@@ -77,7 +77,7 @@ world_3d_configure_lighting :: proc(shader: rl.Shader) {
 world_3d_init :: proc() {
 	root :: "art/kenney/prototype-kit/"
 	world_3d_assets.floor = world_3d_load_model(root + "floor-square.glb")
-	world_3d_assets.character = world_3d_load_model(root + "figurine.glb")
+	world_3d_assets.character = world_3d_load_model(root + WORLD_3D_CHARACTER_MODEL)
 	world_3d_assets.crate = world_3d_load_model(root + "crate-color.glb")
 	world_3d_assets.button = world_3d_load_model(root + "button-floor-round.glb")
 	world_3d_assets.cube = world_3d_load_model(root + "shape-cube.glb")
@@ -120,19 +120,21 @@ world_3d_init :: proc() {
 	world_3d_configure_lighting(world_3d_assets.character_lighting_shader)
 
 	for &index in world_3d_assets.character_animation_indices do index = -1
-	path := asset.path(root + "figurine.glb")
+	path := asset.path(root + WORLD_3D_CHARACTER_MODEL)
 	defer delete(path)
 	world_3d_assets.character_animations = rl.LoadModelAnimations(
 		cstring(raw_data(path)),
 		&world_3d_assets.character_animation_count,
 	)
-	// Raylib does not reliably preserve animation names for this GLB. The pack is
-	// checked in, so use its verified clip order and degrade to a static pose if a
-	// future replacement has a shorter table.
+	clip_names := WORLD_3D_CHARACTER_CLIP_NAMES
 	for &clip_index, state_index in world_3d_assets.character_animation_indices {
-		fallback_index := WORLD_3D_CHARACTER_CLIP_FALLBACK_INDICES[state_index]
-		if fallback_index < int(world_3d_assets.character_animation_count) {
-			clip_index = fallback_index
+		clip_name := clip_names[state_index]
+		for animation_index in 0 ..< int(world_3d_assets.character_animation_count) {
+			animation := &world_3d_assets.character_animations[animation_index]
+			if string(cstring(&animation.name[0])) == clip_name {
+				clip_index = animation_index
+				break
+			}
 		}
 	}
 }
