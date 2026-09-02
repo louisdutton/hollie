@@ -5,6 +5,8 @@ import "core:math"
 import "input"
 
 PLAYER_INTERACT_RANGE :: 24 // the distance within which the player can interact with interable entities
+PLAYER_DROP_FALLBACK_DISTANCE :: 16
+PLAYER_DROP_GAP :: 2
 
 player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
 	entity_create_player(pos, index, player_animations[:])
@@ -35,8 +37,54 @@ player_handle_input :: proc(p: ^Player) {
 @(private)
 player_drop :: proc(p: ^Player) {
 	p.carrying.held_by = nil
-	p.carrying.position = p.position + Vec2{0, 16}
+	p.carrying.position = player_drop_position(
+		p.position,
+		p.facing_direction,
+		p.collider,
+		p.carrying.collider,
+	)
 	p.carrying = nil
+}
+
+player_drop_position :: proc(
+	position, facing_direction: Vec2,
+	player_collider, item_collider: Collider,
+) -> Vec2 {
+	length := math.sqrt(
+		facing_direction.x * facing_direction.x + facing_direction.y * facing_direction.y,
+	)
+	if length == 0 do return position
+
+	direction := facing_direction / length
+	distance := f32(1e9)
+	if direction.x > 0 {
+		distance = min(
+			distance,
+			(player_collider.offset.x + player_collider.size.x - item_collider.offset.x) /
+			direction.x,
+		)
+	} else if direction.x < 0 {
+		distance = min(
+			distance,
+			(player_collider.offset.x - item_collider.offset.x - item_collider.size.x) /
+			direction.x,
+		)
+	}
+	if direction.y > 0 {
+		distance = min(
+			distance,
+			(player_collider.offset.y + player_collider.size.y - item_collider.offset.y) /
+			direction.y,
+		)
+	} else if direction.y < 0 {
+		distance = min(
+			distance,
+			(player_collider.offset.y - item_collider.offset.y - item_collider.size.y) /
+			direction.y,
+		)
+	}
+	if distance == f32(1e9) do distance = PLAYER_DROP_FALLBACK_DISTANCE - PLAYER_DROP_GAP
+	return position + direction * (distance + PLAYER_DROP_GAP)
 }
 
 

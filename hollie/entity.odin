@@ -233,7 +233,7 @@ entity_create_npc :: proc(
 entity_create_holdable :: proc(pos: Vec2) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
-		collider = world_3d_crate_collider(false),
+		collider = world_3d_crate_collider(true),
 	}
 
 	append(&entities, holdable)
@@ -438,7 +438,7 @@ entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entit
 		switch e in entity {
 		case Player, Enemy, NPC, Pressure_Plate: is_solid = false
 		case Gate: is_solid = e.collider.solid && !e.open
-		case Holdable: is_solid = false // Holdables are never solid - players need to walk over them
+		case Holdable: is_solid = holdable_blocks_character(e)
 		case Door: is_solid = false // Doors are triggers, not solid barriers
 		}
 
@@ -450,6 +450,10 @@ entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entit
 		}
 	}
 	return false
+}
+
+holdable_blocks_character :: proc(holdable: Holdable) -> bool {
+	return holdable.collider.solid && holdable.held_by == nil
 }
 
 entity_check_collision_rect :: proc(entity: ^Entity, rect_pos: Vec2, rect_size: Vec2) -> bool {
