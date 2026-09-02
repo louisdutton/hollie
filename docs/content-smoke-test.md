@@ -10,6 +10,8 @@ Run this checklist after changing map loading, entity spawning, room transitions
 
 ## Small room
 
+- Confirm gameplay uses the fixed orthographic 3D view and the room has low walls around its non-rectangular floor.
+- Confirm the two-cell bottom doorway is open rather than blocked by an interior wall.
 - Start a one-player game and confirm the player appears beside the room's door.
 - Confirm the room title is `???` and ambient music plays.
 - Approach the NPC and confirm the three-page `Village NPC` dialogue opens, advances, and closes.
@@ -18,6 +20,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Olivewood
 
 - Confirm the room title is `Olivewood`.
+- Confirm the grid ground, shared character pawns, gameplay objects, and cottage render as 3D models.
 - Toggle the gameplay debug UI and confirm solid collision cells appear with a translucent red overlay, including the house footprint around its walkable doorway.
 - Confirm three enemies, two pressure plates, one gate, one holdable, and one door appear.
 - Pick up and drop the generic holdable.
@@ -34,6 +37,7 @@ Run this checklist after changing map loading, entity spawning, room transitions
 ## Editor persistence
 
 - In a debug build, press `F1` to enter the editor.
+- Confirm the editor switches to its direct 2D authoring view and returns to 3D when closed.
 - Paint and erase one base tile and one decoration tile.
 - Paint and erase one collision tile and confirm solid cells use the red overlay.
 - Place, inspect, and remove an entity marker.

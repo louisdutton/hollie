@@ -53,6 +53,7 @@ init_gameplay_screen :: proc() {
 	camera_init()
 	dialog_init()
 	entity_system_init()
+	world_3d_init()
 	particle_system_init()
 	shader_init()
 	when ODIN_DEBUG {
@@ -179,32 +180,20 @@ update_gameplay_screen :: proc() {
 }
 
 draw_gameplay_screen :: proc() {
-	// world
-	{
-		renderer.begin_mode_2d(camera)
-		defer renderer.end_mode_2d()
-
-		tilemap.draw(camera)
-
-		when ODIN_DEBUG {
-			if editor_is_active() {
+	when ODIN_DEBUG {
+		if editor_is_active() {
+			// The room editor intentionally keeps its direct orthographic 2D view.
+			renderer.begin_mode_2d(camera)
+			{
+				defer renderer.end_mode_2d()
+				tilemap.draw(camera)
 				editor_draw()
-			} else {
-				room_draw_puzzle_elements()
-				entity_system_draw()
-				particle_system_draw()
-
-				if gameplay_debug_ui_visible {
-					room_draw_collision_debug()
-					room_draw_doors_debug()
-					room_draw_puzzle_debug()
-				}
 			}
 		} else {
-			room_draw_puzzle_elements()
-			entity_system_draw()
-			particle_system_draw()
+			world_3d_draw(gameplay_debug_ui_visible)
 		}
+	} else {
+		world_3d_draw()
 	}
 
 	// ui
@@ -242,6 +231,7 @@ unload_gameplay_screen :: proc() {
 	gameplay_state.pending_room_id = nil
 	gameplay_state.current_room_id = ""
 	destroy_room_registry(&gameplay_room_registry)
+	world_3d_fini()
 	entity_system_fini()
 	particle_system_fini()
 }

@@ -1,0 +1,42 @@
+newmtl ground
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ../ground.png
+
+newmtl character
+Ka 0.180 0.230 0.250
+Kd 0.420 0.560 0.620
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+
+newmtl object
+Ka 0.240 0.180 0.100
+Kd 0.650 0.480 0.260
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+
+newmtl wall
+Ka 0.280 0.260 0.210
+Kd 0.720 0.680 0.550
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+
+newmtl roof
+Ka 0.150 0.180 0.100
+Kd 0.390 0.470 0.250
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+
+newmtl doorway
+Ka 0.030 0.040 0.040
+Kd 0.070 0.090 0.090
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
