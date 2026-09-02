@@ -48,9 +48,6 @@ void main()
 		shadow /= 9.0;
 	}
 	vec3 lighting = ambientColor + keyColor*keyAmount*(1.0 - shadow) + fillColor*fillAmount;
-	// Raylib's standard shadow-map example darkens the lit result before ambient is added.
-	// Preserve some environment light, but do not let it wash cast shadows away.
-	lighting *= mix(1.0, 0.42, shadow);
 	vec4 albedo = texture(texture0, fragTexCoord)*colDiffuse*fragColor;
 	vec3 linearAlbedo = pow(max(albedo.rgb, vec3(0.0)), vec3(2.2));
 	vec3 linearLitColor = linearAlbedo*lighting;
