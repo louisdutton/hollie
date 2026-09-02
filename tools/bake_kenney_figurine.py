@@ -96,6 +96,10 @@ def main():
     source_path, output_path = arguments()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Preserve the source duration but bake transforms at raylib's 60 Hz GLTF
+    # sampling rate, avoiding a second interpolation from a coarse 24 Hz bake.
+    bpy.context.scene.render.fps = 60
+
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     for collection in (bpy.data.actions, bpy.data.armatures, bpy.data.meshes):

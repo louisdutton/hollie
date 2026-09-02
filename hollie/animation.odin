@@ -23,6 +23,9 @@ Animator :: struct {
 	frame:         u32,
 	visual_time:   f32,
 	current_anim:  AnimationState,
+	previous_anim: AnimationState,
+	previous_time: f32,
+	blend_elapsed: f32,
 }
 
 animation_init :: proc(anim: ^Animator, animations: []Animation) {
@@ -36,11 +39,16 @@ animation_init :: proc(anim: ^Animator, animations: []Animation) {
 	anim.frame = 0
 	anim.visual_time = 0
 	anim.current_anim = .IDLE
+	anim.previous_anim = .IDLE
+	anim.previous_time = 0
+	anim.blend_elapsed = 1e9
 }
 
 animation_update :: proc(anim_data: ^Animator, delta_time: f32 = 1.0 / TARGET_FPS) {
 	anim_data.frame_counter += 1
 	anim_data.visual_time += delta_time
+	anim_data.previous_time += delta_time
+	anim_data.blend_elapsed += delta_time
 
 	if anim_data.frame_counter > INTERVAL {
 		anim_data.frame_counter = 0
@@ -54,6 +62,9 @@ animation_update :: proc(anim_data: ^Animator, delta_time: f32 = 1.0 / TARGET_FP
 animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
 	// detect state change
 	if anim_data.current_anim != state {
+		anim_data.previous_anim = anim_data.current_anim
+		anim_data.previous_time = anim_data.visual_time
+		anim_data.blend_elapsed = 0
 		anim_data.frame = 0
 		anim_data.frame_counter = 0
 		anim_data.visual_time = 0

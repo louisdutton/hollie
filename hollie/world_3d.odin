@@ -10,6 +10,7 @@ import rl "vendor:raylib"
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
 WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
+WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -344,6 +345,14 @@ world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
 	return math.to_degrees(math.atan2(direction.x, direction.y))
 }
 
+world_3d_clip_frame :: proc(visual_time: f32, clip: rl.ModelAnimation, loop: bool) -> f32 {
+	frame := visual_time * WORLD_3D_CHARACTER_CLIP_FPS
+	if !loop {
+		frame = min(frame, f32(max(clip.keyframeCount - 1, 0)))
+	}
+	return frame
+}
+
 world_3d_draw_character :: proc(
 	anim: ^Animator,
 	position, facing: Vec2,
@@ -357,8 +366,32 @@ world_3d_draw_character :: proc(
 	}
 	if clip_index >= 0 && state_index < len(anim.frame_counts) {
 		clip := world_3d_assets.character_animations[clip_index]
-		clip_frame := anim.visual_time * WORLD_3D_CHARACTER_CLIP_FPS
-		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
+		clip_frame := world_3d_clip_frame(anim.visual_time, clip, anim.current_anim != .DEATH)
+		previous_state_index := int(anim.previous_anim)
+		previous_clip_index := -1
+		if previous_state_index >= 0 &&
+		   previous_state_index < len(world_3d_assets.character_animation_indices) {
+			previous_clip_index = world_3d_assets.character_animation_indices[previous_state_index]
+		}
+		blend := min(anim.blend_elapsed / WORLD_3D_CHARACTER_BLEND_DURATION, 1)
+		if blend < 1 && previous_clip_index >= 0 {
+			previous_clip := world_3d_assets.character_animations[previous_clip_index]
+			previous_frame := world_3d_clip_frame(
+				anim.previous_time,
+				previous_clip,
+				anim.previous_anim != .DEATH,
+			)
+			rl.UpdateModelAnimationEx(
+				world_3d_assets.character,
+				previous_clip,
+				previous_frame,
+				clip,
+				clip_frame,
+				blend,
+			)
+		} else {
+			rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
+		}
 	}
 	flash := min(max(flash_amount, 0), 1)
 	rl.SetShaderValue(

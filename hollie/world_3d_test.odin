@@ -18,6 +18,13 @@ test_world_3d_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_world_3d_one_shot_clip_holds_its_final_frame :: proc(t: ^testing.T) {
+	clip := rl.ModelAnimation{keyframeCount = 21}
+	testing.expect_value(t, world_3d_clip_frame(1, clip, false), f32(20))
+	testing.expect_value(t, world_3d_clip_frame(1, clip, true), f32(60))
+}
+
+@(test)
 test_every_character_state_maps_to_a_native_kenney_clip :: proc(t: ^testing.T) {
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.IDLE)], "idle")
 	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.RUN)], "walk")
