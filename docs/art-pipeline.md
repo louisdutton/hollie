@@ -41,7 +41,7 @@ Standalone scenery images use map-defined world bounds and optional smooth filte
 
 Active world art lives under `res/art/prototype`. It is deliberately generic:
 
-- every player, NPC, and enemy uses the same anonymous character image;
+- every player, NPC, and enemy uses the same anonymous character animation strips while retaining its original states and frame counts;
 - all ground uses the same neutral texture and decoration tiles are empty;
 - carryable objects and puzzle elements share one generic object marker.
 

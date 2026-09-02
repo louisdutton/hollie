@@ -512,12 +512,7 @@ editor_cycle_room_name :: proc(room_name: ^string, direction: int) {
 }
 
 editor_cycle_door_name :: proc(door_name: ^string) {
-	door_names := []string {
-		"",
-		"main",
-		"from_small_room",
-		"to_small_room",
-	}
+	door_names := []string{"", "main", "from_small_room", "to_small_room"}
 
 	current_index := -1
 	for name, i in door_names {
