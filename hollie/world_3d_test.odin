@@ -12,9 +12,9 @@ test_world_3d_maps_gameplay_y_to_depth :: proc(t: ^testing.T) {
 
 @(test)
 test_world_3d_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
-	testing.expect(t, math.abs(world_3d_facing_angle({1, 0}) + 90) < 0.001)
-	testing.expect(t, math.abs(world_3d_facing_angle({-1, 0}) - 90) < 0.001)
-	testing.expect(t, math.abs(world_3d_facing_angle({0, -1})) < 0.001)
+	testing.expect(t, math.abs(world_3d_facing_angle({1, 0}) - 90) < 0.001)
+	testing.expect(t, math.abs(world_3d_facing_angle({-1, 0}) + 90) < 0.001)
+	testing.expect(t, math.abs(math.abs(world_3d_facing_angle({0, -1})) - 180) < 0.001)
 }
 
 @(test)

@@ -29,4 +29,6 @@ The secret room derives walls from its non-rectangular floor mask. Door collider
 
 Gameplay owns animation states and timing, while all visible character motion comes from native clips embedded in Kenney's rigged figurine. Idle, run, death, attack, and carry select `idle`, `walk`, `die`, `attack-melee-right`, and `holding-both`. The kit has no dedicated jump or roll clips, so both use its `sprint` clip as prototype fallbacks rather than procedural animation. Every character intentionally shares this model during prototyping. Players, enemies, and NPCs retain their last full movement vector and rotate around world `y` to face it, including vertical and diagonal directions; attacks lock facing to their attack vector.
 
+Visible clips play from elapsed time at 80% of their authored speed, independently of the legacy sprite-frame counters that still govern gameplay timing. The figurine's authored forward axis is world `+z`, so model rotation maps that axis onto movement and attack direction.
+
 Production models should replace these GLBs through the same model-loading and animation-selection path. There is no parallel sprite renderer to maintain.

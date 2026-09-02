@@ -730,6 +730,7 @@ entity_check_combat :: proc() {
 
 
 entity_update_animations :: proc() {
+	delta_time := rl.GetFrameTime()
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
@@ -747,7 +748,7 @@ entity_update_animations :: proc() {
 			} else {
 				animation_set_state(&e.anim_data, .IDLE)
 			}
-			animation_update(&e.anim_data)
+			animation_update(&e.anim_data, delta_time)
 
 		case Enemy:
 			if e.is_dying {
@@ -757,7 +758,7 @@ entity_update_animations :: proc() {
 			} else {
 				animation_set_state(&e.anim_data, .IDLE)
 			}
-			animation_update(&e.anim_data)
+			animation_update(&e.anim_data, delta_time)
 
 		case NPC:
 			if e.is_dying {
@@ -767,7 +768,7 @@ entity_update_animations :: proc() {
 			} else {
 				animation_set_state(&e.anim_data, .IDLE)
 			}
-			animation_update(&e.anim_data)
+			animation_update(&e.anim_data, delta_time)
 
 		case Pressure_Plate, Gate, Holdable, Door: // Static entities don't have animations
 				continue

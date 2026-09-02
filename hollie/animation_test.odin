@@ -15,9 +15,12 @@ test_animation_init_copies_logical_frame_counts :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_animation_frame_phase_includes_partial_frame_progress :: proc(t: ^testing.T) {
-	animator := Animator{frame = 4, frame_counter = 1}
-	testing.expect_value(t, animation_frame_phase(&animator), f32(4) + f32(1) / 3)
+test_animation_tracks_visual_elapsed_time :: proc(t: ^testing.T) {
+	animator := Animator{frame_counts = []int{9}}
+	animation_update(&animator, 0.125)
+	testing.expect_value(t, animator.visual_time, f32(0.125))
+	animation_set_state(&animator, .RUN)
+	testing.expect_value(t, animator.visual_time, f32(0))
 }
 
 @(test)

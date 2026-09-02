@@ -9,6 +9,8 @@ import rl "vendor:raylib"
 
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
+WORLD_3D_CHARACTER_CLIP_FPS :: f32(60)
+WORLD_3D_CHARACTER_PLAYBACK_RATE :: f32(0.8)
 WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"idle",
 	"walk",
@@ -340,7 +342,7 @@ world_3d_draw_house :: proc(position, size: Vec2) {
 }
 
 world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
-	return math.to_degrees(math.atan2(-direction.x, -direction.y))
+	return math.to_degrees(math.atan2(direction.x, direction.y))
 }
 
 world_3d_draw_character :: proc(
@@ -356,9 +358,8 @@ world_3d_draw_character :: proc(
 	}
 	if clip_index >= 0 && state_index < len(anim.frame_counts) {
 		clip := world_3d_assets.character_animations[clip_index]
-		logic_frame_count := max(anim.frame_counts[state_index], 1)
-		clip_frame := animation_frame_phase(anim) /
-			f32(logic_frame_count) * f32(clip.keyframeCount)
+		clip_frame := anim.visual_time *
+			WORLD_3D_CHARACTER_CLIP_FPS * WORLD_3D_CHARACTER_PLAYBACK_RATE
 		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
 	}
 	flash := min(max(flash_amount, 0), 1)

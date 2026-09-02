@@ -21,6 +21,7 @@ Animator :: struct {
 	frame_counts:  []int,
 	frame_counter: u32,
 	frame:         u32,
+	visual_time:   f32,
 	current_anim:  AnimationState,
 }
 
@@ -33,11 +34,13 @@ animation_init :: proc(anim: ^Animator, animations: []Animation) {
 
 	anim.frame_counter = 0
 	anim.frame = 0
+	anim.visual_time = 0
 	anim.current_anim = .IDLE
 }
 
-animation_update :: proc(anim_data: ^Animator) {
+animation_update :: proc(anim_data: ^Animator, delta_time: f32 = 1.0 / TARGET_FPS) {
 	anim_data.frame_counter += 1
+	anim_data.visual_time += delta_time
 
 	if anim_data.frame_counter > INTERVAL {
 		anim_data.frame_counter = 0
@@ -48,17 +51,12 @@ animation_update :: proc(anim_data: ^Animator) {
 	}
 }
 
-// The legacy gameplay frame remains discrete, but rendering can interpolate the
-// time accumulated toward the next frame instead of visibly stepping at 20 Hz.
-animation_frame_phase :: proc(anim_data: ^Animator) -> f32 {
-	return f32(anim_data.frame) + f32(anim_data.frame_counter) / f32(INTERVAL + 1)
-}
-
 animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
 	// detect state change
 	if anim_data.current_anim != state {
 		anim_data.frame = 0
 		anim_data.frame_counter = 0
+		anim_data.visual_time = 0
 	}
 
 	anim_data.current_anim = state
