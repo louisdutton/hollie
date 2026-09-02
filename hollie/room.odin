@@ -39,7 +39,8 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 
 @(private = "file")
 room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
-	player_size := Vec2{16, 16}
+	player_collider := world_3d_character_collider(true)
+	player_size := player_collider.size
 	door_center := door.position + door.collider.size / 2
 	candidates := [5]Vec2 {
 		{door_center.x, door.position.y + door.collider.size.y + player_size.y},
@@ -50,12 +51,7 @@ room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 	}
 
 	for candidate in candidates {
-		rect := renderer.Rect {
-			x      = candidate.x - player_size.x / 2,
-			y      = candidate.y - player_size.y / 2,
-			width  = player_size.x,
-			height = player_size.y,
-		}
+		rect := collider_rect_at(candidate, player_collider)
 		if !tilemap.check_collision(rect) do return candidate
 	}
 
@@ -107,7 +103,7 @@ when ODIN_DEBUG {
 
 			is_intersection := false
 			for player in players {
-				player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
+				player_rect := collider_rect_at(player.position, player.collider)
 				if rects_intersect(door_rect, player_rect) {
 					is_intersection = true
 					break

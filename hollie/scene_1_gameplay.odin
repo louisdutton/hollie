@@ -130,7 +130,7 @@ update_gameplay_screen :: proc() {
 
 			all_players_clear := true
 			for player in players {
-				if entity_check_door_collision(player.position) != nil {
+				if entity_check_door_collision(player) != nil {
 					all_players_clear = false
 					break
 				}
@@ -147,7 +147,7 @@ update_gameplay_screen :: proc() {
 			defer delete(players)
 
 			for player in players {
-				door := entity_check_door_collision(player.position)
+				door := entity_check_door_collision(player)
 				if door != nil {
 					target_room, found := room_registry_find(
 						&gameplay_room_registry,

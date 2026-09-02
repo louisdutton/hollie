@@ -24,14 +24,8 @@ entity_update_puzzle_logic :: proc() {
 
 		// Check if any player is standing on the plate
 		for player in players {
-			player_rect := renderer.Rect{player.position.x - 8, player.position.y - 8, 16, 16}
-			plate_pos := plate.position + plate.collider.offset
-			plate_rect := renderer.Rect {
-				plate_pos.x,
-				plate_pos.y,
-				plate.collider.size.x,
-				plate.collider.size.y,
-			}
+			player_rect := collider_rect_at(player.position, player.collider)
+			plate_rect := collider_rect_at(plate.position, plate.collider)
 
 			if rects_intersect(player_rect, plate_rect) {
 				plate.activated_by += {player.index}

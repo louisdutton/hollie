@@ -10,6 +10,9 @@ import "window"
 
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
+WORLD_3D_PRESSURE_PAD_SCALE :: f32(32)
+WORLD_3D_GATE_HEIGHT :: f32(18)
+WORLD_3D_CARRIED_ITEM_HEIGHT :: f32(20)
 WORLD_3D_CHARACTER_BLEND_DURATION :: f32(0.12)
 WORLD_3D_LABEL_TEXT_SIZE :: 12
 WORLD_3D_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
@@ -53,6 +56,9 @@ World_3D_Assets :: struct {
 	pressure_pad_animations:        [^]rl.ModelAnimation,
 	pressure_pad_animation_count:   c.int,
 	pressure_pad_animation_indices: [2]int,
+	character_bounds:               rl.BoundingBox,
+	crate_bounds:                   rl.BoundingBox,
+	pressure_pad_bounds:            rl.BoundingBox,
 }
 
 world_3d_assets: World_3D_Assets
@@ -101,6 +107,9 @@ world_3d_init :: proc() {
 	world_3d_assets.wall = world_3d_load_model(root + "wall.glb")
 	world_3d_assets.doorway_wall = world_3d_load_model(root + "wall-doorway-wide.glb")
 	world_3d_assets.door_indicator = world_3d_load_model(root + "indicator-doorway.glb")
+	world_3d_assets.character_bounds = rl.GetModelBoundingBox(world_3d_assets.character)
+	world_3d_assets.crate_bounds = rl.GetModelBoundingBox(world_3d_assets.crate)
+	world_3d_assets.pressure_pad_bounds = rl.GetModelBoundingBox(world_3d_assets.pressure_pad)
 	vertex_shader_path := asset.path("shaders/world_lighting.vs")
 	defer delete(vertex_shader_path)
 	skinned_vertex_shader_path := asset.path("shaders/world_lighting_skinned.vs")
@@ -205,6 +214,66 @@ world_3d_fini :: proc() {
 
 world_3d_position :: proc(position: Vec2, height: f32 = 0) -> rl.Vector3 {
 	return {position.x, height, position.y}
+}
+
+world_3d_collider_from_bounds :: proc(
+	bounds: rl.BoundingBox,
+	scale: f32,
+	rotation_invariant: bool,
+	solid: bool,
+) -> Collider {
+	min_x := bounds.min.x * scale
+	max_x := bounds.max.x * scale
+	min_z := bounds.min.z * scale
+	max_z := bounds.max.z * scale
+	if rotation_invariant {
+		radius := max(max(abs(min_x), abs(max_x)), max(abs(min_z), abs(max_z)))
+		min_x, max_x = -radius, radius
+		min_z, max_z = -radius, radius
+	}
+	return {
+		size = {max_x - min_x, max_z - min_z},
+		offset = {min_x, min_z},
+		height = (bounds.max.y - bounds.min.y) * scale,
+		vertical_offset = bounds.min.y * scale,
+		solid = solid,
+	}
+}
+
+world_3d_character_collider :: proc(solid: bool) -> Collider {
+	return world_3d_collider_from_bounds(
+		world_3d_assets.character_bounds,
+		WORLD_3D_CHARACTER_SCALE,
+		true,
+		solid,
+	)
+}
+
+world_3d_crate_collider :: proc(solid: bool) -> Collider {
+	return world_3d_collider_from_bounds(
+		world_3d_assets.crate_bounds,
+		WORLD_3D_CRATE_SCALE,
+		false,
+		solid,
+	)
+}
+
+world_3d_pressure_pad_collider :: proc(solid: bool) -> Collider {
+	return world_3d_collider_from_bounds(
+		world_3d_assets.pressure_pad_bounds,
+		WORLD_3D_PRESSURE_PAD_SCALE,
+		false,
+		solid,
+	)
+}
+
+world_3d_grounded_position :: proc(
+	position: Vec2,
+	bounds: rl.BoundingBox,
+	scale: f32,
+	base_height: f32 = 0,
+) -> rl.Vector3 {
+	return world_3d_position(position, base_height - bounds.min.y * scale)
 }
 
 world_3d_camera :: proc() -> rl.Camera3D {
@@ -443,7 +512,11 @@ world_3d_draw_character :: proc(
 	)
 	rl.DrawModelEx(
 		world_3d_assets.character,
-		world_3d_position(position),
+		world_3d_grounded_position(
+			position,
+			world_3d_assets.character_bounds,
+			WORLD_3D_CHARACTER_SCALE,
+		),
 		{0, 1, 0},
 		world_3d_facing_angle(facing),
 		{WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE},
@@ -490,13 +563,18 @@ world_3d_draw_entities :: proc() {
 				e.hit_flash_timer / 0.2,
 			)
 		case Holdable:
-			position := world_3d_position(e.position)
+			base_height: f32 = 0
 			if e.held_by != nil {
-				position = world_3d_position(e.held_by.position, 20)
+				base_height = WORLD_3D_CARRIED_ITEM_HEIGHT
 			}
 			rl.DrawModelEx(
 				world_3d_assets.crate,
-				position,
+				world_3d_grounded_position(
+					e.held_by != nil ? e.held_by.position : e.position,
+					world_3d_assets.crate_bounds,
+					WORLD_3D_CRATE_SCALE,
+					base_height,
+				),
 				{0, 1, 0},
 				0,
 				{WORLD_3D_CRATE_SCALE, WORLD_3D_CRATE_SCALE, WORLD_3D_CRATE_SCALE},
@@ -510,13 +588,20 @@ world_3d_draw_entities :: proc() {
 				clip_frame := world_3d_clip_frame(e.animation_time, clip, .ONCE_HOLD)
 				rl.UpdateModelAnimation(world_3d_assets.pressure_pad, clip, clip_frame)
 			}
-			pad_scale := e.collider.size.x
 			rl.DrawModelEx(
 				world_3d_assets.pressure_pad,
-				world_3d_position(e.position),
+				world_3d_grounded_position(
+					e.position,
+					world_3d_assets.pressure_pad_bounds,
+					WORLD_3D_PRESSURE_PAD_SCALE,
+				),
 				{0, 1, 0},
 				0,
-				{pad_scale, pad_scale, pad_scale},
+				{
+					WORLD_3D_PRESSURE_PAD_SCALE,
+					WORLD_3D_PRESSURE_PAD_SCALE,
+					WORLD_3D_PRESSURE_PAD_SCALE,
+				},
 				rl.WHITE,
 			)
 		case Gate:
@@ -533,7 +618,7 @@ world_3d_draw_entities :: proc() {
 						},
 						{0, 1, 0},
 						0,
-						{block_size, 18, block_size},
+						{block_size, WORLD_3D_GATE_HEIGHT, block_size},
 						rl.Color{120, 130, 136, 255},
 					)
 				}
@@ -666,12 +751,13 @@ when ODIN_DEBUG {
 			case Holdable: color = rl.YELLOW
 			case Door: color = rl.PURPLE
 			}
+			height := max(entity_get_collider_height(&entity), 0.25)
 			center := rl.Vector3 {
 				collider_pos.x + collider_size.x / 2,
-				1,
+				entity_get_collider_vertical_offset(&entity) + height / 2 + 0.01,
 				collider_pos.y + collider_size.y / 2,
 			}
-			rl.DrawCubeWiresV(center, {collider_size.x, 2, collider_size.y}, color)
+			rl.DrawCubeWiresV(center, {collider_size.x, height, collider_size.y}, color)
 		}
 	}
 

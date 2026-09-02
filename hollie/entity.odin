@@ -15,9 +15,11 @@ Transform :: struct {
 }
 
 Collider :: struct {
-	size:   Vec2,
-	offset: Vec2, // Offset from transform position
-	solid:  bool,
+	size:            Vec2,
+	offset:          Vec2, // Planar offset from transform position
+	height:          f32,
+	vertical_offset: f32,
+	solid:           bool,
 }
 
 Health :: struct {
@@ -145,7 +147,7 @@ entity_create_player :: proc(
 ) -> ^Player {
 	player := Player {
 		transform = {position = pos},
-		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
+		collider = world_3d_character_collider(true),
 		health = {current = 100, max = 100, is_dying = false},
 		movement = {move_speed = 80, roll_speed = 160, facing_direction = {1, 0}},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
@@ -163,7 +165,7 @@ entity_create_player :: proc(
 entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = pos},
-		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
+		collider = world_3d_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 50, roll_speed = 100, facing_direction = {1, 0}},
 		combat = {damage = 15, range = 24, attack_width = 24, attack_height = 24},
@@ -184,7 +186,7 @@ entity_create_pressure_plate :: proc(
 ) -> ^Pressure_Plate {
 	plate := Pressure_Plate {
 		transform = {position = pos},
-		collider = {size = {32, 32}, offset = {-16, -16}, solid = false},
+		collider = world_3d_pressure_pad_collider(false),
 		trigger_id = trigger_id,
 		requires_both = requires_both,
 		animation_time = 1e9,
@@ -197,7 +199,7 @@ entity_create_pressure_plate :: proc(
 entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
 	gate := Gate {
 		transform = {position = pos},
-		collider = {size = size, solid = true},
+		collider = {size = size, height = WORLD_3D_GATE_HEIGHT, solid = true},
 		gate_id = gate_id,
 		required_triggers = make([dynamic]int),
 		inverted = inverted,
@@ -214,7 +216,7 @@ entity_create_npc :: proc(
 ) -> ^NPC {
 	npc := NPC {
 		transform = {position = pos},
-		collider = {size = {16, 16}, offset = {-8, -8}, solid = true},
+		collider = world_3d_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 30, facing_direction = {1, 0}},
 		dialog_messages = dialog_messages,
@@ -231,7 +233,7 @@ entity_create_npc :: proc(
 entity_create_holdable :: proc(pos: Vec2) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
-		collider = {size = {16, 16}, offset = {-8, -8}},
+		collider = world_3d_crate_collider(false),
 	}
 
 	append(&entities, holdable)
@@ -315,7 +317,7 @@ entity_get_doors :: proc() -> [dynamic]^Door {
 	return doors
 }
 
-entity_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
+entity_check_door_collision :: proc(player: ^Player) -> ^Door {
 	doors := entity_get_doors()
 	defer delete(doors)
 
@@ -324,7 +326,7 @@ entity_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
 		door_pos := entity_get_world_collider_pos(&door_entity)
 		door_size := entity_get_collider_size(&door_entity)
 
-		player_rect := renderer.Rect{player_pos.x - 8, player_pos.y - 8, 16, 16}
+		player_rect := collider_rect_at(player.position, player.collider)
 		door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
 		if rects_intersect(player_rect, door_rect) {
@@ -336,6 +338,15 @@ entity_check_door_collision :: proc(player_pos: Vec2) -> ^Door {
 
 
 // Collision helpers
+collider_rect_at :: proc(position: Vec2, collider: Collider) -> renderer.Rect {
+	return {
+		position.x + collider.offset.x,
+		position.y + collider.offset.y,
+		collider.size.x,
+		collider.size.y,
+	}
+}
+
 entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	switch e in entity {
 	case Player: return e.position + e.collider.offset
@@ -343,7 +354,10 @@ entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	case NPC: return e.position + e.collider.offset
 	case Pressure_Plate: return e.position + e.collider.offset
 	case Gate: return e.position + e.collider.offset
-	case Holdable: return e.position + e.collider.offset
+	case Holdable:
+		position := e.position
+		if e.held_by != nil do position = e.held_by.position
+		return position + e.collider.offset
 	case Door: return e.position + e.collider.offset
 	}
 	return {0, 0}
@@ -360,6 +374,34 @@ entity_get_collider_size :: proc(entity: ^Entity) -> Vec2 {
 	case Door: return e.collider.size
 	}
 	return {0, 0}
+}
+
+entity_get_collider_height :: proc(entity: ^Entity) -> f32 {
+	switch e in entity {
+	case Player: return e.collider.height
+	case Enemy: return e.collider.height
+	case NPC: return e.collider.height
+	case Pressure_Plate: return e.collider.height
+	case Gate: return e.collider.height
+	case Holdable: return e.collider.height
+	case Door: return e.collider.height
+	}
+	return 0
+}
+
+entity_get_collider_vertical_offset :: proc(entity: ^Entity) -> f32 {
+	switch e in entity {
+	case Player: return e.collider.vertical_offset
+	case Enemy: return e.collider.vertical_offset
+	case NPC: return e.collider.vertical_offset
+	case Pressure_Plate: return e.collider.vertical_offset
+	case Gate: return e.collider.vertical_offset
+	case Holdable:
+		base_height := e.held_by != nil ? WORLD_3D_CARRIED_ITEM_HEIGHT : f32(0)
+		return e.collider.vertical_offset + base_height
+	case Door: return e.collider.vertical_offset
+	}
+	return 0
 }
 
 entity_check_collision :: proc(a, b: ^Entity) -> bool {
@@ -619,12 +661,7 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 
 	// Try X movement
 	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	test_rect_x := renderer.Rect {
-		x      = test_pos_x.x - collider.size.x / 2,
-		y      = test_pos_x.y - collider.size.y / 2,
-		width  = collider.size.x,
-		height = collider.size.y,
-	}
+	test_rect_x := collider_rect_at(test_pos_x, collider^)
 	if !entity_check_solid_collision(test_pos_x, collider.size, moving_entity) &&
 	   !tilemap.check_collision(test_rect_x) {
 		final_pos.x = next_pos.x
@@ -632,12 +669,7 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 
 	// Try Y movement
 	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	test_rect_y := renderer.Rect {
-		x      = test_pos_y.x - collider.size.x / 2,
-		y      = test_pos_y.y - collider.size.y / 2,
-		width  = collider.size.x,
-		height = collider.size.y,
-	}
+	test_rect_y := collider_rect_at(test_pos_y, collider^)
 	if !entity_check_solid_collision(test_pos_y, collider.size, moving_entity) &&
 	   !tilemap.check_collision(test_rect_y) {
 		final_pos.y = next_pos.y
@@ -682,12 +714,7 @@ entity_check_combat :: proc() {
 				case Enemy:
 					if t.is_dying do continue
 
-					target_rect := rl.Rectangle {
-						t.position.x - t.collider.size.x / 2,
-						t.position.y - t.collider.size.y / 2,
-						t.collider.size.x,
-						t.collider.size.y,
-					}
+					target_rect := collider_rect_at(t.position, t.collider)
 
 					// Check if attack hits target
 					if rl.CheckCollisionRecs(attack_rect, target_rect) {

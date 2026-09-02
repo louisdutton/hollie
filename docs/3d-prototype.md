@@ -2,6 +2,8 @@
 
 Hollie has one world implementation: a two-dimensional gameplay simulation rendered as a 3D scene. Gameplay `x/y` maps to world `x/z`, while model height uses world `y`. Collision maps, AI, combat, doors, and room transitions remain planar by design.
 
+Entity collision remains box-based. Character, pickup, and pressure-pad footprints, offsets, and debug heights are derived from their loaded GLB bounds at the same scale used for drawing; character footprints use a rotation-invariant square so facing changes do not change collision. Models are grounded from their lower mesh bound. Gates and doors retain their authored gameplay dimensions because their meshes are assembled or scaled to those map-defined areas.
+
 Both gameplay and the debug editor use the same fixed orthographic 3D view. The editor overlays collision cells, entity markers, and its cursor in that scene.
 
 All world models use directional lighting with restrained ambient, warm key, and cool fill contributions. Lighting is implemented in file-backed GLSL shaders under `res/shaders`. Characters automatically select the CPU- or GPU-skinning-compatible vertex path used by the active raylib build. Both paths share one fragment-lighting model, including the pure-white damage-flash blend.
