@@ -515,9 +515,7 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 	door_names := []string {
 		"",
 		"main",
-		"from_desert",
 		"from_small_room",
-		"to_desert",
 		"to_small_room",
 	}
 

@@ -56,13 +56,13 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 			position: {x: 16, y: 0},
 		},
 		{
-			id: 'to_desert',
+			id: 'to_other_room',
 			type: 'door',
 			position: {x: 0, y: 0},
 			properties: {
 				size: {width: 32, height: 64},
-				target_room_id: 'desert',
-				target_door_id: 'from_olivewood',
+				target_room_id: 'other_room',
+				target_door_id: 'from_test_room',
 			},
 		},
 		{
@@ -156,8 +156,8 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	testing.expect(t, door_ok, "door properties should be typed")
 	if door_ok {
 		testing.expect_value(t, door.size, Room_File_Size{width = 32, height = 64})
-		testing.expect_value(t, door.target_room_id, "desert")
-		testing.expect_value(t, door.target_door_id, "from_olivewood")
+		testing.expect_value(t, door.target_room_id, "other_room")
+		testing.expect_value(t, door.target_door_id, "from_test_room")
 	}
 
 	plate, plate_ok := room.entities[5].properties.(Room_File_Pressure_Plate)

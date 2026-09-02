@@ -1117,22 +1117,6 @@
       }
     },
     {
-      "id": "to_desert",
-      "type": "door",
-      "position": {
-        "x": 288,
-        "y": 96
-      },
-      "properties": {
-        "size": {
-          "height": 64,
-          "width": 32
-        },
-        "target_door_id": "from_desert",
-        "target_room_id": "desert"
-      }
-    },
-    {
       "id": "to_small_room",
       "type": "door",
       "position": {

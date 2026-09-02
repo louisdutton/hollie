@@ -1,9 +1,9 @@
 # Content smoke test
 
-Run the game with:
+Codex must never run the game. Developers can use this checklist during a manually started session. For automated verification, run:
 
 ```sh
-devenv tasks run hollie:run
+devenv tasks run hollie:verify
 ```
 
 Run this checklist after changing map loading, entity spawning, room transitions, or editor persistence.
@@ -19,17 +19,10 @@ Run this checklist after changing map loading, entity spawning, room transitions
 
 - Confirm the room title is `Olivewood`.
 - Toggle the gameplay debug UI and confirm solid collision cells appear with a translucent red overlay, including the house footprint around its walkable doorway.
-- Confirm three goblin enemies, two pressure plates, one gate, one wood holdable, and two doors appear.
-- Pick up and drop the wood holdable.
+- Confirm three enemies, two pressure plates, one gate, one holdable, and one door appear.
+- Pick up and drop the generic holdable.
 - Activate pressure plates 1 and 2 and confirm the gate opens only while both required triggers are active.
 - Enter the cottage through its centered south-facing door and confirm it transitions to the small room at the matching door marker.
-- Return to Olivewood, use the right door, and confirm it transitions to the Desert at the matching door marker.
-
-## Desert
-
-- Confirm the room title is `Blisterwind`.
-- Confirm five enemies spawn. They currently use the goblin archetype; selecting skeletons from content data is later roadmap work.
-- Use the room's door and confirm it returns to Olivewood at the matching door marker.
 
 ## Two-player pass
 

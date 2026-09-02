@@ -185,7 +185,6 @@ The target workflow is:
 ### Convert existing content
 
 - [x] Reuse the existing goblin, skeleton, and human enum values for enemy definitions.
-- [x] Make the Desert enemy markers actually select skeletons through map data.
 - [x] Define the existing human NPC and wood holdable once in Odin without redundant room identifiers.
 - [x] Remove the runtime default that silently turns all enemies into goblins.
 - [x] Remove the temporary `wood` texture switch from `room.odin` in favor of the single code-owned holdable definition.
