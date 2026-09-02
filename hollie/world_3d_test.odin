@@ -18,18 +18,20 @@ test_world_3d_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_world_3d_pose_uses_existing_animation_frames :: proc(t: ^testing.T) {
-	frame_counts := []int{9, 8, 10, 13, 10, 10, 8}
-	anim := Animator {
-		frame_counts = frame_counts,
-		frame        = 4,
-		current_anim = .JUMP,
-	}
-	jump_pose := world_3d_character_pose(&anim)
-	testing.expect_value(t, jump_pose.height, f32(13))
-
-	anim.current_anim = .ROLL
-	anim.frame = 5
-	roll_pose := world_3d_character_pose(&anim)
-	testing.expect_value(t, roll_pose.angle, f32(180))
+test_every_character_state_maps_to_a_native_kenney_clip :: proc(t: ^testing.T) {
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.IDLE)], "idle")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.RUN)], "walk")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.JUMP)], "sprint")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.DEATH)], "die")
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.ATTACK)],
+		"attack-melee-right",
+	)
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.ROLL)], "sprint")
+	testing.expect_value(
+		t,
+		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.CARRY)],
+		"holding-both",
+	)
 }

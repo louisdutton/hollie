@@ -9,6 +9,15 @@ import rl "vendor:raylib"
 
 WORLD_3D_CHARACTER_SCALE :: f32(32)
 WORLD_3D_CRATE_SCALE :: f32(24)
+WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
+	"idle",
+	"walk",
+	"sprint",
+	"die",
+	"attack-melee-right",
+	"sprint",
+	"holding-both",
+}
 
 World_3D_Assets :: struct {
 	lighting_shader:             rl.Shader,
@@ -90,25 +99,19 @@ world_3d_init :: proc() {
 		cstring(raw_data(path)),
 		&world_3d_assets.character_animation_count,
 	)
-	clip_names := [7]string {
-		"idle",
-		"walk",
-		"walk",
-		"die",
-		"attack-melee-right",
-		"die",
-		"holding-both",
-	}
 	for animation_index in 0 ..< int(world_3d_assets.character_animation_count) {
 		animation_name := string(
 			cstring(&world_3d_assets.character_animations[animation_index].name[0]),
 		)
-		for clip_name, state_index in clip_names {
+		for clip_name, state_index in WORLD_3D_CHARACTER_CLIP_NAMES {
 			if animation_name == clip_name &&
 			   world_3d_assets.character_animation_indices[state_index] == -1 {
 				world_3d_assets.character_animation_indices[state_index] = animation_index
 			}
 		}
+	}
+	for clip_index in world_3d_assets.character_animation_indices {
+		assert(clip_index >= 0, "Kenney figurine is missing a required native animation clip")
 	}
 }
 
@@ -309,65 +312,11 @@ world_3d_draw_house :: proc(position, size: Vec2) {
 	)
 }
 
-World_3D_Character_Pose :: struct {
-	height: f32,
-	angle:  f32,
-	axis:   rl.Vector3,
-	scale:  rl.Vector3,
-}
-
-world_3d_character_pose :: proc(anim: ^Animator) -> World_3D_Character_Pose {
-	pose := World_3D_Character_Pose {
-		axis  = {0, 1, 0},
-		scale = {1, 1, 1},
-	}
-	frame := int(anim.frame)
-	state_index := int(anim.current_anim)
-	frame_count := 1
-	if state_index >= 0 && state_index < len(anim.frame_counts) {
-		frame_count = max(anim.frame_counts[state_index], 1)
-	}
-	progress := f32(frame) / f32(frame_count)
-
-	switch anim.current_anim {
-	case .IDLE:
-		idle_curve := [4]i32{0, 1, 2, 1}
-		pose.height = f32(idle_curve[frame % 4]) * 0.25
-	case .RUN:
-		run_curve := [4]i32{0, 2, 0, 1}
-		pose.height = f32(run_curve[frame % 4]) * 0.75
-		pose.angle = frame % 2 == 0 ? -4 : 4
-		pose.axis = {0, 0, 1}
-	case .JUMP:
-		jump_curve := [10]f32{0, 2, 6, 10, 13, 10, 7, 3, 1, 0}
-		pose.height = jump_curve[min(frame, len(jump_curve) - 1)]
-	case .DEATH:
-		pose.angle = progress * 90
-		pose.axis = {0, 0, 1}
-	case .ATTACK:
-		attack_curve := [10]i32{0, -4, -9, -14, -8, 0, 7, 3, 0, 0}
-		pose.angle = f32(attack_curve[frame % 10])
-		pose.axis = {0, 0, 1}
-		pose.scale.x = frame >= 2 && frame <= 6 ? 1.18 : 1
-	case .ROLL:
-		pose.angle = progress * 360
-		pose.axis = {0, 0, 1}
-		pose.height = 2
-	case .CARRY:
-		carry_curve := [4]i32{0, 1, 2, 1}
-		pose.height = f32(carry_curve[frame % 4]) * 0.5
-	}
-
-	return pose
-}
-
 world_3d_facing_angle :: proc(direction: Vec2) -> f32 {
 	return math.to_degrees(math.atan2(-direction.x, -direction.y))
 }
 
 world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: rl.Color) {
-	pose := world_3d_character_pose(anim)
-	scale := pose.scale * WORLD_3D_CHARACTER_SCALE
 	state_index := int(anim.current_anim)
 	clip_index := world_3d_assets.character_animation_indices[state_index]
 	if clip_index >= 0 {
@@ -376,18 +325,12 @@ world_3d_draw_character :: proc(anim: ^Animator, position, facing: Vec2, tint: r
 		clip_frame := f32(anim.frame) / f32(logic_frame_count) * f32(clip.keyframeCount)
 		rl.UpdateModelAnimation(world_3d_assets.character, clip, clip_frame)
 	}
-	angle := pose.angle
-	axis := pose.axis
-	if anim.current_anim != .ROLL {
-		angle = world_3d_facing_angle(facing)
-		axis = {0, 1, 0}
-	}
 	rl.DrawModelEx(
 		world_3d_assets.character,
-		world_3d_position(position, pose.height),
-		axis,
-		angle,
-		scale,
+		world_3d_position(position),
+		{0, 1, 0},
+		world_3d_facing_angle(facing),
+		{WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE, WORLD_3D_CHARACTER_SCALE},
 		tint,
 	)
 }

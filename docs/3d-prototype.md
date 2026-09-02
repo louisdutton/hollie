@@ -22,6 +22,6 @@ The secret room derives walls from its non-rectangular floor mask. Door collider
 
 ## Animation
 
-Gameplay owns animation states and timing. Those states select native clips embedded in Kenney's rigged figurine (`idle`, `walk`, `die`, `attack-melee-right`, and `holding-both`). Jump and roll retain gameplay-driven motion on top of the model animation. Every character intentionally shares this model during prototyping. Players, enemies, and NPCs retain their last full movement vector and rotate around world `y` to face it, including vertical and diagonal directions; attacks lock facing to their attack vector.
+Gameplay owns animation states and timing, while all visible character motion comes from native clips embedded in Kenney's rigged figurine. Idle, run, death, attack, and carry select `idle`, `walk`, `die`, `attack-melee-right`, and `holding-both`. The kit has no dedicated jump or roll clips, so both use its `sprint` clip as prototype fallbacks rather than procedural animation. Every character intentionally shares this model during prototyping. Players, enemies, and NPCs retain their last full movement vector and rotate around world `y` to face it, including vertical and diagonal directions; attacks lock facing to their attack vector.
 
 Production models should replace these GLBs through the same model-loading and animation-selection path. There is no parallel sprite renderer to maintain.
