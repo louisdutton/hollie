@@ -59,6 +59,7 @@ entity_update_puzzle_logic :: proc() {
 
 		if plate.active != was_active {
 			plate.animation_time = 0
+			audio.sound_play(game.sounds["pressure_plate_toggle"])
 		} else {
 			plate.animation_time += delta_time
 		}
@@ -91,11 +92,6 @@ entity_update_puzzle_logic :: proc() {
 
 		// Apply inverted logic if needed
 		new_open_state := gate.inverted ? !all_triggers_active : all_triggers_active
-
-		// Play sound effect when gate state changes
-		if new_open_state != gate.open {
-			audio.sound_play(game.sounds["gate_close"])
-		}
 
 		gate.open = new_open_state
 	}
