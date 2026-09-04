@@ -174,8 +174,7 @@ tilemap_to_room_file :: proc(
 
 	room.entities = make([]Room_File_Entity, len(tm.entities), allocator)
 	for entity, entity_index in tm.entities {
-		if int(entity.entity_type) < int(EntityType.Player) ||
-		   int(entity.entity_type) > int(EntityType.Door) {
+		if !entity_type_is_valid(entity.entity_type) {
 			destroy_room_file(&room, allocator)
 			return {}, {kind = .invalid_entity_type, entity_index = entity_index}
 		}

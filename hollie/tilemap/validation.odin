@@ -405,8 +405,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 	}
 
 	for entity, entity_index in tm.entities {
-		entity_type := int(entity.entity_type)
-		if entity_type < int(EntityType.Player) || entity_type > int(EntityType.Door) {
+		if !entity_type_is_valid(entity.entity_type) {
 			validation_add_error(&errors, "entity type is invalid", entity_index)
 			continue
 		}

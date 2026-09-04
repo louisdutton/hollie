@@ -17,52 +17,50 @@ Sound_Kind :: enum {
 	ButtonPress,
 }
 
-SOUND_KIND_COUNT :: 10
-
 Sound :: struct {
 	sounds:          []rl.Sound,
 	volume:          f32,
 	pitch_variation: f32,
 }
 
-Sound_Collection :: [SOUND_KIND_COUNT]Sound
+Sound_Collection :: [Sound_Kind]Sound
 
 sound_init :: proc() -> Sound_Collection {
 	sounds: Sound_Collection
 
-	sounds[int(Sound_Kind.GruntRoll)] = _sound_init(
+	sounds[.GruntRoll] = _sound_init(
 		{
 			"audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
 			"audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
 		},
 	)
-	sounds[int(Sound_Kind.GruntAttack)] = _sound_init(
+	sounds[.GruntAttack] = _sound_init(
 		{"audio/fx/combat/whoosh-short-light.wav", "audio/fx/impact/whoosh-arm-swing-01-wide.wav"},
 	)
-	sounds[int(Sound_Kind.AttackHit)] = _sound_init(
+	sounds[.AttackHit] = _sound_init(
 		{
 			"audio/fx/impact/punch-percussive-heavy-08.wav",
 			"audio/fx/impact/punch-percussive-heavy-09.wav",
 		},
 	)
-	sounds[int(Sound_Kind.EnemyHit)] = _sound_init({"audio/fx/impact/punch-squelch-heavy-05.wav"})
-	sounds[int(Sound_Kind.EnemyDeath)] = _sound_init({"audio/fx/impact/waterplosion.wav"})
-	sounds[int(Sound_Kind.GateOpen)] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
-	sounds[int(Sound_Kind.PressurePlateToggle)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
-	sounds[int(Sound_Kind.SwitchOn)] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
-	sounds[int(Sound_Kind.SwitchOff)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
-	sounds[int(Sound_Kind.ButtonPress)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.EnemyHit] = _sound_init({"audio/fx/impact/punch-squelch-heavy-05.wav"})
+	sounds[.EnemyDeath] = _sound_init({"audio/fx/impact/waterplosion.wav"})
+	sounds[.GateOpen] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
+	sounds[.PressurePlateToggle] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.SwitchOn] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
+	sounds[.SwitchOff] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.ButtonPress] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	return sounds
 }
 
 sound_play :: proc(sound_bank: ^Sound_Collection, kind: Sound_Kind) {
-	sound := sound_bank[int(kind)]
+	sound := sound_bank[kind]
 	_sound_play(sound)
 }
 
 sound_fini :: proc(sounds: ^Sound_Collection) {
-	for sound_index := 0; sound_index < SOUND_KIND_COUNT; sound_index += 1 {
-		_sound_fini(&sounds[sound_index])
+	for &sound in sounds^ {
+		_sound_fini(&sound)
 	}
 }
 
