@@ -66,7 +66,7 @@ when ODIN_DEBUG {
 		for y in 0 ..< tilemap.get_tilemap_height() {
 			for x in 0 ..< tilemap.get_tilemap_width() {
 				collision := tilemap.get_collision_tile(x, y)
-				if collision == nil || collision^ != .SOLID do continue
+				if collision == nil || collision^ != .Solid do continue
 				world_x := f32(x * tile_size)
 				world_y := f32(y * tile_size)
 				renderer.draw_rect(
@@ -154,12 +154,12 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		position := Vec2{f32(entity.x), f32(entity.y)}
 
 		switch entity.entity_type {
-		case .PLAYER: // Player spawn markers are editor metadata; spawning is handled below.
+		case .Player: // Player spawn markers are editor metadata; spawning is handled below.
 				continue
-		case .ENEMY: enemy_spawn_kind_at(position, entity.character_kind)
-		case .PRESSURE_PLATE:
+		case .Enemy: enemy_spawn_kind_at(position, entity.character_kind)
+		case .Pressure_Plate:
 			entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
-		case .GATE:
+		case .Gate:
 			gate := entity_create_gate(
 				position,
 				Vec2{f32(entity.width), f32(entity.height)},
@@ -169,9 +169,9 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
-		case .HOLDABLE: holdable_spawn_at(position)
-		case .NPC: npc_spawn_at(position)
-		case .DOOR:
+		case .Holdable: holdable_spawn_at(position)
+		case .Npc: npc_spawn_at(position)
+		case .Door:
 			entity_create_door(
 					position,
 					Vec2{f32(entity.width), f32(entity.height)},
@@ -203,9 +203,9 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 
 	if spawn_door != nil {
 		spawn_pos := room_find_door_spawn_position(spawn_door)
-		player_spawn_at(spawn_pos, input.Player_Index.PLAYER_1)
+		player_spawn_at(spawn_pos, input.Player_Index.Player_1)
 		if game.player_count == 2 {
-			player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.PLAYER_2)
+			player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.Player_2)
 		}
 	}
 

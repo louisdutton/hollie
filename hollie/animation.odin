@@ -8,8 +8,8 @@ INTERVAL :: TARGET_FPS / FPS
 ANIMATION_SAMPLE_FPS :: f32(TARGET_FPS)
 
 Animation_Playback :: enum {
-	LOOP,
-	ONCE_HOLD,
+	Loop,
+	Once_Hold,
 }
 
 Animation :: struct {
@@ -28,20 +28,20 @@ animation_frame_at_time :: proc(
 	terminal_frame := f32(max(frame_count - 2, 0))
 	frame := max(elapsed_time, 0) * ANIMATION_SAMPLE_FPS
 	switch playback {
-	case .LOOP: return math.mod(frame, loop_period)
-	case .ONCE_HOLD: return min(frame, terminal_frame)
+	case .Loop: return math.mod(frame, loop_period)
+	case .Once_Hold: return min(frame, terminal_frame)
 	}
 	return 0
 }
 
 AnimationState :: enum {
-	IDLE,
-	RUN,
-	JUMP,
-	DEATH,
-	ATTACK,
-	ROLL,
-	CARRY,
+	Idle,
+	Run,
+	Jump,
+	Death,
+	Attack,
+	Roll,
+	Carry,
 }
 
 Animator :: struct {
@@ -65,8 +65,8 @@ animation_init :: proc(anim: ^Animator, animations: []Animation) {
 	anim.frame_counter = 0
 	anim.frame = 0
 	anim.visual_time = 0
-	anim.current_anim = .IDLE
-	anim.previous_anim = .IDLE
+	anim.current_anim = .Idle
+	anim.previous_anim = .Idle
 	anim.previous_time = 0
 	anim.blend_elapsed = 1e9
 }

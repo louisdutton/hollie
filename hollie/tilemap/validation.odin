@@ -102,7 +102,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 			)
 		}
 		for collision, index in room.layers.collision {
-			if collision > u8(CollisionType.SOLID) {
+			if collision > u8(CollisionType.Solid) {
 				validation_add_owned_error(
 					&errors,
 					fmt.aprintf("collision tile %d must be 0 or 1", index),
@@ -356,7 +356,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 			)
 		}
 		for collision, index in tm.collision_tiles {
-			if collision != .WALKABLE && collision != .SOLID {
+			if collision != .Walkable && collision != .Solid {
 				validation_add_owned_error(
 					&errors,
 					fmt.aprintf("collision tile %d must be walkable or solid", index),
@@ -406,7 +406,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 
 	for entity, entity_index in tm.entities {
 		entity_type := int(entity.entity_type)
-		if entity_type < int(EntityType.PLAYER) || entity_type > int(EntityType.DOOR) {
+		if entity_type < int(EntityType.Player) || entity_type > int(EntityType.Door) {
 			validation_add_error(&errors, "entity type is invalid", entity_index)
 			continue
 		}
@@ -419,7 +419,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 		}
 
 		switch entity.entity_type {
-		case .PRESSURE_PLATE:
+		case .Pressure_Plate:
 			if entity.trigger_id <= 0 {
 				validation_add_error(
 					&errors,
@@ -430,7 +430,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 
 			for other, other_index in tm.entities {
 				if other_index >= entity_index do break
-				if other.entity_type == .PRESSURE_PLATE && other.trigger_id == entity.trigger_id {
+				if other.entity_type == .Pressure_Plate && other.trigger_id == entity.trigger_id {
 					validation_add_owned_error(
 						&errors,
 						fmt.aprintf(
@@ -443,7 +443,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				}
 			}
 
-		case .GATE:
+		case .Gate:
 			if len(entity.required_triggers) == 0 {
 				validation_add_error(
 					&errors,
@@ -475,7 +475,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 
 				trigger_exists := false
 				for candidate in tm.entities {
-					if candidate.entity_type == .PRESSURE_PLATE &&
+					if candidate.entity_type == .Pressure_Plate &&
 					   candidate.trigger_id == required_trigger {
 						trigger_exists = true
 						break
@@ -490,13 +490,13 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				}
 			}
 
-		case .ENEMY: if _, valid := content.character_kind_to_wire(entity.character_kind); !valid {
+		case .Enemy: if _, valid := content.character_kind_to_wire(entity.character_kind); !valid {
 					validation_add_error(&errors, "enemy kind is invalid", entity_index)
 				}
 
-		case .NPC, .HOLDABLE:
+		case .Npc, .Holdable:
 
-		case .DOOR:
+		case .Door:
 			if entity.target_room == "" {
 				validation_add_error(&errors, "door target_room must not be empty", entity_index)
 			}
@@ -504,7 +504,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 				validation_add_error(&errors, "door target_door must not be empty", entity_index)
 			}
 
-		case .PLAYER:
+		case .Player:
 		}
 	}
 

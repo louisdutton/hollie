@@ -18,7 +18,7 @@ find_room :: proc(maps: []Loaded_Map, room_id: string) -> (^Loaded_Map, bool) {
 
 room_has_door_marker :: proc(tm: ^tilemap.TileMap, marker: string) -> bool {
 	for entity in tm.entities {
-		if entity.entity_type == .DOOR && entity.target_door == marker do return true
+		if entity.entity_type == .Door && entity.target_door == marker do return true
 	}
 	return false
 }
@@ -63,7 +63,7 @@ main :: proc() {
 		}
 
 		for entity, entity_index in source.tm.entities {
-			if entity.entity_type != .DOOR || entity.target_room == "" do continue
+			if entity.entity_type != .Door || entity.target_room == "" do continue
 
 			target, found := find_room(maps[:], entity.target_room)
 			if !found {

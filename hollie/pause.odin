@@ -8,12 +8,12 @@ import "renderer"
 import "window"
 
 Pause_Menu_State :: enum {
-	HIDDEN,
-	MAIN,
-	OPTIONS,
-	AUDIO,
-	VISUAL,
-	CONTROLS,
+	Hidden,
+	Main,
+	Options,
+	Audio,
+	Visual,
+	Controls,
 }
 
 PAUSE_MAIN_MENU_ITEMS := [?]string{"Resume", "Options", "Return to menu", "Quit game"}
@@ -24,12 +24,12 @@ pause_state := struct {
 	menu_state: Pause_Menu_State,
 	focus:      UI_Focus,
 } {
-	menu_state = .HIDDEN,
+	menu_state = .Hidden,
 }
 
 // Check if the game is currently paused
 pause_is_active :: proc() -> bool {
-	return pause_state.menu_state != .HIDDEN
+	return pause_state.menu_state != .Hidden
 }
 
 // Toggle pause state
@@ -43,13 +43,13 @@ pause_toggle :: proc() {
 
 // Open the pause menu
 pause_open :: proc() {
-	pause_set_menu(.MAIN)
+	pause_set_menu(.Main)
 	audio.music_set_volume(game.music, audio.get_effective_music_volume() * 0.2)
 }
 
 // Close the pause menu
 pause_close :: proc() {
-	pause_state.menu_state = .HIDDEN
+	pause_state.menu_state = .Hidden
 	audio.music_set_volume(game.music, audio.get_effective_music_volume())
 }
 
@@ -64,10 +64,10 @@ pause_handle_input :: proc(delta_time: f32) {
 	)
 	if navigation.back {
 		switch pause_state.menu_state {
-		case .MAIN: pause_close()
-		case .OPTIONS: pause_set_menu(.MAIN)
-		case .AUDIO, .VISUAL, .CONTROLS: pause_set_menu(.OPTIONS)
-		case .HIDDEN:
+		case .Main: pause_close()
+		case .Options: pause_set_menu(.Main)
+		case .Audio, .Visual, .Controls: pause_set_menu(.Options)
+		case .Hidden:
 		}
 		return
 	}
@@ -84,15 +84,15 @@ pause_draw :: proc() {
 	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.fade(renderer.BLACK, 0.75))
 
 	switch pause_state.menu_state {
-	case .MAIN: pause_draw_main_menu()
-	case .OPTIONS: pause_draw_options_menu()
-	case .AUDIO: pause_draw_audio_menu()
-	case .VISUAL: pause_draw_visual_menu()
-	case .CONTROLS: pause_draw_controls_menu()
-	case .HIDDEN:
+	case .Main: pause_draw_main_menu()
+	case .Options: pause_draw_options_menu()
+	case .Audio: pause_draw_audio_menu()
+	case .Visual: pause_draw_visual_menu()
+	case .Controls: pause_draw_controls_menu()
+	case .Hidden:
 	// Do nothing
 	}
-	ui_menu_action_bar(pause_state.menu_state == .AUDIO || pause_state.menu_state == .VISUAL)
+	ui_menu_action_bar(pause_state.menu_state == .Audio || pause_state.menu_state == .Visual)
 }
 
 // Draw the main pause menu
@@ -253,53 +253,53 @@ pause_set_menu :: proc(menu_state: Pause_Menu_State) {
 
 pause_menu_item_count :: proc(menu_state: Pause_Menu_State) -> int {
 	switch menu_state {
-	case .HIDDEN: return 0
-	case .MAIN: return len(PAUSE_MAIN_MENU_ITEMS)
-	case .OPTIONS: return len(MENU_OPTIONS_ITEMS)
-	case .AUDIO, .VISUAL: return 4
-	case .CONTROLS: return 1
+	case .Hidden: return 0
+	case .Main: return len(PAUSE_MAIN_MENU_ITEMS)
+	case .Options: return len(MENU_OPTIONS_ITEMS)
+	case .Audio, .Visual: return 4
+	case .Controls: return 1
 	}
 	return 0
 }
 
 pause_adjust_selected :: proc(direction: int) {
 	switch pause_state.menu_state {
-	case .AUDIO: menu_adjust_audio(pause_state.focus.index, direction, true)
-	case .VISUAL: if pause_state.focus.index == 1 do menu_cycle_resolution(direction)
-	case .HIDDEN, .MAIN, .OPTIONS, .CONTROLS:
+	case .Audio: menu_adjust_audio(pause_state.focus.index, direction, true)
+	case .Visual: if pause_state.focus.index == 1 do menu_cycle_resolution(direction)
+	case .Hidden, .Main, .Options, .Controls:
 	}
 }
 
 // Activate the currently selected menu item
 pause_activate_selected_item :: proc() {
 	switch pause_state.menu_state {
-	case .MAIN: switch pause_state.focus.index {
+	case .Main: switch pause_state.focus.index {
 			case 0: pause_close()
-			case 1: pause_set_menu(.OPTIONS)
-			case 2: set_scene(.TITLE)
+			case 1: pause_set_menu(.Options)
+			case 2: set_scene(.Title)
 			case 3: pause_quit_game()
 			}
-	case .OPTIONS: switch pause_state.focus.index {
-			case 0: pause_set_menu(.AUDIO)
-			case 1: pause_set_menu(.VISUAL)
-			case 2: pause_set_menu(.CONTROLS)
-			case 3: pause_set_menu(.MAIN)
+	case .Options: switch pause_state.focus.index {
+			case 0: pause_set_menu(.Audio)
+			case 1: pause_set_menu(.Visual)
+			case 2: pause_set_menu(.Controls)
+			case 3: pause_set_menu(.Main)
 			}
-	case .AUDIO: if pause_state.focus.index == 3 {
-				pause_set_menu(.OPTIONS)
+	case .Audio: if pause_state.focus.index == 3 {
+				pause_set_menu(.Options)
 			}
-	case .VISUAL: if pause_state.focus.index == 3 {
-				pause_set_menu(.OPTIONS)
+	case .Visual: if pause_state.focus.index == 3 {
+				pause_set_menu(.Options)
 			} else {
 				menu_activate_visual_option(pause_state.focus.index)
 			}
-	case .CONTROLS: pause_set_menu(.OPTIONS)
-	case .HIDDEN:
+	case .Controls: pause_set_menu(.Options)
+	case .Hidden:
 	// Do nothing
 	}
 }
 
 // Quit the game
 pause_quit_game :: proc() {
-	game.state = .EXITING
+	game.state = .Exiting
 }

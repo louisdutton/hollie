@@ -17,7 +17,7 @@ Sound_Kind :: enum {
 	ButtonPress,
 }
 
-Sound_Kind_Count :: 10
+SOUND_KIND_COUNT :: 10
 
 Sound :: struct {
 	sounds:          []rl.Sound,
@@ -25,7 +25,7 @@ Sound :: struct {
 	pitch_variation: f32,
 }
 
-Sound_Collection :: [Sound_Kind_Count]Sound
+Sound_Collection :: [SOUND_KIND_COUNT]Sound
 
 sound_init :: proc() -> Sound_Collection {
 	sounds: Sound_Collection
@@ -45,21 +45,11 @@ sound_init :: proc() -> Sound_Collection {
 			"audio/fx/impact/punch-percussive-heavy-09.wav",
 		},
 	)
-	sounds[int(Sound_Kind.EnemyHit)] = _sound_init(
-		{"audio/fx/impact/punch-squelch-heavy-05.wav"},
-	)
-	sounds[int(Sound_Kind.EnemyDeath)] = _sound_init(
-		{"audio/fx/impact/waterplosion.wav"},
-	)
-	sounds[int(Sound_Kind.GateOpen)] = _sound_init(
-		{"audio/fx/impact/whoosh-airy-flutter-01.wav"},
-	)
-	sounds[int(Sound_Kind.PressurePlateToggle)] = _sound_init(
-		{"audio/fx/impact/hit-short-04.wav"},
-	)
-	sounds[int(Sound_Kind.SwitchOn)] = _sound_init(
-		{"audio/fx/combat/whoosh-short-light.wav"},
-	)
+	sounds[int(Sound_Kind.EnemyHit)] = _sound_init({"audio/fx/impact/punch-squelch-heavy-05.wav"})
+	sounds[int(Sound_Kind.EnemyDeath)] = _sound_init({"audio/fx/impact/waterplosion.wav"})
+	sounds[int(Sound_Kind.GateOpen)] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
+	sounds[int(Sound_Kind.PressurePlateToggle)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[int(Sound_Kind.SwitchOn)] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
 	sounds[int(Sound_Kind.SwitchOff)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	sounds[int(Sound_Kind.ButtonPress)] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	return sounds
@@ -71,7 +61,7 @@ sound_play :: proc(sound_bank: ^Sound_Collection, kind: Sound_Kind) {
 }
 
 sound_fini :: proc(sounds: ^Sound_Collection) {
-	for sound_index := 0; sound_index < Sound_Kind_Count; sound_index += 1 {
+	for sound_index := 0; sound_index < SOUND_KIND_COUNT; sound_index += 1 {
 		_sound_fini(&sounds[sound_index])
 	}
 }

@@ -9,7 +9,7 @@ Input_Device :: enum {
 last_input_device := Input_Device.Keyboard
 
 active_device :: proc() -> Input_Device {
-	if last_input_device == .Gamepad && !is_gamepad_available(.PLAYER_1) {
+	if last_input_device == .Gamepad && !is_gamepad_available(.Player_1) {
 		return .Keyboard
 	}
 	return last_input_device

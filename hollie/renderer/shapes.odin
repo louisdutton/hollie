@@ -8,10 +8,10 @@ ROUNDED_SEGMENTS :: 3 // the number of segments used to render the corners of ro
 ROUNDED_VARIANTS := [?]f32{0.1, 0.25, 0.5, 1.0} // the degree of roundedness for a rectangle (0..1)
 
 Roundness :: enum {
-	SMALL,
-	MEDIUM,
-	LARGE,
-	FULL,
+	Small,
+	Medium,
+	Large,
+	Full,
 }
 
 // Basic drawing functions
@@ -45,7 +45,7 @@ draw_ellipse :: #force_inline proc(x, y, radius_h, radius_v: f32, color := DEFAU
 
 draw_rect_rounded :: #force_inline proc(
 	x, y, w, h: f32,
-	roundness: Roundness = .MEDIUM,
+	roundness: Roundness = .Medium,
 	color := DEFAULT_BG_COLOR,
 ) {
 	rect := rl.Rectangle{x, y, w, h}

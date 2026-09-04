@@ -78,7 +78,7 @@ action_pressed :: proc(action: Action) -> bool {
 		is_key_pressed(binding.key)
 	gamepad_pressed :=
 		binding.gamepad_button != .UNKNOWN &&
-		is_gamepad_button_pressed(.PLAYER_1, binding.gamepad_button)
+		is_gamepad_button_pressed(.Player_1, binding.gamepad_button)
 	return key_pressed || gamepad_pressed
 }
 
@@ -90,7 +90,7 @@ action_down :: proc(action: Action) -> bool {
 		is_key_down(binding.key)
 	gamepad_down :=
 		binding.gamepad_button != .UNKNOWN &&
-		is_gamepad_button_down(.PLAYER_1, binding.gamepad_button)
+		is_gamepad_button_down(.Player_1, binding.gamepad_button)
 	return key_down || gamepad_down
 }
 
@@ -115,8 +115,8 @@ Gamepad_Layout :: enum {
 
 @(private)
 gamepad_layout :: proc() -> Gamepad_Layout {
-	if !is_gamepad_available(.PLAYER_1) do return .Xbox
-	name := string(rl.GetGamepadName(i32(Player_Index.PLAYER_1)))
+	if !is_gamepad_available(.Player_1) do return .Xbox
+	name := string(rl.GetGamepadName(i32(Player_Index.Player_1)))
 
 	if strings.contains(name, "Nintendo") ||
 	   strings.contains(name, "Switch") ||

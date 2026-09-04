@@ -3,23 +3,23 @@ package hollie
 import "audio"
 
 Scene :: enum {
-	TITLE = 0,
-	GAMEPLAY,
+	Title = 0,
+	Gameplay,
 }
 
 set_scene :: proc(screen: Scene) {
 	// Unload current screen
 	switch game.scene {
-	case .TITLE: unload_title_screen()
-	case .GAMEPLAY: gameplay_fini()
+	case .Title: unload_title_screen()
+	case .Gameplay: gameplay_fini()
 	}
 
 	// Init next screen
 	switch screen {
-	case .TITLE:
+	case .Title:
 		audio.music_play(game.music)
 		init_title_screen()
-	case .GAMEPLAY:
+	case .Gameplay:
 		audio.music_stop(game.music)
 		gameplay_init()
 	}

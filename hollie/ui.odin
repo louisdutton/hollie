@@ -173,28 +173,28 @@ ui_focus_update :: proc(focus: ^UI_Focus, item_count: int, delta_time: f32) -> U
 	horizontal := 0
 	if input.is_key_pressed(.UP) ||
 	   input.is_key_pressed(.W) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP) {
+	   input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_UP) {
 		vertical = -1
 	}
 	if input.is_key_pressed(.DOWN) ||
 	   input.is_key_pressed(.S) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN) {
+	   input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_DOWN) {
 		vertical = 1
 	}
 	if input.is_key_pressed(.LEFT) ||
 	   input.is_key_pressed(.A) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT) {
+	   input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_LEFT) {
 		horizontal = -1
 	}
 	if input.is_key_pressed(.RIGHT) ||
 	   input.is_key_pressed(.D) ||
-	   input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT) {
+	   input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_RIGHT) {
 		horizontal = 1
 	}
 
-	if focus.repeat_timer <= 0 && input.is_gamepad_available(.PLAYER_1) {
-		x := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X)
-		y := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y)
+	if focus.repeat_timer <= 0 && input.is_gamepad_available(.Player_1) {
+		x := input.get_gamepad_axis_movement(.Player_1, .LEFT_X)
+		y := input.get_gamepad_axis_movement(.Player_1, .LEFT_Y)
 		if vertical == 0 && abs(y) > 0.5 do vertical = y < 0 ? -1 : 1
 		if horizontal == 0 && abs(x) > 0.5 do horizontal = x < 0 ? -1 : 1
 	}

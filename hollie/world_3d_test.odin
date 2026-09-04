@@ -58,8 +58,8 @@ test_world_3d_one_shot_clip_holds_its_final_frame :: proc(t: ^testing.T) {
 	clip := rl.ModelAnimation {
 		keyframeCount = 21,
 	}
-	testing.expect_value(t, world_3d_clip_frame(1, clip, .ONCE_HOLD), f32(19))
-	testing.expect_value(t, world_3d_clip_frame(1, clip, .LOOP), f32(0))
+	testing.expect_value(t, world_3d_clip_frame(1, clip, .Once_Hold), f32(19))
+	testing.expect_value(t, world_3d_clip_frame(1, clip, .Loop), f32(0))
 }
 
 @(test)
@@ -79,41 +79,41 @@ test_world_3d_uses_the_full_size_square_pressure_pad :: proc(t: ^testing.T) {
 test_character_one_shots_hold_while_continuous_states_loop :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.IDLE)],
-		Animation_Playback.LOOP,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.Idle)],
+		Animation_Playback.Loop,
 	)
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.RUN)],
-		Animation_Playback.LOOP,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.Run)],
+		Animation_Playback.Loop,
 	)
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.DEATH)],
-		Animation_Playback.ONCE_HOLD,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.Death)],
+		Animation_Playback.Once_Hold,
 	)
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.ATTACK)],
-		Animation_Playback.ONCE_HOLD,
+		WORLD_3D_CHARACTER_PLAYBACK[int(AnimationState.Attack)],
+		Animation_Playback.Once_Hold,
 	)
 }
 
 @(test)
 test_every_character_state_maps_to_a_native_kenney_clip :: proc(t: ^testing.T) {
-	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.IDLE)], "idle")
-	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.RUN)], "walk")
-	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.JUMP)], "sprint")
-	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.DEATH)], "die")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Idle)], "idle")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Run)], "walk")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Jump)], "sprint")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Death)], "die")
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.ATTACK)],
+		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Attack)],
 		"attack-melee-right",
 	)
-	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.ROLL)], "sprint")
+	testing.expect_value(t, WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Roll)], "sprint")
 	testing.expect_value(
 		t,
-		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.CARRY)],
+		WORLD_3D_CHARACTER_CLIP_NAMES[int(AnimationState.Carry)],
 		"walk-holding-both",
 	)
 }

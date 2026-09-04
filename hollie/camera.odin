@@ -25,8 +25,8 @@ camera_base_zoom: f32 = ZOOM_DEFAULT
 
 camera_follow_target :: proc() {
 	// Get both players and follow their center point using new entity system
-	player1 := entity_get_player(.PLAYER_1)
-	player2 := entity_get_player(.PLAYER_2)
+	player1 := entity_get_player(.Player_1)
+	player2 := entity_get_player(.Player_2)
 
 	target_pos: Vec2
 	if player1 != nil && player2 != nil {
@@ -91,8 +91,8 @@ camera_set_bounds :: proc(bounds: rl.Rectangle) {
 
 camera_snap_to_target :: proc() {
 	// Get both players and snap to their center point using new entity system
-	player1 := entity_get_player(.PLAYER_1)
-	player2 := entity_get_player(.PLAYER_2)
+	player1 := entity_get_player(.Player_1)
+	player2 := entity_get_player(.Player_2)
 
 	target_pos: Vec2
 	if player1 != nil && player2 != nil {

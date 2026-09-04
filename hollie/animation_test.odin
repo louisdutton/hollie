@@ -21,19 +21,19 @@ test_animation_tracks_visual_elapsed_time :: proc(t: ^testing.T) {
 	}
 	animation_update(&animator, 0.125)
 	testing.expect_value(t, animator.visual_time, f32(0.125))
-	animation_set_state(&animator, .RUN)
+	animation_set_state(&animator, .Run)
 	testing.expect_value(t, animator.visual_time, f32(0))
-	testing.expect_value(t, animator.previous_anim, AnimationState.IDLE)
+	testing.expect_value(t, animator.previous_anim, AnimationState.Idle)
 	testing.expect_value(t, animator.previous_time, f32(0.125))
 	testing.expect_value(t, animator.blend_elapsed, f32(0))
 }
 
 @(test)
 test_animation_playback_modes_normalize_frames_before_rendering :: proc(t: ^testing.T) {
-	testing.expect_value(t, animation_frame_at_time(0.1, 21, .LOOP), f32(6))
-	testing.expect_value(t, animation_frame_at_time(0.4, 21, .LOOP), f32(4))
-	testing.expect_value(t, animation_frame_at_time(0.4, 21, .ONCE_HOLD), f32(19))
-	testing.expect_value(t, animation_frame_at_time(10, 1, .ONCE_HOLD), f32(0))
+	testing.expect_value(t, animation_frame_at_time(0.1, 21, .Loop), f32(6))
+	testing.expect_value(t, animation_frame_at_time(0.4, 21, .Loop), f32(4))
+	testing.expect_value(t, animation_frame_at_time(0.4, 21, .Once_Hold), f32(19))
+	testing.expect_value(t, animation_frame_at_time(10, 1, .Once_Hold), f32(0))
 }
 
 @(test)

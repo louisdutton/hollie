@@ -88,27 +88,27 @@ room_file_to_tilemap_unchecked :: proc(
 
 		switch properties in file_entity.properties {
 		case Room_File_Player:
-			entity.entity_type = .PLAYER
+			entity.entity_type = .Player
 			entity.player_index = properties.player_index
 		case Room_File_Enemy:
-			entity.entity_type = .ENEMY
+			entity.entity_type = .Enemy
 			entity.character_kind = properties.kind
-		case Room_File_NPC: entity.entity_type = .NPC
-		case Room_File_Holdable: entity.entity_type = .HOLDABLE
+		case Room_File_NPC: entity.entity_type = .Npc
+		case Room_File_Holdable: entity.entity_type = .Holdable
 		case Room_File_Door:
-			entity.entity_type = .DOOR
+			entity.entity_type = .Door
 			entity.width = properties.size.width
 			entity.height = properties.size.height
 			entity.target_room = strings.clone(properties.target_room_id, allocator)
 			entity.target_door = strings.clone(properties.target_door_id, allocator)
 		case Room_File_Pressure_Plate:
-			entity.entity_type = .PRESSURE_PLATE
+			entity.entity_type = .Pressure_Plate
 			entity.width = 32
 			entity.height = 32
 			entity.trigger_id = properties.trigger_id
 			entity.requires_both = properties.requires_both
 		case Room_File_Gate:
-			entity.entity_type = .GATE
+			entity.entity_type = .Gate
 			entity.gate_id = properties.gate_id
 			entity.width = properties.size.width
 			entity.height = properties.size.height
@@ -174,8 +174,8 @@ tilemap_to_room_file :: proc(
 
 	room.entities = make([]Room_File_Entity, len(tm.entities), allocator)
 	for entity, entity_index in tm.entities {
-		if int(entity.entity_type) < int(EntityType.PLAYER) ||
-		   int(entity.entity_type) > int(EntityType.DOOR) {
+		if int(entity.entity_type) < int(EntityType.Player) ||
+		   int(entity.entity_type) > int(EntityType.Door) {
 			destroy_room_file(&room, allocator)
 			return {}, {kind = .invalid_entity_type, entity_index = entity_index}
 		}
@@ -188,24 +188,24 @@ tilemap_to_room_file :: proc(
 		}
 
 		switch entity.entity_type {
-		case .PLAYER: file_entity.properties = Room_File_Player {
+		case .Player: file_entity.properties = Room_File_Player {
 					player_index = entity.player_index,
 				}
-		case .ENEMY: file_entity.properties = Room_File_Enemy {
+		case .Enemy: file_entity.properties = Room_File_Enemy {
 					kind = entity.character_kind,
 				}
-		case .NPC: file_entity.properties = Room_File_NPC{}
-		case .HOLDABLE: file_entity.properties = Room_File_Holdable{}
-		case .DOOR: file_entity.properties = Room_File_Door {
+		case .Npc: file_entity.properties = Room_File_NPC{}
+		case .Holdable: file_entity.properties = Room_File_Holdable{}
+		case .Door: file_entity.properties = Room_File_Door {
 					size = {width = entity.width, height = entity.height},
 					target_room_id = strings.clone(entity.target_room, allocator),
 					target_door_id = strings.clone(entity.target_door, allocator),
 				}
-		case .PRESSURE_PLATE: file_entity.properties = Room_File_Pressure_Plate {
+		case .Pressure_Plate: file_entity.properties = Room_File_Pressure_Plate {
 					trigger_id    = entity.trigger_id,
 					requires_both = entity.requires_both,
 				}
-		case .GATE:
+		case .Gate:
 			required_trigger_ids := make([]int, len(entity.required_triggers), allocator)
 			copy(required_trigger_ids, entity.required_triggers[:])
 			file_entity.properties = Room_File_Gate {

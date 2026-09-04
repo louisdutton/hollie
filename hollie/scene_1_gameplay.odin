@@ -65,7 +65,7 @@ gameplay_init :: proc() {
 }
 
 gameplay_update :: proc() {
-	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(.PLAYER_1, .MIDDLE_RIGHT) {
+	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(.Player_1, .MIDDLE_RIGHT) {
 		pause_toggle()
 	}
 
@@ -81,7 +81,7 @@ gameplay_update :: proc() {
 			return
 		}
 
-		if input.is_gamepad_button_pressed(.PLAYER_1, .RIGHT_THUMB) {
+		if input.is_gamepad_button_pressed(.Player_1, .RIGHT_THUMB) {
 			gameplay_debug_ui_visible = !gameplay_debug_ui_visible
 		}
 

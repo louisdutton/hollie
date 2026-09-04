@@ -10,15 +10,15 @@ import "tilemap"
 import "window"
 
 Editor_Mode :: enum {
-	DISABLED,
-	EDITING,
+	Disabled,
+	Editing,
 }
 
 Editor_Layer :: enum {
-	BASE,
-	DECORATION,
-	COLLISION,
-	ENTITY,
+	Base,
+	Decoration,
+	Collision,
+	Entity,
 }
 
 Editor_State :: struct {
@@ -47,10 +47,10 @@ Editor_State :: struct {
 
 @(private)
 editor_state := Editor_State {
-	mode               = .DISABLED,
-	selected_tile      = .GRASS_1,
-	selected_entity    = .ENEMY,
-	selected_layer     = .BASE,
+	mode               = .Disabled,
+	selected_tile      = .Grass_1,
+	selected_entity    = .Enemy,
+	selected_layer     = .Base,
 	show_grid          = true,
 	show_layer_overlay = false,
 	show_hud           = true,
@@ -65,18 +65,18 @@ editor_init :: proc() {
 }
 
 editor_is_active :: proc() -> bool {
-	return editor_state.mode == .EDITING
+	return editor_state.mode == .Editing
 }
 
 editor_toggle :: proc() {
 	switch editor_state.mode {
-	case .DISABLED: editor_enter_edit_mode()
-	case .EDITING: editor_exit_edit_mode()
+	case .Disabled: editor_enter_edit_mode()
+	case .Editing: editor_exit_edit_mode()
 	}
 }
 
 editor_enter_edit_mode :: proc() {
-	editor_state.mode = .EDITING
+	editor_state.mode = .Editing
 
 	editor_state.pre_edit_camera = camera
 
@@ -90,7 +90,7 @@ editor_enter_edit_mode :: proc() {
 }
 
 editor_exit_edit_mode :: proc() {
-	editor_state.mode = .DISABLED
+	editor_state.mode = .Disabled
 
 	camera = editor_state.pre_edit_camera
 
@@ -110,7 +110,7 @@ editor_reload_current_level :: proc() {
 }
 
 editor_update :: proc() {
-	if editor_state.mode != .EDITING do return
+	if editor_state.mode != .Editing do return
 	if editor_state.save_message_timer > 0 {
 		editor_state.save_message_timer -= window.get_frame_time()
 		if editor_state.save_message_timer <= 0 {
@@ -164,7 +164,7 @@ editor_handle_entity_editing :: proc() {
 
 	// Handle editing based on entity type
 	#partial switch entity.entity_type {
-	case .PRESSURE_PLATE:
+	case .Pressure_Plate:
 		if input.action_pressed(.Editor_Value_Next) {
 			entity.trigger_id += 1
 			editor_state.edit_input_timer = 0.15
@@ -178,7 +178,7 @@ editor_handle_entity_editing :: proc() {
 			editor_state.edit_input_timer = 0.15
 		}
 
-	case .GATE:
+	case .Gate:
 		if input.action_pressed(.Editor_Value_Next) {
 			entity.gate_id += 1
 			editor_state.edit_input_timer = 0.15
@@ -192,7 +192,7 @@ editor_handle_entity_editing :: proc() {
 			editor_state.edit_input_timer = 0.15
 		}
 
-	case .DOOR:
+	case .Door:
 		if input.action_pressed(.Editor_Value_Next) {
 			editor_cycle_room_name(&entity.target_room, 1)
 			editor_state.edit_input_timer = 0.15
@@ -206,7 +206,7 @@ editor_handle_entity_editing :: proc() {
 			editor_state.edit_input_timer = 0.15
 		}
 
-	case .ENEMY:
+	case .Enemy:
 		if input.action_pressed(.Editor_Value_Next) {
 			editor_cycle_character_kind(entity, 1)
 			editor_state.edit_input_timer = 0.15
@@ -220,10 +220,10 @@ editor_handle_entity_editing :: proc() {
 
 editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
 	#partial switch entity.entity_type {
-	case .PRESSURE_PLATE: return entity.trigger_id != 0
-	case .GATE: return entity.gate_id != 0 || len(entity.required_triggers) > 0
-	case .DOOR: return entity.target_room != "" || entity.target_door != ""
-	case .ENEMY: return true
+	case .Pressure_Plate: return entity.trigger_id != 0
+	case .Gate: return entity.gate_id != 0 || len(entity.required_triggers) > 0
+	case .Door: return entity.target_room != "" || entity.target_door != ""
+	case .Enemy: return true
 	}
 	return false
 }
@@ -239,8 +239,8 @@ editor_handle_camera_input :: proc() {
 	if input.is_key_down(.A) do movement.x -= 1
 	if input.is_key_down(.D) do movement.x += 1
 
-	gamepad_x := input.get_gamepad_axis_movement(.PLAYER_1, .RIGHT_X)
-	gamepad_y := input.get_gamepad_axis_movement(.PLAYER_1, .RIGHT_Y)
+	gamepad_x := input.get_gamepad_axis_movement(.Player_1, .RIGHT_X)
+	gamepad_y := input.get_gamepad_axis_movement(.Player_1, .RIGHT_Y)
 	if abs(gamepad_x) > input.JS_DEADZONE do movement.x += gamepad_x
 	if abs(gamepad_y) > input.JS_DEADZONE do movement.y += gamepad_y
 
@@ -261,23 +261,23 @@ editor_handle_camera_input :: proc() {
 	}
 }
 
-BASE_TILES := []tilemap.TileType{.GRASS_1}
+BASE_TILES := []tilemap.TileType{.Grass_1}
 
-DECORATION_TILES := []tilemap.TileType{.EMPTY}
+DECORATION_TILES := []tilemap.TileType{.Empty}
 
 editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
 	switch layer {
-	case .BASE: return BASE_TILES
-	case .DECORATION: return DECORATION_TILES
-	case .COLLISION: return {}
-	case .ENTITY: return {}
+	case .Base: return BASE_TILES
+	case .Decoration: return DECORATION_TILES
+	case .Collision: return {}
+	case .Entity: return {}
 	}
 	return {}
 }
 
 editor_handle_tile_selection :: proc() {
-	if editor_state.selected_layer == .ENTITY {
-		entities := []tilemap.EntityType{.ENEMY, .NPC, .HOLDABLE, .PRESSURE_PLATE, .GATE, .DOOR}
+	if editor_state.selected_layer == .Entity {
+		entities := []tilemap.EntityType{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
 
 		current_index := -1
 		for entity, i in entities {
@@ -329,14 +329,14 @@ editor_handle_painting_input :: proc() {
 
 	editor_state.cursor_move_timer -= dt
 
-	gamepad_move_x := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_X)
-	gamepad_move_y := input.get_gamepad_axis_movement(.PLAYER_1, .LEFT_Y)
+	gamepad_move_x := input.get_gamepad_axis_movement(.Player_1, .LEFT_X)
+	gamepad_move_y := input.get_gamepad_axis_movement(.Player_1, .LEFT_Y)
 	dpad_x :=
-		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_RIGHT)) -
-		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_LEFT))
+		int(input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_RIGHT)) -
+		int(input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_LEFT))
 	dpad_y :=
-		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_DOWN)) -
-		int(input.is_gamepad_button_pressed(.PLAYER_1, .LEFT_FACE_UP))
+		int(input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_DOWN)) -
+		int(input.is_gamepad_button_pressed(.Player_1, .LEFT_FACE_UP))
 
 	if dpad_x != 0 {
 		editor_state.cursor_x += dpad_x
@@ -395,10 +395,10 @@ editor_handle_painting_input :: proc() {
 editor_handle_ui_input :: proc() {
 	if !editor_state.is_editing_entity && input.action_pressed(.Editor_Change_Layer) {
 		switch editor_state.selected_layer {
-		case .BASE: editor_state.selected_layer = .DECORATION
-		case .DECORATION: editor_state.selected_layer = .COLLISION
-		case .COLLISION: editor_state.selected_layer = .ENTITY
-		case .ENTITY: editor_state.selected_layer = .BASE
+		case .Base: editor_state.selected_layer = .Decoration
+		case .Decoration: editor_state.selected_layer = .Collision
+		case .Collision: editor_state.selected_layer = .Entity
+		case .Entity: editor_state.selected_layer = .Base
 		}
 	}
 
@@ -449,16 +449,16 @@ editor_set_save_message :: proc(message: string, succeeded: bool) {
 
 editor_paint_tile :: proc(tile_x, tile_y: int) {
 	switch editor_state.selected_layer {
-	case .BASE: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
+	case .Base: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
 				tile^ = editor_state.selected_tile
 			}
-	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
+	case .Decoration: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
 				tile^ = editor_state.selected_tile
 			}
-	case .COLLISION: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
-				tile^ = .SOLID
+	case .Collision: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
+				tile^ = .Solid
 			}
-	case .ENTITY:
+	case .Entity:
 		// Only place one entity per tile, so check if there's already one
 		entities := tilemap.get_entities()
 		tile_size := tilemap.get_tile_size()
@@ -475,16 +475,16 @@ editor_paint_tile :: proc(tile_x, tile_y: int) {
 
 editor_erase_tile :: proc(tile_x, tile_y: int) {
 	switch editor_state.selected_layer {
-	case .BASE: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
-				tile^ = .GRASS_1
+	case .Base: if tile := tilemap.get_base_tile(tile_x, tile_y); tile != nil {
+				tile^ = .Grass_1
 			}
-	case .DECORATION: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
-				tile^ = .EMPTY
+	case .Decoration: if tile := tilemap.get_deco_tile(tile_x, tile_y); tile != nil {
+				tile^ = .Empty
 			}
-	case .COLLISION: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
-				tile^ = .WALKABLE
+	case .Collision: if tile := tilemap.get_collision_tile(tile_x, tile_y); tile != nil {
+				tile^ = .Walkable
 			}
-	case .ENTITY:
+	case .Entity:
 		tile_size := tilemap.get_tile_size()
 		world_x := tile_x * tile_size
 		world_y := tile_y * tile_size
@@ -529,7 +529,7 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 }
 
 editor_cycle_character_kind :: proc(entity: ^tilemap.EntityData, direction: int) {
-	if entity.entity_type != .ENEMY do return
+	if entity.entity_type != .Enemy do return
 
 	kind_count := len(content.Character_Kind)
 	current_index := int(entity.character_kind)

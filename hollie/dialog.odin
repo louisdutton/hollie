@@ -28,7 +28,7 @@ dialog_init :: proc() {
 	dialog_state = {}
 }
 
-dialog_start :: proc(npc: ^NPC) {
+dialog_start :: proc(npc: ^Npc) {
 	dialog_state.messages = npc.dialog_messages
 	dialog_state.current_page = 0
 	dialog_state.is_active = len(npc.dialog_messages) > 0

@@ -44,7 +44,7 @@ Editor_Carousel_Slot :: struct {
 }
 
 editor_draw_ui :: proc() {
-	if editor_state.mode != .EDITING do return
+	if editor_state.mode != .Editing do return
 
 	ui_begin()
 	defer ui_end()
@@ -59,7 +59,7 @@ editor_draw_ui :: proc() {
 }
 
 editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
-	if tile_type == .EMPTY do return
+	if tile_type == .Empty do return
 
 	color := renderer.Colour{120, 170, 120, alpha}
 	renderer.draw_rect(x, y, size, size, color)
@@ -70,25 +70,25 @@ editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: 
 	color := renderer.Colour{}
 	icon_text := ""
 	switch entity_type {
-	case .PLAYER:
+	case .Player:
 		color = {80, 160, 255, alpha}
 		icon_text = "P"
-	case .ENEMY:
+	case .Enemy:
 		color = {255, 0, 0, alpha}
 		icon_text = "E"
-	case .NPC:
+	case .Npc:
 		color = {0, 0, 255, alpha}
 		icon_text = "N"
-	case .HOLDABLE:
+	case .Holdable:
 		color = {255, 165, 0, alpha}
 		icon_text = "H"
-	case .PRESSURE_PLATE:
+	case .Pressure_Plate:
 		color = {128, 128, 128, alpha}
 		icon_text = "PP"
-	case .GATE:
+	case .Gate:
 		color = {139, 69, 19, alpha}
 		icon_text = "G"
-	case .DOOR:
+	case .Door:
 		color = {255, 255, 255, alpha}
 		icon_text = "D"
 	}
@@ -106,7 +106,7 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 	spacing: f32 = 40
 	label_y := carousel_y + tile_preview_size + 8
 	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT - 1) * spacing + tile_preview_size
-	if editor_state.selected_layer == .COLLISION {
+	if editor_state.selected_layer == .Collision {
 		renderer.draw_rect(
 			carousel_x + f32(EDITOR_CAROUSEL_SELECTED_SLOT) * spacing,
 			carousel_y,
@@ -118,8 +118,8 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 		return
 	}
 
-	if editor_state.selected_layer == .ENTITY {
-		entities := []tilemap.EntityType{.ENEMY, .NPC, .HOLDABLE, .PRESSURE_PLATE, .GATE, .DOOR}
+	if editor_state.selected_layer == .Entity {
+		entities := []tilemap.EntityType{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
 
 		current_index := -1
 		for entity, i in entities {
@@ -228,16 +228,16 @@ editor_draw_minimal_hud :: proc() {
 	layer_text := ""
 	layer_color := renderer.Colour{255, 255, 255, 200}
 	switch editor_state.selected_layer {
-	case .BASE:
+	case .Base:
 		layer_text = "Base"
 		layer_color = {100, 255, 100, 200}
-	case .DECORATION:
+	case .Decoration:
 		layer_text = "Decoration"
 		layer_color = {255, 255, 100, 200}
-	case .COLLISION:
+	case .Collision:
 		layer_text = "Collision"
 		layer_color = {255, 100, 100, 200}
-	case .ENTITY:
+	case .Entity:
 		layer_text = "Entities"
 		layer_color = {255, 100, 255, 200}
 	}
@@ -268,8 +268,8 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 	ui_field("Position", fmt.tprintf("%d, %d", entity.x, entity.y))
 
 	switch entity.entity_type {
-	case .PLAYER: ui_text("Player spawn marker")
-	case .PRESSURE_PLATE:
+	case .Player: ui_text("Player spawn marker")
+	case .Pressure_Plate:
 		ui_field(
 			"Trigger",
 			fmt.tprintf("%d", entity.trigger_id),
@@ -281,7 +281,7 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 			[]input.Action{.Editor_Value_Toggle},
 		)
 
-	case .GATE:
+	case .Gate:
 		ui_field(
 			"Gate",
 			fmt.tprintf("%d", entity.gate_id),
@@ -289,7 +289,7 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 		)
 		ui_field("Inverted", entity.inverted ? "Yes" : "No", []input.Action{.Editor_Value_Toggle})
 
-	case .DOOR:
+	case .Door:
 		ui_field(
 			"Target Room",
 			editor_display_value(entity.target_room),
@@ -301,11 +301,11 @@ editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
 			[]input.Action{.Editor_Value_Toggle},
 		)
 
-	case .ENEMY:
+	case .Enemy:
 		kind, _ := content.character_kind_to_wire(entity.character_kind)
 		ui_field("Kind", kind, []input.Action{.Editor_Value_Previous, .Editor_Value_Next})
 
-	case .NPC, .HOLDABLE:
+	case .Npc, .Holdable:
 	}
 
 	ui_spacer()

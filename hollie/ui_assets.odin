@@ -182,7 +182,7 @@ ui_frame_path :: proc(style: UI_Frame_Style) -> string {
 
 ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
 	binding := input.action_binding(action)
-	if input.active_device() == .Gamepad && input.is_gamepad_available(.PLAYER_1) {
+	if input.active_device() == .Gamepad && input.is_gamepad_available(.Player_1) {
 		layout := input.active_gamepad_layout()
 		view := UI_Prompt_View{}
 		#partial switch action {
@@ -265,7 +265,7 @@ ui_control_prompt_view :: proc(
 	key: input.Key,
 	gamepad_button: input.Gamepad_Button,
 ) -> UI_Prompt_View {
-	if input.active_device() == .Gamepad && input.is_gamepad_available(.PLAYER_1) {
+	if input.active_device() == .Gamepad && input.is_gamepad_available(.Player_1) {
 		prompt, found := ui_gamepad_prompt_for_button(gamepad_button)
 		if !found do return {}
 		view := UI_Prompt_View {

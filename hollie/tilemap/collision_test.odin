@@ -15,7 +15,7 @@ test_collision_map_supports_non_rectangular_walkable_areas :: proc(t: ^testing.T
 		height = 2,
 		tile_size = 16,
 		config = {world_tile_size = 16},
-		collision_tiles = []CollisionType{.SOLID, .WALKABLE, .SOLID, .SOLID, .WALKABLE, .SOLID},
+		collision_tiles = []CollisionType{.Solid, .Walkable, .Solid, .Solid, .Walkable, .Solid},
 	}
 	config = tilemap.config
 

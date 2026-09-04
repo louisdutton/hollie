@@ -51,7 +51,7 @@ Combat :: struct {
 	attack_direction: Vec2,
 }
 
-AI :: struct {
+Ai :: struct {
 	wait_timer:     f32,
 	move_timer:     f32,
 	move_direction: Vec2,
@@ -69,18 +69,18 @@ Player :: struct {
 	carrying:        ^Holdable,
 }
 
-NPC :: struct {
+Npc :: struct {
 	using transform: Transform,
 	using collider:  Collider,
 	using health:    Health,
 	using movement:  Movement,
-	using ai:        AI,
+	using ai:        Ai,
 	using anim_data: Animator,
 	dialog_messages: []Dialog_Message,
 }
 
 Enemy :: struct {
-	using npc:    NPC,
+	using npc:    Npc,
 	using combat: Combat,
 }
 
@@ -120,7 +120,7 @@ Door :: struct {
 Entity :: union {
 	Player,
 	Enemy,
-	NPC,
+	Npc,
 	Pressure_Plate,
 	Gate,
 	Holdable,
@@ -213,8 +213,8 @@ entity_create_npc :: proc(
 	pos: Vec2,
 	animations: []Animation,
 	dialog_messages: []Dialog_Message = {},
-) -> ^NPC {
-	npc := NPC {
+) -> ^Npc {
+	npc := Npc {
 		transform = {position = pos},
 		collider = world_3d_character_collider(true),
 		health = {current = 50, max = 50},
@@ -227,7 +227,7 @@ entity_create_npc :: proc(
 	}
 
 	append(&entities, npc)
-	return &entities[len(entities) - 1].(NPC)
+	return &entities[len(entities) - 1].(Npc)
 }
 
 entity_create_holdable :: proc(pos: Vec2) -> ^Holdable {
@@ -351,7 +351,7 @@ entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
 	switch e in entity {
 	case Player: return e.position + e.collider.offset
 	case Enemy: return e.position + e.collider.offset
-	case NPC: return e.position + e.collider.offset
+	case Npc: return e.position + e.collider.offset
 	case Pressure_Plate: return e.position + e.collider.offset
 	case Gate: return e.position + e.collider.offset
 	case Holdable:
@@ -367,7 +367,7 @@ entity_get_collider_size :: proc(entity: ^Entity) -> Vec2 {
 	switch e in entity {
 	case Player: return e.collider.size
 	case Enemy: return e.collider.size
-	case NPC: return e.collider.size
+	case Npc: return e.collider.size
 	case Pressure_Plate: return e.collider.size
 	case Gate: return e.collider.size
 	case Holdable: return e.collider.size
@@ -380,7 +380,7 @@ entity_get_collider_height :: proc(entity: ^Entity) -> f32 {
 	switch e in entity {
 	case Player: return e.collider.height
 	case Enemy: return e.collider.height
-	case NPC: return e.collider.height
+	case Npc: return e.collider.height
 	case Pressure_Plate: return e.collider.height
 	case Gate: return e.collider.height
 	case Holdable: return e.collider.height
@@ -393,7 +393,7 @@ entity_get_collider_vertical_offset :: proc(entity: ^Entity) -> f32 {
 	switch e in entity {
 	case Player: return e.collider.vertical_offset
 	case Enemy: return e.collider.vertical_offset
-	case NPC: return e.collider.vertical_offset
+	case Npc: return e.collider.vertical_offset
 	case Pressure_Plate: return e.collider.vertical_offset
 	case Gate: return e.collider.vertical_offset
 	case Holdable:
@@ -436,7 +436,7 @@ entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entit
 
 		is_solid := false
 		switch e in entity {
-		case Player, Enemy, NPC, Pressure_Plate: is_solid = false
+		case Player, Enemy, Npc, Pressure_Plate: is_solid = false
 		case Gate: is_solid = e.collider.solid && !e.open
 		case Holdable: is_solid = holdable_blocks_character(e)
 		case Door: is_solid = false // Doors are triggers, not solid barriers
@@ -526,7 +526,7 @@ entity_update_timers :: proc() {
 			if e.hit_flash_timer > 0 do e.hit_flash_timer = max(e.hit_flash_timer - dt, 0)
 			if e.knockback_timer > 0 do e.knockback_timer = max(e.knockback_timer - dt, 0)
 
-		case NPC:
+		case Npc:
 			if e.is_dying do e.death_timer += 1
 			if e.hit_flash_timer > 0 do e.hit_flash_timer = max(e.hit_flash_timer - dt, 0)
 			if e.knockback_timer > 0 do e.knockback_timer = max(e.knockback_timer - dt, 0)
@@ -566,7 +566,7 @@ entity_update_movement :: proc() {
 						e.velocity = {0, 0}
 					}
 				} else {
-					// Simple AI movement
+					// Simple Ai movement
 					e.ai.move_timer -= rl.GetFrameTime()
 					if e.ai.move_timer <= 0 {
 						e.ai.move_direction = {
@@ -583,7 +583,7 @@ entity_update_movement :: proc() {
 					}
 				}
 
-		case NPC: // Skip movement if dying, in knockback, or busy
+		case Npc: // Skip movement if dying, in knockback, or busy
 				if e.is_dying || e.knockback_timer > 0 || e.is_busy {
 					// Apply knockback friction or stop for dialog
 					if e.knockback_timer > 0 {
@@ -592,7 +592,7 @@ entity_update_movement :: proc() {
 						e.velocity = {0, 0}
 					}
 				} else {
-					// Simple AI movement (similar to enemy)
+					// Simple Ai movement (similar to enemy)
 					e.ai.move_timer -= rl.GetFrameTime()
 					if e.ai.move_timer <= 0 {
 						e.ai.move_direction = {
@@ -611,7 +611,7 @@ entity_update_movement :: proc() {
 
 		case Pressure_Plate, Gate: // Static entities don't move
 				continue
-		case Holdable: // Holdables have no AI movement, they only move when carried
+		case Holdable: // Holdables have no Ai movement, they only move when carried
 				continue
 		case Door: // Doors are static
 				continue
@@ -624,7 +624,7 @@ entity_update_positions :: proc() {
 		switch &e in entity {
 		case Player: entity_move_character(&e.transform, &e.collider)
 		case Enemy: entity_move_character(&e.transform, &e.collider)
-		case NPC: entity_move_character(&e.transform, &e.collider)
+		case Npc: entity_move_character(&e.transform, &e.collider)
 		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
@@ -648,7 +648,7 @@ entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
 		case Enemy:
 			entity_transform = &e.transform
 			entity_collider = &e.collider
-		case NPC:
+		case Npc:
 			entity_transform = &e.transform
 			entity_collider = &e.collider
 		case Pressure_Plate, Gate, Holdable, Door: continue
@@ -752,11 +752,11 @@ entity_check_combat :: proc() {
 						}
 					}
 
-				case Player, NPC, Pressure_Plate, Gate, Holdable, Door: continue
+				case Player, Npc, Pressure_Plate, Gate, Holdable, Door: continue
 				}
 			}
 
-		case Enemy, NPC, Pressure_Plate, Gate, Holdable, Door: continue
+		case Enemy, Npc, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }
@@ -770,36 +770,36 @@ entity_update_animations :: proc() {
 			if e.is_attacking {
 				// Use attack direction to determine model facing for the attack animation.
 				e.facing_direction = e.attack_direction
-				animation_set_state(&e.anim_data, .ATTACK)
+				animation_set_state(&e.anim_data, .Attack)
 			} else if e.is_rolling {
-				animation_set_state(&e.anim_data, .ROLL)
+				animation_set_state(&e.anim_data, .Roll)
 			} else if e.carrying != nil {
 				// Use carrying animation when holding an object
-				animation_set_state(&e.anim_data, .CARRY)
+				animation_set_state(&e.anim_data, .Carry)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
-				animation_set_state(&e.anim_data, .RUN)
+				animation_set_state(&e.anim_data, .Run)
 			} else {
-				animation_set_state(&e.anim_data, .IDLE)
+				animation_set_state(&e.anim_data, .Idle)
 			}
 			animation_update(&e.anim_data, delta_time)
 
 		case Enemy:
 			if e.is_dying {
-				animation_set_state(&e.anim_data, .DEATH)
+				animation_set_state(&e.anim_data, .Death)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
-				animation_set_state(&e.anim_data, .RUN)
+				animation_set_state(&e.anim_data, .Run)
 			} else {
-				animation_set_state(&e.anim_data, .IDLE)
+				animation_set_state(&e.anim_data, .Idle)
 			}
 			animation_update(&e.anim_data, delta_time)
 
-		case NPC:
+		case Npc:
 			if e.is_dying {
-				animation_set_state(&e.anim_data, .DEATH)
+				animation_set_state(&e.anim_data, .Death)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
-				animation_set_state(&e.anim_data, .RUN)
+				animation_set_state(&e.anim_data, .Run)
 			} else {
-				animation_set_state(&e.anim_data, .IDLE)
+				animation_set_state(&e.anim_data, .Idle)
 			}
 			animation_update(&e.anim_data, delta_time)
 
@@ -820,7 +820,7 @@ entity_cleanup_dead :: proc() {
 					particle_create_explosion(e.position)
 					unordered_remove(&entities, i)
 				}
-		case NPC: if e.is_dying && e.death_timer >= 13 * INTERVAL {
+		case Npc: if e.is_dying && e.death_timer >= 13 * INTERVAL {
 					particle_create_explosion(e.position)
 					unordered_remove(&entities, i)
 				}

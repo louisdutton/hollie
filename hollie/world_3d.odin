@@ -28,13 +28,13 @@ WORLD_3D_CHARACTER_CLIP_NAMES :: [7]string {
 	"walk-holding-both",
 }
 WORLD_3D_CHARACTER_PLAYBACK :: [7]Animation_Playback {
-	.LOOP,
-	.LOOP,
-	.ONCE_HOLD,
-	.ONCE_HOLD,
-	.ONCE_HOLD,
-	.ONCE_HOLD,
-	.LOOP,
+	.Loop,
+	.Loop,
+	.Once_Hold,
+	.Once_Hold,
+	.Once_Hold,
+	.Once_Hold,
+	.Loop,
 }
 WORLD_3D_PRESSURE_PAD_CLIP_NAMES :: [2]string{"toggle-off", "toggle-on"}
 WORLD_3D_CHARACTER_MODEL :: "figurine-raylib.glb"
@@ -318,7 +318,7 @@ world_3d_has_floor :: proc(x, y: int) -> bool {
 		return false
 	}
 	tile := tilemap.get_base_tile(x, y)
-	return tile != nil && tile^ != .EMPTY
+	return tile != nil && tile^ != .Empty
 }
 
 world_3d_edge_is_door :: proc(position: Vec2) -> bool {
@@ -407,7 +407,7 @@ world_3d_draw_ground :: proc() {
 	for y in 0 ..< tilemap.get_tilemap_height() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
 			tile := tilemap.get_base_tile(x, y)
-			if tile == nil || tile^ == .EMPTY do continue
+			if tile == nil || tile^ == .Empty do continue
 
 			rl.DrawModelEx(
 				world_3d_assets.floor,
@@ -556,7 +556,7 @@ world_3d_draw_entities :: proc() {
 		switch &e in entity {
 		case Player:
 			tint :=
-				e.index == .PLAYER_1 ? rl.Color{92, 156, 214, 255} : rl.Color{102, 190, 132, 255}
+				e.index == .Player_1 ? rl.Color{92, 156, 214, 255} : rl.Color{102, 190, 132, 255}
 			world_3d_draw_character(
 				&e.anim_data,
 				e.position,
@@ -573,7 +573,7 @@ world_3d_draw_entities :: proc() {
 				tint,
 				e.hit_flash_timer / 0.2,
 			)
-		case NPC:
+		case Npc:
 			tint := rl.Color{220, 190, 96, 255}
 			world_3d_draw_character(
 				&e.anim_data,
@@ -605,7 +605,7 @@ world_3d_draw_entities :: proc() {
 			clip_index := world_3d_assets.pressure_pad_animation_indices[state_index]
 			if clip_index >= 0 {
 				clip := world_3d_assets.pressure_pad_animations[clip_index]
-				clip_frame := world_3d_clip_frame(e.animation_time, clip, .ONCE_HOLD)
+				clip_frame := world_3d_clip_frame(e.animation_time, clip, .Once_Hold)
 				rl.UpdateModelAnimation(world_3d_assets.pressure_pad, clip, clip_frame)
 			}
 			rl.DrawModelEx(
@@ -694,8 +694,8 @@ world_3d_draw_labels :: proc(camera_3d: rl.Camera3D) {
 	players := entity_get_players()
 	defer delete(players)
 	for player in players {
-		label := player.index == .PLAYER_1 ? "P1" : "P2"
-		color := player.index == .PLAYER_1 ? renderer.BLUE : renderer.GREEN
+		label := player.index == .Player_1 ? "P1" : "P2"
+		color := player.index == .Player_1 ? renderer.BLUE : renderer.GREEN
 		world_3d_draw_label(label, world_3d_position(player.position, 24), camera_3d, color)
 	}
 }
@@ -706,13 +706,13 @@ when ODIN_DEBUG {
 			position := rl.Vector3{f32(entity.x), 4, f32(entity.y)}
 			color: rl.Color
 			switch entity.entity_type {
-			case .PLAYER: color = rl.BLUE
-			case .ENEMY: color = rl.RED
-			case .NPC: color = rl.GOLD
-			case .HOLDABLE: color = rl.ORANGE
-			case .PRESSURE_PLATE: color = rl.GRAY
-			case .GATE: color = rl.BROWN
-			case .DOOR: color = rl.PURPLE
+			case .Player: color = rl.BLUE
+			case .Enemy: color = rl.RED
+			case .Npc: color = rl.GOLD
+			case .Holdable: color = rl.ORANGE
+			case .Pressure_Plate: color = rl.GRAY
+			case .Gate: color = rl.BROWN
+			case .Door: color = rl.PURPLE
 			}
 			rl.DrawCubeV(position, {8, 8, 8}, color)
 			rl.DrawCubeWiresV(position, {8, 8, 8}, rl.WHITE)
@@ -727,7 +727,7 @@ when ODIN_DEBUG {
 			1,
 			(f32(editor_state.cursor_y) + 0.5) * tile_size,
 		}
-		color := editor_state.selected_layer == .COLLISION ? rl.RED : rl.WHITE
+		color := editor_state.selected_layer == .Collision ? rl.RED : rl.WHITE
 		rl.DrawCubeWiresV(center, {tile_size, 2, tile_size}, color)
 	}
 
@@ -750,7 +750,7 @@ when ODIN_DEBUG {
 		for y in 0 ..< tilemap.get_tilemap_height() {
 			for x in 0 ..< tilemap.get_tilemap_width() {
 				collision := tilemap.get_collision_tile(x, y)
-				if collision == nil || collision^ != .SOLID do continue
+				if collision == nil || collision^ != .Solid do continue
 				center := rl.Vector3{(f32(x) + 0.5) * tile_size, 0.5, (f32(y) + 0.5) * tile_size}
 				size := rl.Vector3{tile_size, 1, tile_size}
 				rl.DrawCubeV(center, size, rl.Color{255, 48, 48, 96})
@@ -765,7 +765,7 @@ when ODIN_DEBUG {
 			switch e in entity {
 			case Player: color = rl.GREEN
 			case Enemy: color = rl.RED
-			case NPC: color = rl.WHITE
+			case Npc: color = rl.WHITE
 			case Pressure_Plate: color = rl.BLUE
 			case Gate: color = rl.SKYBLUE
 			case Holdable: color = rl.YELLOW

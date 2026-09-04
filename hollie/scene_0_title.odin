@@ -5,11 +5,11 @@ import "renderer"
 import rl "vendor:raylib"
 
 Title_Menu_State :: enum {
-	MAIN,
-	OPTIONS,
-	AUDIO,
-	VISUAL,
-	CONTROLS,
+	Main,
+	Options,
+	Audio,
+	Visual,
+	Controls,
 }
 
 TITLE_MAIN_MENU_ITEMS := [?]string{"1 player", "2 players", "Options", "Exit game"}
@@ -19,11 +19,11 @@ title_state := struct {
 	menu_state: Title_Menu_State,
 	focus:      UI_Focus,
 } {
-	menu_state = .MAIN,
+	menu_state = .Main,
 }
 
 init_title_screen :: proc() {
-	title_set_menu(.MAIN)
+	title_set_menu(.Main)
 }
 
 unload_title_screen :: proc() {}
@@ -47,21 +47,21 @@ draw_title_screen :: proc() {
 	renderer.draw_text_ex(game.font, "Hollie", pos, 64, 2, renderer.WHITE)
 
 	switch title_state.menu_state {
-	case .MAIN: title_draw_main_menu()
-	case .OPTIONS: title_draw_options_menu()
-	case .AUDIO: title_draw_audio_menu()
-	case .VISUAL: title_draw_visual_menu()
-	case .CONTROLS: title_draw_controls_menu()
+	case .Main: title_draw_main_menu()
+	case .Options: title_draw_options_menu()
+	case .Audio: title_draw_audio_menu()
+	case .Visual: title_draw_visual_menu()
+	case .Controls: title_draw_controls_menu()
 	}
-	ui_menu_action_bar(title_state.menu_state == .AUDIO || title_state.menu_state == .VISUAL)
+	ui_menu_action_bar(title_state.menu_state == .Audio || title_state.menu_state == .Visual)
 }
 
 title_handle_input :: proc(navigation: UI_Navigation) {
 	if navigation.back {
 		switch title_state.menu_state {
-		case .MAIN: game.state = .EXITING
-		case .OPTIONS: title_set_menu(.MAIN)
-		case .AUDIO, .VISUAL, .CONTROLS: title_set_menu(.OPTIONS)
+		case .Main: game.state = .Exiting
+		case .Options: title_set_menu(.Main)
+		case .Audio, .Visual, .Controls: title_set_menu(.Options)
 		}
 		return
 	}
@@ -97,48 +97,48 @@ title_set_menu :: proc(menu_state: Title_Menu_State) {
 
 title_menu_item_count :: proc(menu_state: Title_Menu_State) -> int {
 	switch menu_state {
-	case .MAIN: return len(TITLE_MAIN_MENU_ITEMS)
-	case .OPTIONS: return len(MENU_OPTIONS_ITEMS)
-	case .AUDIO, .VISUAL: return 4
-	case .CONTROLS: return 1
+	case .Main: return len(TITLE_MAIN_MENU_ITEMS)
+	case .Options: return len(MENU_OPTIONS_ITEMS)
+	case .Audio, .Visual: return 4
+	case .Controls: return 1
 	}
 	return 0
 }
 
 title_adjust_selected :: proc(direction: int) {
 	switch title_state.menu_state {
-	case .AUDIO: menu_adjust_audio(title_state.focus.index, direction, false)
-	case .VISUAL: if title_state.focus.index == 1 do menu_cycle_resolution(direction)
-	case .MAIN, .OPTIONS, .CONTROLS:
+	case .Audio: menu_adjust_audio(title_state.focus.index, direction, false)
+	case .Visual: if title_state.focus.index == 1 do menu_cycle_resolution(direction)
+	case .Main, .Options, .Controls:
 	}
 }
 
 title_activate_selected_item :: proc() {
 	switch title_state.menu_state {
-	case .MAIN: switch title_state.focus.index {
+	case .Main: switch title_state.focus.index {
 			case 0:
 				game.player_count = 1
-				set_scene(.GAMEPLAY)
+				set_scene(.Gameplay)
 			case 1:
 				game.player_count = 2
-				set_scene(.GAMEPLAY)
-			case 2: title_set_menu(.OPTIONS)
-			case 3: game.state = .EXITING
+				set_scene(.Gameplay)
+			case 2: title_set_menu(.Options)
+			case 3: game.state = .Exiting
 			}
-	case .OPTIONS: switch title_state.focus.index {
-			case 0: title_set_menu(.AUDIO)
-			case 1: title_set_menu(.VISUAL)
-			case 2: title_set_menu(.CONTROLS)
-			case 3: title_set_menu(.MAIN)
+	case .Options: switch title_state.focus.index {
+			case 0: title_set_menu(.Audio)
+			case 1: title_set_menu(.Visual)
+			case 2: title_set_menu(.Controls)
+			case 3: title_set_menu(.Main)
 			}
-	case .AUDIO: if title_state.focus.index == 3 {
-				title_set_menu(.OPTIONS)
+	case .Audio: if title_state.focus.index == 3 {
+				title_set_menu(.Options)
 			}
-	case .VISUAL: if title_state.focus.index == 3 {
-				title_set_menu(.OPTIONS)
+	case .Visual: if title_state.focus.index == 3 {
+				title_set_menu(.Options)
 			} else {
 				menu_activate_visual_option(title_state.focus.index)
 			}
-	case .CONTROLS: title_set_menu(.OPTIONS)
+	case .Controls: title_set_menu(.Options)
 	}
 }

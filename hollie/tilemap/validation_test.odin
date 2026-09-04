@@ -21,18 +21,18 @@ test_invalid_map_reports_semantic_errors :: proc(t: ^testing.T) {
 	tm := TileMap {
 		width = 2,
 		height = 2,
-		base_tiles = []TileType{.GRASS_1},
+		base_tiles = []TileType{.Grass_1},
 		deco_tiles = []TileType{},
 		entities = []EntityData {
 			{
 				x = 0,
 				y = 0,
-				entity_type = .GATE,
+				entity_type = .Gate,
 				width = 16,
 				height = 16,
 				required_triggers = missing_triggers,
 			},
-			{x = 64, y = 0, entity_type = .DOOR, width = 16, height = 16},
+			{x = 64, y = 0, entity_type = .Door, width = 16, height = 16},
 		},
 		config = {world_tile_size = 16},
 		room_id = "invalid",

@@ -11,13 +11,13 @@ Vec2 :: rl.Vector2
 TILE_SIZE :: 16
 
 EntityType :: enum {
-	PLAYER         = 0,
-	ENEMY          = 1,
-	PRESSURE_PLATE = 2,
-	GATE           = 3,
-	HOLDABLE       = 4,
-	NPC            = 5,
-	DOOR           = 6,
+	Player         = 0,
+	Enemy          = 1,
+	Pressure_Plate = 2,
+	Gate           = 3,
+	Holdable       = 4,
+	Npc            = 5,
+	Door           = 6,
 }
 
 /// Configuration for tilemap rendering and behavior
@@ -31,66 +31,66 @@ config := TilemapConfig {
 }
 
 TileType :: enum u16 {
-	EMPTY = 0,
-	GRASS_1 = 1,
-	GRASS_2,
-	GRASS_3,
-	GRASS_4 = 33,
-	GRASS_5,
-	GRASS_6,
-	GRASS_7 = 65,
-	GRASS_8,
+	Empty = 0,
+	Grass_1 = 1,
+	Grass_2,
+	Grass_3,
+	Grass_4 = 33,
+	Grass_5,
+	Grass_6,
+	Grass_7 = 65,
+	Grass_8,
 
 	// grass decorations
-	GRASS_DEC_1 = 257,
-	GRASS_DEC_2,
-	GRASS_DEC_3,
-	GRASS_DEC_4,
-	GRASS_DEC_5 = 289,
-	GRASS_DEC_6,
-	GRASS_DEC_7,
-	GRASS_DEC_8,
-	GRASS_DEC_9 = 321,
-	GRASS_DEC_10,
-	GRASS_DEC_11,
-	GRASS_DEC_12,
-	GRASS_DEC_13 = 353,
-	GRASS_DEC_14,
-	GRASS_DEC_15,
-	GRASS_DEC_16,
+	Grass_Dec_1 = 257,
+	Grass_Dec_2,
+	Grass_Dec_3,
+	Grass_Dec_4,
+	Grass_Dec_5 = 289,
+	Grass_Dec_6,
+	Grass_Dec_7,
+	Grass_Dec_8,
+	Grass_Dec_9 = 321,
+	Grass_Dec_10,
+	Grass_Dec_11,
+	Grass_Dec_12,
+	Grass_Dec_13 = 353,
+	Grass_Dec_14,
+	Grass_Dec_15,
+	Grass_Dec_16,
 
 	// sand
-	SAND_1 = 4,
-	SAND_2,
-	SAND_3,
+	Sand_1 = 4,
+	Sand_2,
+	Sand_3,
 
 	// sand decorations
-	SAND_DEC_13 = 385,
-	SAND_DEC_14,
-	SAND_DEC_15,
-	SAND_DEC_16,
+	Sand_Dec_13 = 385,
+	Sand_Dec_14,
+	Sand_Dec_15,
+	Sand_Dec_16,
 
 	// walls and structures
-	WALL_1 = 7,
-	WALL_2,
-	WALL_3,
-	WALL_TOP = 39,
-	WALL_BOTTOM,
-	WALL_LEFT,
-	WALL_RIGHT,
-	WALL_CORNER_TL = 71,
-	WALL_CORNER_TR,
-	WALL_CORNER_BL = 103,
-	WALL_CORNER_BR,
+	Wall_1 = 7,
+	Wall_2,
+	Wall_3,
+	Wall_Top = 39,
+	Wall_Bottom,
+	Wall_Left,
+	Wall_Right,
+	Wall_Corner_Top_Left = 71,
+	Wall_Corner_Top_Right,
+	Wall_Corner_Bottom_Left = 103,
+	Wall_Corner_Bottom_Right,
 
 	// doors
-	DOOR_HORIZONTAL = 11,
-	DOOR_VERTICAL = 43,
+	Door_Horizontal = 11,
+	Door_Vertical = 43,
 }
 
 CollisionType :: enum u8 {
-	WALKABLE = 0,
-	SOLID    = 1,
+	Walkable = 0,
+	Solid    = 1,
 }
 
 Structure_Data :: struct {
@@ -355,7 +355,7 @@ tile_to_world :: proc(tile_x, tile_y: int) -> Vec2 {
 
 is_tile_solid :: proc(x, y: int) -> bool {
 	tile := get_collision_tile(x, y)
-	return tile == nil || tile^ == .SOLID
+	return tile == nil || tile^ == .Solid
 }
 
 check_collision :: proc(rect: renderer.Rect) -> bool {
