@@ -59,7 +59,7 @@ entity_update_puzzle_logic :: proc() {
 
 		if plate.active != was_active {
 			plate.animation_time = 0
-			audio.sound_play(game.sounds["pressure_plate_toggle"])
+			audio.sound_play(&game.sounds, audio.Sound_Kind.PressurePlateToggle)
 		} else {
 			plate.animation_time += delta_time
 		}

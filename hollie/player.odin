@@ -119,7 +119,7 @@ player_roll :: proc(p: ^Player) {
 		p.is_rolling = true
 		p.roll_timer = 0
 
-		audio.sound_play(game.sounds["grunt_roll"])
+		audio.sound_play(&game.sounds, audio.Sound_Kind.GruntRoll)
 	}
 }
 
@@ -147,5 +147,5 @@ player_attack :: proc(p: ^Player) {
 	}
 
 	// Play attack grunt sound
-	audio.sound_play(game.sounds["grunt_attack"])
+	audio.sound_play(&game.sounds, audio.Sound_Kind.GruntAttack)
 }

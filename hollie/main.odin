@@ -26,7 +26,7 @@ Game_State :: struct {
 	player_count: int,
 	font:         renderer.Font,
 	music:        audio.Music,
-	sounds:       audio.Sound_Map,
+	sounds:       audio.Sound_Collection,
 }
 
 game: Game_State = {

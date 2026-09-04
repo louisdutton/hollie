@@ -726,8 +726,8 @@ entity_check_combat :: proc() {
 						t.current -= a.damage
 						a.attack_hit = true
 
-						audio.sound_play(game.sounds["attack_hit"])
-						audio.sound_play(game.sounds["enemy_hit"])
+						audio.sound_play(&game.sounds, audio.Sound_Kind.AttackHit)
+						audio.sound_play(&game.sounds, audio.Sound_Kind.EnemyHit)
 
 						// Apply hit effects
 						t.hit_flash_timer = 0.2 // Hit flash duration
@@ -746,7 +746,7 @@ entity_check_combat :: proc() {
 
 						// Check if enemy dies
 						if t.current <= 0 {
-							audio.sound_play(game.sounds["enemy_death"])
+							audio.sound_play(&game.sounds, audio.Sound_Kind.EnemyDeath)
 							t.is_dying = true
 							t.death_timer = 0
 						}
