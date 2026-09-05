@@ -23,29 +23,6 @@ rendering_camera :: proc() -> rl.Camera3D {
 	}
 }
 
-rendering_has_floor :: proc(x, y: int) -> bool {
-	if x < 0 || y < 0 || x >= tilemap.get_tilemap_width() || y >= tilemap.get_tilemap_height() {
-		return false
-	}
-	tile := tilemap.get_base_tile(x, y)
-	return tile != nil && tile^ != .Empty
-}
-
-rendering_edge_is_door :: proc(position: Vec2) -> bool {
-	for &entity in entities {
-		if door, ok := &entity.(Door); ok {
-			collider_pos := door.position + door.collider.offset
-			if position.x >= collider_pos.x &&
-			   position.x <= collider_pos.x + door.collider.size.x &&
-			   position.y >= collider_pos.y &&
-			   position.y <= collider_pos.y + door.collider.size.y {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 rendering_draw_interior_walls :: proc() {
 	tm := room_get_current()
 	if tm == nil || tm.room_id != "small_room" do return
@@ -57,12 +34,12 @@ rendering_draw_interior_walls :: proc() {
 
 	for y in 0 ..< tilemap.get_tilemap_height() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
-			if !rendering_has_floor(x, y) do continue
+			if !tilemap.has_floor(x, y) do continue
 			center_x := (f32(x) + 0.5) * tile_size
 			center_z := (f32(y) + 0.5) * tile_size
 
-			if !rendering_has_floor(x, y - 1) &&
-			   !rendering_edge_is_door({center_x, f32(y) * tile_size}) {
+			if !tilemap.has_floor(x, y - 1) &&
+			   !entity_door_contains_point({center_x, f32(y) * tile_size}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{center_x, 0, f32(y) * tile_size},
@@ -72,8 +49,8 @@ rendering_draw_interior_walls :: proc() {
 					wall_color,
 				)
 			}
-			if !rendering_has_floor(x, y + 1) &&
-			   !rendering_edge_is_door({center_x, f32(y + 1) * tile_size}) {
+			if !tilemap.has_floor(x, y + 1) &&
+			   !entity_door_contains_point({center_x, f32(y + 1) * tile_size}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{center_x, 0, f32(y + 1) * tile_size},
@@ -83,8 +60,8 @@ rendering_draw_interior_walls :: proc() {
 					wall_color,
 				)
 			}
-			if !rendering_has_floor(x - 1, y) &&
-			   !rendering_edge_is_door({f32(x) * tile_size, center_z}) {
+			if !tilemap.has_floor(x - 1, y) &&
+			   !entity_door_contains_point({f32(x) * tile_size, center_z}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{f32(x) * tile_size, 0, center_z},
@@ -94,8 +71,8 @@ rendering_draw_interior_walls :: proc() {
 					wall_color,
 				)
 			}
-			if !rendering_has_floor(x + 1, y) &&
-			   !rendering_edge_is_door({f32(x + 1) * tile_size, center_z}) {
+			if !tilemap.has_floor(x + 1, y) &&
+			   !entity_door_contains_point({f32(x + 1) * tile_size, center_z}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{f32(x + 1) * tile_size, 0, center_z},
@@ -137,7 +114,7 @@ rendering_draw_house :: proc(position, size: Vec2) {
 	center := position + size / 2
 	wall_height: f32 = 44
 	wall_thickness: f32 = 8
-	// Kenney's wide doorway wall spans 1.5 model units along its local Z axis.
+	// The doorway wall spans 1.5 model units along its local Z axis.
 	rl.DrawModelEx(
 		model_assets.doorway_wall,
 		{center.x, 0, position.y + size.y},
@@ -233,8 +210,8 @@ rendering_draw_character :: proc(
 	}
 	flash := min(max(flash_amount, 0), 1)
 	rl.SetShaderValue(
-		model_assets.active_character_shader,
-		model_assets.character_flash_location,
+		rendering_state.active_character_shader,
+		rendering_state.character_flash_location,
 		&flash,
 		.FLOAT,
 	)
@@ -252,8 +229,8 @@ rendering_draw_character :: proc(
 	)
 	flash = 0
 	rl.SetShaderValue(
-		model_assets.active_character_shader,
-		model_assets.character_flash_location,
+		rendering_state.active_character_shader,
+		rendering_state.character_flash_location,
 		&flash,
 		.FLOAT,
 	)

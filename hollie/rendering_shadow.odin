@@ -8,33 +8,33 @@ RENDERING_SHADOW_MAP_RESOLUTION :: 1024
 RENDERING_SHADOW_MARGIN :: f32(64)
 
 shadow_map_apply_lighting_shaders :: proc() {
-	rendering_apply_shader(&model_assets.floor, model_assets.lighting_shader)
-	rendering_apply_shader(&model_assets.character, model_assets.active_character_shader)
-	rendering_apply_shader(&model_assets.crate, model_assets.lighting_shader)
-	rendering_apply_shader(&model_assets.pressure_pad, model_assets.active_character_shader)
-	rendering_apply_shader(&model_assets.cube, model_assets.lighting_shader)
-	rendering_apply_shader(&model_assets.wall, model_assets.lighting_shader)
-	rendering_apply_shader(&model_assets.doorway_wall, model_assets.lighting_shader)
-	rendering_apply_shader(&model_assets.door_indicator, model_assets.lighting_shader)
+	rendering_apply_shader(&model_assets.floor, rendering_state.lighting_shader)
+	rendering_apply_shader(&model_assets.character, rendering_state.active_character_shader)
+	rendering_apply_shader(&model_assets.crate, rendering_state.lighting_shader)
+	rendering_apply_shader(&model_assets.pressure_pad, rendering_state.active_character_shader)
+	rendering_apply_shader(&model_assets.cube, rendering_state.lighting_shader)
+	rendering_apply_shader(&model_assets.wall, rendering_state.lighting_shader)
+	rendering_apply_shader(&model_assets.doorway_wall, rendering_state.lighting_shader)
+	rendering_apply_shader(&model_assets.door_indicator, rendering_state.lighting_shader)
 }
 
 shadow_map_apply_shaders :: proc() {
-	rendering_apply_shader(&model_assets.floor, model_assets.shadow_shader)
-	character_shader := model_assets.shadow_shader
-	if rendering_uses_gpu_skinning(&model_assets.character) {
-		character_shader = model_assets.shadow_skinned_shader
+	rendering_apply_shader(&model_assets.floor, rendering_state.shadow_shader)
+	character_shader := rendering_state.shadow_shader
+	if model_uses_gpu_skinning(&model_assets.character) {
+		character_shader = rendering_state.shadow_skinned_shader
 	}
 	rendering_apply_shader(&model_assets.character, character_shader)
-	rendering_apply_shader(&model_assets.crate, model_assets.shadow_shader)
-	pressure_pad_shader := model_assets.shadow_shader
-	if rendering_uses_gpu_skinning(&model_assets.pressure_pad) {
-		pressure_pad_shader = model_assets.shadow_skinned_shader
+	rendering_apply_shader(&model_assets.crate, rendering_state.shadow_shader)
+	pressure_pad_shader := rendering_state.shadow_shader
+	if model_uses_gpu_skinning(&model_assets.pressure_pad) {
+		pressure_pad_shader = rendering_state.shadow_skinned_shader
 	}
 	rendering_apply_shader(&model_assets.pressure_pad, pressure_pad_shader)
-	rendering_apply_shader(&model_assets.cube, model_assets.shadow_shader)
-	rendering_apply_shader(&model_assets.wall, model_assets.shadow_shader)
-	rendering_apply_shader(&model_assets.doorway_wall, model_assets.shadow_shader)
-	rendering_apply_shader(&model_assets.door_indicator, model_assets.shadow_shader)
+	rendering_apply_shader(&model_assets.cube, rendering_state.shadow_shader)
+	rendering_apply_shader(&model_assets.wall, rendering_state.shadow_shader)
+	rendering_apply_shader(&model_assets.doorway_wall, rendering_state.shadow_shader)
+	rendering_apply_shader(&model_assets.door_indicator, rendering_state.shadow_shader)
 }
 
 shadow_map_load :: proc() -> rl.RenderTexture2D {
@@ -60,12 +60,12 @@ shadow_map_load :: proc() -> rl.RenderTexture2D {
 	return target
 }
 
-assets_init_shadows :: proc() {
-	model_assets.shadow_map = shadow_map_load()
+shadow_map_init :: proc() {
+	rendering_state.shadow_map = shadow_map_load()
 	resolution := c.int(RENDERING_SHADOW_MAP_RESOLUTION)
 	shaders := [2]rl.Shader {
-		model_assets.lighting_shader,
-		model_assets.character_lighting_shader,
+		rendering_state.lighting_shader,
+		rendering_state.character_lighting_shader,
 	}
 	for shader in shaders {
 		location := rl.GetShaderLocation(shader, "shadowMapResolution")
@@ -73,10 +73,10 @@ assets_init_shadows :: proc() {
 	}
 }
 
-assets_fini_shadows :: proc() {
-	if model_assets.shadow_map.id > 0 {
-		UnloadFramebuffer(model_assets.shadow_map.id)
-		model_assets.shadow_map = {}
+shadow_map_fini :: proc() {
+	if rendering_state.shadow_map.id > 0 {
+		UnloadFramebuffer(rendering_state.shadow_map.id)
+		rendering_state.shadow_map = {}
 	}
 }
 
@@ -109,18 +109,18 @@ shadow_map_bind :: proc(shader: rl.Shader) {
 	location := rl.GetShaderLocation(shader, "shadowMap")
 	EnableShader(shader.id)
 	ActiveTextureSlot(texture_slot)
-	EnableTexture(model_assets.shadow_map.depth.id)
+	EnableTexture(rendering_state.shadow_map.depth.id)
 	SetUniform(location, &texture_slot, c.int(rl.ShaderUniformDataType.INT), 1)
 }
 
 shadow_map_bind_for_rendering :: proc() {
 	shaders := [2]rl.Shader {
-		model_assets.lighting_shader,
-		model_assets.character_lighting_shader,
+		rendering_state.lighting_shader,
+		rendering_state.character_lighting_shader,
 	}
 	for shader in shaders {
 		location := rl.GetShaderLocation(shader, "lightVP")
-		rl.SetShaderValueMatrix(shader, location, model_assets.light_view_projection)
+		rl.SetShaderValueMatrix(shader, location, rendering_state.light_view_projection)
 		shadow_map_bind(shader)
 	}
 	ActiveTextureSlot(0)
@@ -132,7 +132,7 @@ shadow_map_render :: proc(camera_3d: rl.Camera3D) {
 	light_view := rl.GetCameraViewMatrix(&light_camera)
 	light_projection := rl.GetCameraProjectionMatrix(&light_camera, 1)
 
-	rl.BeginTextureMode(model_assets.shadow_map)
+	rl.BeginTextureMode(rendering_state.shadow_map)
 	rl.ClearBackground(rl.WHITE)
 	rl.BeginMode3D(light_camera)
 	rendering_draw_ground()
@@ -143,5 +143,5 @@ shadow_map_render :: proc(camera_3d: rl.Camera3D) {
 
 	shadow_map_apply_lighting_shaders()
 	// Odin's matrix operators use GLSL column-vector order, so projection comes first.
-	model_assets.light_view_projection = light_projection * light_view
+	rendering_state.light_view_projection = light_projection * light_view
 }

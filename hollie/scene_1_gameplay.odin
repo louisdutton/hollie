@@ -53,7 +53,8 @@ gameplay_init :: proc() {
 	camera_init()
 	dialog_init()
 	entity_system_init()
-	assets_init()
+	model_assets_init()
+	rendering_init()
 	particle_system_init()
 	when ODIN_DEBUG {
 		gameplay_debug_ui_visible = false
@@ -183,7 +184,7 @@ gameplay_prepare_draw :: proc() {
 		if editor_is_active() do return
 	}
 
-	shadow_map_render(rendering_camera())
+	rendering_prepare()
 }
 
 gameplay_draw :: proc() {
@@ -231,7 +232,8 @@ gameplay_fini :: proc() {
 	gameplay_state.pending_room_id = nil
 	gameplay_state.current_room_id = ""
 	destroy_room_registry(&gameplay_room_registry)
-	assets_fini()
+	rendering_fini()
+	model_assets_fini()
 	entity_system_fini()
 	particle_system_fini()
 }

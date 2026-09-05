@@ -135,6 +135,12 @@ TileMap :: struct {
 	collision_bounds: renderer.Rect,
 }
 
+has_floor :: proc(x, y: int) -> bool {
+	if x < 0 || y < 0 || x >= get_tilemap_width() || y >= get_tilemap_height() do return false
+	tile := get_base_tile(x, y)
+	return tile != nil && tile^ != .Empty
+}
+
 entity_type_is_valid :: proc(entity_type: EntityType) -> bool {
 	switch entity_type {
 	case .Player, .Enemy, .Pressure_Plate, .Gate, .Holdable, .Npc, .Door:

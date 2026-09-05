@@ -127,6 +127,19 @@ Entity :: union {
 	Door,
 }
 
+entity_door_contains_point :: proc(position: Vec2) -> bool {
+	for &entity in entities {
+		if door, ok := &entity.(Door); ok {
+			collider_position := door.position + door.collider.offset
+			if position.x >= collider_position.x && position.x <= collider_position.x + door.collider.size.x &&
+			   position.y >= collider_position.y && position.y <= collider_position.y + door.collider.size.y {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Global entity storage
 entities: [dynamic]Entity
 
