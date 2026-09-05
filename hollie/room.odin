@@ -39,7 +39,7 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 
 @(private = "file")
 room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
-	player_collider := world_3d_character_collider(true)
+	player_collider := model_character_collider(true)
 	player_size := player_collider.size
 	door_center := door.position + door.collider.size / 2
 	candidates := [5]Vec2 {

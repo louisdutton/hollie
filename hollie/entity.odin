@@ -147,7 +147,7 @@ entity_create_player :: proc(
 ) -> ^Player {
 	player := Player {
 		transform = {position = pos},
-		collider = world_3d_character_collider(true),
+		collider = model_character_collider(true),
 		health = {current = 100, max = 100, is_dying = false},
 		movement = {move_speed = 80, roll_speed = 160, facing_direction = {1, 0}},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
@@ -165,7 +165,7 @@ entity_create_player :: proc(
 entity_create_enemy :: proc(pos: Vec2, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = pos},
-		collider = world_3d_character_collider(true),
+		collider = model_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 50, roll_speed = 100, facing_direction = {1, 0}},
 		combat = {damage = 15, range = 24, attack_width = 24, attack_height = 24},
@@ -186,7 +186,7 @@ entity_create_pressure_plate :: proc(
 ) -> ^Pressure_Plate {
 	plate := Pressure_Plate {
 		transform = {position = pos},
-		collider = world_3d_pressure_pad_collider(false),
+		collider = model_pressure_pad_collider(false),
 		trigger_id = trigger_id,
 		requires_both = requires_both,
 		animation_time = 1e9,
@@ -199,7 +199,7 @@ entity_create_pressure_plate :: proc(
 entity_create_gate :: proc(pos: Vec2, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
 	gate := Gate {
 		transform = {position = pos},
-		collider = {size = size, height = WORLD_3D_GATE_HEIGHT, solid = true},
+		collider = {size = size, height = RENDERING_GATE_HEIGHT, solid = true},
 		gate_id = gate_id,
 		required_triggers = make([dynamic]int),
 		inverted = inverted,
@@ -216,7 +216,7 @@ entity_create_npc :: proc(
 ) -> ^Npc {
 	npc := Npc {
 		transform = {position = pos},
-		collider = world_3d_character_collider(true),
+		collider = model_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 30, facing_direction = {1, 0}},
 		dialog_messages = dialog_messages,
@@ -233,7 +233,7 @@ entity_create_npc :: proc(
 entity_create_holdable :: proc(pos: Vec2) -> ^Holdable {
 	holdable := Holdable {
 		transform = {position = pos},
-		collider = world_3d_crate_collider(true),
+		collider = model_crate_collider(true),
 	}
 
 	append(&entities, holdable)
@@ -397,7 +397,7 @@ entity_get_collider_vertical_offset :: proc(entity: ^Entity) -> f32 {
 	case Pressure_Plate: return e.collider.vertical_offset
 	case Gate: return e.collider.vertical_offset
 	case Holdable:
-		base_height := e.held_by != nil ? WORLD_3D_CARRIED_ITEM_HEIGHT : f32(0)
+		base_height := e.held_by != nil ? RENDERING_CARRIED_ITEM_HEIGHT : f32(0)
 		return e.collider.vertical_offset + base_height
 	case Door: return e.collider.vertical_offset
 	}

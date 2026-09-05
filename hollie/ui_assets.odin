@@ -133,9 +133,10 @@ UI_Assets :: struct {
 ui_assets: UI_Assets
 
 ui_assets_init :: proc() {
+	frame_paths := UI_FRAME_PATHS
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
-		texture := renderer.load_texture(asset.path(UI_FRAME_PATHS[style]))
+		texture := renderer.load_texture(asset.path(frame_paths[style]))
 		rl.SetTextureFilter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
@@ -150,19 +151,21 @@ ui_assets_init :: proc() {
 		cstring(raw_data(asset.path("shaders/ui_horizontal_fade.frag"))),
 	)
 
+	key_prompt_paths := UI_KEY_PROMPT_PATHS
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
-		texture := renderer.load_texture(asset.path(UI_KEY_PROMPT_PATHS[prompt]))
+		texture := renderer.load_texture(asset.path(key_prompt_paths[prompt]))
 		rl.GenTextureMipmaps(&texture)
 		rl.SetTextureFilter(texture, .TRILINEAR)
 		ui_assets.key_prompts[prompt] = texture
 	}
 
+	gamepad_prompt_paths := UI_GAMEPAD_PROMPT_PATHS
 	for layout_index in 0 ..< len(ui_assets.gamepad_prompts) {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
-			texture := renderer.load_texture(asset.path(UI_GAMEPAD_PROMPT_PATHS[layout][prompt]))
+			texture := renderer.load_texture(asset.path(gamepad_prompt_paths[layout][prompt]))
 			rl.GenTextureMipmaps(&texture)
 			rl.SetTextureFilter(texture, .TRILINEAR)
 			ui_assets.gamepad_prompts[layout][prompt] = texture
