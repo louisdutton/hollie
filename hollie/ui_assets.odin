@@ -7,49 +7,61 @@ import rl "vendor:raylib"
 import "window"
 
 UI_ASSET_ROOT :: "ui/"
+UI_FRAME_ASSET_ROOT :: UI_ASSET_ROOT + "frame/"
+UI_INPUT_ASSET_ROOT :: UI_ASSET_ROOT + "input/"
+UI_MAX_PROMPT_TEXTURES :: 4
+
+UI_FRAME_PATHS :: [UI_Frame_Style]string {
+	.Panel_Surface  = UI_FRAME_ASSET_ROOT + "panel-000.png",
+	.Panel_Outline  = UI_FRAME_ASSET_ROOT + "panel-border-000.png",
+	.Action_Bar     = UI_FRAME_ASSET_ROOT + "panel-border-005.png",
+	.Title_Backdrop = UI_FRAME_ASSET_ROOT + "panel-transparent-center-015.png",
+	.Focus_Outline  = UI_FRAME_ASSET_ROOT + "panel-border-008.png",
+	.Focus_Fill     = UI_FRAME_ASSET_ROOT + "panel-008.png",
+}
 
 UI_KEY_PROMPT_PATHS :: [UI_Key_Prompt]string {
-	.Arrows            = "ui/input/keyboard-arrows.png",
-	.Arrows_Horizontal = "ui/input/keyboard-arrows-horizontal.png",
-	.A                 = "ui/input/keyboard-a.png",
-	.D                 = "ui/input/keyboard-d.png",
-	.E                 = "ui/input/keyboard-e.png",
-	.G                 = "ui/input/keyboard-g.png",
-	.H                 = "ui/input/keyboard-h.png",
-	.P                 = "ui/input/keyboard-p.png",
-	.R                 = "ui/input/keyboard-r.png",
-	.S                 = "ui/input/keyboard-s.png",
-	.W                 = "ui/input/keyboard-w.png",
-	.Control           = "ui/input/keyboard-ctrl.png",
-	.Enter             = "ui/input/keyboard-enter.png",
-	.Escape            = "ui/input/keyboard-escape.png",
-	.F1                = "ui/input/keyboard-f1.png",
-	.Left              = "ui/input/keyboard-arrow-left.png",
-	.Right             = "ui/input/keyboard-arrow-right.png",
-	.Shift             = "ui/input/keyboard-shift.png",
-	.Space             = "ui/input/keyboard-space.png",
-	.Tab               = "ui/input/keyboard-tab.png",
-	.Backspace         = "ui/input/keyboard-backspace.png",
+	.Arrows            = UI_INPUT_ASSET_ROOT + "keyboard-arrows.png",
+	.Arrows_Horizontal = UI_INPUT_ASSET_ROOT + "keyboard-arrows-horizontal.png",
+	.A                 = UI_INPUT_ASSET_ROOT + "keyboard-a.png",
+	.D                 = UI_INPUT_ASSET_ROOT + "keyboard-d.png",
+	.E                 = UI_INPUT_ASSET_ROOT + "keyboard-e.png",
+	.G                 = UI_INPUT_ASSET_ROOT + "keyboard-g.png",
+	.H                 = UI_INPUT_ASSET_ROOT + "keyboard-h.png",
+	.P                 = UI_INPUT_ASSET_ROOT + "keyboard-p.png",
+	.R                 = UI_INPUT_ASSET_ROOT + "keyboard-r.png",
+	.S                 = UI_INPUT_ASSET_ROOT + "keyboard-s.png",
+	.W                 = UI_INPUT_ASSET_ROOT + "keyboard-w.png",
+	.Control           = UI_INPUT_ASSET_ROOT + "keyboard-ctrl.png",
+	.Enter             = UI_INPUT_ASSET_ROOT + "keyboard-enter.png",
+	.Escape            = UI_INPUT_ASSET_ROOT + "keyboard-escape.png",
+	.F1                = UI_INPUT_ASSET_ROOT + "keyboard-f1.png",
+	.Left              = UI_INPUT_ASSET_ROOT + "keyboard-arrow-left.png",
+	.Right             = UI_INPUT_ASSET_ROOT + "keyboard-arrow-right.png",
+	.Shift             = UI_INPUT_ASSET_ROOT + "keyboard-shift.png",
+	.Space             = UI_INPUT_ASSET_ROOT + "keyboard-space.png",
+	.Tab               = UI_INPUT_ASSET_ROOT + "keyboard-tab.png",
+	.Backspace         = UI_INPUT_ASSET_ROOT + "keyboard-backspace.png",
 }
 
 UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][UI_Gamepad_Prompt]string {
 	.Xbox = {
-		.Face_Up = "ui/input/xbox-button-y.png", .Face_Right = "ui/input/xbox-button-b.png", .Face_Down = "ui/input/xbox-button-a.png", .Face_Left = "ui/input/xbox-button-x.png",
-		.Left_Bumper = "ui/input/xbox-lb.png", .Left_Trigger = "ui/input/xbox-lt.png", .Right_Bumper = "ui/input/xbox-rb.png", .Right_Trigger = "ui/input/xbox-rt.png",
-		.Middle_Left = "ui/input/xbox-button-view.png", .Middle_Right = "ui/input/xbox-button-menu.png",
-		.Left_Stick_Click = "ui/input/xbox-ls.png", .Right_Stick_Click = "ui/input/xbox-rs.png", .Left_Stick = "ui/input/xbox-stick-l.png", .Right_Stick = "ui/input/xbox-stick-r.png", .Dpad_Horizontal = "ui/input/xbox-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "xbox-button-y.png", .Face_Right = UI_INPUT_ASSET_ROOT + "xbox-button-b.png", .Face_Down = UI_INPUT_ASSET_ROOT + "xbox-button-a.png", .Face_Left = UI_INPUT_ASSET_ROOT + "xbox-button-x.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "xbox-lb.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "xbox-lt.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "xbox-rb.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "xbox-rt.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "xbox-button-view.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "xbox-button-menu.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-ls.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-rs.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "xbox-dpad-horizontal.png",
 	},
 	.Playstation = {
-		.Face_Up = "ui/input/playstation-button-triangle.png", .Face_Right = "ui/input/playstation-button-circle.png", .Face_Down = "ui/input/playstation-button-cross.png", .Face_Left = "ui/input/playstation-button-square.png",
-		.Left_Bumper = "ui/input/playstation-trigger-l1.png", .Left_Trigger = "ui/input/playstation-trigger-l2.png", .Right_Bumper = "ui/input/playstation-trigger-r1.png", .Right_Trigger = "ui/input/playstation-trigger-r2.png",
-		.Middle_Left = "ui/input/playstation5-button-create.png", .Middle_Right = "ui/input/playstation5-button-options.png",
-		.Left_Stick_Click = "ui/input/playstation-button-l3.png", .Right_Stick_Click = "ui/input/playstation-button-r3.png", .Left_Stick = "ui/input/playstation-stick-l.png", .Right_Stick = "ui/input/playstation-stick-r.png", .Dpad_Horizontal = "ui/input/playstation-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "playstation-button-triangle.png", .Face_Right = UI_INPUT_ASSET_ROOT + "playstation-button-circle.png", .Face_Down = UI_INPUT_ASSET_ROOT + "playstation-button-cross.png", .Face_Left = UI_INPUT_ASSET_ROOT + "playstation-button-square.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-l1.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-l2.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-r1.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-r2.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "playstation5-button-create.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "playstation5-button-options.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-l3.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-r3.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "playstation-dpad-horizontal.png",
 	},
 	.Nintendo = {
-		.Face_Up = "ui/input/switch-button-x.png", .Face_Right = "ui/input/switch-button-a.png", .Face_Down = "ui/input/switch-button-b.png", .Face_Left = "ui/input/switch-button-y.png",
-		.Left_Bumper = "ui/input/switch-button-l.png", .Left_Trigger = "ui/input/switch-button-zl.png", .Right_Bumper = "ui/input/switch-button-r.png", .Right_Trigger = "ui/input/switch-button-zr.png",
-		.Middle_Left = "ui/input/switch-button-minus.png", .Middle_Right = "ui/input/switch-button-plus.png",
-		.Left_Stick_Click = "ui/input/switch-stick-l-press.png", .Right_Stick_Click = "ui/input/switch-stick-r-press.png", .Left_Stick = "ui/input/switch-stick-l.png", .Right_Stick = "ui/input/switch-stick-r.png", .Dpad_Horizontal = "ui/input/switch-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "switch-button-x.png", .Face_Right = UI_INPUT_ASSET_ROOT + "switch-button-a.png", .Face_Down = UI_INPUT_ASSET_ROOT + "switch-button-b.png", .Face_Left = UI_INPUT_ASSET_ROOT + "switch-button-y.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-l.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zl.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-r.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zr.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "switch-button-minus.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "switch-button-plus.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-l-press.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-r-press.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "switch-dpad-horizontal.png",
 	},
 }
 
@@ -105,7 +117,7 @@ UI_Frame_Style :: enum {
 }
 
 UI_Prompt_View :: struct {
-	textures: [4]renderer.Texture2D,
+	textures: [UI_MAX_PROMPT_TEXTURES]renderer.Texture2D,
 	count:    int,
 }
 
@@ -123,13 +135,13 @@ ui_assets: UI_Assets
 ui_assets_init :: proc() {
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
-		texture := renderer.load_texture(asset.path(ui_frame_path(style)))
+		texture := renderer.load_texture(asset.path(UI_FRAME_PATHS[style]))
 		rl.SetTextureFilter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
 	ui_assets.title_divider = renderer.load_texture(
 		asset.path(
-			UI_ASSET_ROOT + "frame/divider-fade-005.png",
+			UI_FRAME_ASSET_ROOT + "divider-fade-005.png",
 		),
 	)
 	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
@@ -211,20 +223,6 @@ ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := ren
 		source.width = -source.width
 	}
 	renderer.draw_texture_pro(texture, source, bounds, {}, 0, tint)
-}
-
-@(private)
-ui_frame_path :: proc(style: UI_Frame_Style) -> string {
-	root :: UI_ASSET_ROOT + "frame/"
-	switch style {
-	case .Panel_Surface: return root + "Panel/panel-000.png"
-	case .Panel_Outline: return root + "Border/panel-border-000.png"
-	case .Action_Bar: return root + "Border/panel-border-005.png"
-	case .Title_Backdrop: return root + "Transparent center/panel-transparent-center-015.png"
-	case .Focus_Outline: return root + "Border/panel-border-008.png"
-	case .Focus_Fill: return root + "Panel/panel-008.png"
-	}
-	return ""
 }
 
 ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
@@ -389,4 +387,3 @@ ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepa
 	}
 	return {}, false
 }
-
