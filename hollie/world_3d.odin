@@ -103,7 +103,7 @@ world_3d_set_shader_vec3 :: proc(shader: rl.Shader, name: cstring, value: rl.Vec
 }
 
 world_3d_configure_lighting :: proc(shader: rl.Shader) {
-	// Cool, high-fill studio lighting based on Kenney's Prototype Kit preview.
+	// Cool, high-fill studio lighting.
 	world_3d_set_shader_vec3(shader, "ambientColor", {0.22, 0.23, 0.32})
 	world_3d_set_shader_vec3(shader, "keyDirection", WORLD_3D_LIGHT_DIRECTION)
 	world_3d_set_shader_vec3(shader, "keyColor", {0.6, 0.56, 0.52})
@@ -112,7 +112,7 @@ world_3d_configure_lighting :: proc(shader: rl.Shader) {
 }
 
 world_3d_init :: proc() {
-	root :: "art/kenney/prototype-kit/"
+	root :: "world/props/"
 	world_3d_assets.floor = world_3d_load_model(root + "floor-square.glb")
 	world_3d_assets.character = world_3d_load_model(root + WORLD_3D_CHARACTER_MODEL)
 	world_3d_assets.crate = world_3d_load_model(root + "crate-color.glb")

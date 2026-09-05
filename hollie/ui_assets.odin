@@ -6,6 +6,8 @@ import "renderer"
 import rl "vendor:raylib"
 import "window"
 
+UI_ASSET_ROOT :: "ui/"
+
 UI_Key_Prompt :: enum {
 	Arrows,
 	Arrows_Horizontal,
@@ -82,7 +84,7 @@ ui_assets_init :: proc() {
 	}
 	ui_assets.title_divider = renderer.load_texture(
 		asset.path(
-			"art/ui/kenney/fantasy-ui-borders/PNG/Default/Divider Fade/divider-fade-005.png",
+			UI_ASSET_ROOT + "frame/divider-fade-005.png",
 		),
 	)
 	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
@@ -168,7 +170,7 @@ ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := ren
 
 @(private)
 ui_frame_path :: proc(style: UI_Frame_Style) -> string {
-	root :: "art/ui/kenney/fantasy-ui-borders/PNG/Default/"
+	root :: UI_ASSET_ROOT + "frame/"
 	switch style {
 	case .Panel_Surface: return root + "Panel/panel-000.png"
 	case .Panel_Outline: return root + "Border/panel-border-000.png"
@@ -345,29 +347,29 @@ ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepa
 
 @(private)
 ui_key_prompt_path :: proc(prompt: UI_Key_Prompt) -> string {
-	root :: "art/ui/kenney/input-prompts/Keyboard & Mouse/Default/"
+	root :: UI_ASSET_ROOT + "input/"
 	switch prompt {
-	case .Arrows: return root + "keyboard_arrows.png"
-	case .Arrows_Horizontal: return root + "keyboard_arrows_horizontal.png"
-	case .A: return root + "keyboard_a.png"
-	case .D: return root + "keyboard_d.png"
-	case .E: return root + "keyboard_e.png"
-	case .G: return root + "keyboard_g.png"
-	case .H: return root + "keyboard_h.png"
-	case .P: return root + "keyboard_p.png"
-	case .R: return root + "keyboard_r.png"
-	case .S: return root + "keyboard_s.png"
-	case .W: return root + "keyboard_w.png"
-	case .Control: return root + "keyboard_ctrl.png"
-	case .Enter: return root + "keyboard_enter.png"
-	case .Escape: return root + "keyboard_escape.png"
-	case .F1: return root + "keyboard_f1.png"
-	case .Left: return root + "keyboard_arrow_left.png"
-	case .Right: return root + "keyboard_arrow_right.png"
-	case .Shift: return root + "keyboard_shift.png"
-	case .Space: return root + "keyboard_space.png"
-	case .Tab: return root + "keyboard_tab.png"
-	case .Backspace: return root + "keyboard_backspace.png"
+	case .Arrows: return root + "keyboard-arrows.png"
+	case .Arrows_Horizontal: return root + "keyboard-arrows-horizontal.png"
+	case .A: return root + "keyboard-a.png"
+	case .D: return root + "keyboard-d.png"
+	case .E: return root + "keyboard-e.png"
+	case .G: return root + "keyboard-g.png"
+	case .H: return root + "keyboard-h.png"
+	case .P: return root + "keyboard-p.png"
+	case .R: return root + "keyboard-r.png"
+	case .S: return root + "keyboard-s.png"
+	case .W: return root + "keyboard-w.png"
+	case .Control: return root + "keyboard-ctrl.png"
+	case .Enter: return root + "keyboard-enter.png"
+	case .Escape: return root + "keyboard-escape.png"
+	case .F1: return root + "keyboard-f1.png"
+	case .Left: return root + "keyboard-arrow-left.png"
+	case .Right: return root + "keyboard-arrow-right.png"
+	case .Shift: return root + "keyboard-shift.png"
+	case .Space: return root + "keyboard-space.png"
+	case .Tab: return root + "keyboard-tab.png"
+	case .Backspace: return root + "keyboard-backspace.png"
 	}
 	return ""
 }
@@ -376,61 +378,61 @@ ui_key_prompt_path :: proc(prompt: UI_Key_Prompt) -> string {
 ui_gamepad_prompt_path :: proc(layout: input.Gamepad_Layout, prompt: UI_Gamepad_Prompt) -> string {
 	switch layout {
 	case .Xbox:
-		root :: "art/ui/kenney/input-prompts/Xbox Series/Default/"
+		root :: UI_ASSET_ROOT + "input/"
 		switch prompt {
-		case .Face_Up: return root + "xbox_button_y.png"
-		case .Face_Right: return root + "xbox_button_b.png"
-		case .Face_Down: return root + "xbox_button_a.png"
-		case .Face_Left: return root + "xbox_button_x.png"
-		case .Left_Bumper: return root + "xbox_lb.png"
-		case .Left_Trigger: return root + "xbox_lt.png"
-		case .Right_Bumper: return root + "xbox_rb.png"
-		case .Right_Trigger: return root + "xbox_rt.png"
-		case .Middle_Left: return root + "xbox_button_view.png"
-		case .Middle_Right: return root + "xbox_button_menu.png"
-		case .Left_Stick_Click: return root + "xbox_ls.png"
-		case .Right_Stick_Click: return root + "xbox_rs.png"
-		case .Left_Stick: return root + "xbox_stick_l.png"
-		case .Right_Stick: return root + "xbox_stick_r.png"
-		case .Dpad_Horizontal: return root + "xbox_dpad_horizontal.png"
+		case .Face_Up: return root + "xbox-button-y.png"
+		case .Face_Right: return root + "xbox-button-b.png"
+		case .Face_Down: return root + "xbox-button-a.png"
+		case .Face_Left: return root + "xbox-button-x.png"
+		case .Left_Bumper: return root + "xbox-lb.png"
+		case .Left_Trigger: return root + "xbox-lt.png"
+		case .Right_Bumper: return root + "xbox-rb.png"
+		case .Right_Trigger: return root + "xbox-rt.png"
+		case .Middle_Left: return root + "xbox-button-view.png"
+		case .Middle_Right: return root + "xbox-button-menu.png"
+		case .Left_Stick_Click: return root + "xbox-ls.png"
+		case .Right_Stick_Click: return root + "xbox-rs.png"
+		case .Left_Stick: return root + "xbox-stick-l.png"
+		case .Right_Stick: return root + "xbox-stick-r.png"
+		case .Dpad_Horizontal: return root + "xbox-dpad-horizontal.png"
 		}
 	case .Playstation:
-		root :: "art/ui/kenney/input-prompts/PlayStation Series/Default/"
+		root :: UI_ASSET_ROOT + "input/"
 		switch prompt {
-		case .Face_Up: return root + "playstation_button_triangle.png"
-		case .Face_Right: return root + "playstation_button_circle.png"
-		case .Face_Down: return root + "playstation_button_cross.png"
-		case .Face_Left: return root + "playstation_button_square.png"
-		case .Left_Bumper: return root + "playstation_trigger_l1.png"
-		case .Left_Trigger: return root + "playstation_trigger_l2.png"
-		case .Right_Bumper: return root + "playstation_trigger_r1.png"
-		case .Right_Trigger: return root + "playstation_trigger_r2.png"
-		case .Middle_Left: return root + "playstation5_button_create.png"
-		case .Middle_Right: return root + "playstation5_button_options.png"
-		case .Left_Stick_Click: return root + "playstation_button_l3.png"
-		case .Right_Stick_Click: return root + "playstation_button_r3.png"
-		case .Left_Stick: return root + "playstation_stick_l.png"
-		case .Right_Stick: return root + "playstation_stick_r.png"
-		case .Dpad_Horizontal: return root + "playstation_dpad_horizontal.png"
+		case .Face_Up: return root + "playstation-button-triangle.png"
+		case .Face_Right: return root + "playstation-button-circle.png"
+		case .Face_Down: return root + "playstation-button-cross.png"
+		case .Face_Left: return root + "playstation-button-square.png"
+		case .Left_Bumper: return root + "playstation-trigger-l1.png"
+		case .Left_Trigger: return root + "playstation-trigger-l2.png"
+		case .Right_Bumper: return root + "playstation-trigger-r1.png"
+		case .Right_Trigger: return root + "playstation-trigger-r2.png"
+		case .Middle_Left: return root + "playstation5-button-create.png"
+		case .Middle_Right: return root + "playstation5-button-options.png"
+		case .Left_Stick_Click: return root + "playstation-button-l3.png"
+		case .Right_Stick_Click: return root + "playstation-button-r3.png"
+		case .Left_Stick: return root + "playstation-stick-l.png"
+		case .Right_Stick: return root + "playstation-stick-r.png"
+		case .Dpad_Horizontal: return root + "playstation-dpad-horizontal.png"
 		}
 	case .Nintendo:
-		root :: "art/ui/kenney/input-prompts/Nintendo Switch/Default/"
+		root :: UI_ASSET_ROOT + "input/"
 		switch prompt {
-		case .Face_Up: return root + "switch_button_x.png"
-		case .Face_Right: return root + "switch_button_a.png"
-		case .Face_Down: return root + "switch_button_b.png"
-		case .Face_Left: return root + "switch_button_y.png"
-		case .Left_Bumper: return root + "switch_button_l.png"
-		case .Left_Trigger: return root + "switch_button_zl.png"
-		case .Right_Bumper: return root + "switch_button_r.png"
-		case .Right_Trigger: return root + "switch_button_zr.png"
-		case .Middle_Left: return root + "switch_button_minus.png"
-		case .Middle_Right: return root + "switch_button_plus.png"
-		case .Left_Stick_Click: return root + "switch_stick_l_press.png"
-		case .Right_Stick_Click: return root + "switch_stick_r_press.png"
-		case .Left_Stick: return root + "switch_stick_l.png"
-		case .Right_Stick: return root + "switch_stick_r.png"
-		case .Dpad_Horizontal: return root + "switch_dpad_horizontal.png"
+		case .Face_Up: return root + "switch-button-x.png"
+		case .Face_Right: return root + "switch-button-a.png"
+		case .Face_Down: return root + "switch-button-b.png"
+		case .Face_Left: return root + "switch-button-y.png"
+		case .Left_Bumper: return root + "switch-button-l.png"
+		case .Left_Trigger: return root + "switch-button-zl.png"
+		case .Right_Bumper: return root + "switch-button-r.png"
+		case .Right_Trigger: return root + "switch-button-zr.png"
+		case .Middle_Left: return root + "switch-button-minus.png"
+		case .Middle_Right: return root + "switch-button-plus.png"
+		case .Left_Stick_Click: return root + "switch-stick-l-press.png"
+		case .Right_Stick_Click: return root + "switch-stick-r-press.png"
+		case .Left_Stick: return root + "switch-stick-l.png"
+		case .Right_Stick: return root + "switch-stick-r.png"
+		case .Dpad_Horizontal: return root + "switch-dpad-horizontal.png"
 		}
 	}
 	return ""
