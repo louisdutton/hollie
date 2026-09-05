@@ -8,6 +8,51 @@ import "window"
 
 UI_ASSET_ROOT :: "ui/"
 
+UI_KEY_PROMPT_PATHS :: [UI_Key_Prompt]string {
+	.Arrows            = "ui/input/keyboard-arrows.png",
+	.Arrows_Horizontal = "ui/input/keyboard-arrows-horizontal.png",
+	.A                 = "ui/input/keyboard-a.png",
+	.D                 = "ui/input/keyboard-d.png",
+	.E                 = "ui/input/keyboard-e.png",
+	.G                 = "ui/input/keyboard-g.png",
+	.H                 = "ui/input/keyboard-h.png",
+	.P                 = "ui/input/keyboard-p.png",
+	.R                 = "ui/input/keyboard-r.png",
+	.S                 = "ui/input/keyboard-s.png",
+	.W                 = "ui/input/keyboard-w.png",
+	.Control           = "ui/input/keyboard-ctrl.png",
+	.Enter             = "ui/input/keyboard-enter.png",
+	.Escape            = "ui/input/keyboard-escape.png",
+	.F1                = "ui/input/keyboard-f1.png",
+	.Left              = "ui/input/keyboard-arrow-left.png",
+	.Right             = "ui/input/keyboard-arrow-right.png",
+	.Shift             = "ui/input/keyboard-shift.png",
+	.Space             = "ui/input/keyboard-space.png",
+	.Tab               = "ui/input/keyboard-tab.png",
+	.Backspace         = "ui/input/keyboard-backspace.png",
+}
+
+UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][UI_Gamepad_Prompt]string {
+	.Xbox = {
+		.Face_Up = "ui/input/xbox-button-y.png", .Face_Right = "ui/input/xbox-button-b.png", .Face_Down = "ui/input/xbox-button-a.png", .Face_Left = "ui/input/xbox-button-x.png",
+		.Left_Bumper = "ui/input/xbox-lb.png", .Left_Trigger = "ui/input/xbox-lt.png", .Right_Bumper = "ui/input/xbox-rb.png", .Right_Trigger = "ui/input/xbox-rt.png",
+		.Middle_Left = "ui/input/xbox-button-view.png", .Middle_Right = "ui/input/xbox-button-menu.png",
+		.Left_Stick_Click = "ui/input/xbox-ls.png", .Right_Stick_Click = "ui/input/xbox-rs.png", .Left_Stick = "ui/input/xbox-stick-l.png", .Right_Stick = "ui/input/xbox-stick-r.png", .Dpad_Horizontal = "ui/input/xbox-dpad-horizontal.png",
+	},
+	.Playstation = {
+		.Face_Up = "ui/input/playstation-button-triangle.png", .Face_Right = "ui/input/playstation-button-circle.png", .Face_Down = "ui/input/playstation-button-cross.png", .Face_Left = "ui/input/playstation-button-square.png",
+		.Left_Bumper = "ui/input/playstation-trigger-l1.png", .Left_Trigger = "ui/input/playstation-trigger-l2.png", .Right_Bumper = "ui/input/playstation-trigger-r1.png", .Right_Trigger = "ui/input/playstation-trigger-r2.png",
+		.Middle_Left = "ui/input/playstation5-button-create.png", .Middle_Right = "ui/input/playstation5-button-options.png",
+		.Left_Stick_Click = "ui/input/playstation-button-l3.png", .Right_Stick_Click = "ui/input/playstation-button-r3.png", .Left_Stick = "ui/input/playstation-stick-l.png", .Right_Stick = "ui/input/playstation-stick-r.png", .Dpad_Horizontal = "ui/input/playstation-dpad-horizontal.png",
+	},
+	.Nintendo = {
+		.Face_Up = "ui/input/switch-button-x.png", .Face_Right = "ui/input/switch-button-a.png", .Face_Down = "ui/input/switch-button-b.png", .Face_Left = "ui/input/switch-button-y.png",
+		.Left_Bumper = "ui/input/switch-button-l.png", .Left_Trigger = "ui/input/switch-button-zl.png", .Right_Bumper = "ui/input/switch-button-r.png", .Right_Trigger = "ui/input/switch-button-zr.png",
+		.Middle_Left = "ui/input/switch-button-minus.png", .Middle_Right = "ui/input/switch-button-plus.png",
+		.Left_Stick_Click = "ui/input/switch-stick-l-press.png", .Right_Stick_Click = "ui/input/switch-stick-r-press.png", .Left_Stick = "ui/input/switch-stick-l.png", .Right_Stick = "ui/input/switch-stick-r.png", .Dpad_Horizontal = "ui/input/switch-dpad-horizontal.png",
+	},
+}
+
 UI_Key_Prompt :: enum {
 	Arrows,
 	Arrows_Horizontal,
@@ -95,7 +140,7 @@ ui_assets_init :: proc() {
 
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
-		texture := renderer.load_texture(asset.path(ui_key_prompt_path(prompt)))
+		texture := renderer.load_texture(asset.path(UI_KEY_PROMPT_PATHS[prompt]))
 		rl.GenTextureMipmaps(&texture)
 		rl.SetTextureFilter(texture, .TRILINEAR)
 		ui_assets.key_prompts[prompt] = texture
@@ -105,7 +150,7 @@ ui_assets_init :: proc() {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
-			texture := renderer.load_texture(asset.path(ui_gamepad_prompt_path(layout, prompt)))
+			texture := renderer.load_texture(asset.path(UI_GAMEPAD_PROMPT_PATHS[layout][prompt]))
 			rl.GenTextureMipmaps(&texture)
 			rl.SetTextureFilter(texture, .TRILINEAR)
 			ui_assets.gamepad_prompts[layout][prompt] = texture
@@ -345,95 +390,3 @@ ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepa
 	return {}, false
 }
 
-@(private)
-ui_key_prompt_path :: proc(prompt: UI_Key_Prompt) -> string {
-	root :: UI_ASSET_ROOT + "input/"
-	switch prompt {
-	case .Arrows: return root + "keyboard-arrows.png"
-	case .Arrows_Horizontal: return root + "keyboard-arrows-horizontal.png"
-	case .A: return root + "keyboard-a.png"
-	case .D: return root + "keyboard-d.png"
-	case .E: return root + "keyboard-e.png"
-	case .G: return root + "keyboard-g.png"
-	case .H: return root + "keyboard-h.png"
-	case .P: return root + "keyboard-p.png"
-	case .R: return root + "keyboard-r.png"
-	case .S: return root + "keyboard-s.png"
-	case .W: return root + "keyboard-w.png"
-	case .Control: return root + "keyboard-ctrl.png"
-	case .Enter: return root + "keyboard-enter.png"
-	case .Escape: return root + "keyboard-escape.png"
-	case .F1: return root + "keyboard-f1.png"
-	case .Left: return root + "keyboard-arrow-left.png"
-	case .Right: return root + "keyboard-arrow-right.png"
-	case .Shift: return root + "keyboard-shift.png"
-	case .Space: return root + "keyboard-space.png"
-	case .Tab: return root + "keyboard-tab.png"
-	case .Backspace: return root + "keyboard-backspace.png"
-	}
-	return ""
-}
-
-@(private)
-ui_gamepad_prompt_path :: proc(layout: input.Gamepad_Layout, prompt: UI_Gamepad_Prompt) -> string {
-	switch layout {
-	case .Xbox:
-		root :: UI_ASSET_ROOT + "input/"
-		switch prompt {
-		case .Face_Up: return root + "xbox-button-y.png"
-		case .Face_Right: return root + "xbox-button-b.png"
-		case .Face_Down: return root + "xbox-button-a.png"
-		case .Face_Left: return root + "xbox-button-x.png"
-		case .Left_Bumper: return root + "xbox-lb.png"
-		case .Left_Trigger: return root + "xbox-lt.png"
-		case .Right_Bumper: return root + "xbox-rb.png"
-		case .Right_Trigger: return root + "xbox-rt.png"
-		case .Middle_Left: return root + "xbox-button-view.png"
-		case .Middle_Right: return root + "xbox-button-menu.png"
-		case .Left_Stick_Click: return root + "xbox-ls.png"
-		case .Right_Stick_Click: return root + "xbox-rs.png"
-		case .Left_Stick: return root + "xbox-stick-l.png"
-		case .Right_Stick: return root + "xbox-stick-r.png"
-		case .Dpad_Horizontal: return root + "xbox-dpad-horizontal.png"
-		}
-	case .Playstation:
-		root :: UI_ASSET_ROOT + "input/"
-		switch prompt {
-		case .Face_Up: return root + "playstation-button-triangle.png"
-		case .Face_Right: return root + "playstation-button-circle.png"
-		case .Face_Down: return root + "playstation-button-cross.png"
-		case .Face_Left: return root + "playstation-button-square.png"
-		case .Left_Bumper: return root + "playstation-trigger-l1.png"
-		case .Left_Trigger: return root + "playstation-trigger-l2.png"
-		case .Right_Bumper: return root + "playstation-trigger-r1.png"
-		case .Right_Trigger: return root + "playstation-trigger-r2.png"
-		case .Middle_Left: return root + "playstation5-button-create.png"
-		case .Middle_Right: return root + "playstation5-button-options.png"
-		case .Left_Stick_Click: return root + "playstation-button-l3.png"
-		case .Right_Stick_Click: return root + "playstation-button-r3.png"
-		case .Left_Stick: return root + "playstation-stick-l.png"
-		case .Right_Stick: return root + "playstation-stick-r.png"
-		case .Dpad_Horizontal: return root + "playstation-dpad-horizontal.png"
-		}
-	case .Nintendo:
-		root :: UI_ASSET_ROOT + "input/"
-		switch prompt {
-		case .Face_Up: return root + "switch-button-x.png"
-		case .Face_Right: return root + "switch-button-a.png"
-		case .Face_Down: return root + "switch-button-b.png"
-		case .Face_Left: return root + "switch-button-y.png"
-		case .Left_Bumper: return root + "switch-button-l.png"
-		case .Left_Trigger: return root + "switch-button-zl.png"
-		case .Right_Bumper: return root + "switch-button-r.png"
-		case .Right_Trigger: return root + "switch-button-zr.png"
-		case .Middle_Left: return root + "switch-button-minus.png"
-		case .Middle_Right: return root + "switch-button-plus.png"
-		case .Left_Stick_Click: return root + "switch-stick-l-press.png"
-		case .Right_Stick_Click: return root + "switch-stick-r-press.png"
-		case .Left_Stick: return root + "switch-stick-l.png"
-		case .Right_Stick: return root + "switch-stick-r.png"
-		case .Dpad_Horizontal: return root + "switch-dpad-horizontal.png"
-		}
-	}
-	return ""
-}
