@@ -3,8 +3,13 @@ package hollie
 import "content"
 
 Enemy :: struct {
-	using npc:    Npc,
-	using combat: Combat,
+	using transform: Transform,
+	using collider:  Collider,
+	using health:    Health,
+	using movement:  Movement,
+	using ai:        Ai,
+	using anim_data: Animator,
+	using combat:    Combat,
 }
 
 enemy_create :: proc(position: Vec2, animations: []Animation) -> ^Enemy {
