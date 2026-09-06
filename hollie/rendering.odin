@@ -39,7 +39,7 @@ rendering_draw_interior_walls :: proc() {
 			center_z := (f32(y) + 0.5) * tile_size
 
 			if !tilemap.has_floor(x, y - 1) &&
-			   !entity_door_contains_point({center_x, f32(y) * tile_size}) {
+			   !collision_door_contains_point({center_x, f32(y) * tile_size}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{center_x, 0, f32(y) * tile_size},
@@ -50,7 +50,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x, y + 1) &&
-			   !entity_door_contains_point({center_x, f32(y + 1) * tile_size}) {
+			   !collision_door_contains_point({center_x, f32(y + 1) * tile_size}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{center_x, 0, f32(y + 1) * tile_size},
@@ -61,7 +61,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x - 1, y) &&
-			   !entity_door_contains_point({f32(x) * tile_size, center_z}) {
+			   !collision_door_contains_point({f32(x) * tile_size, center_z}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{f32(x) * tile_size, 0, center_z},
@@ -72,7 +72,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x + 1, y) &&
-			   !entity_door_contains_point({f32(x + 1) * tile_size, center_z}) {
+			   !collision_door_contains_point({f32(x + 1) * tile_size, center_z}) {
 				rl.DrawModelEx(
 					model_assets.wall,
 					{f32(x + 1) * tile_size, 0, center_z},

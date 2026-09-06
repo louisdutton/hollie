@@ -43,7 +43,7 @@ test_collider_rectangle_respects_mesh_derived_offset :: proc(t: ^testing.T) {
 		size   = {12, 8},
 		offset = {-6, -2},
 	}
-	testing.expect_value(t, collider_rect_at({10, 20}, collider), renderer.Rect{4, 18, 12, 8})
+	testing.expect_value(t, collision_rect_at({10, 20}, collider), renderer.Rect{4, 18, 12, 8})
 }
 
 @(test)

@@ -14,8 +14,8 @@ pressure_plate_has_required_weight :: proc(
 pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) -> bool {
 	if holdable.held_by != nil do return false
 	return rects_intersect(
-		collider_rect_at(plate.position, plate.collider),
-		collider_rect_at(holdable.position, holdable.collider),
+		collision_rect_at(plate.position, plate.collider),
+		collision_rect_at(holdable.position, holdable.collider),
 	)
 }
 
@@ -39,8 +39,8 @@ entity_update_puzzle_logic :: proc() {
 
 		// Players and dropped crates each contribute one unit of pressure.
 		for player in players {
-			player_rect := collider_rect_at(player.position, player.collider)
-			plate_rect := collider_rect_at(plate.position, plate.collider)
+			player_rect := collision_rect_at(player.position, player.collider)
+			plate_rect := collision_rect_at(plate.position, plate.collider)
 
 			if rects_intersect(player_rect, plate_rect) {
 				plate.activated_by += {player.index}
