@@ -2,7 +2,7 @@ package hollie
 
 import "audio"
 import "input"
-import rl "vendor:raylib"
+import "renderer"
 
 Pressure_Plate :: struct {
 	using transform: Transform,
@@ -68,7 +68,7 @@ pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) ->
 }
 
 puzzle_update :: proc() {
-	delta_time := rl.GetFrameTime()
+	delta_time := renderer.get_frame_time()
 
 	// Update pressure plate states
 	for &plate_entity in entities {

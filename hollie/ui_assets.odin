@@ -3,7 +3,6 @@ package hollie
 import "asset"
 import "input"
 import "renderer"
-import rl "vendor:raylib"
 import "window"
 
 UI_ASSET_ROOT :: "ui/"
@@ -157,7 +156,7 @@ UI_Prompt_View :: struct {
 UI_Assets :: struct {
 	frames:          [UI_Frame_Style]renderer.Texture2D,
 	title_divider:   renderer.Texture2D,
-	horizontal_fade: rl.Shader,
+	horizontal_fade: renderer.Shader,
 	key_prompts:     [UI_Key_Prompt]renderer.Texture2D,
 	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]renderer.Texture2D,
 }
@@ -170,14 +169,14 @@ ui_assets_init :: proc() {
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
 		texture := renderer.load_texture(asset.path(frame_paths[style]))
-		rl.SetTextureFilter(texture, .POINT)
+		renderer.set_texture_filter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
 	ui_assets.title_divider = renderer.load_texture(
 		asset.path(UI_FRAME_ASSET_ROOT + "divider-fade-005.png"),
 	)
-	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
-	ui_assets.horizontal_fade = rl.LoadShader(
+	renderer.set_texture_filter(ui_assets.title_divider, .POINT)
+	ui_assets.horizontal_fade = renderer.load_shader(
 		nil,
 		cstring(raw_data(asset.path("shaders/ui_horizontal_fade.frag"))),
 	)
@@ -186,8 +185,8 @@ ui_assets_init :: proc() {
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
 		texture := renderer.load_texture(asset.path(key_prompt_paths[prompt]))
-		rl.GenTextureMipmaps(&texture)
-		rl.SetTextureFilter(texture, .TRILINEAR)
+		renderer.generate_texture_mipmaps(&texture)
+		renderer.set_texture_filter(texture, .TRILINEAR)
 		ui_assets.key_prompts[prompt] = texture
 	}
 
@@ -197,8 +196,8 @@ ui_assets_init :: proc() {
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
 			texture := renderer.load_texture(asset.path(gamepad_prompt_paths[layout][prompt]))
-			rl.GenTextureMipmaps(&texture)
-			rl.SetTextureFilter(texture, .TRILINEAR)
+			renderer.generate_texture_mipmaps(&texture)
+			renderer.set_texture_filter(texture, .TRILINEAR)
 			ui_assets.gamepad_prompts[layout][prompt] = texture
 		}
 	}
@@ -207,7 +206,7 @@ ui_assets_init :: proc() {
 ui_assets_fini :: proc() {
 	for texture in ui_assets.frames do renderer.unload_texture(texture)
 	renderer.unload_texture(ui_assets.title_divider)
-	rl.UnloadShader(ui_assets.horizontal_fade)
+	renderer.unload_shader(ui_assets.horizontal_fade)
 	for texture in ui_assets.key_prompts do renderer.unload_texture(texture)
 	for prompts in ui_assets.gamepad_prompts {
 		for texture in prompts do renderer.unload_texture(texture)
@@ -217,15 +216,7 @@ ui_assets_fini :: proc() {
 
 ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := renderer.WHITE) {
 	texture := ui_assets.frames[style]
-	patch := rl.NPatchInfo {
-		source = {0, 0, f32(texture.width), f32(texture.height)},
-		left   = 16,
-		top    = 16,
-		right  = 16,
-		bottom = 16,
-		layout = .NINE_PATCH,
-	}
-	rl.DrawTextureNPatch(texture, patch, bounds, {}, 0, tint)
+	renderer.draw_nine_patch(texture, bounds, 16, 16, 16, 16, tint)
 }
 
 ui_draw_horizontally_faded_frame :: proc(
@@ -238,16 +229,15 @@ ui_draw_horizontally_faded_frame :: proc(
 	screen_bounds := [2]f32{bounds.x * scale, (bounds.x + bounds.width) * scale}
 	screen_fade_width := fade_width * scale
 	shader := ui_assets.horizontal_fade
-	rl.SetShaderValue(shader, rl.GetShaderLocation(shader, "fadeBounds"), &screen_bounds[0], .VEC2)
-	rl.SetShaderValue(
+	renderer.set_shader_vec2(shader, renderer.get_shader_location(shader, "fadeBounds"), &screen_bounds[0])
+	renderer.set_shader_float(
 		shader,
-		rl.GetShaderLocation(shader, "fadeWidth"),
+		renderer.get_shader_location(shader, "fadeWidth"),
 		&screen_fade_width,
-		.FLOAT,
 	)
-	rl.BeginShaderMode(shader)
+	renderer.begin_shader(shader)
 	ui_draw_frame(style, bounds, tint)
-	rl.EndShaderMode()
+	renderer.end_shader()
 }
 
 ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := renderer.WHITE) {

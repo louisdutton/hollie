@@ -8,7 +8,6 @@ import "input"
 import "renderer"
 import "tilemap"
 import "tween"
-import rl "vendor:raylib"
 
 INITIAL_ROOM_ID :: "small_room"
 
@@ -70,7 +69,7 @@ gameplay_update :: proc() {
 		pause_toggle()
 	}
 
-	pause_handle_input(rl.GetFrameTime())
+	pause_handle_input(renderer.get_frame_time())
 
 	when ODIN_DEBUG {
 		if input.action_pressed(.Editor_Toggle) {

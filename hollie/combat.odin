@@ -2,7 +2,7 @@ package hollie
 
 import "audio"
 import "core:math"
-import rl "vendor:raylib"
+import "renderer"
 
 Health :: struct {
 	current:         i32,
@@ -25,7 +25,7 @@ Combat :: struct {
 }
 
 combat_update_timers :: proc() {
-	delta_time := rl.GetFrameTime()
+	delta_time := renderer.get_frame_time()
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
@@ -60,7 +60,7 @@ combat_update :: proc() {
 
 			attack_offset := a.attack_direction * a.range
 			attack_pos := a.position + attack_offset
-			attack_rect := rl.Rectangle {
+			attack_rect := renderer.Rect {
 				attack_pos.x - a.attack_width / 2,
 				attack_pos.y - a.attack_height / 2,
 				a.attack_width,
@@ -71,7 +71,7 @@ combat_update :: proc() {
 				switch &t in target {
 				case Enemy:
 					if t.is_dying do continue
-					if !rl.CheckCollisionRecs(attack_rect, collision_rect_at(t.position, t.collider)) do continue
+					if !rects_intersect(attack_rect, collision_rect_at(t.position, t.collider)) do continue
 
 					t.current -= a.damage
 					a.attack_hit = true

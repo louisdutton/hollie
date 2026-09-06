@@ -7,6 +7,7 @@ Colour :: rl.Color
 Font :: rl.Font
 Rect :: rl.Rectangle
 Camera2D :: rl.Camera2D
+Key :: rl.KeyboardKey
 
 begin_mode_2d :: #force_inline proc(camera: Camera2D) {
 	rl.BeginMode2D(camera)
@@ -34,4 +35,24 @@ end_drawing :: proc() {
 
 clear_background :: proc(colour := BLACK) {
 	rl.ClearBackground(colour)
+}
+
+get_screen_width :: #force_inline proc() -> i32 {
+	return rl.GetScreenWidth()
+}
+
+get_screen_height :: #force_inline proc() -> i32 {
+	return rl.GetScreenHeight()
+}
+
+get_frame_time :: #force_inline proc() -> f32 {
+	return rl.GetFrameTime()
+}
+
+is_window_focused :: #force_inline proc() -> bool {
+	return rl.IsWindowFocused()
+}
+
+is_key_down :: #force_inline proc(key: Key) -> bool {
+	return rl.IsKeyDown(key)
 }

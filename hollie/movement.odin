@@ -1,7 +1,7 @@
 package hollie
 
 import "tilemap"
-import rl "vendor:raylib"
+import "renderer"
 
 Transform :: struct {
 	position: Vec2,
@@ -18,7 +18,7 @@ Movement :: struct {
 }
 
 movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^Collider) {
-	dt := rl.GetFrameTime()
+	dt := renderer.get_frame_time()
 	next_pos := transform.position + transform.velocity * dt
 	final_pos := transform.position
 

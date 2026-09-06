@@ -3,7 +3,6 @@ package hollie
 import "core:math/linalg"
 import "core:math/rand"
 import "renderer"
-import rl "vendor:raylib"
 
 // Single particle definition
 Particle :: struct {
@@ -12,7 +11,7 @@ Particle :: struct {
 	lifetime:     f32,
 	max_lifetime: f32,
 	size:         f32,
-	color:        rl.Color,
+	color:        renderer.Colour,
 }
 
 // Particle system to manage multiple particles
@@ -48,7 +47,7 @@ particle_create_explosion :: proc(position: Vec2) {
 		size := rand.float32_range(2.0, 6.0)
 
 		// Random dust/debris colors (browns, grays, yellows)
-		color_variants := []rl.Color {
+		color_variants := []renderer.Colour {
 			{139, 116, 84, 255}, // Brown
 			{160, 160, 160, 255}, // Gray
 			{205, 186, 89, 255}, // Sandy yellow
@@ -72,7 +71,7 @@ particle_create_explosion :: proc(position: Vec2) {
 
 // Update all particles
 particle_system_update :: proc() {
-	dt := rl.GetFrameTime()
+	dt := renderer.get_frame_time()
 
 	// Update particles and remove expired ones
 	for i := len(particle_system.particles) - 1; i >= 0; i -= 1 {

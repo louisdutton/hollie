@@ -7,7 +7,6 @@ import "input"
 import "renderer"
 import "tilemap"
 import "tween"
-import rl "vendor:raylib"
 
 
 RoomState :: struct {
@@ -22,13 +21,13 @@ RoomState :: struct {
 room_state := RoomState{}
 
 @(private)
-room_collision_bounds: rl.Rectangle
+room_collision_bounds: renderer.Rect
 
-room_set_collision_bounds :: proc(bounds: rl.Rectangle) {
+room_set_collision_bounds :: proc(bounds: renderer.Rect) {
 	room_collision_bounds = bounds
 }
 
-room_get_collision_bounds :: proc() -> rl.Rectangle {
+room_get_collision_bounds :: proc() -> renderer.Rect {
 	return room_collision_bounds
 }
 
@@ -257,7 +256,7 @@ room_update :: proc() {
 
 	// Update level name display timer and fade out after 3 seconds
 	if room_state.is_loaded && room_state.room_name_opacity > 0.0 {
-		room_state.room_name_display_timer += rl.GetFrameTime()
+		room_state.room_name_display_timer += renderer.get_frame_time()
 
 		// Start fading out after 2.5 seconds (0.5s fade in + 2s display)
 		if room_state.room_name_display_timer > 2.5 && room_state.room_name_opacity > 0.01 {
@@ -286,7 +285,7 @@ room_draw_name :: proc() {
 
 	// Create color with opacity for fade effect
 	alpha := u8(room_state.room_name_opacity * 255)
-	color := rl.Color{244, 242, 234, alpha}
+	color := renderer.Colour{244, 242, 234, alpha}
 
 	divider_gap: f32 = 14
 	divider_height: f32 = 16
@@ -314,7 +313,7 @@ room_draw_name :: proc() {
 		.Title_Backdrop,
 		{band_left, band_y, band_right - band_left, band_height},
 		band_fade_width,
-		rl.Color{42, 56, 63, u8(room_state.room_name_opacity * 255)},
+		renderer.Colour{42, 56, 63, u8(room_state.room_name_opacity * 255)},
 	)
 
 	if divider_width >= 24 {

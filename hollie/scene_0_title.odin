@@ -2,7 +2,6 @@
 package hollie
 
 import "renderer"
-import rl "vendor:raylib"
 
 Title_Menu_State :: enum {
 	Main,
@@ -32,7 +31,7 @@ update_title_screen :: proc() {
 	navigation := ui_focus_update(
 		&title_state.focus,
 		title_menu_item_count(title_state.menu_state),
-		rl.GetFrameTime(),
+		renderer.get_frame_time(),
 	)
 	title_handle_input(navigation)
 }

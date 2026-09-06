@@ -5,7 +5,6 @@ import "audio"
 import "input"
 import "renderer"
 import "tween"
-import rl "vendor:raylib"
 import "window"
 
 Vec2 :: renderer.Vec2
@@ -112,7 +111,7 @@ update :: proc() {
 // Handle external interruptions before any scene, menu, editor, tween, or
 // gameplay update can consume input.
 update_app_suspension :: proc() -> bool {
-	if !rl.IsWindowFocused() {
+	if !renderer.is_window_focused() {
 		game.state = .Suspended
 		return true
 	}

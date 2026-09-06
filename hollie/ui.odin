@@ -3,7 +3,6 @@ package hollie
 import "core:fmt"
 import "input"
 import "renderer"
-import rl "vendor:raylib"
 import "window"
 
 UI_Anchor :: enum {
@@ -72,11 +71,11 @@ ui_context := UI_Context {
 ui_begin :: proc() {
 	ui_context.depth = 0
 	ui_scale := window.get_ui_scale()
-	rl.BeginMode2D({zoom = ui_scale})
+	renderer.begin_mode_2d({zoom = ui_scale})
 }
 
 ui_end :: proc() {
-	rl.EndMode2D()
+	renderer.end_mode_2d()
 }
 
 // Returns the width of the provided text at the provided size.
@@ -502,19 +501,19 @@ ui_current_layout :: proc() -> ^UI_Layout {
 
 // Convert design coordinates to screen coordinates
 ui_scale_x :: proc(design_x: f32) -> f32 {
-	window_width := f32(rl.GetScreenWidth())
+	window_width := f32(window.get_screen_width())
 	return design_x * (window_width / f32(design_width))
 }
 
 ui_scale_y :: proc(design_y: f32) -> f32 {
-	window_height := f32(rl.GetScreenHeight())
+	window_height := f32(window.get_screen_height())
 	return design_y * (window_height / f32(design_height))
 }
 
 ui_scale_size :: proc(design_size: int) -> int {
 	// Scale size based on average of x/y scaling
-	scale_x := f32(rl.GetScreenWidth()) / f32(design_width)
-	scale_y := f32(rl.GetScreenHeight()) / f32(design_height)
+	scale_x := f32(window.get_screen_width()) / f32(design_width)
+	scale_y := f32(window.get_screen_height()) / f32(design_height)
 	avg_scale := (scale_x + scale_y) / 2.0
 	return int(f32(design_size) * avg_scale)
 }
