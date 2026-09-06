@@ -9,19 +9,6 @@ import "tilemap"
 import rl "vendor:raylib"
 
 // Common components that can be reused
-Transform :: struct {
-	position: Vec2,
-	velocity: Vec2,
-}
-
-Collider :: struct {
-	size:            Vec2,
-	offset:          Vec2, // Planar offset from transform position
-	height:          f32,
-	vertical_offset: f32,
-	solid:           bool,
-}
-
 Health :: struct {
 	current:         i32,
 	max:             i32,
@@ -29,15 +16,6 @@ Health :: struct {
 	death_timer:     u32,
 	hit_flash_timer: f32,
 	knockback_timer: f32,
-}
-
-Movement :: struct {
-	move_speed:       f32,
-	roll_speed:       f32,
-	facing_direction: Vec2,
-	is_rolling:       bool,
-	roll_timer:       u32,
-	is_busy:          bool,
 }
 
 Combat :: struct {
@@ -125,21 +103,6 @@ Entity :: union {
 	Gate,
 	Holdable,
 	Door,
-}
-
-entity_door_contains_point :: proc(position: Vec2) -> bool {
-	for &entity in entities {
-		if door, ok := &entity.(Door); ok {
-			collider_position := door.position + door.collider.offset
-			if position.x >= collider_position.x &&
-			   position.x <= collider_position.x + door.collider.size.x &&
-			   position.y >= collider_position.y &&
-			   position.y <= collider_position.y + door.collider.size.y {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // Global entity storage
@@ -332,160 +295,6 @@ entity_get_doors :: proc() -> [dynamic]^Door {
 	return doors
 }
 
-entity_check_door_collision :: proc(player: ^Player) -> ^Door {
-	doors := entity_get_doors()
-	defer delete(doors)
-
-	for door in doors {
-		door_entity := Entity(door^)
-		door_pos := entity_get_world_collider_pos(&door_entity)
-		door_size := entity_get_collider_size(&door_entity)
-
-		player_rect := collider_rect_at(player.position, player.collider)
-		door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
-
-		if rects_intersect(player_rect, door_rect) {
-			return door
-		}
-	}
-	return nil
-}
-
-
-// Collision helpers
-collider_rect_at :: proc(position: Vec2, collider: Collider) -> renderer.Rect {
-	return {
-		position.x + collider.offset.x,
-		position.y + collider.offset.y,
-		collider.size.x,
-		collider.size.y,
-	}
-}
-
-entity_get_world_collider_pos :: proc(entity: ^Entity) -> Vec2 {
-	switch e in entity {
-	case Player: return e.position + e.collider.offset
-	case Enemy: return e.position + e.collider.offset
-	case Npc: return e.position + e.collider.offset
-	case Pressure_Plate: return e.position + e.collider.offset
-	case Gate: return e.position + e.collider.offset
-	case Holdable:
-		position := e.position
-		if e.held_by != nil do position = e.held_by.position
-		return position + e.collider.offset
-	case Door: return e.position + e.collider.offset
-	}
-	return {0, 0}
-}
-
-entity_get_collider_size :: proc(entity: ^Entity) -> Vec2 {
-	switch e in entity {
-	case Player: return e.collider.size
-	case Enemy: return e.collider.size
-	case Npc: return e.collider.size
-	case Pressure_Plate: return e.collider.size
-	case Gate: return e.collider.size
-	case Holdable: return e.collider.size
-	case Door: return e.collider.size
-	}
-	return {0, 0}
-}
-
-entity_get_collider_height :: proc(entity: ^Entity) -> f32 {
-	switch e in entity {
-	case Player: return e.collider.height
-	case Enemy: return e.collider.height
-	case Npc: return e.collider.height
-	case Pressure_Plate: return e.collider.height
-	case Gate: return e.collider.height
-	case Holdable: return e.collider.height
-	case Door: return e.collider.height
-	}
-	return 0
-}
-
-entity_get_collider_vertical_offset :: proc(entity: ^Entity) -> f32 {
-	switch e in entity {
-	case Player: return e.collider.vertical_offset
-	case Enemy: return e.collider.vertical_offset
-	case Npc: return e.collider.vertical_offset
-	case Pressure_Plate: return e.collider.vertical_offset
-	case Gate: return e.collider.vertical_offset
-	case Holdable:
-		base_height := e.held_by != nil ? RENDERING_CARRIED_ITEM_HEIGHT : f32(0)
-		return e.collider.vertical_offset + base_height
-	case Door: return e.collider.vertical_offset
-	}
-	return 0
-}
-
-entity_check_collision :: proc(a, b: ^Entity) -> bool {
-	pos_a := entity_get_world_collider_pos(a)
-	size_a := entity_get_collider_size(a)
-	pos_b := entity_get_world_collider_pos(b)
-	size_b := entity_get_collider_size(b)
-
-	return(
-		pos_a.x < pos_b.x + size_b.x &&
-		pos_a.x + size_a.x > pos_b.x &&
-		pos_a.y < pos_b.y + size_b.y &&
-		pos_a.y + size_a.y > pos_b.y \
-	)
-}
-
-entity_point_in_collider :: proc(entity: ^Entity, point: Vec2) -> bool {
-	pos := entity_get_world_collider_pos(entity)
-	size := entity_get_collider_size(entity)
-
-	return(
-		point.x >= pos.x &&
-		point.x <= pos.x + size.x &&
-		point.y >= pos.y &&
-		point.y <= pos.y + size.y \
-	)
-}
-
-entity_check_solid_collision :: proc(position: Vec2, size: Vec2, exclude: ^Entity = nil) -> bool {
-	for &entity in entities {
-		if exclude != nil && &entity == exclude do continue
-
-		is_solid := false
-		switch e in entity {
-		case Player, Enemy, Npc, Pressure_Plate: is_solid = false
-		case Gate: is_solid = e.collider.solid && !e.open
-		case Holdable: is_solid = holdable_blocks_character(e)
-		case Door: is_solid = false // Doors are triggers, not solid barriers
-		}
-
-		if is_solid {
-			entity_ptr := &entity
-			if entity_check_collision_rect(entity_ptr, position, size) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-holdable_blocks_character :: proc(holdable: Holdable) -> bool {
-	return holdable.collider.solid && holdable.held_by == nil
-}
-
-entity_check_collision_rect :: proc(entity: ^Entity, rect_pos: Vec2, rect_size: Vec2) -> bool {
-	entity_pos := entity_get_world_collider_pos(entity)
-	entity_size := entity_get_collider_size(entity)
-
-	// Convert position to collision box position (assuming center-based positioning)
-	char_pos := rect_pos + Vec2{-rect_size.x / 2, -rect_size.y / 2}
-
-	return(
-		char_pos.x < entity_pos.x + entity_size.x &&
-		char_pos.x + rect_size.x > entity_pos.x &&
-		char_pos.y < entity_pos.y + entity_size.y &&
-		char_pos.y + rect_size.y > entity_pos.y \
-	)
-}
-
 // Update systems
 entity_system_update :: proc() {
 	entity_handle_input()
@@ -637,57 +446,12 @@ entity_update_movement :: proc() {
 entity_update_positions :: proc() {
 	for &entity in entities {
 		switch &e in entity {
-		case Player: entity_move_character(&entity, &e.transform, &e.collider)
-		case Enemy: entity_move_character(&entity, &e.transform, &e.collider)
-		case Npc: entity_move_character(&entity, &e.transform, &e.collider)
+		case Player: movement_move(&entity, &e.transform, &e.collider)
+		case Enemy: movement_move(&entity, &e.transform, &e.collider)
+		case Npc: movement_move(&entity, &e.transform, &e.collider)
 		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
-}
-
-// Helper function to move any character with Transform and Collider.
-entity_move_character :: proc(
-	moving_entity: ^Entity,
-	transform: ^Transform,
-	collider: ^Collider,
-) {
-	dt := rl.GetFrameTime()
-	next_pos := transform.position + transform.velocity * dt
-
-	// Check collision per axis to allow sliding
-	final_pos := transform.position
-
-	// Try X movement
-	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	test_rect_x := collider_rect_at(test_pos_x, collider^)
-	if !entity_check_solid_collision(test_pos_x, collider.size, moving_entity) &&
-	   !tilemap.check_collision(test_rect_x) {
-		final_pos.x = next_pos.x
-	}
-
-	// Try Y movement
-	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	test_rect_y := collider_rect_at(test_pos_y, collider^)
-	if !entity_check_solid_collision(test_pos_y, collider.size, moving_entity) &&
-	   !tilemap.check_collision(test_rect_y) {
-		final_pos.y = next_pos.y
-	}
-
-	// Apply bounds checking using room collision bounds
-	room_bounds := room_get_collision_bounds()
-	half_width := collider.size.x / 2
-	half_height := collider.size.y / 2
-
-	transform.position.x = clamp(
-		final_pos.x,
-		room_bounds.x + half_width,
-		room_bounds.x + room_bounds.width - half_width,
-	)
-	transform.position.y = clamp(
-		final_pos.y,
-		room_bounds.y + half_height,
-		room_bounds.y + room_bounds.height - half_height,
-	)
 }
 
 entity_check_combat :: proc() {
@@ -712,7 +476,7 @@ entity_check_combat :: proc() {
 				case Enemy:
 					if t.is_dying do continue
 
-					target_rect := collider_rect_at(t.position, t.collider)
+					target_rect := collision_rect_at(t.position, t.collider)
 
 					// Check if attack hits target
 					if rl.CheckCollisionRecs(attack_rect, target_rect) {

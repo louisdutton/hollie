@@ -29,8 +29,8 @@ test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.
 	testing.expect(
 		t,
 		!rects_intersect(
-			collider_rect_at(player.position, player.collider),
-			collider_rect_at(diagonal_position, crate.collider),
+			collision_rect_at(player.position, player.collider),
+			collision_rect_at(diagonal_position, crate.collider),
 		),
 		"a diagonal drop should clear the player's collision box",
 	)

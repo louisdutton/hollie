@@ -51,7 +51,7 @@ room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 	}
 
 	for candidate in candidates {
-		rect := collider_rect_at(candidate, player_collider)
+		rect := collision_rect_at(candidate, player_collider)
 		if !tilemap.check_collision(rect) do return candidate
 	}
 
@@ -97,13 +97,13 @@ when ODIN_DEBUG {
 
 		for door in doors {
 			door_entity := Entity(door^)
-			door_pos := entity_get_world_collider_pos(&door_entity)
-			door_size := entity_get_collider_size(&door_entity)
+			door_pos := collision_entity_world_position(&door_entity)
+			door_size := collision_entity_size(&door_entity)
 			door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
 			is_intersection := false
 			for player in players {
-				player_rect := collider_rect_at(player.position, player.collider)
+				player_rect := collision_rect_at(player.position, player.collider)
 				if rects_intersect(door_rect, player_rect) {
 					is_intersection = true
 					break

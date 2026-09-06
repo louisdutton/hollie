@@ -63,8 +63,8 @@ when ODIN_DEBUG {
 		}
 
 		for &entity in entities {
-			collider_pos := entity_get_world_collider_pos(&entity)
-			collider_size := entity_get_collider_size(&entity)
+			collider_pos := collision_entity_world_position(&entity)
+			collider_size := collision_entity_size(&entity)
 			color: rl.Color
 			switch e in entity {
 			case Player: color = rl.GREEN
@@ -75,10 +75,10 @@ when ODIN_DEBUG {
 			case Holdable: color = rl.YELLOW
 			case Door: color = rl.PURPLE
 			}
-			height := max(entity_get_collider_height(&entity), 0.25)
+			height := max(collision_entity_height(&entity), 0.25)
 			center := rl.Vector3 {
 				collider_pos.x + collider_size.x / 2,
-				entity_get_collider_vertical_offset(&entity) + height / 2 + 0.01,
+				collision_entity_vertical_offset(&entity) + height / 2 + 0.01,
 				collider_pos.y + collider_size.y / 2,
 			}
 			rl.DrawCubeWiresV(center, {collider_size.x, height, collider_size.y}, color)
