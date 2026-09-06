@@ -6,8 +6,36 @@ VILLAGER_DIALOG := []Dialog_Message {
 	{text = "Feel free to explore around.", speaker = "Village NPC"},
 }
 
+Npc :: struct {
+	using transform: Transform,
+	using collider:  Collider,
+	using health:    Health,
+	using movement:  Movement,
+	using ai:        Ai,
+	using anim_data: Animator,
+	dialog_messages: []Dialog_Message,
+}
+
+npc_create :: proc(
+	position: Vec2,
+	animations: []Animation,
+	dialog_messages: []Dialog_Message = {},
+) -> ^Npc {
+	npc := Npc {
+		transform = {position = position},
+		collider = model_character_collider(true),
+		health = {current = 50, max = 50},
+		movement = {move_speed = 30, facing_direction = {1, 0}},
+		dialog_messages = dialog_messages,
+	}
+	if len(animations) > 0 do animation_init(&npc.anim_data, animations)
+
+	append(&entities, npc)
+	return &entities[len(entities) - 1].(Npc)
+}
+
 npc_spawn_at :: proc(position: Vec2) -> ^Npc {
-	return entity_create_npc(position, human_animations[:], VILLAGER_DIALOG)
+	return npc_create(position, human_animations[:], VILLAGER_DIALOG)
 }
 
 npc_get_all :: proc() -> [dynamic]^Npc {

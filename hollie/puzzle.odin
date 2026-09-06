@@ -1,7 +1,55 @@
 package hollie
 
 import "audio"
+import "input"
 import rl "vendor:raylib"
+
+Pressure_Plate :: struct {
+	using transform: Transform,
+	using collider:  Collider,
+	trigger_id:      int,
+	active:          bool,
+	animation_time:  f32,
+	activated_by:    bit_set[input.Player_Index],
+	requires_both:   bool,
+}
+
+Gate :: struct {
+	using transform:   Transform,
+	using collider:    Collider,
+	gate_id:           int,
+	open:              bool,
+	required_triggers: [dynamic]int,
+	inverted:          bool,
+}
+
+pressure_plate_create :: proc(
+	position: Vec2,
+	trigger_id: int,
+	requires_both: bool = false,
+) -> ^Pressure_Plate {
+	plate := Pressure_Plate {
+		transform = {position = position},
+		collider = model_pressure_pad_collider(false),
+		trigger_id = trigger_id,
+		requires_both = requires_both,
+		animation_time = 1e9,
+	}
+	append(&entities, plate)
+	return &entities[len(entities) - 1].(Pressure_Plate)
+}
+
+gate_create :: proc(position, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
+	gate := Gate {
+		transform = {position = position},
+		collider = {size = size, height = RENDERING_GATE_HEIGHT, solid = true},
+		gate_id = gate_id,
+		required_triggers = make([dynamic]int),
+		inverted = inverted,
+	}
+	append(&entities, gate)
+	return &entities[len(entities) - 1].(Gate)
+}
 
 pressure_plate_has_required_weight :: proc(
 	player_count, crate_count: int,

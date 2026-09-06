@@ -158,9 +158,9 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 				continue
 		case .Enemy: enemy_spawn_kind_at(position, entity.character_kind)
 		case .Pressure_Plate:
-			entity_create_pressure_plate(position, entity.trigger_id, entity.requires_both)
+			pressure_plate_create(position, entity.trigger_id, entity.requires_both)
 		case .Gate:
-			gate := entity_create_gate(
+			gate := gate_create(
 				position,
 				Vec2{f32(entity.width), f32(entity.height)},
 				entity.gate_id,
@@ -172,7 +172,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		case .Holdable: holdable_spawn_at(position)
 		case .Npc: npc_spawn_at(position)
 		case .Door:
-			entity_create_door(
+			door_create(
 					position,
 					Vec2{f32(entity.width), f32(entity.height)},
 					entity.target_room,

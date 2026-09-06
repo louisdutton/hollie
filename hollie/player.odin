@@ -8,8 +8,38 @@ PLAYER_INTERACT_RANGE :: 24 // the distance within which the player can interact
 PLAYER_DROP_FALLBACK_DISTANCE :: 16
 PLAYER_DROP_GAP :: 2
 
+Player :: struct {
+	using transform: Transform,
+	using collider:  Collider,
+	using health:    Health,
+	using movement:  Movement,
+	using combat:    Combat,
+	using anim_data: Animator,
+	index:           input.Player_Index,
+	carrying:        ^Holdable,
+}
+
+player_create :: proc(
+	position: Vec2,
+	index: input.Player_Index,
+	animations: []Animation,
+) -> ^Player {
+	player := Player {
+		transform = {position = position},
+		collider = model_character_collider(true),
+		health = {current = 100, max = 100, is_dying = false},
+		movement = {move_speed = 80, roll_speed = 160, facing_direction = {1, 0}},
+		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
+		index = index,
+	}
+	if len(animations) > 0 do animation_init(&player.anim_data, animations)
+
+	append(&entities, player)
+	return &entities[len(entities) - 1].(Player)
+}
+
 player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
-	entity_create_player(pos, index, player_animations[:])
+	player_create(pos, index, player_animations[:])
 }
 
 player_handle_input :: proc(p: ^Player) {
