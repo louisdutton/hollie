@@ -25,7 +25,7 @@ rendering_camera :: proc() -> rl.Camera3D {
 
 rendering_draw_interior_walls :: proc() {
 	tm := room_get_current()
-	if tm == nil || tm.room_id != "small_room" do return
+	if tm == nil || !tm.interior do return
 
 	tile_size := f32(tilemap.get_tile_size())
 	wall_height: f32 = 12

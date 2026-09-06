@@ -41,6 +41,7 @@ room_file_to_tilemap_unchecked :: proc(
 		room_id = strings.clone(room.id, allocator),
 		room_name = strings.clone(room.name, allocator),
 		music_path = strings.clone(room.music_path, allocator),
+		interior = room.interior,
 		camera_bounds = {
 			x = room.camera_bounds.x,
 			y = room.camera_bounds.y,
@@ -132,6 +133,7 @@ tilemap_to_room_file :: proc(
 	room.id = strings.clone(tm.room_id, allocator)
 	room.name = strings.clone(tm.room_name, allocator)
 	room.music_path = strings.clone(tm.music_path, allocator)
+	room.interior = tm.interior
 	room.size = {
 		width  = tm.width,
 		height = tm.height,

@@ -35,6 +35,7 @@ Room_File_Common :: struct {
 	id:               string,
 	name:             string,
 	music_path:       string `json:"music_path,omitempty"`,
+	interior:   bool `json:"interior,omitempty"`,
 	size:             Room_File_Size,
 	grid:             Room_File_Grid,
 	camera_bounds:    Room_File_Bounds,
@@ -113,6 +114,7 @@ decode_room_file_json5 :: proc(
 	wire.name = ""
 	room.music_path = wire.music_path
 	wire.music_path = ""
+	room.interior = wire.interior
 	room.size = wire.size
 	room.grid = wire.grid
 	room.camera_bounds = wire.camera_bounds
@@ -148,6 +150,7 @@ encode_room_file_json5 :: proc(
 	wire.id = room.id
 	wire.name = room.name
 	wire.music_path = room.music_path
+	wire.interior = room.interior
 	wire.size = room.size
 	wire.grid = room.grid
 	wire.camera_bounds = room.camera_bounds

@@ -2,6 +2,7 @@
   "id": "small_room",
   "name": "???",
   "music_path": "audio/music/ambient.ogg",
+  "interior": true,
   "size": {
     "width": 8,
     "height": 9

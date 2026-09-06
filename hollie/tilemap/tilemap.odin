@@ -131,6 +131,7 @@ TileMap :: struct {
 	room_id:          string,
 	room_name:        string,
 	music_path:       string,
+	interior:   bool,
 	camera_bounds:    renderer.Rect,
 	collision_bounds: renderer.Rect,
 }
@@ -210,6 +211,7 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	tilemap.room_id = strings.clone(new_tilemap.room_id)
 	tilemap.room_name = strings.clone(new_tilemap.room_name)
 	tilemap.music_path = strings.clone(new_tilemap.music_path)
+	tilemap.interior = new_tilemap.interior
 	tilemap.camera_bounds = new_tilemap.camera_bounds
 	tilemap.collision_bounds = new_tilemap.collision_bounds
 
