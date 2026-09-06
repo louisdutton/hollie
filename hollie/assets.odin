@@ -16,22 +16,22 @@ RENDERING_BACKGROUND_COLOR :: rl.Color{54, 54, 60, 255}
 RENDERING_LIGHT_DIRECTION :: rl.Vector3{-0.5, -0.7, 0.5}
 RENDERING_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
 RENDERING_CHARACTER_CLIP_NAMES :: [AnimationState]string {
-	.Idle = "idle",
-	.Run = "walk",
-	.Jump = "sprint",
-	.Death = "die",
+	.Idle   = "idle",
+	.Run    = "walk",
+	.Jump   = "sprint",
+	.Death  = "die",
 	.Attack = "attack-melee-right",
-	.Roll = "sprint",
-	.Carry = "walk-holding-both",
+	.Roll   = "sprint",
+	.Carry  = "walk-holding-both",
 }
 RENDERING_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
-	.Idle = .Loop,
-	.Run = .Loop,
-	.Jump = .Once_Hold,
-	.Death = .Once_Hold,
+	.Idle   = .Loop,
+	.Run    = .Loop,
+	.Jump   = .Once_Hold,
+	.Death  = .Once_Hold,
 	.Attack = .Once_Hold,
-	.Roll = .Once_Hold,
-	.Carry = .Loop,
+	.Roll   = .Once_Hold,
+	.Carry  = .Loop,
 }
 Pressure_Pad_State :: enum {
 	Off,
@@ -39,11 +39,12 @@ Pressure_Pad_State :: enum {
 }
 RENDERING_PRESSURE_PAD_CLIP_NAMES :: [Pressure_Pad_State]string {
 	.Off = "toggle-off",
-	.On = "toggle-on",
+	.On  = "toggle-on",
 }
 RENDERING_CHARACTER_MODEL :: "figurine-raylib.glb"
 
-Model_Assets :: struct {	floor:                          rl.Model,
+Model_Assets :: struct {
+	floor:                          rl.Model,
 	character:                      rl.Model,
 	crate:                          rl.Model,
 	pressure_pad:                   rl.Model,

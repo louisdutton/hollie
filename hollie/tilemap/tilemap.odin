@@ -143,8 +143,7 @@ has_floor :: proc(x, y: int) -> bool {
 
 entity_type_is_valid :: proc(entity_type: EntityType) -> bool {
 	switch entity_type {
-	case .Player, .Enemy, .Pressure_Plate, .Gate, .Holdable, .Npc, .Door:
-		return true
+	case .Player, .Enemy, .Pressure_Plate, .Gate, .Holdable, .Npc, .Door: return true
 	case: return false
 	}
 }

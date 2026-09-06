@@ -46,22 +46,55 @@ UI_KEY_PROMPT_PATHS :: [UI_Key_Prompt]string {
 
 UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][UI_Gamepad_Prompt]string {
 	.Xbox = {
-		.Face_Up = UI_INPUT_ASSET_ROOT + "xbox-button-y.png", .Face_Right = UI_INPUT_ASSET_ROOT + "xbox-button-b.png", .Face_Down = UI_INPUT_ASSET_ROOT + "xbox-button-a.png", .Face_Left = UI_INPUT_ASSET_ROOT + "xbox-button-x.png",
-		.Left_Bumper = UI_INPUT_ASSET_ROOT + "xbox-lb.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "xbox-lt.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "xbox-rb.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "xbox-rt.png",
-		.Middle_Left = UI_INPUT_ASSET_ROOT + "xbox-button-view.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "xbox-button-menu.png",
-		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-ls.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-rs.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "xbox-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "xbox-button-y.png",
+		.Face_Right = UI_INPUT_ASSET_ROOT + "xbox-button-b.png",
+		.Face_Down = UI_INPUT_ASSET_ROOT + "xbox-button-a.png",
+		.Face_Left = UI_INPUT_ASSET_ROOT + "xbox-button-x.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "xbox-lb.png",
+		.Left_Trigger = UI_INPUT_ASSET_ROOT + "xbox-lt.png",
+		.Right_Bumper = UI_INPUT_ASSET_ROOT + "xbox-rb.png",
+		.Right_Trigger = UI_INPUT_ASSET_ROOT + "xbox-rt.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "xbox-button-view.png",
+		.Middle_Right = UI_INPUT_ASSET_ROOT + "xbox-button-menu.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-ls.png",
+		.Right_Stick_Click = UI_INPUT_ASSET_ROOT + "xbox-rs.png",
+		.Left_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-l.png",
+		.Right_Stick = UI_INPUT_ASSET_ROOT + "xbox-stick-r.png",
+		.Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "xbox-dpad-horizontal.png",
 	},
 	.Playstation = {
-		.Face_Up = UI_INPUT_ASSET_ROOT + "playstation-button-triangle.png", .Face_Right = UI_INPUT_ASSET_ROOT + "playstation-button-circle.png", .Face_Down = UI_INPUT_ASSET_ROOT + "playstation-button-cross.png", .Face_Left = UI_INPUT_ASSET_ROOT + "playstation-button-square.png",
-		.Left_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-l1.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-l2.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-r1.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-r2.png",
-		.Middle_Left = UI_INPUT_ASSET_ROOT + "playstation5-button-create.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "playstation5-button-options.png",
-		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-l3.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-r3.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "playstation-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "playstation-button-triangle.png",
+		.Face_Right = UI_INPUT_ASSET_ROOT + "playstation-button-circle.png",
+		.Face_Down = UI_INPUT_ASSET_ROOT + "playstation-button-cross.png",
+		.Face_Left = UI_INPUT_ASSET_ROOT + "playstation-button-square.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-l1.png",
+		.Left_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-l2.png",
+		.Right_Bumper = UI_INPUT_ASSET_ROOT + "playstation-trigger-r1.png",
+		.Right_Trigger = UI_INPUT_ASSET_ROOT + "playstation-trigger-r2.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "playstation5-button-create.png",
+		.Middle_Right = UI_INPUT_ASSET_ROOT + "playstation5-button-options.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-l3.png",
+		.Right_Stick_Click = UI_INPUT_ASSET_ROOT + "playstation-button-r3.png",
+		.Left_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-l.png",
+		.Right_Stick = UI_INPUT_ASSET_ROOT + "playstation-stick-r.png",
+		.Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "playstation-dpad-horizontal.png",
 	},
 	.Nintendo = {
-		.Face_Up = UI_INPUT_ASSET_ROOT + "switch-button-x.png", .Face_Right = UI_INPUT_ASSET_ROOT + "switch-button-a.png", .Face_Down = UI_INPUT_ASSET_ROOT + "switch-button-b.png", .Face_Left = UI_INPUT_ASSET_ROOT + "switch-button-y.png",
-		.Left_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-l.png", .Left_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zl.png", .Right_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-r.png", .Right_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zr.png",
-		.Middle_Left = UI_INPUT_ASSET_ROOT + "switch-button-minus.png", .Middle_Right = UI_INPUT_ASSET_ROOT + "switch-button-plus.png",
-		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-l-press.png", .Right_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-r-press.png", .Left_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-l.png", .Right_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-r.png", .Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "switch-dpad-horizontal.png",
+		.Face_Up = UI_INPUT_ASSET_ROOT + "switch-button-x.png",
+		.Face_Right = UI_INPUT_ASSET_ROOT + "switch-button-a.png",
+		.Face_Down = UI_INPUT_ASSET_ROOT + "switch-button-b.png",
+		.Face_Left = UI_INPUT_ASSET_ROOT + "switch-button-y.png",
+		.Left_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-l.png",
+		.Left_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zl.png",
+		.Right_Bumper = UI_INPUT_ASSET_ROOT + "switch-button-r.png",
+		.Right_Trigger = UI_INPUT_ASSET_ROOT + "switch-button-zr.png",
+		.Middle_Left = UI_INPUT_ASSET_ROOT + "switch-button-minus.png",
+		.Middle_Right = UI_INPUT_ASSET_ROOT + "switch-button-plus.png",
+		.Left_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-l-press.png",
+		.Right_Stick_Click = UI_INPUT_ASSET_ROOT + "switch-stick-r-press.png",
+		.Left_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-l.png",
+		.Right_Stick = UI_INPUT_ASSET_ROOT + "switch-stick-r.png",
+		.Dpad_Horizontal = UI_INPUT_ASSET_ROOT + "switch-dpad-horizontal.png",
 	},
 }
 
@@ -141,9 +174,7 @@ ui_assets_init :: proc() {
 		ui_assets.frames[style] = texture
 	}
 	ui_assets.title_divider = renderer.load_texture(
-		asset.path(
-			UI_FRAME_ASSET_ROOT + "divider-fade-005.png",
-		),
+		asset.path(UI_FRAME_ASSET_ROOT + "divider-fade-005.png"),
 	)
 	rl.SetTextureFilter(ui_assets.title_divider, .POINT)
 	ui_assets.horizontal_fade = rl.LoadShader(
