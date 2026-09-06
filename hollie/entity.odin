@@ -637,43 +637,22 @@ entity_update_movement :: proc() {
 entity_update_positions :: proc() {
 	for &entity in entities {
 		switch &e in entity {
-		case Player: entity_move_character(&e.transform, &e.collider)
-		case Enemy: entity_move_character(&e.transform, &e.collider)
-		case Npc: entity_move_character(&e.transform, &e.collider)
+		case Player: entity_move_character(&entity, &e.transform, &e.collider)
+		case Enemy: entity_move_character(&entity, &e.transform, &e.collider)
+		case Npc: entity_move_character(&entity, &e.transform, &e.collider)
 		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }
 
-// Helper function to move any character with Transform and Collider
-entity_move_character :: proc(transform: ^Transform, collider: ^Collider) {
+// Helper function to move any character with Transform and Collider.
+entity_move_character :: proc(
+	moving_entity: ^Entity,
+	transform: ^Transform,
+	collider: ^Collider,
+) {
 	dt := rl.GetFrameTime()
 	next_pos := transform.position + transform.velocity * dt
-
-	// Find the moving entity to exclude it from collision checks
-	moving_entity: ^Entity = nil
-	for &entity in entities {
-		entity_transform := &Transform{}
-		entity_collider := &Collider{}
-
-		switch &e in entity {
-		case Player:
-			entity_transform = &e.transform
-			entity_collider = &e.collider
-		case Enemy:
-			entity_transform = &e.transform
-			entity_collider = &e.collider
-		case Npc:
-			entity_transform = &e.transform
-			entity_collider = &e.collider
-		case Pressure_Plate, Gate, Holdable, Door: continue
-		}
-
-		if entity_transform == transform && entity_collider == collider {
-			moving_entity = &entity
-			break
-		}
-	}
 
 	// Check collision per axis to allow sliding
 	final_pos := transform.position
