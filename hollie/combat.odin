@@ -2,7 +2,7 @@ package hollie
 
 import "audio"
 import "core:math"
-import "renderer"
+import "graphics"
 
 Health :: struct {
 	current:         i32,
@@ -25,7 +25,7 @@ Combat :: struct {
 }
 
 combat_update_timers :: proc() {
-	delta_time := renderer.get_frame_time()
+	delta_time := graphics.get_frame_time()
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
@@ -60,7 +60,7 @@ combat_update :: proc() {
 
 			attack_offset := a.attack_direction * a.range
 			attack_pos := a.position + attack_offset
-			attack_rect := renderer.Rect {
+			attack_rect := graphics.Rect {
 				attack_pos.x - a.attack_width / 2,
 				attack_pos.y - a.attack_height / 2,
 				a.attack_width,

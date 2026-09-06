@@ -3,7 +3,7 @@ package hollie
 import "content"
 import "core:fmt"
 import "input"
-import "renderer"
+import "graphics"
 import "tilemap"
 import "window"
 
@@ -61,13 +61,13 @@ editor_draw_ui :: proc() {
 editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
 	if tile_type == .Empty do return
 
-	color := renderer.Colour{120, 170, 120, alpha}
-	renderer.draw_rect(x, y, size, size, color)
-	renderer.draw_rect_outline(x, y, size, size, color = renderer.WHITE)
+	color := graphics.Colour{120, 170, 120, alpha}
+	graphics.draw_rect(x, y, size, size, color)
+	graphics.draw_rect_outline(x, y, size, size, color = graphics.WHITE)
 }
 
 editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: f32, alpha: u8) {
-	color := renderer.Colour{}
+	color := graphics.Colour{}
 	icon_text := ""
 	switch entity_type {
 	case .Player:
@@ -93,12 +93,12 @@ editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: 
 		icon_text = "D"
 	}
 
-	renderer.draw_rect(x, y, size, size, color)
-	renderer.draw_rect_outline(x, y, size, size, color = renderer.BLACK)
+	graphics.draw_rect(x, y, size, size, color)
+	graphics.draw_rect_outline(x, y, size, size, color = graphics.BLACK)
 
 	text_x := x + size / 2 - 4
 	text_y := y + size / 2 - 6
-	renderer.draw_text(icon_text, int(text_x), int(text_y), 12, renderer.BLACK)
+	graphics.draw_text(icon_text, int(text_x), int(text_y), 12, graphics.BLACK)
 }
 
 editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
@@ -107,12 +107,12 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 	label_y := carousel_y + tile_preview_size + 8
 	carousel_width := f32(EDITOR_CAROUSEL_SLOT_COUNT - 1) * spacing + tile_preview_size
 	if editor_state.selected_layer == .Collision {
-		renderer.draw_rect(
+		graphics.draw_rect(
 			carousel_x + f32(EDITOR_CAROUSEL_SELECTED_SLOT) * spacing,
 			carousel_y,
 			tile_preview_size,
 			tile_preview_size,
-			renderer.Colour{255, 64, 64, 180},
+			graphics.Colour{255, 64, 64, 180},
 		)
 		editor_draw_carousel_label("Solid", carousel_x, carousel_width, label_y)
 		return
@@ -190,9 +190,9 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 }
 
 editor_draw_carousel_label :: proc(text: string, carousel_x, carousel_width, y: f32) {
-	text_width := f32(renderer.measure_text(text, 13))
+	text_width := f32(graphics.measure_text(text, 13))
 	x := carousel_x + (carousel_width - text_width) / 2
-	renderer.draw_text(text, int(x), int(y), 13, renderer.WHITE)
+	graphics.draw_text(text, int(x), int(y), 13, graphics.WHITE)
 }
 
 editor_carousel_slot :: proc(
@@ -211,13 +211,13 @@ editor_carousel_slot :: proc(
 
 editor_draw_carousel_selection :: proc(slot: Editor_Carousel_Slot, carousel_y, preview_size: f32) {
 	if !slot.selected do return
-	renderer.draw_rect_outline(
+	graphics.draw_rect_outline(
 		slot.x - 2,
 		carousel_y - 2,
 		preview_size + 4,
 		preview_size + 4,
 		3,
-		renderer.WHITE,
+		graphics.WHITE,
 	)
 }
 
@@ -226,7 +226,7 @@ editor_draw_minimal_hud :: proc() {
 	design_width := f32(window.get_design_width())
 
 	layer_text := ""
-	layer_color := renderer.Colour{255, 255, 255, 200}
+	layer_color := graphics.Colour{255, 255, 255, 200}
 	switch editor_state.selected_layer {
 	case .Base:
 		layer_text = "Base"

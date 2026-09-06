@@ -1,6 +1,6 @@
 package hollie
 
-import "renderer"
+import "graphics"
 
 Collider :: struct {
 	size:            Vec2,
@@ -34,7 +34,7 @@ collision_door_for_player :: proc(player: ^Player) -> ^Door {
 		door_size := collision_entity_size(&door_entity)
 
 		player_rect := collision_rect_at(player.position, player.collider)
-		door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
+		door_rect := graphics.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
 		if rects_intersect(player_rect, door_rect) {
 			return door
@@ -45,7 +45,7 @@ collision_door_for_player :: proc(player: ^Player) -> ^Door {
 
 
 // Collision helpers
-collision_rect_at :: proc(position: Vec2, collider: Collider) -> renderer.Rect {
+collision_rect_at :: proc(position: Vec2, collider: Collider) -> graphics.Rect {
 	return {
 		position.x + collider.offset.x,
 		position.y + collider.offset.y,

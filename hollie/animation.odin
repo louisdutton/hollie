@@ -1,7 +1,7 @@
 package hollie
 
 import "core:math"
-import "renderer"
+import "graphics"
 
 TARGET_FPS :: 60 // target game update rate in frames per second
 FPS :: 24 // source animation rate in frames per second
@@ -106,7 +106,7 @@ animation_fini :: proc(anim_data: ^Animator) {
 }
 
 animation_update_entities :: proc() {
-	delta_time := renderer.get_frame_time()
+	delta_time := graphics.get_frame_time()
 	for &entity in entities {
 		switch &e in entity {
 		case Player:

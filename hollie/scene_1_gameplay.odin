@@ -5,7 +5,7 @@ import "audio"
 import "core:strings"
 import "core:time"
 import "input"
-import "renderer"
+import "graphics"
 import "tilemap"
 import "tween"
 
@@ -69,7 +69,7 @@ gameplay_update :: proc() {
 		pause_toggle()
 	}
 
-	pause_handle_input(renderer.get_frame_time())
+	pause_handle_input(graphics.get_frame_time())
 
 	when ODIN_DEBUG {
 		if input.action_pressed(.Editor_Toggle) {
@@ -239,7 +239,7 @@ gameplay_fini :: proc() {
 draw_transition_overlay :: proc() {
 	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
 		alpha := u8(gameplay_state.transition_opacity * 255)
-		renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{0, 0, 0, alpha})
+		graphics.draw_rect_i(0, 0, design_width, design_height, graphics.Colour{0, 0, 0, alpha})
 	}
 }
 

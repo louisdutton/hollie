@@ -1,14 +1,14 @@
 package input
 
-import "../renderer"
+import "../graphics"
 
 // returns the current movement input for player 1
-get_movement :: proc() -> (input: renderer.Vec2) {
+get_movement :: proc() -> (input: graphics.Vec2) {
 	return get_movement_for_player(.Player_1)
 }
 
 // returns the current movement input for a specific player
-get_movement_for_player :: proc(id: Player_Index) -> (input: renderer.Vec2) {
+get_movement_for_player :: proc(id: Player_Index) -> (input: graphics.Vec2) {
 	key_x, key_y: f32
 
 	if id == .Player_1 {

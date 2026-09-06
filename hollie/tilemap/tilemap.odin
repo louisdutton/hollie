@@ -1,7 +1,7 @@
 package tilemap
 
 import "../content"
-import "../renderer"
+import "../graphics"
 import "core:encoding/uuid"
 import "core:strings"
 import rl "vendor:raylib"
@@ -132,8 +132,8 @@ TileMap :: struct {
 	room_name:        string,
 	music_path:       string,
 	interior:         bool,
-	camera_bounds:    renderer.Rect,
-	collision_bounds: renderer.Rect,
+	camera_bounds:    graphics.Rect,
+	collision_bounds: graphics.Rect,
 }
 
 has_floor :: proc(x, y: int) -> bool {
@@ -306,11 +306,11 @@ get_music_path :: proc() -> string {
 	return tilemap.music_path
 }
 
-get_camera_bounds :: proc() -> renderer.Rect {
+get_camera_bounds :: proc() -> graphics.Rect {
 	return tilemap.camera_bounds
 }
 
-get_collision_bounds :: proc() -> renderer.Rect {
+get_collision_bounds :: proc() -> graphics.Rect {
 	return tilemap.collision_bounds
 }
 
@@ -373,7 +373,7 @@ is_tile_solid :: proc(x, y: int) -> bool {
 	return tile == nil || tile^ == .Solid
 }
 
-check_collision :: proc(rect: renderer.Rect) -> bool {
+check_collision :: proc(rect: graphics.Rect) -> bool {
 	tile_size_f := f32(config.world_tile_size)
 	map_width := f32(tilemap.width * config.world_tile_size)
 	map_height := f32(tilemap.height * config.world_tile_size)

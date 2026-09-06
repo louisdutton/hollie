@@ -3,11 +3,11 @@ package hollie
 import "asset"
 import "audio"
 import "input"
-import "renderer"
+import "graphics"
 import "tween"
 import "window"
 
-Vec2 :: renderer.Vec2
+Vec2 :: graphics.Vec2
 
 // Global state
 design_width: i32
@@ -23,7 +23,7 @@ Game_State :: struct {
 	state:        App_State,
 	scene:        Scene,
 	player_count: int,
-	font:         renderer.Font,
+	font:         graphics.Font,
 	music:        audio.Music,
 	sounds:       audio.Sound_Collection,
 }
@@ -54,8 +54,8 @@ init :: proc() {
 
 	audio.init()
 
-	game.font = renderer.load_font(asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf"))
-	renderer.set_default_font(game.font)
+	game.font = graphics.load_font(asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf"))
+	graphics.set_default_font(game.font)
 	game.music = audio.music_init(asset.path("audio/music/ambient.ogg"))
 	game.sounds = audio.sound_init()
 	audio.music_set_volume(game.music, audio.get_effective_music_volume())
@@ -77,7 +77,7 @@ fini :: proc() {
 	case .Gameplay: gameplay_fini()
 	}
 
-	renderer.unload_font(game.font)
+	graphics.unload_font(game.font)
 	audio.music_fini(game.music)
 
 	audio.fini()
@@ -111,7 +111,7 @@ update :: proc() {
 // Handle external interruptions before any scene, menu, editor, tween, or
 // gameplay update can consume input.
 update_app_suspension :: proc() -> bool {
-	if !renderer.is_window_focused() {
+	if !graphics.is_window_focused() {
 		game.state = .Suspended
 		return true
 	}
@@ -130,10 +130,10 @@ draw :: proc() {
 		gameplay_prepare_draw()
 	}
 
-	renderer.begin_drawing()
-	defer renderer.end_drawing()
+	graphics.begin_drawing()
+	defer graphics.end_drawing()
 
-	renderer.clear_background()
+	graphics.clear_background()
 	if game.state == .Suspended do return
 
 	switch game.scene {
@@ -141,5 +141,5 @@ draw :: proc() {
 	case .Gameplay: gameplay_draw()
 	}
 
-	renderer.draw_fps(10, 10)
+	graphics.draw_fps(10, 10)
 }

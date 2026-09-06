@@ -1,7 +1,7 @@
 package hollie
 
 import "core:math"
-import "renderer"
+import "graphics"
 import "window"
 
 CAMERA_SMOOTH: f32 : 0.1 // interpolation factor used when following the target
@@ -12,8 +12,8 @@ ZOOM_MIN :: 1.0
 ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
 
 // Camera state
-camera_bounds: renderer.Rect
-camera := renderer.Camera2D {
+camera_bounds: graphics.Rect
+camera := graphics.Camera2D {
 	zoom = camera_base_zoom,
 }
 
@@ -76,16 +76,16 @@ camera_update_zoom :: proc() {
 		screen_scale = window.get_ui_scale()
 	}
 
-	if renderer.is_key_down(.MINUS) {
+	if graphics.is_key_down(.MINUS) {
 		camera_base_zoom = max(camera_base_zoom - ZOOM_RATE, ZOOM_MIN)
-	} else if renderer.is_key_down(.EQUAL) {
+	} else if graphics.is_key_down(.EQUAL) {
 		camera_base_zoom = min(camera_base_zoom + ZOOM_RATE, ZOOM_MAX)
 	}
 
 	camera.zoom = camera_base_zoom * screen_scale
 }
 
-camera_set_bounds :: proc(bounds: renderer.Rect) {
+camera_set_bounds :: proc(bounds: graphics.Rect) {
 	camera_bounds = bounds
 }
 

@@ -2,7 +2,7 @@ package hollie
 
 import "asset"
 import "input"
-import "renderer"
+import "graphics"
 import "window"
 
 UI_ASSET_ROOT :: "ui/"
@@ -149,16 +149,16 @@ UI_Frame_Style :: enum {
 }
 
 UI_Prompt_View :: struct {
-	textures: [UI_MAX_PROMPT_TEXTURES]renderer.Texture2D,
+	textures: [UI_MAX_PROMPT_TEXTURES]graphics.Texture2D,
 	count:    int,
 }
 
 UI_Assets :: struct {
-	frames:          [UI_Frame_Style]renderer.Texture2D,
-	title_divider:   renderer.Texture2D,
-	horizontal_fade: renderer.Shader,
-	key_prompts:     [UI_Key_Prompt]renderer.Texture2D,
-	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]renderer.Texture2D,
+	frames:          [UI_Frame_Style]graphics.Texture2D,
+	title_divider:   graphics.Texture2D,
+	horizontal_fade: graphics.Shader,
+	key_prompts:     [UI_Key_Prompt]graphics.Texture2D,
+	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]graphics.Texture2D,
 }
 
 @(private)
@@ -168,15 +168,15 @@ ui_assets_init :: proc() {
 	frame_paths := UI_FRAME_PATHS
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
-		texture := renderer.load_texture(asset.path(frame_paths[style]))
-		renderer.set_texture_filter(texture, .POINT)
+		texture := graphics.load_texture(asset.path(frame_paths[style]))
+		graphics.set_texture_filter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
-	ui_assets.title_divider = renderer.load_texture(
+	ui_assets.title_divider = graphics.load_texture(
 		asset.path(UI_FRAME_ASSET_ROOT + "divider-fade-005.png"),
 	)
-	renderer.set_texture_filter(ui_assets.title_divider, .POINT)
-	ui_assets.horizontal_fade = renderer.load_shader(
+	graphics.set_texture_filter(ui_assets.title_divider, .POINT)
+	ui_assets.horizontal_fade = graphics.load_shader(
 		nil,
 		cstring(raw_data(asset.path("shaders/ui_horizontal_fade.frag"))),
 	)
@@ -184,9 +184,9 @@ ui_assets_init :: proc() {
 	key_prompt_paths := UI_KEY_PROMPT_PATHS
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
-		texture := renderer.load_texture(asset.path(key_prompt_paths[prompt]))
-		renderer.generate_texture_mipmaps(&texture)
-		renderer.set_texture_filter(texture, .TRILINEAR)
+		texture := graphics.load_texture(asset.path(key_prompt_paths[prompt]))
+		graphics.generate_texture_mipmaps(&texture)
+		graphics.set_texture_filter(texture, .TRILINEAR)
 		ui_assets.key_prompts[prompt] = texture
 	}
 
@@ -195,58 +195,58 @@ ui_assets_init :: proc() {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
-			texture := renderer.load_texture(asset.path(gamepad_prompt_paths[layout][prompt]))
-			renderer.generate_texture_mipmaps(&texture)
-			renderer.set_texture_filter(texture, .TRILINEAR)
+			texture := graphics.load_texture(asset.path(gamepad_prompt_paths[layout][prompt]))
+			graphics.generate_texture_mipmaps(&texture)
+			graphics.set_texture_filter(texture, .TRILINEAR)
 			ui_assets.gamepad_prompts[layout][prompt] = texture
 		}
 	}
 }
 
 ui_assets_fini :: proc() {
-	for texture in ui_assets.frames do renderer.unload_texture(texture)
-	renderer.unload_texture(ui_assets.title_divider)
-	renderer.unload_shader(ui_assets.horizontal_fade)
-	for texture in ui_assets.key_prompts do renderer.unload_texture(texture)
+	for texture in ui_assets.frames do graphics.unload_texture(texture)
+	graphics.unload_texture(ui_assets.title_divider)
+	graphics.unload_shader(ui_assets.horizontal_fade)
+	for texture in ui_assets.key_prompts do graphics.unload_texture(texture)
 	for prompts in ui_assets.gamepad_prompts {
-		for texture in prompts do renderer.unload_texture(texture)
+		for texture in prompts do graphics.unload_texture(texture)
 	}
 	ui_assets = {}
 }
 
-ui_draw_frame :: proc(style: UI_Frame_Style, bounds: renderer.Rect, tint := renderer.WHITE) {
+ui_draw_frame :: proc(style: UI_Frame_Style, bounds: graphics.Rect, tint := graphics.WHITE) {
 	texture := ui_assets.frames[style]
-	renderer.draw_nine_patch(texture, bounds, 16, 16, 16, 16, tint)
+	graphics.draw_nine_patch(texture, bounds, 16, 16, 16, 16, tint)
 }
 
 ui_draw_horizontally_faded_frame :: proc(
 	style: UI_Frame_Style,
-	bounds: renderer.Rect,
+	bounds: graphics.Rect,
 	fade_width: f32,
-	tint := renderer.WHITE,
+	tint := graphics.WHITE,
 ) {
 	scale := window.get_ui_scale()
 	screen_bounds := [2]f32{bounds.x * scale, (bounds.x + bounds.width) * scale}
 	screen_fade_width := fade_width * scale
 	shader := ui_assets.horizontal_fade
-	renderer.set_shader_vec2(shader, renderer.get_shader_location(shader, "fadeBounds"), &screen_bounds[0])
-	renderer.set_shader_float(
+	graphics.set_shader_vec2(shader, graphics.get_shader_location(shader, "fadeBounds"), &screen_bounds[0])
+	graphics.set_shader_float(
 		shader,
-		renderer.get_shader_location(shader, "fadeWidth"),
+		graphics.get_shader_location(shader, "fadeWidth"),
 		&screen_fade_width,
 	)
-	renderer.begin_shader(shader)
+	graphics.begin_shader(shader)
 	ui_draw_frame(style, bounds, tint)
-	renderer.end_shader()
+	graphics.end_shader()
 }
 
-ui_draw_title_divider :: proc(bounds: renderer.Rect, mirrored: bool, tint := renderer.WHITE) {
+ui_draw_title_divider :: proc(bounds: graphics.Rect, mirrored: bool, tint := graphics.WHITE) {
 	texture := ui_assets.title_divider
-	source := renderer.Rect{0, 0, f32(texture.width), f32(texture.height)}
+	source := graphics.Rect{0, 0, f32(texture.width), f32(texture.height)}
 	if mirrored {
 		source.width = -source.width
 	}
-	renderer.draw_texture_pro(texture, source, bounds, {}, 0, tint)
+	graphics.draw_texture_pro(texture, source, bounds, {}, 0, tint)
 }
 
 ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
@@ -354,14 +354,14 @@ ui_prompt_view_width :: proc(view: UI_Prompt_View, size: f32 = 18, gap: f32 = 2)
 ui_draw_prompt_view :: proc(view: UI_Prompt_View, x, y: f32, size: f32 = 18, gap: f32 = 2) {
 	for index in 0 ..< view.count {
 		texture := view.textures[index]
-		destination := renderer.Rect{x + f32(index) * (size + gap), y, size, size}
-		renderer.draw_texture_pro(
+		destination := graphics.Rect{x + f32(index) * (size + gap), y, size, size}
+		graphics.draw_texture_pro(
 			texture,
 			{0, 0, f32(texture.width), f32(texture.height)},
 			destination,
 			{},
 			0,
-			renderer.WHITE,
+			graphics.WHITE,
 		)
 	}
 }

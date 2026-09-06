@@ -2,7 +2,7 @@ package hollie
 
 import "asset"
 import "core:c"
-import "renderer"
+import "graphics"
 
 
 MODEL_CHARACTER_SCALE :: f32(32)
@@ -38,32 +38,32 @@ MODEL_PRESSURE_PAD_CLIP_NAMES :: [Pressure_Pad_State]string {
 MODEL_CHARACTER_FILE :: "figurine-raylib.glb"
 
 Model_Assets :: struct {
-	floor:                          renderer.Model,
-	character:                      renderer.Model,
-	crate:                          renderer.Model,
-	pressure_pad:                   renderer.Model,
-	cube:                           renderer.Model,
-	wall:                           renderer.Model,
-	doorway_wall:                   renderer.Model,
-	door_indicator:                 renderer.Model,
-	character_animations:           [^]renderer.Model_Animation,
+	floor:                          graphics.Model,
+	character:                      graphics.Model,
+	crate:                          graphics.Model,
+	pressure_pad:                   graphics.Model,
+	cube:                           graphics.Model,
+	wall:                           graphics.Model,
+	doorway_wall:                   graphics.Model,
+	door_indicator:                 graphics.Model,
+	character_animations:           [^]graphics.Model_Animation,
 	character_animation_count:      c.int,
 	character_animation_indices:    [AnimationState]int,
-	pressure_pad_animations:        [^]renderer.Model_Animation,
+	pressure_pad_animations:        [^]graphics.Model_Animation,
 	pressure_pad_animation_count:   c.int,
 	pressure_pad_animation_indices: [Pressure_Pad_State]int,
-	character_bounds:               renderer.Bounding_Box,
-	crate_bounds:                   renderer.Bounding_Box,
-	pressure_pad_bounds:            renderer.Bounding_Box,
+	character_bounds:               graphics.Bounding_Box,
+	crate_bounds:                   graphics.Bounding_Box,
+	pressure_pad_bounds:            graphics.Bounding_Box,
 }
 
 @(private)
 model_assets: Model_Assets
 
-model_assets_load_model :: proc(relative_path: string) -> renderer.Model {
+model_assets_load_model :: proc(relative_path: string) -> graphics.Model {
 	path := asset.path(relative_path)
 	defer delete(path)
-	return renderer.load_model(path)
+	return graphics.load_model(path)
 }
 
 model_assets_init :: proc() {
@@ -76,13 +76,13 @@ model_assets_init :: proc() {
 	model_assets.wall = model_assets_load_model(root + "wall.glb")
 	model_assets.doorway_wall = model_assets_load_model(root + "wall-doorway-wide.glb")
 	model_assets.door_indicator = model_assets_load_model(root + "indicator-doorway.glb")
-	model_assets.character_bounds = renderer.get_model_bounding_box(model_assets.character)
-	model_assets.crate_bounds = renderer.get_model_bounding_box(model_assets.crate)
-	model_assets.pressure_pad_bounds = renderer.get_model_bounding_box(model_assets.pressure_pad)
+	model_assets.character_bounds = graphics.get_model_bounding_box(model_assets.character)
+	model_assets.crate_bounds = graphics.get_model_bounding_box(model_assets.crate)
+	model_assets.pressure_pad_bounds = graphics.get_model_bounding_box(model_assets.pressure_pad)
 	for &index in model_assets.character_animation_indices do index = -1
 	path := asset.path(root + MODEL_CHARACTER_FILE)
 	defer delete(path)
-	model_assets.character_animations = renderer.load_model_animations(
+	model_assets.character_animations = graphics.load_model_animations(
 		path,
 		&model_assets.character_animation_count,
 	)
@@ -104,7 +104,7 @@ model_assets_init :: proc() {
 	for &index in model_assets.pressure_pad_animation_indices do index = -1
 	pressure_pad_path := asset.path(root + MODEL_PRESSURE_PAD_FILE)
 	defer delete(pressure_pad_path)
-	model_assets.pressure_pad_animations = renderer.load_model_animations(
+	model_assets.pressure_pad_animations = graphics.load_model_animations(
 		pressure_pad_path,
 		&model_assets.pressure_pad_animation_count,
 	)
@@ -126,24 +126,24 @@ model_assets_init :: proc() {
 
 model_assets_fini :: proc() {
 	if model_assets.character_animation_count > 0 {
-		renderer.unload_model_animations(
+		graphics.unload_model_animations(
 			model_assets.character_animations,
 			model_assets.character_animation_count,
 		)
 	}
 	if model_assets.pressure_pad_animation_count > 0 {
-		renderer.unload_model_animations(
+		graphics.unload_model_animations(
 			model_assets.pressure_pad_animations,
 			model_assets.pressure_pad_animation_count,
 		)
 	}
-	if renderer.model_is_loaded(model_assets.floor) do renderer.unload_model(model_assets.floor)
-	if renderer.model_is_loaded(model_assets.character) do renderer.unload_model(model_assets.character)
-	if renderer.model_is_loaded(model_assets.crate) do renderer.unload_model(model_assets.crate)
-	if renderer.model_is_loaded(model_assets.pressure_pad) do renderer.unload_model(model_assets.pressure_pad)
-	if renderer.model_is_loaded(model_assets.cube) do renderer.unload_model(model_assets.cube)
-	if renderer.model_is_loaded(model_assets.wall) do renderer.unload_model(model_assets.wall)
-	if renderer.model_is_loaded(model_assets.doorway_wall) do renderer.unload_model(model_assets.doorway_wall)
-	if renderer.model_is_loaded(model_assets.door_indicator) do renderer.unload_model(model_assets.door_indicator)
+	if graphics.model_is_loaded(model_assets.floor) do graphics.unload_model(model_assets.floor)
+	if graphics.model_is_loaded(model_assets.character) do graphics.unload_model(model_assets.character)
+	if graphics.model_is_loaded(model_assets.crate) do graphics.unload_model(model_assets.crate)
+	if graphics.model_is_loaded(model_assets.pressure_pad) do graphics.unload_model(model_assets.pressure_pad)
+	if graphics.model_is_loaded(model_assets.cube) do graphics.unload_model(model_assets.cube)
+	if graphics.model_is_loaded(model_assets.wall) do graphics.unload_model(model_assets.wall)
+	if graphics.model_is_loaded(model_assets.doorway_wall) do graphics.unload_model(model_assets.doorway_wall)
+	if graphics.model_is_loaded(model_assets.door_indicator) do graphics.unload_model(model_assets.door_indicator)
 	model_assets = {}
 }

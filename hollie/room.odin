@@ -4,7 +4,7 @@ import "asset"
 import "audio"
 import "core:time"
 import "input"
-import "renderer"
+import "graphics"
 import "tilemap"
 import "tween"
 
@@ -21,13 +21,13 @@ RoomState :: struct {
 room_state := RoomState{}
 
 @(private)
-room_collision_bounds: renderer.Rect
+room_collision_bounds: graphics.Rect
 
-room_set_collision_bounds :: proc(bounds: renderer.Rect) {
+room_set_collision_bounds :: proc(bounds: graphics.Rect) {
 	room_collision_bounds = bounds
 }
 
-room_get_collision_bounds :: proc() -> renderer.Rect {
+room_get_collision_bounds :: proc() -> graphics.Rect {
 	return room_collision_bounds
 }
 
@@ -68,19 +68,19 @@ when ODIN_DEBUG {
 				if collision == nil || collision^ != .Solid do continue
 				world_x := f32(x * tile_size)
 				world_y := f32(y * tile_size)
-				renderer.draw_rect(
+				graphics.draw_rect(
 					world_x,
 					world_y,
 					f32(tile_size),
 					f32(tile_size),
-					renderer.Colour{255, 48, 48, 104},
+					graphics.Colour{255, 48, 48, 104},
 				)
-				renderer.draw_rect_outline(
+				graphics.draw_rect_outline(
 					world_x,
 					world_y,
 					f32(tile_size),
 					f32(tile_size),
-					color = renderer.Colour{255, 96, 96, 192},
+					color = graphics.Colour{255, 96, 96, 192},
 				)
 			}
 		}
@@ -95,7 +95,7 @@ when ODIN_DEBUG {
 			door_entity := Entity(door^)
 			door_pos := collision_entity_world_position(&door_entity)
 			door_size := collision_entity_size(&door_entity)
-			door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
+			door_rect := graphics.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
 			is_intersection := false
 			for &player_entity in entities {
@@ -108,11 +108,11 @@ when ODIN_DEBUG {
 				}
 			}
 
-			outline_color := is_intersection ? renderer.GREEN : renderer.RED
-			door_color := renderer.fade(outline_color, 0.5)
+			outline_color := is_intersection ? graphics.GREEN : graphics.RED
+			door_color := graphics.fade(outline_color, 0.5)
 
-			renderer.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
-			renderer.draw_rect_outline(
+			graphics.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
+			graphics.draw_rect_outline(
 				door_pos.x,
 				door_pos.y,
 				door_size.x,
@@ -120,7 +120,7 @@ when ODIN_DEBUG {
 				color = outline_color,
 			)
 
-			renderer.draw_text(
+			graphics.draw_text(
 				text = door.target_room,
 				x = int(door_pos.x),
 				y = int(door_pos.y - 20),
@@ -256,7 +256,7 @@ room_update :: proc() {
 
 	// Update level name display timer and fade out after 3 seconds
 	if room_state.is_loaded && room_state.room_name_opacity > 0.0 {
-		room_state.room_name_display_timer += renderer.get_frame_time()
+		room_state.room_name_display_timer += graphics.get_frame_time()
 
 		// Start fading out after 2.5 seconds (0.5s fade in + 2s display)
 		if room_state.room_name_display_timer > 2.5 && room_state.room_name_opacity > 0.01 {
@@ -285,7 +285,7 @@ room_draw_name :: proc() {
 
 	// Create color with opacity for fade effect
 	alpha := u8(room_state.room_name_opacity * 255)
-	color := renderer.Colour{244, 242, 234, alpha}
+	color := graphics.Colour{244, 242, 234, alpha}
 
 	divider_gap: f32 = 14
 	divider_height: f32 = 16
@@ -313,7 +313,7 @@ room_draw_name :: proc() {
 		.Title_Backdrop,
 		{band_left, band_y, band_right - band_left, band_height},
 		band_fade_width,
-		renderer.Colour{42, 56, 63, u8(room_state.room_name_opacity * 255)},
+		graphics.Colour{42, 56, 63, u8(room_state.room_name_opacity * 255)},
 	)
 
 	if divider_width >= 24 {
@@ -329,7 +329,7 @@ room_draw_name :: proc() {
 		)
 	}
 
-	renderer.draw_text(room_name, x, y, text_size, color)
+	graphics.draw_text(room_name, x, y, text_size, color)
 }
 
 
@@ -341,8 +341,8 @@ when ODIN_DEBUG {
 		for &entity in entities {
 			plate, ok := &entity.(Pressure_Plate)
 			if !ok do continue
-			outline_color := plate.active ? renderer.GREEN : renderer.RED
-			renderer.draw_rect_outline(
+			outline_color := plate.active ? graphics.GREEN : graphics.RED
+			graphics.draw_rect_outline(
 				plate.position.x + plate.collider.offset.x,
 				plate.position.y + plate.collider.offset.y,
 				plate.collider.size.x,
@@ -356,12 +356,12 @@ when ODIN_DEBUG {
 			gate, ok := &entity.(Gate)
 			if !ok do continue
 			if !gate.open {
-				renderer.draw_rect_outline(
+				graphics.draw_rect_outline(
 					gate.position.x + gate.collider.offset.x,
 					gate.position.y + gate.collider.offset.y,
 					gate.collider.size.x,
 					gate.collider.size.y,
-					color = renderer.RED,
+					color = graphics.RED,
 				)
 			}
 		}

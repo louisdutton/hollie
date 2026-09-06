@@ -1,7 +1,7 @@
 package hollie
 
 import "core:math/rand"
-import "renderer"
+import "graphics"
 
 Ai :: struct {
 	wait_timer:     f32,
@@ -30,7 +30,7 @@ ai_update_velocity :: proc(transform: ^Transform, movement: ^Movement, health: ^
 		return
 	}
 
-	ai.move_timer -= renderer.get_frame_time()
+	ai.move_timer -= graphics.get_frame_time()
 	if ai.move_timer <= 0 {
 		ai.move_direction = {rand.float32_range(-1.0, 1.0), rand.float32_range(-1.0, 1.0)}
 		ai.move_timer = rand.float32_range(1.0, 3.0)

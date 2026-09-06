@@ -4,7 +4,7 @@ package hollie
 import "audio"
 import "core:fmt"
 import "input"
-import "renderer"
+import "graphics"
 import "window"
 
 Pause_Menu_State :: enum {
@@ -81,7 +81,7 @@ pause_draw :: proc() {
 	if !pause_is_active() do return
 
 	// Draw semi-transparent background
-	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.fade(renderer.BLACK, 0.75))
+	graphics.draw_rect_i(0, 0, design_width, design_height, graphics.fade(graphics.BLACK, 0.75))
 
 	switch pause_state.menu_state {
 	case .Main: pause_draw_main_menu()
@@ -125,23 +125,23 @@ menu_draw_audio_options :: proc(focus: UI_Focus) {
 
 	master_volume := audio.get_master_volume()
 	master_row := ui_next_rect(slider_width, 45)
-	master_rect := renderer.Rect{master_row.x, master_row.y, slider_width, slider_height}
+	master_rect := graphics.Rect{master_row.x, master_row.y, slider_width, slider_height}
 	ui_slider(master_rect, "Master volume:", master_volume, 0.0, 1.0, focus.index == 0)
 
 	music_volume := audio.get_music_volume()
 	music_row := ui_next_rect(slider_width, 45)
-	music_rect := renderer.Rect{music_row.x, music_row.y, slider_width, slider_height}
+	music_rect := graphics.Rect{music_row.x, music_row.y, slider_width, slider_height}
 	ui_slider(music_rect, "Music volume:", music_volume, 0.0, 1.0, focus.index == 1)
 
 	sfx_volume := audio.get_sfx_volume()
 	sfx_row := ui_next_rect(slider_width, 45)
-	sfx_rect := renderer.Rect{sfx_row.x, sfx_row.y, slider_width, slider_height}
+	sfx_rect := graphics.Rect{sfx_row.x, sfx_row.y, slider_width, slider_height}
 	ui_slider(sfx_rect, "SFX volume:", sfx_volume, 0.0, 1.0, focus.index == 2)
 	ui_end_layout()
 
 	button_width: f32 = 100
 	button_height: f32 = 30
-	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
+	back_rect := graphics.Rect{menu_x + 20, menu_y + menu_height - 50, button_width, button_height}
 	ui_button(back_rect, "Back", focus.index == 3)
 	ui_end_panel()
 }
@@ -193,11 +193,11 @@ menu_draw_controls :: proc(focus: UI_Focus) {
 
 	// Instructions
 	info_y := menu_y + menu_height - 70
-	info_rect := renderer.Rect{menu_x + 20, info_y, menu_width - 40, 20}
+	info_rect := graphics.Rect{menu_x + 20, info_y, menu_width - 40, 20}
 	ui_label(info_rect, "Key remapping coming soon!")
 
 	// Back button
-	back_rect := renderer.Rect{menu_x + 20, menu_y + menu_height - 45, 100, 30}
+	back_rect := graphics.Rect{menu_x + 20, menu_y + menu_height - 45, 100, 30}
 	ui_button(back_rect, "Back", focus.index == 0)
 	ui_end_panel()
 }

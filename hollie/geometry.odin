@@ -1,10 +1,10 @@
 package hollie
 
 import "core:math"
-import "renderer"
+import "graphics"
 
 // Check collision between two rectangles
-rects_intersect :: proc(a, b: renderer.Rect) -> bool {
+rects_intersect :: proc(a, b: graphics.Rect) -> bool {
 	return(
 		a.x < b.x + b.width &&
 		a.x + a.width > b.x &&
@@ -19,12 +19,12 @@ get_distance :: proc(a, b: Vec2) -> f32 {
 	return math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
 }
 
-geometry_position :: proc(position: Vec2, height: f32 = 0) -> renderer.Vec3 {
+geometry_position :: proc(position: Vec2, height: f32 = 0) -> graphics.Vec3 {
 	return {position.x, height, position.y}
 }
 
 geometry_collider_from_bounds :: proc(
-	bounds: renderer.Bounding_Box,
+	bounds: graphics.Bounding_Box,
 	scale: f32,
 	rotation_invariant: bool,
 	solid: bool,
@@ -76,9 +76,9 @@ model_pressure_pad_collider :: proc(solid: bool) -> Collider {
 
 geometry_grounded_position :: proc(
 	position: Vec2,
-	bounds: renderer.Bounding_Box,
+	bounds: graphics.Bounding_Box,
 	scale: f32,
 	base_height: f32 = 0,
-) -> renderer.Vec3 {
+) -> graphics.Vec3 {
 	return geometry_position(position, base_height - bounds.min.y * scale)
 }

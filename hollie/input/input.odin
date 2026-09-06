@@ -1,6 +1,6 @@
 package input
 
-import "../renderer"
+import "../graphics"
 import rl "vendor:raylib"
 
 Key :: rl.KeyboardKey
@@ -18,6 +18,6 @@ is_key_down :: proc(key: Key) -> bool {
 	return down
 }
 
-vector2_normalize :: proc(v: renderer.Vec2) -> renderer.Vec2 {
+vector2_normalize :: proc(v: graphics.Vec2) -> graphics.Vec2 {
 	return rl.Vector2Normalize(v)
 }

@@ -1,4 +1,4 @@
-package renderer
+package graphics
 
 import "core:c"
 import rl "vendor:raylib"

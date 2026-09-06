@@ -2,12 +2,12 @@ package hollie
 
 import "core:math"
 import "core:testing"
-import "renderer"
+import "graphics"
 
 @(test)
 test_rendering_maps_gameplay_y_to_depth :: proc(t: ^testing.T) {
-	testing.expect_value(t, geometry_position({24, 48}), renderer.Vec3{24, 0, 48})
-	testing.expect_value(t, geometry_position({24, 48}, 7), renderer.Vec3{24, 7, 48})
+	testing.expect_value(t, geometry_position({24, 48}), graphics.Vec3{24, 0, 48})
+	testing.expect_value(t, geometry_position({24, 48}, 7), graphics.Vec3{24, 7, 48})
 }
 
 @(test)
@@ -33,7 +33,7 @@ test_rendering_derives_grounded_box_colliders_from_model_bounds :: proc(t: ^test
 	testing.expect(t, math.abs(character.height - 22.4) < 0.001)
 
 	position := geometry_grounded_position({3, 4}, {min = {-1, -0.5, -1}, max = {1, 1, 1}}, 10, 2)
-	testing.expect_value(t, position, renderer.Vec3{3, 7, 4})
+	testing.expect_value(t, position, graphics.Vec3{3, 7, 4})
 }
 
 @(test)
@@ -42,7 +42,7 @@ test_collider_rectangle_respects_mesh_derived_offset :: proc(t: ^testing.T) {
 		size   = {12, 8},
 		offset = {-6, -2},
 	}
-	testing.expect_value(t, collision_rect_at({10, 20}, collider), renderer.Rect{4, 18, 12, 8})
+	testing.expect_value(t, collision_rect_at({10, 20}, collider), graphics.Rect{4, 18, 12, 8})
 }
 
 @(test)
@@ -54,7 +54,7 @@ test_rendering_facing_uses_full_movement_direction :: proc(t: ^testing.T) {
 
 @(test)
 test_rendering_one_shot_clip_holds_its_final_frame :: proc(t: ^testing.T) {
-	clip := renderer.Model_Animation {
+	clip := graphics.Model_Animation {
 		keyframeCount = 21,
 	}
 	testing.expect_value(t, model_animation_frame(1, clip, .Once_Hold), f32(19))

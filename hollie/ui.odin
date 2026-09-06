@@ -2,7 +2,7 @@ package hollie
 
 import "core:fmt"
 import "input"
-import "renderer"
+import "graphics"
 import "window"
 
 UI_Anchor :: enum {
@@ -27,19 +27,19 @@ UI_Navigation :: struct {
 }
 
 UI_Theme :: struct {
-	panel_background: renderer.Colour,
-	panel_border:     renderer.Colour,
-	text:             renderer.Colour,
-	muted_text:       renderer.Colour,
-	value_text:       renderer.Colour,
-	focus_background: renderer.Colour,
-	focus_text:       renderer.Colour,
+	panel_background: graphics.Colour,
+	panel_border:     graphics.Colour,
+	text:             graphics.Colour,
+	muted_text:       graphics.Colour,
+	value_text:       graphics.Colour,
+	focus_background: graphics.Colour,
+	focus_text:       graphics.Colour,
 	padding:          f32,
 	line_height:      f32,
 }
 
 UI_Layout :: struct {
-	bounds:    renderer.Rect,
+	bounds:    graphics.Rect,
 	cursor_x:  f32,
 	cursor_y:  f32,
 	direction: UI_Layout_Direction,
@@ -71,23 +71,23 @@ ui_context := UI_Context {
 ui_begin :: proc() {
 	ui_context.depth = 0
 	ui_scale := window.get_ui_scale()
-	renderer.begin_mode_2d({zoom = ui_scale})
+	graphics.begin_mode_2d({zoom = ui_scale})
 }
 
 ui_end :: proc() {
-	renderer.end_mode_2d()
+	graphics.end_mode_2d()
 }
 
 // Returns the width of the provided text at the provided size.
 ui_measure_text :: proc(text: string, size: int) -> int {
-	return int(renderer.measure_text(text, i32(size)))
+	return int(graphics.measure_text(text, i32(size)))
 }
 
 ui_anchored_rect :: proc(
 	anchor: UI_Anchor,
 	width, height: f32,
 	margin: f32 = 10,
-) -> renderer.Rect {
+) -> graphics.Rect {
 	switch anchor {
 	case .Top_Left: return {margin, margin, width, height}
 	case .Top_Right:
@@ -96,7 +96,7 @@ ui_anchored_rect :: proc(
 	return {}
 }
 
-ui_centered_rect :: proc(width, height: f32) -> renderer.Rect {
+ui_centered_rect :: proc(width, height: f32) -> graphics.Rect {
 	design_width := f32(window.get_design_width())
 	design_height := f32(window.get_design_height())
 	return {(design_width - width) / 2, (design_height - height) / 2, width, height}
@@ -104,7 +104,7 @@ ui_centered_rect :: proc(width, height: f32) -> renderer.Rect {
 
 ui_begin_panel :: proc(
 	title: string,
-	bounds: renderer.Rect,
+	bounds: graphics.Rect,
 	border_color := ui_context.theme.panel_border,
 	title_color := ui_context.theme.text,
 ) {
@@ -126,7 +126,7 @@ ui_end_panel :: proc() {
 	ui_context.depth -= 1
 }
 
-ui_begin_layout :: proc(direction: UI_Layout_Direction, bounds: renderer.Rect, gap: f32 = 0) {
+ui_begin_layout :: proc(direction: UI_Layout_Direction, bounds: graphics.Rect, gap: f32 = 0) {
 	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
 	ui_context.layouts[ui_context.depth] = {
 		bounds    = bounds,
@@ -143,9 +143,9 @@ ui_end_layout :: proc() {
 	ui_context.depth -= 1
 }
 
-ui_next_rect :: proc(width, height: f32) -> renderer.Rect {
+ui_next_rect :: proc(width, height: f32) -> graphics.Rect {
 	layout := ui_current_layout()
-	bounds := renderer.Rect{layout.cursor_x, layout.cursor_y, width, height}
+	bounds := graphics.Rect{layout.cursor_x, layout.cursor_y, width, height}
 	switch layout.direction {
 	case .Column: layout.cursor_y += height + layout.gap
 	case .Row: layout.cursor_x += width + layout.gap
@@ -211,7 +211,7 @@ ui_focus_update :: proc(focus: ^UI_Focus, item_count: int, delta_time: f32) -> U
 
 ui_text :: proc(text: string, color := ui_context.theme.text, size: int = 13) {
 	layout := ui_current_layout()
-	renderer.draw_text(
+	graphics.draw_text(
 		text,
 		int(layout.bounds.x + ui_context.theme.padding),
 		int(layout.cursor_y),
@@ -231,9 +231,9 @@ ui_field :: proc(
 	x := layout.bounds.x + padding
 	y := layout.cursor_y
 	label_text := fmt.tprintf("%s:", label)
-	renderer.draw_text(label_text, int(x), int(y), 13, ui_context.theme.muted_text)
-	value_x := x + f32(renderer.measure_text(label_text, 13)) + 7
-	renderer.draw_text(value, int(value_x), int(y), 13, value_color)
+	graphics.draw_text(label_text, int(x), int(y), 13, ui_context.theme.muted_text)
+	value_x := x + f32(graphics.measure_text(label_text, 13)) + 7
+	graphics.draw_text(value, int(value_x), int(y), 13, value_color)
 
 	right := layout.bounds.x + layout.bounds.width - padding
 	hints_width: f32 = 0
@@ -245,7 +245,7 @@ ui_field :: proc(
 
 	hint_y := y + 2
 	field_height := ui_context.theme.line_height
-	value_right := value_x + f32(renderer.measure_text(value, 13))
+	value_right := value_x + f32(graphics.measure_text(value, 13))
 	if hints_width > 0 && value_right > right - hints_width {
 		hint_y += ui_context.theme.line_height
 		field_height += ui_context.theme.line_height
@@ -269,12 +269,12 @@ ui_spacer :: proc(height: f32 = 8) {
 
 ui_status :: proc(message: string, succeeded: bool) {
 	if message == "" do return
-	color := succeeded ? renderer.Colour{120, 255, 150, 255} : renderer.Colour{255, 120, 120, 255}
+	color := succeeded ? graphics.Colour{120, 255, 150, 255} : graphics.Colour{255, 120, 120, 255}
 	ui_text(message, color, 12)
 }
 
 ui_panel :: proc(
-	bounds: renderer.Rect,
+	bounds: graphics.Rect,
 	title: string,
 	border_color := ui_context.theme.panel_border,
 	title_color := ui_context.theme.text,
@@ -284,8 +284,8 @@ ui_panel :: proc(
 	if title == "" do return
 
 	title_size := 15
-	title_width := f32(renderer.measure_text(title, i32(title_size)))
-	renderer.draw_text(
+	title_width := f32(graphics.measure_text(title, i32(title_size)))
+	graphics.draw_text(
 		title,
 		int(bounds.x + (bounds.width - title_width) / 2),
 		int(bounds.y + ui_context.theme.padding),
@@ -294,17 +294,17 @@ ui_panel :: proc(
 	)
 }
 
-ui_button :: proc(bounds: renderer.Rect, text: string, selected: bool = false) {
+ui_button :: proc(bounds: graphics.Rect, text: string, selected: bool = false) {
 	if selected {
 		ui_draw_frame(.Focus_Fill, bounds, ui_context.theme.focus_background)
 	}
 
 	font_size := 14
-	text_width := f32(renderer.measure_text(text, i32(font_size)))
+	text_width := f32(graphics.measure_text(text, i32(font_size)))
 	text_x := bounds.x + (bounds.width - text_width) / 2
 	text_y := bounds.y + (bounds.height - f32(font_size)) / 2
 	text_color := selected ? ui_context.theme.focus_text : ui_context.theme.muted_text
-	renderer.draw_text(text, int(text_x), int(text_y), font_size, text_color)
+	graphics.draw_text(text, int(text_x), int(text_y), font_size, text_color)
 }
 
 ui_menu_panel :: proc(
@@ -322,7 +322,7 @@ ui_menu_panel :: proc(
 	panel_bounds := ui_centered_rect(width, panel_height)
 	ui_begin_panel(title, panel_bounds)
 
-	content_bounds := renderer.Rect {
+	content_bounds := graphics.Rect {
 		panel_bounds.x + (panel_bounds.width - button_width) / 2,
 		panel_bounds.y + ui_context.theme.padding + header_height,
 		button_width,
@@ -336,16 +336,16 @@ ui_menu_panel :: proc(
 	ui_end_panel()
 }
 
-ui_label :: proc(bounds: renderer.Rect, text: string) {
-	renderer.draw_text(text, int(bounds.x), int(bounds.y + 2), 13, ui_context.theme.text)
+ui_label :: proc(bounds: graphics.Rect, text: string) {
+	graphics.draw_text(text, int(bounds.x), int(bounds.y + 2), 13, ui_context.theme.text)
 }
 
-ui_keycap :: proc(bounds: renderer.Rect, key: input.Key) {
+ui_keycap :: proc(bounds: graphics.Rect, key: input.Key) {
 	ui_draw_prompt_view(ui_key_prompt_view(key), bounds.x, bounds.y + 1, 18)
 }
 
 ui_slider :: proc(
-	bounds: renderer.Rect,
+	bounds: graphics.Rect,
 	label: string,
 	value: f32,
 	min_value, max_value: f32,
@@ -353,7 +353,7 @@ ui_slider :: proc(
 ) {
 	if label != "" {
 		label_color := selected ? ui_context.theme.value_text : ui_context.theme.text
-		renderer.draw_text(label, int(bounds.x), int(bounds.y - 18), 13, label_color)
+		graphics.draw_text(label, int(bounds.x), int(bounds.y - 18), 13, label_color)
 	}
 
 	if selected {
@@ -365,9 +365,9 @@ ui_slider :: proc(
 	}
 
 	track_y := bounds.y + bounds.height / 2 - 3
-	renderer.draw_rect(bounds.x, track_y, bounds.width, 6, renderer.Colour{45, 45, 45, 255})
+	graphics.draw_rect(bounds.x, track_y, bounds.width, 6, graphics.Colour{45, 45, 45, 255})
 	normalized := clamp((value - min_value) / (max_value - min_value), 0, 1)
-	renderer.draw_rect(
+	graphics.draw_rect(
 		bounds.x,
 		track_y,
 		bounds.width * normalized,
@@ -375,10 +375,10 @@ ui_slider :: proc(
 		ui_context.theme.value_text,
 	)
 	handle_x := bounds.x + bounds.width * normalized
-	renderer.draw_rect(handle_x - 4, bounds.y, 8, bounds.height, ui_context.theme.text)
+	graphics.draw_rect(handle_x - 4, bounds.y, 8, bounds.height, ui_context.theme.text)
 
 	value_text := fmt.tprintf("%.0f%%", normalized * 100)
-	renderer.draw_text(
+	graphics.draw_text(
 		value_text,
 		int(bounds.x + bounds.width + 10),
 		int(bounds.y + 2),
@@ -407,7 +407,7 @@ ui_draw_action_hint :: proc(
 ui_prompt_label_width :: proc(prompt: UI_Prompt_View, label: string, font_size: int = 11) -> f32 {
 	prompt_width := ui_prompt_view_width(prompt)
 	if prompt_width == 0 do return 0
-	return prompt_width + 6 + f32(renderer.measure_text(label, i32(font_size)))
+	return prompt_width + 6 + f32(graphics.measure_text(label, i32(font_size)))
 }
 
 ui_draw_prompt_label :: proc(
@@ -421,8 +421,8 @@ ui_draw_prompt_label :: proc(
 	if prompt_width == 0 do return 0
 	ui_draw_prompt_view(prompt, x, y)
 	label_x := x + prompt_width + 6
-	renderer.draw_text(label, int(label_x), int(y + 2), font_size, color)
-	return prompt_width + 6 + f32(renderer.measure_text(label, i32(font_size)))
+	graphics.draw_text(label, int(label_x), int(y + 2), font_size, color)
+	return prompt_width + 6 + f32(graphics.measure_text(label, i32(font_size)))
 }
 
 ui_action_hint :: proc(action: input.Action, color := ui_context.theme.muted_text) {
@@ -437,8 +437,8 @@ ui_action_bar_height :: proc(actions: []input.Action, width: f32) -> f32 {
 	return f32(rows) * 22 + ui_context.theme.padding * 2
 }
 
-ui_action_bar :: proc(actions: []input.Action, bounds: renderer.Rect) {
-	renderer.draw_rect(
+ui_action_bar :: proc(actions: []input.Action, bounds: graphics.Rect) {
+	graphics.draw_rect(
 		bounds.x,
 		bounds.y,
 		bounds.width,

@@ -1,7 +1,7 @@
 #+feature dynamic-literals
 package hollie
 
-import "renderer"
+import "graphics"
 
 Title_Menu_State :: enum {
 	Main,
@@ -31,7 +31,7 @@ update_title_screen :: proc() {
 	navigation := ui_focus_update(
 		&title_state.focus,
 		title_menu_item_count(title_state.menu_state),
-		renderer.get_frame_time(),
+		graphics.get_frame_time(),
 	)
 	title_handle_input(navigation)
 }
@@ -40,10 +40,10 @@ draw_title_screen :: proc() {
 	ui_begin()
 	defer ui_end()
 
-	renderer.draw_rect_i(0, 0, design_width, design_height, renderer.Colour{20, 29, 35, 255})
+	graphics.draw_rect_i(0, 0, design_width, design_height, graphics.Colour{20, 29, 35, 255})
 
 	pos := Vec2{20, 10}
-	renderer.draw_text_ex(game.font, "Hollie", pos, 64, 2, renderer.WHITE)
+	graphics.draw_text_ex(game.font, "Hollie", pos, 64, 2, graphics.WHITE)
 
 	switch title_state.menu_state {
 	case .Main: title_draw_main_menu()

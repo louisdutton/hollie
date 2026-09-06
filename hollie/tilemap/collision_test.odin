@@ -1,6 +1,6 @@
 package tilemap
 
-import "../renderer"
+import "../graphics"
 import "core:testing"
 
 @(test)
@@ -24,17 +24,17 @@ test_collision_map_supports_non_rectangular_walkable_areas :: proc(t: ^testing.T
 	testing.expect(t, is_tile_solid(-1, 0), "outside the map should be solid")
 	testing.expect(
 		t,
-		!check_collision(renderer.Rect{x = 16, y = 0, width = 16, height = 16}),
+		!check_collision(graphics.Rect{x = 16, y = 0, width = 16, height = 16}),
 		"a collider ending on a tile edge should not include the adjacent solid tile",
 	)
 	testing.expect(
 		t,
-		check_collision(renderer.Rect{x = 24, y = 0, width = 16, height = 16}),
+		check_collision(graphics.Rect{x = 24, y = 0, width = 16, height = 16}),
 		"a collider spanning a solid tile should collide",
 	)
 	testing.expect(
 		t,
-		check_collision(renderer.Rect{x = -1, y = 0, width = 16, height = 16}),
+		check_collision(graphics.Rect{x = -1, y = 0, width = 16, height = 16}),
 		"a collider leaving the map should collide",
 	)
 }

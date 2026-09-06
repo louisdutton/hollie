@@ -3,7 +3,7 @@ package hollie
 import "core:time"
 import "core:unicode/utf8"
 import "input"
-import "renderer"
+import "graphics"
 import "tween"
 
 TIME_PER_CHARACTER :: 0.025 * f32(time.Second) // reveal delay between dialogue characters
@@ -136,7 +136,7 @@ dialog_draw :: proc() {
 
 	design_w := f32(design_width)
 	design_h := f32(design_height)
-	panel_bounds := renderer.Rect {
+	panel_bounds := graphics.Rect {
 		f32(MARGIN_X),
 		design_h - PANEL_HEIGHT - MARGIN_Y,
 		design_w - MARGIN_X * 2,
@@ -159,13 +159,13 @@ dialog_draw :: proc() {
 		str := utf8.runes_to_string(dialog_state.current_runes[:visible_chars])
 		defer delete(str)
 
-		full_text_width := f32(renderer.measure_text(current_msg.text, TEXT_SIZE))
+		full_text_width := f32(graphics.measure_text(current_msg.text, TEXT_SIZE))
 		text_x := max(
 			panel_bounds.x + PADDING_X,
 			panel_bounds.x + (panel_bounds.width - full_text_width) / 2,
 		)
 		text_y := panel_bounds.y + (current_msg.speaker != "" ? 48 : 30)
-		renderer.draw_text(str, int(text_x), int(text_y), TEXT_SIZE, ui_context.theme.text)
+		graphics.draw_text(str, int(text_x), int(text_y), TEXT_SIZE, ui_context.theme.text)
 	}
 
 	if dialog_state.text_complete {

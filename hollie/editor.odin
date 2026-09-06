@@ -5,7 +5,7 @@ import "content"
 import "core:fmt"
 import "core:strings"
 import "input"
-import "renderer"
+import "graphics"
 import "tilemap"
 import "window"
 
@@ -35,7 +35,7 @@ Editor_State :: struct {
 	cursor_y:           int,
 	cursor_visible:     bool,
 	cursor_move_timer:  f32,
-	pre_edit_camera:    renderer.Camera2D,
+	pre_edit_camera:    graphics.Camera2D,
 	pre_edit_players:   [dynamic]Vec2,
 	hovered_entity:     ^tilemap.EntityData,
 	is_editing_entity:  bool,
