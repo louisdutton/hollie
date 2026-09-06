@@ -126,11 +126,10 @@ gameplay_update :: proc() {
 
 		// Check if doors should be enabled (no players in any door area)
 		if !gameplay_state.doors_enabled {
-			players := entity_get_players()
-			defer delete(players)
-
 			all_players_clear := true
-			for player in players {
+			for &entity in entities {
+				player, ok := &entity.(Player)
+				if !ok do continue
 				if collision_door_for_player(player) != nil {
 					all_players_clear = false
 					break
@@ -144,10 +143,9 @@ gameplay_update :: proc() {
 
 		// Check for door collisions with any player
 		if !gameplay_state.is_transitioning && gameplay_state.doors_enabled {
-			players := entity_get_players()
-			defer delete(players)
-
-			for player in players {
+			for &entity in entities {
+				player, ok := &entity.(Player)
+				if !ok do continue
 				door := collision_door_for_player(player)
 				if door != nil {
 					target_room, found := room_registry_find(

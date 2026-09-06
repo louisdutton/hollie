@@ -80,12 +80,11 @@ editor_enter_edit_mode :: proc() {
 
 	editor_state.pre_edit_camera = camera
 
-	players := entity_get_players()
-	defer delete(players)
-
 	clear(&editor_state.pre_edit_players)
-	for player in players {
-		append(&editor_state.pre_edit_players, player.position)
+	for &entity in entities {
+		if player, ok := &entity.(Player); ok {
+			append(&editor_state.pre_edit_players, player.position)
+		}
 	}
 }
 
@@ -94,11 +93,13 @@ editor_exit_edit_mode :: proc() {
 
 	camera = editor_state.pre_edit_camera
 
-	players := entity_get_players()
-	defer delete(players)
-
-	for i in 0 ..< min(len(players), len(editor_state.pre_edit_players)) {
-		players[i].position = editor_state.pre_edit_players[i]
+	player_index := 0
+	for &entity in entities {
+		if player, ok := &entity.(Player); ok {
+			if player_index >= len(editor_state.pre_edit_players) do break
+			player.position = editor_state.pre_edit_players[player_index]
+			player_index += 1
+		}
 	}
 
 	editor_reload_current_level()

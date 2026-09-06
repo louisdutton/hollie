@@ -90,19 +90,18 @@ when ODIN_DEBUG {
 	room_draw_doors_debug :: proc() {
 		if !room_state.is_loaded do return
 
-		players := entity_get_players()
-		defer delete(players)
-		doors := entity_get_doors()
-		defer delete(doors)
-
-		for door in doors {
+		for &door_entity_value in entities {
+			door, ok := &door_entity_value.(Door)
+			if !ok do continue
 			door_entity := Entity(door^)
 			door_pos := collision_entity_world_position(&door_entity)
 			door_size := collision_entity_size(&door_entity)
 			door_rect := renderer.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
 
 			is_intersection := false
-			for player in players {
+			for &player_entity in entities {
+				player, ok := &player_entity.(Player)
+				if !ok do continue
 				player_rect := collision_rect_at(player.position, player.collider)
 				if rects_intersect(door_rect, player_rect) {
 					is_intersection = true
@@ -182,13 +181,14 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	}
 
 	// Spawn players at the target door (or first door if no target specified)
-	doors := entity_get_doors()
-	defer delete(doors)
-
 	spawn_door: ^Door = nil
+	first_door: ^Door = nil
 	if target_door != "" {
 		// Find the door with matching target_door field
-		for door in doors {
+		for &entity in entities {
+			door, ok := &entity.(Door)
+			if !ok do continue
+			if first_door == nil do first_door = door
 			if door.target_door == target_door {
 				spawn_door = door
 				break
@@ -197,8 +197,16 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	}
 
 	// If no target door specified or not found, use first door
-	if spawn_door == nil && len(doors) > 0 {
-		spawn_door = doors[0]
+	if spawn_door == nil {
+		if first_door == nil {
+			for &entity in entities {
+				if door, ok := &entity.(Door); ok {
+					first_door = door
+					break
+				}
+			}
+		}
+		spawn_door = first_door
 	}
 
 	if spawn_door != nil {
@@ -331,10 +339,9 @@ when ODIN_DEBUG {
 		if !room_state.is_loaded do return
 
 		// Draw pressure plate collision boxes
-		pressure_plates := entity_get_pressure_plates()
-		defer delete(pressure_plates)
-
-		for plate in pressure_plates {
+		for &entity in entities {
+			plate, ok := &entity.(Pressure_Plate)
+			if !ok do continue
 			outline_color := plate.active ? renderer.GREEN : renderer.RED
 			renderer.draw_rect_outline(
 				plate.position.x + plate.collider.offset.x,
@@ -346,10 +353,9 @@ when ODIN_DEBUG {
 		}
 
 		// Draw gate collision boxes
-		gates := entity_get_gates()
-		defer delete(gates)
-
-		for gate in gates {
+		for &entity in entities {
+			gate, ok := &entity.(Gate)
+			if !ok do continue
 			if !gate.open {
 				renderer.draw_rect_outline(
 					gate.position.x + gate.collider.offset.x,

@@ -114,16 +114,12 @@ dialog_is_active :: proc() -> bool {
 
 // TODO: we should only mark participating NPCs as busy
 dialog_set_all_busy :: proc(busy: bool) {
-	players := entity_get_players()
-	defer delete(players)
-	for player in players {
-		player.is_busy = busy
-	}
-
-	npcs := npc_get_all()
-	defer delete(npcs)
-	for npc in npcs {
-		npc.is_busy = busy
+	for &entity in entities {
+		switch &actor in &entity {
+		case Player: actor.is_busy = busy
+		case Npc: actor.is_busy = busy
+		case Enemy, Pressure_Plate, Gate, Holdable, Door: continue
+		}
 	}
 }
 

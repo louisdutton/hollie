@@ -364,9 +364,9 @@ rendering_draw_label :: proc(
 
 rendering_draw_labels :: proc(camera_3d: rl.Camera3D) {
 	if game.player_count != 2 do return
-	players := entity_get_players()
-	defer delete(players)
-	for player in players {
+	for &entity in entities {
+		player, ok := &entity.(Player)
+		if !ok do continue
 		label := player.index == .Player_1 ? "P1" : "P2"
 		color := player.index == .Player_1 ? renderer.BLUE : renderer.GREEN
 		rendering_draw_label(label, geometry_position(player.position, 24), camera_3d, color)

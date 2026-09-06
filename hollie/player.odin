@@ -159,10 +159,9 @@ player_drop_position :: proc(
 // this is a little messy, we shouldn't really have to iterate twice like this.
 @(private)
 player_carry :: proc(p: ^Player) {
-	holdables := entity_get_holdables()
-	defer delete(holdables)
-
-	for holdable in holdables {
+	for &entity in entities {
+		holdable, ok := &entity.(Holdable)
+		if !ok do continue
 		if holdable.held_by == nil {
 			if get_distance(holdable.position, p.position) <= PLAYER_INTERACT_RANGE {
 				holdable.held_by = p

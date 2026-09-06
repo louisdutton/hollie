@@ -26,17 +26,6 @@ entity_system_fini :: proc() {
 	delete(entities)
 }
 
-// Query functions
-entity_get_players :: proc() -> [dynamic]^Player {
-	players := make([dynamic]^Player)
-	for &entity in entities {
-		if player, ok := &entity.(Player); ok {
-			append(&players, player)
-		}
-	}
-	return players
-}
-
 entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 	for &entity in entities {
 		if player, ok := &entity.(Player); ok && player.index == index {
@@ -44,46 +33,6 @@ entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 		}
 	}
 	return nil
-}
-
-entity_get_pressure_plates :: proc() -> [dynamic]^Pressure_Plate {
-	plates := make([dynamic]^Pressure_Plate)
-	for &entity in entities {
-		if plate, ok := &entity.(Pressure_Plate); ok {
-			append(&plates, plate)
-		}
-	}
-	return plates
-}
-
-entity_get_gates :: proc() -> [dynamic]^Gate {
-	gates := make([dynamic]^Gate)
-	for &entity in entities {
-		if gate, ok := &entity.(Gate); ok {
-			append(&gates, gate)
-		}
-	}
-	return gates
-}
-
-entity_get_holdables :: proc() -> [dynamic]^Holdable {
-	holdables := make([dynamic]^Holdable)
-	for &entity in entities {
-		if holdable, ok := &entity.(Holdable); ok {
-			append(&holdables, holdable)
-		}
-	}
-	return holdables
-}
-
-entity_get_doors :: proc() -> [dynamic]^Door {
-	doors := make([dynamic]^Door)
-	for &entity in entities {
-		if door, ok := &entity.(Door); ok {
-			append(&doors, door)
-		}
-	}
-	return doors
 }
 
 // Update systems

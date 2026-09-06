@@ -26,10 +26,9 @@ collision_door_contains_point :: proc(position: Vec2) -> bool {
 }
 
 collision_door_for_player :: proc(player: ^Player) -> ^Door {
-	doors := entity_get_doors()
-	defer delete(doors)
-
-	for door in doors {
+	for &entity in entities {
+		door, ok := &entity.(Door)
+		if !ok do continue
 		door_entity := Entity(door^)
 		door_pos := collision_entity_world_position(&door_entity)
 		door_size := collision_entity_size(&door_entity)

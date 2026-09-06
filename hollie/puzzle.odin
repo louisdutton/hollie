@@ -71,22 +71,18 @@ puzzle_update :: proc() {
 	delta_time := rl.GetFrameTime()
 
 	// Update pressure plate states
-	pressure_plates := entity_get_pressure_plates()
-	defer delete(pressure_plates)
-
-	players := entity_get_players()
-	defer delete(players)
-	holdables := entity_get_holdables()
-	defer delete(holdables)
-
-	for plate in pressure_plates {
+	for &plate_entity in entities {
+		plate, ok := &plate_entity.(Pressure_Plate)
+		if !ok do continue
 		was_active := plate.active
 		// Reset activation state
 		plate.activated_by = {}
 		plate.active = false
 
 		// Players and dropped crates each contribute one unit of pressure.
-		for player in players {
+		for &player_entity in entities {
+			player, ok := &player_entity.(Player)
+			if !ok do continue
 			player_rect := collision_rect_at(player.position, player.collider)
 			plate_rect := collision_rect_at(plate.position, plate.collider)
 
@@ -96,7 +92,9 @@ puzzle_update :: proc() {
 		}
 
 		crate_count := 0
-		for holdable in holdables {
+		for &holdable_entity in entities {
+			holdable, ok := &holdable_entity.(Holdable)
+			if !ok do continue
 			if pressure_plate_has_crate(plate, holdable) do crate_count += 1
 		}
 		plate.active = pressure_plate_has_required_weight(
@@ -114,10 +112,9 @@ puzzle_update :: proc() {
 	}
 
 	// Update gate states based on trigger requirements
-	gates := entity_get_gates()
-	defer delete(gates)
-
-	for gate in gates {
+	for &gate_entity in entities {
+		gate, ok := &gate_entity.(Gate)
+		if !ok do continue
 		assert(len(gate.required_triggers) > 0)
 
 		all_triggers_active := true
@@ -125,7 +122,9 @@ puzzle_update :: proc() {
 			trigger_active := false
 
 			// Check if this trigger ID matches any pressure plate
-			for plate in pressure_plates {
+			for &plate_entity in entities {
+				plate, ok := &plate_entity.(Pressure_Plate)
+				if !ok do continue
 				if plate.trigger_id == trigger_id {
 					trigger_active = plate.active
 					break

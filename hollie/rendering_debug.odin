@@ -86,9 +86,9 @@ when ODIN_DEBUG {
 	}
 
 	debug_draw_labels :: proc(camera_3d: rl.Camera3D) {
-		doors := entity_get_doors()
-		defer delete(doors)
-		for door in doors {
+		for &entity in entities {
+			door, ok := &entity.(Door)
+			if !ok do continue
 			center := door.position + door.collider.size / 2
 			rendering_draw_label(
 				door.target_room,
