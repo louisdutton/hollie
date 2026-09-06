@@ -2,6 +2,7 @@
 *.bin.dSYM
 .direnv
 .devenv*
+.pre-commit-config.yaml
 devenv.local.nix
 devenv.local.yaml
 result

@@ -30,6 +30,14 @@
     '';
   };
 
+  git-hooks.hooks.hollie-verify = {
+    enable = true;
+    name = "Hollie verification";
+    entry = "devenv tasks run hollie:verify";
+    files = "\\.odin$";
+    pass_filenames = false;
+  };
+
   treefmt = {
     enable = true;
     config.programs = {

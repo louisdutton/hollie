@@ -1,6 +1,7 @@
-reload: false
-
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
 inputs:
+  git-hooks:
+    url: github:cachix/git-hooks.nix
   nixpkgs:
     url: github:nixos/nixpkgs/nixpkgs-unstable
   treefmt-nix:
@@ -8,3 +9,4 @@ inputs:
     inputs:
       nixpkgs:
         follows: nixpkgs
+reload: false

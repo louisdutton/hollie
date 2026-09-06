@@ -1,8 +1,8 @@
 # Development
 
 - Never run the game, you don't have a graphical environment
-- Use `devenv tasks run hollie:verify` for non-graphical verification.
 - Use `devenv shell` only for one-off commands.
+- Do not run routine checks manually. Rely on automated checks unless explicitly asked.
 
 ## Casing
 
