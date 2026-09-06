@@ -1,6 +1,7 @@
 package hollie
 
 import "core:math"
+import rl "vendor:raylib"
 
 TARGET_FPS :: 60
 FPS :: 24
@@ -102,4 +103,48 @@ animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
 
 animation_fini :: proc(anim_data: ^Animator) {
 	delete(anim_data.frame_counts)
+}
+
+animation_update_entities :: proc() {
+	delta_time := rl.GetFrameTime()
+	for &entity in entities {
+		switch &e in entity {
+		case Player:
+			if e.is_attacking {
+				e.facing_direction = e.attack_direction
+				animation_set_state(&e.anim_data, .Attack)
+			} else if e.is_rolling {
+				animation_set_state(&e.anim_data, .Roll)
+			} else if e.carrying != nil {
+				animation_set_state(&e.anim_data, .Carry)
+			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
+				animation_set_state(&e.anim_data, .Run)
+			} else {
+				animation_set_state(&e.anim_data, .Idle)
+			}
+			animation_update(&e.anim_data, delta_time)
+
+		case Enemy:
+			if e.is_dying {
+				animation_set_state(&e.anim_data, .Death)
+			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
+				animation_set_state(&e.anim_data, .Run)
+			} else {
+				animation_set_state(&e.anim_data, .Idle)
+			}
+			animation_update(&e.anim_data, delta_time)
+
+		case Npc:
+			if e.is_dying {
+				animation_set_state(&e.anim_data, .Death)
+			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
+				animation_set_state(&e.anim_data, .Run)
+			} else {
+				animation_set_state(&e.anim_data, .Idle)
+			}
+			animation_update(&e.anim_data, delta_time)
+
+		case Pressure_Plate, Gate, Holdable, Door: continue
+		}
+	}
 }

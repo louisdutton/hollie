@@ -46,3 +46,14 @@ movement_move :: proc(
 	transform.position.x = clamp(final_pos.x, room_bounds.x + half_width, room_bounds.x + room_bounds.width - half_width)
 	transform.position.y = clamp(final_pos.y, room_bounds.y + half_height, room_bounds.y + room_bounds.height - half_height)
 }
+
+movement_update_positions :: proc() {
+	for &entity in entities {
+		switch &e in entity {
+		case Player: movement_move(&entity, &e.transform, &e.collider)
+		case Enemy: movement_move(&entity, &e.transform, &e.collider)
+		case Npc: movement_move(&entity, &e.transform, &e.collider)
+		case Pressure_Plate, Gate, Holdable, Door: continue
+		}
+	}
+}

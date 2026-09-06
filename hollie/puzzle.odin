@@ -19,7 +19,7 @@ pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) ->
 	)
 }
 
-entity_update_puzzle_logic :: proc() {
+puzzle_update :: proc() {
 	delta_time := rl.GetFrameTime()
 
 	// Update pressure plate states

@@ -34,6 +34,44 @@ player_handle_input :: proc(p: ^Player) {
 	if input.is_pressed_for_player(.Roll, p.index) do player_roll(p)
 }
 
+player_update_input :: proc() {
+	for &entity in entities {
+		#partial switch &p in entity {
+		case Player: player_handle_input(&p)
+		}
+	}
+}
+
+player_update_movement :: proc() {
+	for &entity in entities {
+		#partial switch &p in entity {
+		case Player:
+			if p.is_rolling {
+				p.roll_timer += 1
+				if p.roll_timer >= 10 * INTERVAL {
+					p.is_rolling = false
+					p.roll_timer = 0
+				}
+			}
+
+			if p.is_rolling || p.knockback_timer > 0 || p.is_busy {
+				if p.knockback_timer > 0 {
+					p.velocity *= 0.85
+				} else if p.is_busy {
+					p.velocity = {0, 0}
+				}
+				continue
+			}
+
+			movement_input := input.get_movement_for_player(p.index)
+			p.velocity = movement_input * p.move_speed
+			if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
+				p.facing_direction = movement_input
+			}
+		}
+	}
+}
+
 @(private)
 player_drop :: proc(p: ^Player) {
 	p.carrying.held_by = nil
