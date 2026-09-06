@@ -23,7 +23,25 @@ entity_system_init :: proc() {
 }
 
 entity_system_fini :: proc() {
+	entity_destroy_all()
 	delete(entities)
+}
+
+entity_destroy :: proc(entity: ^Entity) {
+	switch &e in entity {
+	case Player: animation_fini(&e.anim_data)
+	case Enemy: animation_fini(&e.anim_data)
+	case Npc: animation_fini(&e.anim_data)
+	case Gate: delete(e.required_triggers)
+	case Pressure_Plate, Holdable, Door: return
+	}
+}
+
+entity_destroy_all :: proc() {
+	for &entity in entities {
+		entity_destroy(&entity)
+	}
+	clear(&entities)
 }
 
 entity_get_player :: proc(index: input.Player_Index) -> ^Player {
@@ -53,10 +71,12 @@ entity_cleanup_dead :: proc() {
 		switch &e in entities[i] {
 		case Enemy: if e.is_dying && e.death_timer >= 13 * INTERVAL {
 					particle_create_explosion(e.position)
+					entity_destroy(&entities[i])
 					unordered_remove(&entities, i)
 				}
 		case Npc: if e.is_dying && e.death_timer >= 13 * INTERVAL {
 					particle_create_explosion(e.position)
+					entity_destroy(&entities[i])
 					unordered_remove(&entities, i)
 				}
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue

@@ -3,6 +3,7 @@ package hollie
 Holdable :: struct {
 	using transform: Transform,
 	using collider:  Collider,
+	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
 	held_by:         ^Player,
 }
 

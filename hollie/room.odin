@@ -244,7 +244,7 @@ room_fini :: proc() {
 	tilemap.fini()
 
 	// Clear entities for level unload/reload
-	clear(&entities)
+	entity_destroy_all()
 
 	room_state.current_tilemap = nil
 	room_state.is_loaded = false

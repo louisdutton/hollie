@@ -16,6 +16,7 @@ Player :: struct {
 	using combat:    Combat,
 	using anim_data: Animator,
 	index:           input.Player_Index,
+	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
 	carrying:        ^Holdable,
 }
 
