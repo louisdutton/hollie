@@ -12,16 +12,13 @@
   env = {
     XDG_SESSION_TYPE = "x11";
     RES_ROOT = "./res";
+
+    # Raylib's face-button constants are positional, including on Nintendo pads.
+    SDL_GAMECONTROLLER_USE_BUTTON_LABELS = "0";
   };
 
   tasks = {
-    "hollie:run" = {
-      exec = "odin run hollie -debug";
-      env = {
-        # Raylib's face-button constants are positional, including on Nintendo pads.
-        SDL_GAMECONTROLLER_USE_BUTTON_LABELS = "0";
-      };
-    };
+    "hollie:run".exec = "odin run hollie -debug";
     "hollie:check".exec = "odin check hollie -debug";
     "hollie:test".exec = "odin test hollie -all-packages -out:/tmp/hollie-tests";
     "hollie:validate-content".exec = "odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json";
