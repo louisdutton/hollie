@@ -6,7 +6,7 @@ import "input"
 import "renderer"
 import "tween"
 
-TIME_PER_CHARACTER :: 0.025 * f32(time.Second)
+TIME_PER_CHARACTER :: 0.025 * f32(time.Second) // reveal delay between dialogue characters
 
 Dialog_Message :: struct {
 	text:    string,

@@ -4,8 +4,8 @@ import "core:c"
 import "core:math"
 import rl "vendor:raylib"
 
-RENDERING_SHADOW_MAP_RESOLUTION :: 1024
-RENDERING_SHADOW_MARGIN :: f32(64)
+RENDERING_SHADOW_MAP_RESOLUTION :: 1024 // width and height of the shadow-map texture
+RENDERING_SHADOW_MARGIN :: f32(64) // extra world-space coverage around the camera view
 
 shadow_map_apply_lighting_shaders :: proc() {
 	rendering_apply_shader(&model_assets.floor, rendering_state.lighting_shader)

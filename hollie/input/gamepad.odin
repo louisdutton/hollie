@@ -9,7 +9,7 @@ Player_Index :: enum {
 	Player_2,
 }
 
-JS_DEADZONE: f32 : 0.2 // the minimum joystick value for input to be registered
+JS_DEADZONE: f32 : 0.2 // minimum joystick magnitude registered as input
 
 is_gamepad_available :: proc(gamepad: Player_Index) -> bool {
 	return rl.IsGamepadAvailable(i32(gamepad))

@@ -4,12 +4,12 @@ import "core:math"
 import rl "vendor:raylib"
 import "window"
 
-CAMERA_SMOOTH: f32 : 0.1
-ZOOM_RATE :: 0.01
+CAMERA_SMOOTH: f32 : 0.1 // interpolation factor used when following the target
+ZOOM_RATE :: 0.01 // zoom adjustment applied per input step
 ZOOM_DEFAULT :: 1.8
 ZOOM_MAX :: 10.0
 ZOOM_MIN :: 1.0
-ZOOM_DIALOG :: 3.0
+ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
 
 // Camera state
 camera_bounds: rl.Rectangle

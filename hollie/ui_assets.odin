@@ -9,7 +9,7 @@ import "window"
 UI_ASSET_ROOT :: "ui/"
 UI_FRAME_ASSET_ROOT :: UI_ASSET_ROOT + "frame/"
 UI_INPUT_ASSET_ROOT :: UI_ASSET_ROOT + "input/"
-UI_MAX_PROMPT_TEXTURES :: 4
+UI_MAX_PROMPT_TEXTURES :: 4 // maximum textures needed to compose one input prompt
 
 UI_FRAME_PATHS :: [UI_Frame_Style]string {
 	.Panel_Surface  = UI_FRAME_ASSET_ROOT + "panel-000.png",

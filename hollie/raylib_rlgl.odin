@@ -3,8 +3,8 @@ package hollie
 import "core:c"
 import rl "vendor:raylib"
 
-RL_ATTACHMENT_DEPTH :: c.int(100)
-RL_ATTACHMENT_TEXTURE2D :: c.int(100)
+RL_ATTACHMENT_DEPTH :: c.int(100) // rlgl attachment index for a depth target
+RL_ATTACHMENT_TEXTURE2D :: c.int(100) // rlgl attachment type for a 2D texture
 
 foreign import raylib_rlgl "system:raylib"
 

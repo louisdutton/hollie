@@ -5,7 +5,7 @@ import rl "vendor:raylib"
 DEFAULT_TEXT_COLOR :: WHITE
 DEFAULT_TEXT_SIZE :: 20
 DEFAULT_TEXT_SPACING :: 0.5
-FONT_ATLAS_SIZE :: 64
+FONT_ATLAS_SIZE :: 64 // source size used to rasterize the font atlas
 
 @(private)
 default_font: Font

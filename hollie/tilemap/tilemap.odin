@@ -8,7 +8,7 @@ import rl "vendor:raylib"
 
 Vec2 :: rl.Vector2
 
-TILE_SIZE :: 16
+TILE_SIZE :: 16 // width and height of one tile in world units
 
 EntityType :: enum {
 	Player         = 0,

@@ -3,10 +3,10 @@ package hollie
 import "core:math"
 import rl "vendor:raylib"
 
-TARGET_FPS :: 60
-FPS :: 24
-INTERVAL :: TARGET_FPS / FPS
-ANIMATION_SAMPLE_FPS :: f32(TARGET_FPS)
+TARGET_FPS :: 60 // target game update rate in frames per second
+FPS :: 24 // source animation rate in frames per second
+INTERVAL :: TARGET_FPS / FPS // game frames between source animation frames
+ANIMATION_SAMPLE_FPS :: f32(TARGET_FPS) // rate used to sample imported animation frames
 
 Animation_Playback :: enum {
 	Loop,

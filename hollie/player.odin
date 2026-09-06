@@ -4,9 +4,9 @@ import "audio"
 import "core:math"
 import "input"
 
-PLAYER_INTERACT_RANGE :: 24 // the distance within which the player can interact with interable entities
-PLAYER_DROP_FALLBACK_DISTANCE :: 16
-PLAYER_DROP_GAP :: 2
+PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable entities
+PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped item
+PLAYER_DROP_GAP :: 2 // clearance kept between the player and a dropped item
 
 Player :: struct {
 	using transform: Transform,
