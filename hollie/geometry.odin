@@ -51,7 +51,7 @@ geometry_collider_from_bounds :: proc(
 model_character_collider :: proc(solid: bool) -> Collider {
 	return geometry_collider_from_bounds(
 		model_assets.character_bounds,
-		RENDERING_CHARACTER_SCALE,
+		MODEL_CHARACTER_SCALE,
 		true,
 		solid,
 	)
@@ -60,7 +60,7 @@ model_character_collider :: proc(solid: bool) -> Collider {
 model_crate_collider :: proc(solid: bool) -> Collider {
 	return geometry_collider_from_bounds(
 		model_assets.crate_bounds,
-		RENDERING_CRATE_SCALE,
+		MODEL_CRATE_SCALE,
 		false,
 		solid,
 	)
@@ -69,7 +69,7 @@ model_crate_collider :: proc(solid: bool) -> Collider {
 model_pressure_pad_collider :: proc(solid: bool) -> Collider {
 	return geometry_collider_from_bounds(
 		model_assets.pressure_pad_bounds,
-		RENDERING_PRESSURE_PAD_SCALE,
+		MODEL_PRESSURE_PAD_SCALE,
 		false,
 		solid,
 	)

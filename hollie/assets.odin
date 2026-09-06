@@ -5,17 +5,11 @@ import "core:c"
 import rl "vendor:raylib"
 
 
-RENDERING_CHARACTER_SCALE :: f32(32)
-RENDERING_CRATE_SCALE :: f32(24)
-RENDERING_PRESSURE_PAD_SCALE :: f32(32)
-RENDERING_GATE_HEIGHT :: f32(18)
-RENDERING_CARRIED_ITEM_HEIGHT :: f32(20)
-RENDERING_CHARACTER_BLEND_DURATION :: f32(0.12)
-RENDERING_LABEL_TEXT_SIZE :: 12
-RENDERING_BACKGROUND_COLOR :: rl.Color{54, 54, 60, 255}
-RENDERING_LIGHT_DIRECTION :: rl.Vector3{-0.5, -0.7, 0.5}
-RENDERING_PRESSURE_PAD_MODEL :: "button-floor-square-raylib.glb"
-RENDERING_CHARACTER_CLIP_NAMES :: [AnimationState]string {
+MODEL_CHARACTER_SCALE :: f32(32)
+MODEL_CRATE_SCALE :: f32(24)
+MODEL_PRESSURE_PAD_SCALE :: f32(32)
+MODEL_PRESSURE_PAD_FILE :: "button-floor-square-raylib.glb"
+MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Idle   = "idle",
 	.Run    = "walk",
 	.Jump   = "sprint",
@@ -24,7 +18,7 @@ RENDERING_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Roll   = "sprint",
 	.Carry  = "walk-holding-both",
 }
-RENDERING_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
+MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Idle   = .Loop,
 	.Run    = .Loop,
 	.Jump   = .Once_Hold,
@@ -37,11 +31,11 @@ Pressure_Pad_State :: enum {
 	Off,
 	On,
 }
-RENDERING_PRESSURE_PAD_CLIP_NAMES :: [Pressure_Pad_State]string {
+MODEL_PRESSURE_PAD_CLIP_NAMES :: [Pressure_Pad_State]string {
 	.Off = "toggle-off",
 	.On  = "toggle-on",
 }
-RENDERING_CHARACTER_MODEL :: "figurine-raylib.glb"
+MODEL_CHARACTER_FILE :: "figurine-raylib.glb"
 
 Model_Assets :: struct {
 	floor:                          rl.Model,
@@ -63,6 +57,7 @@ Model_Assets :: struct {
 	pressure_pad_bounds:            rl.BoundingBox,
 }
 
+@(private)
 model_assets: Model_Assets
 
 model_assets_load_model :: proc(relative_path: string) -> rl.Model {
@@ -82,9 +77,9 @@ model_uses_gpu_skinning :: proc(model: ^rl.Model) -> bool {
 model_assets_init :: proc() {
 	root :: "world/props/"
 	model_assets.floor = model_assets_load_model(root + "floor-square.glb")
-	model_assets.character = model_assets_load_model(root + RENDERING_CHARACTER_MODEL)
+	model_assets.character = model_assets_load_model(root + MODEL_CHARACTER_FILE)
 	model_assets.crate = model_assets_load_model(root + "crate-color.glb")
-	model_assets.pressure_pad = model_assets_load_model(root + RENDERING_PRESSURE_PAD_MODEL)
+	model_assets.pressure_pad = model_assets_load_model(root + MODEL_PRESSURE_PAD_FILE)
 	model_assets.cube = model_assets_load_model(root + "shape-cube.glb")
 	model_assets.wall = model_assets_load_model(root + "wall.glb")
 	model_assets.doorway_wall = model_assets_load_model(root + "wall-doorway-wide.glb")
@@ -93,13 +88,13 @@ model_assets_init :: proc() {
 	model_assets.crate_bounds = rl.GetModelBoundingBox(model_assets.crate)
 	model_assets.pressure_pad_bounds = rl.GetModelBoundingBox(model_assets.pressure_pad)
 	for &index in model_assets.character_animation_indices do index = -1
-	path := asset.path(root + RENDERING_CHARACTER_MODEL)
+	path := asset.path(root + MODEL_CHARACTER_FILE)
 	defer delete(path)
 	model_assets.character_animations = rl.LoadModelAnimations(
 		cstring(raw_data(path)),
 		&model_assets.character_animation_count,
 	)
-	clip_names := RENDERING_CHARACTER_CLIP_NAMES
+	clip_names := MODEL_CHARACTER_CLIP_NAMES
 	for state_index := 0; state_index < len(clip_names); state_index += 1 {
 		animation_state := AnimationState(state_index)
 		clip_name := clip_names[animation_state]
@@ -115,13 +110,13 @@ model_assets_init :: proc() {
 	}
 
 	for &index in model_assets.pressure_pad_animation_indices do index = -1
-	pressure_pad_path := asset.path(root + RENDERING_PRESSURE_PAD_MODEL)
+	pressure_pad_path := asset.path(root + MODEL_PRESSURE_PAD_FILE)
 	defer delete(pressure_pad_path)
 	model_assets.pressure_pad_animations = rl.LoadModelAnimations(
 		cstring(raw_data(pressure_pad_path)),
 		&model_assets.pressure_pad_animation_count,
 	)
-	pressure_pad_clip_names := RENDERING_PRESSURE_PAD_CLIP_NAMES
+	pressure_pad_clip_names := MODEL_PRESSURE_PAD_CLIP_NAMES
 	for state_index := 0; state_index < len(pressure_pad_clip_names); state_index += 1 {
 		pressure_pad_state := Pressure_Pad_State(state_index)
 		clip_name := pressure_pad_clip_names[pressure_pad_state]

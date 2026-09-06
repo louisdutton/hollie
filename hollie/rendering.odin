@@ -176,7 +176,7 @@ rendering_draw_character :: proc(
 	flash_amount: f32,
 ) {
 	current_state := anim.current_anim
-	playback_modes := RENDERING_CHARACTER_PLAYBACK
+	playback_modes := MODEL_CHARACTER_PLAYBACK
 	clip_index := model_assets.character_animation_indices[current_state]
 	if clip_index >= 0 {
 		clip := model_assets.character_animations[clip_index]
@@ -216,11 +216,11 @@ rendering_draw_character :: proc(
 		geometry_grounded_position(
 			position,
 			model_assets.character_bounds,
-			RENDERING_CHARACTER_SCALE,
+			MODEL_CHARACTER_SCALE,
 		),
 		{0, 1, 0},
 		geometry_facing_angle(facing),
-		{RENDERING_CHARACTER_SCALE, RENDERING_CHARACTER_SCALE, RENDERING_CHARACTER_SCALE},
+		{MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE},
 		tint,
 	)
 	flash = 0
@@ -273,12 +273,12 @@ rendering_draw_entities :: proc() {
 				geometry_grounded_position(
 					e.held_by != nil ? e.held_by.position : e.position,
 					model_assets.crate_bounds,
-					RENDERING_CRATE_SCALE,
+					MODEL_CRATE_SCALE,
 					base_height,
 				),
 				{0, 1, 0},
 				0,
-				{RENDERING_CRATE_SCALE, RENDERING_CRATE_SCALE, RENDERING_CRATE_SCALE},
+				{MODEL_CRATE_SCALE, MODEL_CRATE_SCALE, MODEL_CRATE_SCALE},
 				rl.WHITE,
 			)
 		case Pressure_Plate:
@@ -294,14 +294,14 @@ rendering_draw_entities :: proc() {
 				geometry_grounded_position(
 					e.position,
 					model_assets.pressure_pad_bounds,
-					RENDERING_PRESSURE_PAD_SCALE,
+					MODEL_PRESSURE_PAD_SCALE,
 				),
 				{0, 1, 0},
 				0,
 				{
-					RENDERING_PRESSURE_PAD_SCALE,
-					RENDERING_PRESSURE_PAD_SCALE,
-					RENDERING_PRESSURE_PAD_SCALE,
+					MODEL_PRESSURE_PAD_SCALE,
+					MODEL_PRESSURE_PAD_SCALE,
+					MODEL_PRESSURE_PAD_SCALE,
 				},
 				rl.WHITE,
 			)

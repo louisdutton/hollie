@@ -4,6 +4,13 @@ import "asset"
 import "core:c"
 import rl "vendor:raylib"
 
+RENDERING_GATE_HEIGHT :: f32(18)
+RENDERING_CARRIED_ITEM_HEIGHT :: f32(20)
+RENDERING_CHARACTER_BLEND_DURATION :: f32(0.12)
+RENDERING_LABEL_TEXT_SIZE :: 12
+RENDERING_BACKGROUND_COLOR :: rl.Color{54, 54, 60, 255}
+RENDERING_LIGHT_DIRECTION :: rl.Vector3{-0.5, -0.7, 0.5}
+
 Rendering_State :: struct {
 	lighting_shader:           rl.Shader,
 	character_lighting_shader: rl.Shader,
@@ -15,6 +22,7 @@ Rendering_State :: struct {
 	light_view_projection:     rl.Matrix,
 }
 
+@(private)
 rendering_state: Rendering_State
 
 rendering_apply_shader :: proc(model: ^rl.Model, shader: rl.Shader) {
