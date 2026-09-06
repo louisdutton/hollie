@@ -213,11 +213,7 @@ rendering_draw_character :: proc(
 	)
 	rl.DrawModelEx(
 		model_assets.character,
-		geometry_grounded_position(
-			position,
-			model_assets.character_bounds,
-			MODEL_CHARACTER_SCALE,
-		),
+		geometry_grounded_position(position, model_assets.character_bounds, MODEL_CHARACTER_SCALE),
 		{0, 1, 0},
 		geometry_facing_angle(facing),
 		{MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE},
@@ -298,11 +294,7 @@ rendering_draw_entities :: proc() {
 				),
 				{0, 1, 0},
 				0,
-				{
-					MODEL_PRESSURE_PAD_SCALE,
-					MODEL_PRESSURE_PAD_SCALE,
-					MODEL_PRESSURE_PAD_SCALE,
-				},
+				{MODEL_PRESSURE_PAD_SCALE, MODEL_PRESSURE_PAD_SCALE, MODEL_PRESSURE_PAD_SCALE},
 				rl.WHITE,
 			)
 		case Gate:

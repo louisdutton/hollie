@@ -14,8 +14,10 @@ collision_door_contains_point :: proc(position: Vec2) -> bool {
 	for &entity in entities {
 		if door, ok := &entity.(Door); ok {
 			collider_position := door.position + door.collider.offset
-			if position.x >= collider_position.x && position.x <= collider_position.x + door.collider.size.x &&
-			   position.y >= collider_position.y && position.y <= collider_position.y + door.collider.size.y {
+			if position.x >= collider_position.x &&
+			   position.x <= collider_position.x + door.collider.size.x &&
+			   position.y >= collider_position.y &&
+			   position.y <= collider_position.y + door.collider.size.y {
 				return true
 			}
 		}
@@ -162,7 +164,11 @@ holdable_blocks_character :: proc(holdable: Holdable) -> bool {
 	return holdable.collider.solid && holdable.held_by == nil
 }
 
-collision_entity_intersects_rect :: proc(entity: ^Entity, rect_pos: Vec2, rect_size: Vec2) -> bool {
+collision_entity_intersects_rect :: proc(
+	entity: ^Entity,
+	rect_pos: Vec2,
+	rect_size: Vec2,
+) -> bool {
 	entity_pos := collision_entity_world_position(entity)
 	entity_size := collision_entity_size(entity)
 

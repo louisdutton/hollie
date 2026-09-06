@@ -35,7 +35,7 @@ Room_File_Common :: struct {
 	id:               string,
 	name:             string,
 	music_path:       string `json:"music_path,omitempty"`,
-	interior:   bool `json:"interior,omitempty"`,
+	interior:         bool `json:"interior,omitempty"`,
 	size:             Room_File_Size,
 	grid:             Room_File_Grid,
 	camera_bounds:    Room_File_Bounds,

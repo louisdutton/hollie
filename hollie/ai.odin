@@ -12,22 +12,15 @@ Ai :: struct {
 ai_update_movement :: proc() {
 	for &entity in entities {
 		switch &e in entity {
-		case Enemy:
-			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
-		case Npc:
-			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
+		case Enemy: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
+		case Npc: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
 }
 
 @(private)
-ai_update_velocity :: proc(
-	transform: ^Transform,
-	movement: ^Movement,
-	health: ^Health,
-	ai: ^Ai,
-) {
+ai_update_velocity :: proc(transform: ^Transform, movement: ^Movement, health: ^Health, ai: ^Ai) {
 	if health.is_dying || health.knockback_timer > 0 || movement.is_busy {
 		if health.knockback_timer > 0 {
 			transform.velocity *= 0.85
@@ -39,10 +32,7 @@ ai_update_velocity :: proc(
 
 	ai.move_timer -= rl.GetFrameTime()
 	if ai.move_timer <= 0 {
-		ai.move_direction = {
-			rand.float32_range(-1.0, 1.0),
-			rand.float32_range(-1.0, 1.0),
-		}
+		ai.move_direction = {rand.float32_range(-1.0, 1.0), rand.float32_range(-1.0, 1.0)}
 		ai.move_timer = rand.float32_range(1.0, 3.0)
 	}
 	transform.velocity = ai.move_direction * movement.move_speed

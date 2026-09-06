@@ -131,7 +131,7 @@ TileMap :: struct {
 	room_id:          string,
 	room_name:        string,
 	music_path:       string,
-	interior:   bool,
+	interior:         bool,
 	camera_bounds:    renderer.Rect,
 	collision_bounds: renderer.Rect,
 }

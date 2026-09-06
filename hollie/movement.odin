@@ -17,11 +17,7 @@ Movement :: struct {
 	is_busy:          bool,
 }
 
-movement_move :: proc(
-	moving_entity: ^Entity,
-	transform: ^Transform,
-	collider: ^Collider,
-) {
+movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^Collider) {
 	dt := rl.GetFrameTime()
 	next_pos := transform.position + transform.velocity * dt
 	final_pos := transform.position
@@ -43,8 +39,16 @@ movement_move :: proc(
 	room_bounds := room_get_collision_bounds()
 	half_width := collider.size.x / 2
 	half_height := collider.size.y / 2
-	transform.position.x = clamp(final_pos.x, room_bounds.x + half_width, room_bounds.x + room_bounds.width - half_width)
-	transform.position.y = clamp(final_pos.y, room_bounds.y + half_height, room_bounds.y + room_bounds.height - half_height)
+	transform.position.x = clamp(
+		final_pos.x,
+		room_bounds.x + half_width,
+		room_bounds.x + room_bounds.width - half_width,
+	)
+	transform.position.y = clamp(
+		final_pos.y,
+		room_bounds.y + half_height,
+		room_bounds.y + room_bounds.height - half_height,
+	)
 }
 
 movement_update_positions :: proc() {

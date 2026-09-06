@@ -81,7 +81,9 @@ combat_update :: proc() {
 
 					knockback_dir := t.position - a.position
 					if abs(knockback_dir.x) > 0 || abs(knockback_dir.y) > 0 {
-						length := math.sqrt(knockback_dir.x * knockback_dir.x + knockback_dir.y * knockback_dir.y)
+						length := math.sqrt(
+							knockback_dir.x * knockback_dir.x + knockback_dir.y * knockback_dir.y,
+						)
 						t.velocity = knockback_dir / length * 200
 						t.knockback_timer = 0.3
 					}
