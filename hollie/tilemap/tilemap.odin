@@ -2,6 +2,7 @@ package tilemap
 
 import "../content"
 import "../graphics"
+import "../spatial"
 import "core:encoding/uuid"
 import "core:strings"
 import rl "vendor:raylib"
@@ -373,7 +374,7 @@ is_tile_solid :: proc(x, y: int) -> bool {
 	return tile == nil || tile^ == .Solid
 }
 
-check_collision :: proc(box: graphics.Bounding_Box) -> bool {
+check_collision :: proc(box: spatial.Box) -> bool {
 	tile_size_f := f32(config.world_tile_size)
 	map_width := f32(tilemap.width * config.world_tile_size)
 	map_height := f32(tilemap.height * config.world_tile_size)

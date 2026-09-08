@@ -4,10 +4,13 @@ import "asset"
 import "audio"
 import "graphics"
 import "input"
+import "spatial"
 import "tween"
 import "window"
 
 Vec2 :: graphics.Vec2
+Vec3 :: spatial.Vec3
+Collision_Box :: spatial.Box
 
 // Global state
 design_width: i32

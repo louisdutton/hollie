@@ -1,14 +1,12 @@
 package hollie
 
-import "graphics"
-
 Collider :: struct {
-	size:   graphics.Vec3,
-	offset: graphics.Vec3,
+	size:   Vec3,
+	offset: Vec3,
 	solid:  bool,
 }
 
-collision_door_contains_point :: proc(position: graphics.Vec3) -> bool {
+collision_door_contains_point :: proc(position: Vec3) -> bool {
 	for &entity in entities {
 		if door, ok := &entity.(Door); ok {
 			box := collision_box_at(door.position, door.collider)
@@ -44,12 +42,12 @@ collision_box_at :: proc(
 	position: Vec2,
 	collider: Collider,
 	base_height: f32 = 0,
-) -> graphics.Bounding_Box {
-	min := geometry_position(position, base_height) + collider.offset
+) -> Collision_Box {
+	min := Vec3{position.x, base_height, position.y} + collider.offset
 	return {min = min, max = min + collider.size}
 }
 
-collision_entity_box :: proc(entity: ^Entity) -> graphics.Bounding_Box {
+collision_entity_box :: proc(entity: ^Entity) -> Collision_Box {
 	position: Vec2
 	collider: Collider
 	base_height: f32
@@ -74,7 +72,7 @@ collision_entities_intersect :: proc(a, b: ^Entity) -> bool {
 	return boxes_intersect(collision_entity_box(a), collision_entity_box(b))
 }
 
-collision_contains_point :: proc(entity: ^Entity, point: graphics.Vec3) -> bool {
+collision_contains_point :: proc(entity: ^Entity, point: Vec3) -> bool {
 	box := collision_entity_box(entity)
 	return(
 		point.x >= box.min.x &&

@@ -45,21 +45,21 @@ test_collider_box_respects_mesh_derived_offset :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		collision_box_at({10, 20}, collider),
-		graphics.Bounding_Box{min = {4, 0, 18}, max = {16, 5, 26}},
+		Collision_Box{min = {4, 0, 18}, max = {16, 5, 26}},
 	)
 }
 
 @(test)
 test_collision_boxes_require_vertical_overlap :: proc(t: ^testing.T) {
-	grounded := graphics.Bounding_Box {
+	grounded := Collision_Box {
 		min = {0, 0, 0},
 		max = {10, 2, 10},
 	}
-	above := graphics.Bounding_Box {
+	above := Collision_Box {
 		min = {0, 3, 0},
 		max = {10, 5, 10},
 	}
-	overlapping := graphics.Bounding_Box {
+	overlapping := Collision_Box {
 		min = {5, 1, 5},
 		max = {15, 4, 15},
 	}

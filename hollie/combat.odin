@@ -61,7 +61,7 @@ combat_update :: proc() {
 			attack_offset := a.attack_direction * a.range
 			attack_pos := a.position + attack_offset
 			attacker_box := collision_box_at(a.position, a.collider)
-			attack_box := graphics.Bounding_Box {
+			attack_box := Collision_Box {
 				min = {
 					attack_pos.x - a.attack_width / 2,
 					attacker_box.min.y,
