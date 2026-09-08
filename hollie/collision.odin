@@ -9,13 +9,13 @@ Collider :: struct {
 collision_door_contains_point :: proc(position: Vec3) -> bool {
 	for &entity in entities {
 		if door, ok := &entity.(Door); ok {
-			box := collision_box_at(door.position, door.collider)
-			if position.x >= box.min.x &&
-			   position.x <= box.max.x &&
-			   position.y >= box.min.y &&
-			   position.y <= box.max.y &&
-			   position.z >= box.min.z &&
-			   position.z <= box.max.z {
+			aabb := collision_aabb_at(door.position, door.collider)
+			if position.x >= aabb.min.x &&
+			   position.x <= aabb.max.x &&
+			   position.y >= aabb.min.y &&
+			   position.y <= aabb.max.y &&
+			   position.z >= aabb.min.z &&
+			   position.z <= aabb.max.z {
 				return true
 			}
 		}
@@ -38,16 +38,12 @@ collision_door_for_player :: proc(player: ^Player) -> ^Door {
 
 
 // Gameplay positions use X/Z map coordinates. Collision volumes are always 3D.
-collision_box_at :: proc(
-	position: Vec2,
-	collider: Collider,
-	base_height: f32 = 0,
-) -> Collision_Box {
+collision_aabb_at :: proc(position: Vec2, collider: Collider, base_height: f32 = 0) -> AABB {
 	min := Vec3{position.x, base_height, position.y} + collider.offset
 	return {min = min, max = min + collider.size}
 }
 
-collision_entity_box :: proc(entity: ^Entity) -> Collision_Box {
+collision_entity_aabb :: proc(entity: ^Entity) -> AABB {
 	position: Vec2
 	collider: Collider
 	base_height: f32
@@ -65,27 +61,27 @@ collision_entity_box :: proc(entity: ^Entity) -> Collision_Box {
 		}
 	case Door: position, collider = e.position, e.collider
 	}
-	return collision_box_at(position, collider, base_height)
+	return collision_aabb_at(position, collider, base_height)
 }
 
 collision_entities_intersect :: proc(a, b: ^Entity) -> bool {
-	return boxes_intersect(collision_entity_box(a), collision_entity_box(b))
+	return aabbs_intersect(collision_entity_aabb(a), collision_entity_aabb(b))
 }
 
 collision_contains_point :: proc(entity: ^Entity, point: Vec3) -> bool {
-	box := collision_entity_box(entity)
+	aabb := collision_entity_aabb(entity)
 	return(
-		point.x >= box.min.x &&
-		point.x <= box.max.x &&
-		point.y >= box.min.y &&
-		point.y <= box.max.y &&
-		point.z >= box.min.z &&
-		point.z <= box.max.z \
+		point.x >= aabb.min.x &&
+		point.x <= aabb.max.x &&
+		point.y >= aabb.min.y &&
+		point.y <= aabb.max.y &&
+		point.z >= aabb.min.z &&
+		point.z <= aabb.max.z \
 	)
 }
 
 collision_check_solid :: proc(position: Vec2, collider: Collider, exclude: ^Entity = nil) -> bool {
-	box := collision_box_at(position, collider)
+	aabb := collision_aabb_at(position, collider)
 	for &entity in entities {
 		if exclude != nil && &entity == exclude do continue
 
@@ -99,7 +95,7 @@ collision_check_solid :: proc(position: Vec2, collider: Collider, exclude: ^Enti
 
 		if is_solid {
 			entity_ptr := &entity
-			if boxes_intersect(collision_entity_box(entity_ptr), box) {
+			if aabbs_intersect(collision_entity_aabb(entity_ptr), aabb) {
 				return true
 			}
 		}

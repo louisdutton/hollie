@@ -66,7 +66,7 @@ when ODIN_DEBUG {
 		}
 
 		for &entity in entities {
-			box := collision_entity_box(&entity)
+			aabb := collision_entity_aabb(&entity)
 			color: graphics.Colour
 			switch e in entity {
 			case Player: color = graphics.GREEN
@@ -77,9 +77,9 @@ when ODIN_DEBUG {
 			case Holdable: color = graphics.YELLOW
 			case Door: color = graphics.PURPLE
 			}
-			size := box.max - box.min
+			size := aabb.max - aabb.min
 			size.y = max(size.y, 0.25)
-			center := (box.min + box.max) / 2
+			center := (aabb.min + aabb.max) / 2
 			center.y += 0.01
 			graphics.draw_cube_outline(center, size, color)
 		}

@@ -4,7 +4,7 @@ import "core:math"
 import "graphics"
 import "spatial"
 
-boxes_intersect :: spatial.boxes_intersect
+aabbs_intersect :: spatial.aabbs_intersect
 
 // TODO: this shouldnt be here
 // this is for accurate distance and shouldn't be used in performance-critical contexts

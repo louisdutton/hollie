@@ -374,18 +374,18 @@ is_tile_solid :: proc(x, y: int) -> bool {
 	return tile == nil || tile^ == .Solid
 }
 
-check_collision :: proc(box: spatial.Box) -> bool {
+check_collision :: proc(aabb: spatial.AABB) -> bool {
 	tile_size_f := f32(config.world_tile_size)
 	map_width := f32(tilemap.width * config.world_tile_size)
 	map_height := f32(tilemap.height * config.world_tile_size)
-	if box.min.x < 0 || box.min.z < 0 || box.max.x > map_width || box.max.z > map_height {
+	if aabb.min.x < 0 || aabb.min.z < 0 || aabb.max.x > map_width || aabb.max.z > map_height {
 		return true
 	}
 
-	left := int(box.min.x / tile_size_f)
-	right := int((box.max.x - 0.001) / tile_size_f)
-	top := int(box.min.z / tile_size_f)
-	bottom := int((box.max.z - 0.001) / tile_size_f)
+	left := int(aabb.min.x / tile_size_f)
+	right := int((aabb.max.x - 0.001) / tile_size_f)
+	top := int(aabb.min.z / tile_size_f)
+	bottom := int((aabb.max.z - 0.001) / tile_size_f)
 
 	for y in top ..= bottom {
 		for x in left ..= right {

@@ -37,35 +37,35 @@ test_rendering_derives_grounded_box_colliders_from_model_bounds :: proc(t: ^test
 }
 
 @(test)
-test_collider_box_respects_mesh_derived_offset :: proc(t: ^testing.T) {
+test_collider_aabb_respects_mesh_derived_offset :: proc(t: ^testing.T) {
 	collider := Collider {
 		size   = {12, 5, 8},
 		offset = {-6, 0, -2},
 	}
 	testing.expect_value(
 		t,
-		collision_box_at({10, 20}, collider),
-		Collision_Box{min = {4, 0, 18}, max = {16, 5, 26}},
+		collision_aabb_at({10, 20}, collider),
+		AABB{min = {4, 0, 18}, max = {16, 5, 26}},
 	)
 }
 
 @(test)
-test_collision_boxes_require_vertical_overlap :: proc(t: ^testing.T) {
-	grounded := Collision_Box {
+test_collision_aabbs_require_vertical_overlap :: proc(t: ^testing.T) {
+	grounded := AABB {
 		min = {0, 0, 0},
 		max = {10, 2, 10},
 	}
-	above := Collision_Box {
+	above := AABB {
 		min = {0, 3, 0},
 		max = {10, 5, 10},
 	}
-	overlapping := Collision_Box {
+	overlapping := AABB {
 		min = {5, 1, 5},
 		max = {15, 4, 15},
 	}
 
-	testing.expect(t, !boxes_intersect(grounded, above))
-	testing.expect(t, boxes_intersect(grounded, overlapping))
+	testing.expect(t, !aabbs_intersect(grounded, above))
+	testing.expect(t, aabbs_intersect(grounded, overlapping))
 }
 
 @(test)

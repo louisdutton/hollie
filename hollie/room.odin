@@ -50,8 +50,8 @@ room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 	}
 
 	for candidate in candidates {
-		box := collision_box_at(candidate, player_collider)
-		if !tilemap.check_collision(box) do return candidate
+		aabb := collision_aabb_at(candidate, player_collider)
+		if !tilemap.check_collision(aabb) do return candidate
 	}
 
 	return door_center
@@ -93,7 +93,7 @@ when ODIN_DEBUG {
 			door, ok := &door_entity_value.(Door)
 			if !ok do continue
 			door_entity := Entity(door^)
-			door_box := collision_entity_box(&door_entity)
+			door_aabb := collision_entity_aabb(&door_entity)
 
 			is_intersection := false
 			for &player_entity in entities {
@@ -109,8 +109,8 @@ when ODIN_DEBUG {
 			outline_color := is_intersection ? graphics.GREEN : graphics.RED
 			door_color := graphics.fade(outline_color, 0.5)
 
-			door_pos := Vec2{door_box.min.x, door_box.min.z}
-			door_size := Vec2{door_box.max.x - door_box.min.x, door_box.max.z - door_box.min.z}
+			door_pos := Vec2{door_aabb.min.x, door_aabb.min.z}
+			door_size := Vec2{door_aabb.max.x - door_aabb.min.x, door_aabb.max.z - door_aabb.min.z}
 			graphics.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
 			graphics.draw_rect_outline(
 				door_pos.x,

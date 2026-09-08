@@ -23,16 +23,16 @@ movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^
 	final_pos := transform.position
 
 	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	test_box_x := collision_box_at(test_pos_x, collider^)
+	test_aabb_x := collision_aabb_at(test_pos_x, collider^)
 	if !collision_check_solid(test_pos_x, collider^, moving_entity) &&
-	   !tilemap.check_collision(test_box_x) {
+	   !tilemap.check_collision(test_aabb_x) {
 		final_pos.x = next_pos.x
 	}
 
 	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	test_box_y := collision_box_at(test_pos_y, collider^)
+	test_aabb_y := collision_aabb_at(test_pos_y, collider^)
 	if !collision_check_solid(test_pos_y, collider^, moving_entity) &&
-	   !tilemap.check_collision(test_box_y) {
+	   !tilemap.check_collision(test_aabb_y) {
 		final_pos.y = next_pos.y
 	}
 
