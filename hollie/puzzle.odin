@@ -1,8 +1,8 @@
 package hollie
 
 import "audio"
-import "input"
 import "graphics"
+import "input"
 
 Pressure_Plate :: struct {
 	using transform: Transform,

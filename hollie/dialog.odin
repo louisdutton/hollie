@@ -2,8 +2,8 @@ package hollie
 
 import "core:time"
 import "core:unicode/utf8"
-import "input"
 import "graphics"
+import "input"
 import "tween"
 
 TIME_PER_CHARACTER :: 0.025 * f32(time.Second) // reveal delay between dialogue characters

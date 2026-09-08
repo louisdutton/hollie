@@ -56,9 +56,9 @@ draw_nine_patch :: #force_inline proc(
 ) {
 	patch := rl.NPatchInfo {
 		source = {0, 0, f32(texture.width), f32(texture.height)},
-		left = left,
-		top = top,
-		right = right,
+		left   = left,
+		top    = top,
+		right  = right,
 		bottom = bottom,
 		layout = .NINE_PATCH,
 	}

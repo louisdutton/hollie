@@ -2,8 +2,8 @@ package hollie
 
 import "asset"
 import "audio"
-import "input"
 import "graphics"
+import "input"
 import "tween"
 import "window"
 

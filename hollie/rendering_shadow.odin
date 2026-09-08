@@ -54,7 +54,13 @@ shadow_map_load :: proc() -> graphics.Render_Texture2D {
 		RENDERING_SHADOW_MAP_RESOLUTION,
 		false,
 	)
-	graphics.framebuffer_attach(target.id, target.depth.id, graphics.RL_ATTACHMENT_DEPTH, graphics.RL_ATTACHMENT_TEXTURE2D, 0)
+	graphics.framebuffer_attach(
+		target.id,
+		target.depth.id,
+		graphics.RL_ATTACHMENT_DEPTH,
+		graphics.RL_ATTACHMENT_TEXTURE2D,
+		0,
+	)
 	assert(graphics.framebuffer_complete(target.id), "shadow framebuffer is incomplete")
 	graphics.disable_framebuffer()
 	return target

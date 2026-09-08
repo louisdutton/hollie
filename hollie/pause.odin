@@ -3,8 +3,8 @@ package hollie
 
 import "audio"
 import "core:fmt"
-import "input"
 import "graphics"
+import "input"
 import "window"
 
 Pause_Menu_State :: enum {

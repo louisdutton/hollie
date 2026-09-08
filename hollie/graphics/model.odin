@@ -48,7 +48,11 @@ unload_model_animations :: #force_inline proc(animations: [^]Model_Animation, co
 	rl.UnloadModelAnimations(animations, count)
 }
 
-update_model_animation :: #force_inline proc(model: Model, animation: Model_Animation, frame: f32) {
+update_model_animation :: #force_inline proc(
+	model: Model,
+	animation: Model_Animation,
+	frame: f32,
+) {
 	rl.UpdateModelAnimation(model, animation, frame)
 }
 

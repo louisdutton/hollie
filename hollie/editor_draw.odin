@@ -2,12 +2,12 @@ package hollie
 
 import "content"
 import "core:fmt"
-import "input"
 import "graphics"
+import "input"
 import "tilemap"
 import "window"
 
-EDITOR_ACTIONS := []input.Action { // actions shown in the editor's standard action bar
+EDITOR_ACTIONS := []input.Action { 	// actions shown in the editor's standard action bar
 	.Editor_Move_Cursor,
 	.Editor_Paint,
 	.Editor_Erase,
@@ -23,7 +23,7 @@ EDITOR_ACTIONS := []input.Action { // actions shown in the editor's standard act
 	.Editor_Toggle,
 }
 
-EDITOR_EDIT_ACTIONS := []input.Action { // actions shown while editing an entity
+EDITOR_EDIT_ACTIONS := []input.Action { 	// actions shown while editing an entity
 	.Editor_Move_Cursor,
 	.Editor_Value_Previous,
 	.Editor_Value_Next,

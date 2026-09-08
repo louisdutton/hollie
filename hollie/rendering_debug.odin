@@ -54,7 +54,11 @@ when ODIN_DEBUG {
 			for x in 0 ..< tilemap.get_tilemap_width() {
 				collision := tilemap.get_collision_tile(x, y)
 				if collision == nil || collision^ != .Solid do continue
-				center := graphics.Vec3{(f32(x) + 0.5) * tile_size, 0.5, (f32(y) + 0.5) * tile_size}
+				center := graphics.Vec3 {
+					(f32(x) + 0.5) * tile_size,
+					0.5,
+					(f32(y) + 0.5) * tile_size,
+				}
 				size := graphics.Vec3{tile_size, 1, tile_size}
 				graphics.draw_cube(center, size, graphics.Colour{255, 48, 48, 96})
 				graphics.draw_cube_outline(center, size, graphics.Colour{255, 96, 96, 220})

@@ -1,7 +1,7 @@
 package hollie
 
-import "tilemap"
 import "graphics"
+import "tilemap"
 
 Transform :: struct {
 	position: Vec2,

@@ -3,8 +3,8 @@ package hollie
 import "asset"
 import "audio"
 import "core:time"
-import "input"
 import "graphics"
+import "input"
 import "tilemap"
 import "tween"
 

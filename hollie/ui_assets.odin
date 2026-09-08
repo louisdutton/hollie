@@ -1,8 +1,8 @@
 package hollie
 
 import "asset"
-import "input"
 import "graphics"
+import "input"
 import "window"
 
 UI_ASSET_ROOT :: "ui/"
@@ -229,7 +229,11 @@ ui_draw_horizontally_faded_frame :: proc(
 	screen_bounds := [2]f32{bounds.x * scale, (bounds.x + bounds.width) * scale}
 	screen_fade_width := fade_width * scale
 	shader := ui_assets.horizontal_fade
-	graphics.set_shader_vec2(shader, graphics.get_shader_location(shader, "fadeBounds"), &screen_bounds[0])
+	graphics.set_shader_vec2(
+		shader,
+		graphics.get_shader_location(shader, "fadeBounds"),
+		&screen_bounds[0],
+	)
 	graphics.set_shader_float(
 		shader,
 		graphics.get_shader_location(shader, "fadeWidth"),
