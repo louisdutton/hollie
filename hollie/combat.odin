@@ -62,8 +62,16 @@ combat_update :: proc() {
 			attack_pos := a.position + attack_offset
 			attacker_box := collision_box_at(a.position, a.collider)
 			attack_box := graphics.Bounding_Box {
-				min = {attack_pos.x - a.attack_width / 2, attacker_box.min.y, attack_pos.y - a.attack_height / 2},
-				max = {attack_pos.x + a.attack_width / 2, attacker_box.max.y, attack_pos.y + a.attack_height / 2},
+				min = {
+					attack_pos.x - a.attack_width / 2,
+					attacker_box.min.y,
+					attack_pos.y - a.attack_height / 2,
+				},
+				max = {
+					attack_pos.x + a.attack_width / 2,
+					attacker_box.max.y,
+					attack_pos.y + a.attack_height / 2,
+				},
 			}
 
 			for &target in entities {

@@ -12,9 +12,12 @@ collision_door_contains_point :: proc(position: graphics.Vec3) -> bool {
 	for &entity in entities {
 		if door, ok := &entity.(Door); ok {
 			box := collision_box_at(door.position, door.collider)
-			if position.x >= box.min.x && position.x <= box.max.x &&
-			   position.y >= box.min.y && position.y <= box.max.y &&
-			   position.z >= box.min.z && position.z <= box.max.z {
+			if position.x >= box.min.x &&
+			   position.x <= box.max.x &&
+			   position.y >= box.min.y &&
+			   position.y <= box.max.y &&
+			   position.z >= box.min.z &&
+			   position.z <= box.max.z {
 				return true
 			}
 		}
@@ -37,12 +40,13 @@ collision_door_for_player :: proc(player: ^Player) -> ^Door {
 
 
 // Gameplay positions use X/Z map coordinates. Collision volumes are always 3D.
-collision_box_at :: proc(position: Vec2, collider: Collider, base_height: f32 = 0) -> graphics.Bounding_Box {
+collision_box_at :: proc(
+	position: Vec2,
+	collider: Collider,
+	base_height: f32 = 0,
+) -> graphics.Bounding_Box {
 	min := geometry_position(position, base_height) + collider.offset
-	return {
-		min = min,
-		max = min + collider.size,
-	}
+	return {min = min, max = min + collider.size}
 }
 
 collision_entity_box :: proc(entity: ^Entity) -> graphics.Bounding_Box {
@@ -72,9 +76,14 @@ collision_entities_intersect :: proc(a, b: ^Entity) -> bool {
 
 collision_contains_point :: proc(entity: ^Entity, point: graphics.Vec3) -> bool {
 	box := collision_entity_box(entity)
-	return point.x >= box.min.x && point.x <= box.max.x &&
-	       point.y >= box.min.y && point.y <= box.max.y &&
-	       point.z >= box.min.z && point.z <= box.max.z
+	return(
+		point.x >= box.min.x &&
+		point.x <= box.max.x &&
+		point.y >= box.min.y &&
+		point.y <= box.max.y &&
+		point.z >= box.min.z &&
+		point.z <= box.max.z \
+	)
 }
 
 collision_check_solid :: proc(position: Vec2, collider: Collider, exclude: ^Entity = nil) -> bool {

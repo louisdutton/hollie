@@ -24,6 +24,7 @@
     "hollie:validate-content".exec = "odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json";
     "hollie:verify".exec = ''
       set -e
+      treefmt
       odin check hollie -debug
       odin test hollie -all-packages -out:/tmp/hollie-tests
       odin run hollie/content_validate -out:/tmp/hollie-content-validate -- res res/maps/*.json
