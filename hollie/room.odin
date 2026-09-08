@@ -40,9 +40,9 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 	player_collider := model_character_collider(true)
 	player_size := player_collider.size
-	door_center := door.position + door.collider.size / 2
+	door_center := door.position + Vec2{door.collider.size.x, door.collider.size.z} / 2
 	candidates := [5]Vec2 {
-		{door_center.x, door.position.y + door.collider.size.y + player_size.y},
+		{door_center.x, door.position.y + door.collider.size.z + player_size.z},
 		{door_center.x, door.position.y - player_size.y},
 		{door.position.x + door.collider.size.x + player_size.x, door_center.y},
 		{door.position.x - player_size.x, door_center.y},
@@ -50,8 +50,8 @@ room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 	}
 
 	for candidate in candidates {
-		rect := collision_rect_at(candidate, player_collider)
-		if !tilemap.check_collision(rect) do return candidate
+		box := collision_box_at(candidate, player_collider)
+		if !tilemap.check_collision(box) do return candidate
 	}
 
 	return door_center
@@ -93,16 +93,14 @@ when ODIN_DEBUG {
 			door, ok := &door_entity_value.(Door)
 			if !ok do continue
 			door_entity := Entity(door^)
-			door_pos := collision_entity_world_position(&door_entity)
-			door_size := collision_entity_size(&door_entity)
-			door_rect := graphics.Rect{door_pos.x, door_pos.y, door_size.x, door_size.y}
+			door_box := collision_entity_box(&door_entity)
 
 			is_intersection := false
 			for &player_entity in entities {
 				player, ok := &player_entity.(Player)
 				if !ok do continue
-				player_rect := collision_rect_at(player.position, player.collider)
-				if rects_intersect(door_rect, player_rect) {
+				player_entity_value := Entity(player^)
+				if collision_entities_intersect(&door_entity, &player_entity_value) {
 					is_intersection = true
 					break
 				}
@@ -111,6 +109,8 @@ when ODIN_DEBUG {
 			outline_color := is_intersection ? graphics.GREEN : graphics.RED
 			door_color := graphics.fade(outline_color, 0.5)
 
+			door_pos := Vec2{door_box.min.x, door_box.min.z}
+			door_size := Vec2{door_box.max.x - door_box.min.x, door_box.max.z - door_box.min.z}
 			graphics.draw_rect(door_pos.x, door_pos.y, door_size.x, door_size.y, door_color)
 			graphics.draw_rect_outline(
 				door_pos.x,
@@ -344,9 +344,9 @@ when ODIN_DEBUG {
 			outline_color := plate.active ? graphics.GREEN : graphics.RED
 			graphics.draw_rect_outline(
 				plate.position.x + plate.collider.offset.x,
-				plate.position.y + plate.collider.offset.y,
+				plate.position.y + plate.collider.offset.z,
 				plate.collider.size.x,
-				plate.collider.size.y,
+				plate.collider.size.z,
 				color = outline_color,
 			)
 		}
@@ -358,9 +358,9 @@ when ODIN_DEBUG {
 			if !gate.open {
 				graphics.draw_rect_outline(
 					gate.position.x + gate.collider.offset.x,
-					gate.position.y + gate.collider.offset.y,
+					gate.position.y + gate.collider.offset.z,
 					gate.collider.size.x,
-					gate.collider.size.y,
+					gate.collider.size.z,
 					color = graphics.RED,
 				)
 			}

@@ -38,7 +38,7 @@ rendering_draw_interior_walls :: proc() {
 			center_z := (f32(y) + 0.5) * tile_size
 
 			if !tilemap.has_floor(x, y - 1) &&
-			   !collision_door_contains_point({center_x, f32(y) * tile_size}) {
+			   !collision_door_contains_point({center_x, 0, f32(y) * tile_size}) {
 				graphics.draw_model(
 					model_assets.wall,
 					{center_x, 0, f32(y) * tile_size},
@@ -49,7 +49,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x, y + 1) &&
-			   !collision_door_contains_point({center_x, f32(y + 1) * tile_size}) {
+			   !collision_door_contains_point({center_x, 0, f32(y + 1) * tile_size}) {
 				graphics.draw_model(
 					model_assets.wall,
 					{center_x, 0, f32(y + 1) * tile_size},
@@ -60,7 +60,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x - 1, y) &&
-			   !collision_door_contains_point({f32(x) * tile_size, center_z}) {
+			   !collision_door_contains_point({f32(x) * tile_size, 0, center_z}) {
 				graphics.draw_model(
 					model_assets.wall,
 					{f32(x) * tile_size, 0, center_z},
@@ -71,7 +71,7 @@ rendering_draw_interior_walls :: proc() {
 				)
 			}
 			if !tilemap.has_floor(x + 1, y) &&
-			   !collision_door_contains_point({f32(x + 1) * tile_size, center_z}) {
+			   !collision_door_contains_point({f32(x + 1) * tile_size, 0, center_z}) {
 				graphics.draw_model(
 					model_assets.wall,
 					{f32(x + 1) * tile_size, 0, center_z},
@@ -297,7 +297,7 @@ rendering_draw_entities :: proc() {
 		case Gate:
 			if e.open do continue
 			block_size: f32 = 16
-			for y in 0 ..< int(e.collider.size.y / block_size) {
+			for y in 0 ..< int(e.collider.size.z / block_size) {
 				for x in 0 ..< int(e.collider.size.x / block_size) {
 					graphics.draw_model(
 						model_assets.cube,
@@ -314,14 +314,14 @@ rendering_draw_entities :: proc() {
 				}
 			}
 		case Door:
-			collider_position := e.position + e.collider.offset
-			center := collider_position + e.collider.size / 2
+			collider_position := Vec2{e.position.x + e.collider.offset.x, e.position.y + e.collider.offset.z}
+			center := collider_position + Vec2{e.collider.size.x, e.collider.size.z} / 2
 			graphics.draw_model(
 				model_assets.door_indicator,
 				geometry_position(center, 0.2),
 				{0, 1, 0},
 				0,
-				{e.collider.size.x / 0.6, 1, e.collider.size.y / 0.6},
+				{e.collider.size.x / 0.6, 1, e.collider.size.z / 0.6},
 				graphics.Colour{142, 104, 190, 255},
 			)
 		}

@@ -23,22 +23,22 @@ movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^
 	final_pos := transform.position
 
 	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	test_rect_x := collision_rect_at(test_pos_x, collider^)
-	if !collision_check_solid(test_pos_x, collider.size, moving_entity) &&
-	   !tilemap.check_collision(test_rect_x) {
+	test_box_x := collision_box_at(test_pos_x, collider^)
+	if !collision_check_solid(test_pos_x, collider^, moving_entity) &&
+	   !tilemap.check_collision(test_box_x) {
 		final_pos.x = next_pos.x
 	}
 
 	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	test_rect_y := collision_rect_at(test_pos_y, collider^)
-	if !collision_check_solid(test_pos_y, collider.size, moving_entity) &&
-	   !tilemap.check_collision(test_rect_y) {
+	test_box_y := collision_box_at(test_pos_y, collider^)
+	if !collision_check_solid(test_pos_y, collider^, moving_entity) &&
+	   !tilemap.check_collision(test_box_y) {
 		final_pos.y = next_pos.y
 	}
 
 	room_bounds := room_get_collision_bounds()
 	half_width := collider.size.x / 2
-	half_height := collider.size.y / 2
+	half_height := collider.size.z / 2
 	transform.position.x = clamp(
 		final_pos.x,
 		room_bounds.x + half_width,

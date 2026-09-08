@@ -60,18 +60,17 @@ combat_update :: proc() {
 
 			attack_offset := a.attack_direction * a.range
 			attack_pos := a.position + attack_offset
-			attack_rect := graphics.Rect {
-				attack_pos.x - a.attack_width / 2,
-				attack_pos.y - a.attack_height / 2,
-				a.attack_width,
-				a.attack_height,
+			attacker_box := collision_box_at(a.position, a.collider)
+			attack_box := graphics.Bounding_Box {
+				min = {attack_pos.x - a.attack_width / 2, attacker_box.min.y, attack_pos.y - a.attack_height / 2},
+				max = {attack_pos.x + a.attack_width / 2, attacker_box.max.y, attack_pos.y + a.attack_height / 2},
 			}
 
 			for &target in entities {
 				switch &t in target {
 				case Enemy:
 					if t.is_dying do continue
-					if !rects_intersect(attack_rect, collision_rect_at(t.position, t.collider)) do continue
+					if !boxes_intersect(attack_box, collision_box_at(t.position, t.collider)) do continue
 
 					t.current -= a.damage
 					a.attack_hit = true

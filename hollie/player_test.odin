@@ -5,11 +5,11 @@ import "core:testing"
 @(test)
 test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.T) {
 	crate := Holdable {
-		collider = {size = {12, 12}, offset = {-6, -6}, solid = true},
+		collider = {size = {12, 12, 12}, offset = {-6, 0, -6}, solid = true},
 	}
 	player := Player {
 		transform = {position = {40, 50}},
-		collider = {size = {16, 16}, offset = {-8, -8}},
+		collider = {size = {16, 16, 16}, offset = {-8, 0, -8}},
 		movement = {facing_direction = {1, 0}},
 		carrying = &crate,
 	}
@@ -28,9 +28,9 @@ test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.
 	testing.expect(t, diagonal_position.y > player.position.y)
 	testing.expect(
 		t,
-		!rects_intersect(
-			collision_rect_at(player.position, player.collider),
-			collision_rect_at(diagonal_position, crate.collider),
+		!boxes_intersect(
+			collision_box_at(player.position, player.collider),
+			collision_box_at(diagonal_position, crate.collider),
 		),
 		"a diagonal drop should clear the player's collision box",
 	)

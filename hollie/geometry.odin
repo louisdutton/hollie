@@ -3,13 +3,11 @@ package hollie
 import "core:math"
 import "graphics"
 
-// Check collision between two rectangles
-rects_intersect :: proc(a, b: graphics.Rect) -> bool {
+boxes_intersect :: proc(a, b: graphics.Bounding_Box) -> bool {
 	return(
-		a.x < b.x + b.width &&
-		a.x + a.width > b.x &&
-		a.y < b.y + b.height &&
-		a.y + a.height > b.y \
+		a.min.x < b.max.x && a.max.x > b.min.x &&
+		a.min.y < b.max.y && a.max.y > b.min.y &&
+		a.min.z < b.max.z && a.max.z > b.min.z \
 	)
 }
 
@@ -39,10 +37,8 @@ geometry_collider_from_bounds :: proc(
 		min_z, max_z = -radius, radius
 	}
 	return {
-		size = {max_x - min_x, max_z - min_z},
-		offset = {min_x, min_z},
-		height = (bounds.max.y - bounds.min.y) * scale,
-		vertical_offset = bounds.min.y * scale,
+		size = {max_x - min_x, (bounds.max.y - bounds.min.y) * scale, max_z - min_z},
+		offset = {min_x, bounds.min.y * scale, min_z},
 		solid = solid,
 	}
 }

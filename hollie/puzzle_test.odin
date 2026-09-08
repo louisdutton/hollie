@@ -16,11 +16,11 @@ test_pressure_plate_accepts_players_and_dropped_crates_as_weight :: proc(t: ^tes
 test_only_dropped_crates_overlap_pressure_plates :: proc(t: ^testing.T) {
 	plate := Pressure_Plate {
 		transform = {position = {10, 10}},
-		collider = {size = {10, 10}, offset = {-5, -5}},
+		collider = {size = {10, 1, 10}, offset = {-5, 0, -5}},
 	}
 	crate := Holdable {
 		transform = {position = {10, 10}},
-		collider = {size = {4, 4}, offset = {-2, -2}},
+		collider = {size = {4, 4, 4}, offset = {-2, 0, -2}},
 	}
 	testing.expect(t, pressure_plate_has_crate(&plate, &crate))
 

@@ -66,8 +66,7 @@ when ODIN_DEBUG {
 		}
 
 		for &entity in entities {
-			collider_pos := collision_entity_world_position(&entity)
-			collider_size := collision_entity_size(&entity)
+			box := collision_entity_box(&entity)
 			color: graphics.Colour
 			switch e in entity {
 			case Player: color = graphics.GREEN
@@ -78,13 +77,11 @@ when ODIN_DEBUG {
 			case Holdable: color = graphics.YELLOW
 			case Door: color = graphics.PURPLE
 			}
-			height := max(collision_entity_height(&entity), 0.25)
-			center := graphics.Vec3 {
-				collider_pos.x + collider_size.x / 2,
-				collision_entity_vertical_offset(&entity) + height / 2 + 0.01,
-				collider_pos.y + collider_size.y / 2,
-			}
-			graphics.draw_cube_outline(center, {collider_size.x, height, collider_size.y}, color)
+			size := box.max - box.min
+			size.y = max(size.y, 0.25)
+			center := (box.min + box.max) / 2
+			center.y += 0.01
+			graphics.draw_cube_outline(center, size, color)
 		}
 	}
 
@@ -92,7 +89,7 @@ when ODIN_DEBUG {
 		for &entity in entities {
 			door, ok := &entity.(Door)
 			if !ok do continue
-			center := door.position + door.collider.size / 2
+			center := door.position + Vec2{door.collider.size.x, door.collider.size.z} / 2
 			rendering_draw_label(
 				door.target_room,
 				geometry_position(center, 4),

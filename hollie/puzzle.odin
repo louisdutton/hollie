@@ -42,7 +42,7 @@ pressure_plate_create :: proc(
 gate_create :: proc(position, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
 	gate := Gate {
 		transform = {position = position},
-		collider = {size = size, height = RENDERING_GATE_HEIGHT, solid = true},
+		collider = {size = {size.x, RENDERING_GATE_HEIGHT, size.y}, solid = true},
 		gate_id = gate_id,
 		required_triggers = make([dynamic]int),
 		inverted = inverted,
@@ -61,10 +61,9 @@ pressure_plate_has_required_weight :: proc(
 
 pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) -> bool {
 	if holdable.held_by != nil do return false
-	return rects_intersect(
-		collision_rect_at(plate.position, plate.collider),
-		collision_rect_at(holdable.position, holdable.collider),
-	)
+	plate_entity := Entity(plate^)
+	holdable_entity := Entity(holdable^)
+	return collision_entities_intersect(&plate_entity, &holdable_entity)
 }
 
 puzzle_update :: proc() {
@@ -83,10 +82,9 @@ puzzle_update :: proc() {
 		for &player_entity in entities {
 			player, ok := &player_entity.(Player)
 			if !ok do continue
-			player_rect := collision_rect_at(player.position, player.collider)
-			plate_rect := collision_rect_at(plate.position, plate.collider)
-
-			if rects_intersect(player_rect, plate_rect) {
+			player_entity_value := Entity(player^)
+			plate_entity_value := Entity(plate^)
+			if collision_entities_intersect(&player_entity_value, &plate_entity_value) {
 				plate.activated_by += {player.index}
 			}
 		}

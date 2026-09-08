@@ -10,7 +10,7 @@ Door :: struct {
 door_create :: proc(position, size: Vec2, target_room, target_door: string) -> ^Door {
 	door := Door {
 		transform = {position = position},
-		collider = {size = size, solid = false},
+		collider = {size = {size.x, RENDERING_GATE_HEIGHT, size.y}, solid = false},
 		target_room = target_room,
 		target_door = target_door,
 	}

@@ -142,13 +142,13 @@ player_drop_position :: proc(
 	if direction.y > 0 {
 		distance = min(
 			distance,
-			(player_collider.offset.y + player_collider.size.y - item_collider.offset.y) /
+			(player_collider.offset.z + player_collider.size.z - item_collider.offset.z) /
 			direction.y,
 		)
 	} else if direction.y < 0 {
 		distance = min(
 			distance,
-			(player_collider.offset.y - item_collider.offset.y - item_collider.size.y) /
+			(player_collider.offset.z - item_collider.offset.z - item_collider.size.z) /
 			direction.y,
 		)
 	}
