@@ -20,7 +20,7 @@ test_movement_analog_target_and_direction_reversal :: proc(t: ^testing.T) {
 	profile := PLAYER_MOVEMENT_PROFILE
 	velocity := movement_accelerate({}, {0.5, 0}, profile, 1)
 	testing.expect_value(t, velocity.x, f32(50))
-	velocity = movement_accelerate({80, 0}, {-1, 0}, profile, 0.1)
+	velocity = movement_accelerate({80, 0}, {-1, 0}, profile, 1.0 / 60)
 	testing.expect(t, velocity.x > 0 && velocity.x < 80)
 	velocity = movement_accelerate(velocity, {-1, 0}, profile, 1)
 	testing.expect_value(t, velocity, Vec2{-80, 0})

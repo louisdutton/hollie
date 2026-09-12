@@ -8,7 +8,7 @@ Movement_Profile :: struct {
 	acceleration, deceleration: f32,
 }
 
-PLAYER_MOVEMENT_PROFILE :: Movement_Profile{20, 80, 320, 480}
+PLAYER_MOVEMENT_PROFILE :: Movement_Profile{20, 80, 640, 960}
 RIDING_MOVEMENT_PROFILE :: Movement_Profile{40, 160, 240, 360}
 
 movement_accelerate :: proc(
