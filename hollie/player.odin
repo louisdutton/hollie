@@ -110,6 +110,7 @@ player_drop :: proc(p: ^Player) {
 		return
 	}
 	p.carrying.height = height
+	p.carrying.velocity = p.velocity
 	p.carrying.vertical_velocity = p.vertical_velocity
 	p.carrying.grounded = false
 	p.carrying.held_by = nil
