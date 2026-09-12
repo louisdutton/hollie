@@ -25,6 +25,12 @@ Dialog_State :: struct {
 dialog_state: Dialog_State
 
 dialog_init :: proc() {
+	dialog_fini()
+}
+
+// Messages are borrowed from NPC content; rune storage belongs to the dialog.
+dialog_fini :: proc() {
+	delete(dialog_state.current_runes)
 	dialog_state = {}
 }
 

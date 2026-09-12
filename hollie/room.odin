@@ -211,7 +211,9 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	room_state.current_tilemap = tm
 
 	if tm.music_path != "" {
-		room_state.room_music = audio.music_init(asset.path(tm.music_path))
+		music_path := asset.path(tm.music_path)
+		defer delete(music_path)
+		room_state.room_music = audio.music_init(music_path)
 		audio.music_set_volume(room_state.room_music, 1.0)
 		audio.music_play(room_state.room_music)
 	}
@@ -322,6 +324,8 @@ room_fini :: proc() {
 		audio.music_fini(room_state.room_music)
 	}
 
+	room_state.room_music = {}
+	dialog_fini()
 	tilemap.fini()
 
 	// Clear entities for level unload/reload

@@ -57,9 +57,13 @@ init :: proc() {
 
 	audio.init()
 
-	game.font = graphics.load_font(asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf"))
+	font_path := asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf")
+	defer delete(font_path)
+	game.font = graphics.load_font(font_path)
 	graphics.set_default_font(game.font)
-	game.music = audio.music_init(asset.path("audio/music/ambient.ogg"))
+	music_path := asset.path("audio/music/ambient.ogg")
+	defer delete(music_path)
+	game.music = audio.music_init(music_path)
 	game.sounds = audio.sound_init()
 	audio.music_set_volume(game.music, audio.get_effective_music_volume())
 	audio.music_play(game.music)
@@ -83,6 +87,7 @@ fini :: proc() {
 	graphics.unload_font(game.font)
 	audio.music_fini(game.music)
 
+	audio.sound_fini(&game.sounds)
 	audio.fini()
 	ui_assets_fini()
 	window.fini()

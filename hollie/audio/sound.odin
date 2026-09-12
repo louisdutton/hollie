@@ -61,6 +61,7 @@ _sound_init :: proc(file_paths: []string, volume: f32 = 0.5, pitch_variation: f3
 	sounds := make([]rl.Sound, len(file_paths))
 	for path, i in file_paths {
 		full_path := asset.path(path)
+		defer delete(full_path)
 		sounds[i] = rl.LoadSound(cstring(raw_data(full_path)))
 	}
 	return Sound{sounds = sounds, volume = volume, pitch_variation = pitch_variation}

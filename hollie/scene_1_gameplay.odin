@@ -221,6 +221,8 @@ gameplay_fini :: proc() {
 		editor_fini()
 	}
 
+	tween.clear()
+	dialog_fini()
 	pause_close()
 	room_fini()
 	tilemap.destroy_tilemap(&gameplay_state.current_tilemap)
@@ -228,6 +230,8 @@ gameplay_fini :: proc() {
 	gameplay_state.pending_target_door = ""
 	gameplay_state.pending_room_id = nil
 	gameplay_state.current_room_id = ""
+	gameplay_state.is_transitioning = false
+	gameplay_state.transition_opacity = 0
 	destroy_room_registry(&gameplay_room_registry)
 	rendering_fini()
 	model_assets_fini()

@@ -168,23 +168,20 @@ ui_assets_init :: proc() {
 	frame_paths := UI_FRAME_PATHS
 	for style_index in 0 ..< len(ui_assets.frames) {
 		style := UI_Frame_Style(style_index)
-		texture := graphics.load_texture(asset.path(frame_paths[style]))
+		texture := ui_assets_load_texture(frame_paths[style])
 		graphics.set_texture_filter(texture, .POINT)
 		ui_assets.frames[style] = texture
 	}
-	ui_assets.title_divider = graphics.load_texture(
-		asset.path(UI_FRAME_ASSET_ROOT + "divider-fade-005.png"),
-	)
+	ui_assets.title_divider = ui_assets_load_texture(UI_FRAME_ASSET_ROOT + "divider-fade-005.png")
 	graphics.set_texture_filter(ui_assets.title_divider, .POINT)
-	ui_assets.horizontal_fade = graphics.load_shader(
-		nil,
-		cstring(raw_data(asset.path("shaders/ui_horizontal_fade.frag"))),
-	)
+	fade_path := asset.path("shaders/ui_horizontal_fade.frag")
+	defer delete(fade_path)
+	ui_assets.horizontal_fade = graphics.load_shader(nil, cstring(raw_data(fade_path)))
 
 	key_prompt_paths := UI_KEY_PROMPT_PATHS
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
 		prompt := UI_Key_Prompt(prompt_index)
-		texture := graphics.load_texture(asset.path(key_prompt_paths[prompt]))
+		texture := ui_assets_load_texture(key_prompt_paths[prompt])
 		graphics.generate_texture_mipmaps(&texture)
 		graphics.set_texture_filter(texture, .TRILINEAR)
 		ui_assets.key_prompts[prompt] = texture
@@ -195,7 +192,7 @@ ui_assets_init :: proc() {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
 			prompt := UI_Gamepad_Prompt(prompt_index)
-			texture := graphics.load_texture(asset.path(gamepad_prompt_paths[layout][prompt]))
+			texture := ui_assets_load_texture(gamepad_prompt_paths[layout][prompt])
 			graphics.generate_texture_mipmaps(&texture)
 			graphics.set_texture_filter(texture, .TRILINEAR)
 			ui_assets.gamepad_prompts[layout][prompt] = texture
@@ -414,4 +411,11 @@ ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepa
 	case:
 	}
 	return {}, false
+}
+
+@(private)
+ui_assets_load_texture :: proc(relative_path: string) -> graphics.Texture2D {
+	path := asset.path(relative_path)
+	defer delete(path)
+	return graphics.load_texture(path)
 }
