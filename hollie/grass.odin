@@ -51,11 +51,13 @@ rendering_draw_grass :: proc() {
 					0.04,
 					top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
 				}
-				height := 2.4 + grass_random(seed + 2) * 3.8
-				angle := grass_random(seed + 3) * 2 * math.PI
+				height := 4.2 + grass_random(seed + 2) * 3.4
+				// Overlap the 2.67-unit planting cells and present the broad face
+				// to the isometric camera instead of losing random blades edge-on.
+				angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
 				width :=
 					Vec3{math.cos(angle), 0, math.sin(angle)} *
-					(0.35 + grass_random(seed + 4) * 0.35)
+					(1.25 + grass_random(seed + 4) * 0.55)
 				mid := root + Vec3{0.3, height * 0.55, 0.1}
 				tip := root + Vec3{0.8, height, 0.3}
 				color := graphics.Colour{255, 255, 255, u8(height / 8 * 255)}
