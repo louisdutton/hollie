@@ -13,8 +13,9 @@ rendering_camera :: proc() -> graphics.Camera3D {
 	center := Vec2{camera.target.x + visible_width / 2, camera.target.y + visible_height / 2}
 	distance := visible_height
 
+	// Equal offsets on all three axes give an isometric view.
 	return {
-		position = {center.x, distance * 0.85, center.y + distance * 0.72},
+		position = {center.x + distance, distance, center.y + distance},
 		target = {center.x, 0, center.y},
 		up = {0, 1, 0},
 		fovy = visible_height,
