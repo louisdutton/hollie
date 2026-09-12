@@ -23,6 +23,17 @@ screen_scale: f32 = 1.0
 // this is the user-controlled zoom value
 camera_base_zoom: f32 = ZOOM_DEFAULT
 
+camera_relative_movement :: proc(direction: Vec2) -> Vec2 {
+	view := rendering_camera()
+	forward := Vec2{view.target.x - view.position.x, view.target.z - view.position.z}
+	length := math.sqrt(forward.x * forward.x + forward.y * forward.y)
+	if length == 0 do return direction
+	forward /= length
+	right := Vec2{-forward.y, forward.x}
+	// Input Y increases down the screen, opposite the camera's forward direction.
+	return right * direction.x - forward * direction.y
+}
+
 camera_follow_target :: proc() {
 	// Get both players and follow their center point using new entity system
 	player1 := entity_get_player(.Player_1)

@@ -84,7 +84,7 @@ player_update_movement :: proc() {
 				continue
 			}
 
-			movement_input := input.get_movement_for_player(p.index)
+			movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
 			p.velocity = movement_input * p.move_speed
 			if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
 				p.facing_direction = movement_input
@@ -170,7 +170,7 @@ player_attack :: proc(p: ^Player) {
 	p.attack_hit = false
 
 	// Lock attack direction based on current movement or facing
-	movement_input := input.get_movement_for_player(p.index)
+	movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
 	if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
 		// Use current movement direction
 		p.attack_direction = {movement_input.x, movement_input.y}
