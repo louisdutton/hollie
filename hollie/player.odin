@@ -151,23 +151,24 @@ player_update_movement :: proc() {
 
 @(private)
 player_drop :: proc(p: ^Player) {
-	position := player_drop_position(
-		p.position,
-		p.facing_direction,
-		p.collider,
-		p.carrying.collider,
-	)
-	height := p.height + RENDERING_CARRIED_ITEM_HEIGHT
+	offset := Vec3{0, RENDERING_CARRIED_ITEM_HEIGHT, 0}
+	if p.carrying.held_pose_valid do offset = p.carrying.held_offset
+	position := p.position + Vec2{offset.x, offset.z}
+	height := p.height + offset.y
 	if collision_check_solid(position, p.carrying.collider, height = height) ||
 	   (room_get_current() != nil &&
 			   tilemap.check_collision(collision_aabb_at(position, p.carrying.collider, height))) {
 		return
 	}
 	p.carrying.height = height
-	p.carrying.velocity = p.velocity
-	p.carrying.vertical_velocity = p.vertical_velocity
+	direction := p.facing_direction
+	length := math.sqrt(direction.x * direction.x + direction.y * direction.y)
+	if length > 0 do direction /= length
+	p.carrying.velocity = p.velocity + direction * 45
+	p.carrying.vertical_velocity = p.vertical_velocity + 15
 	p.carrying.grounded = false
 	p.carrying.held_by = nil
+	p.carrying.held_pose_valid = false
 	p.carrying.position = position
 	p.carrying = nil
 }

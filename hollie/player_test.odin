@@ -3,9 +3,11 @@ package hollie
 import "core:testing"
 
 @(test)
-test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.T) {
+test_player_releases_carried_item_with_momentum_and_small_impulse :: proc(t: ^testing.T) {
 	crate := Holdable {
 		collider = {size = {12, 12, 12}, offset = {-6, 0, -6}, solid = true},
+		held_offset = {2, 21, -1},
+		held_pose_valid = true,
 	}
 	player := Player {
 		transform = {
@@ -23,10 +25,10 @@ test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.
 
 	player_drop(&player)
 
-	testing.expect_value(t, crate.position, Vec2{56, 50})
-	testing.expect_value(t, crate.height, f32(5 + RENDERING_CARRIED_ITEM_HEIGHT))
-	testing.expect_value(t, crate.velocity, Vec2{60, -20})
-	testing.expect_value(t, crate.vertical_velocity, f32(-10))
+	testing.expect_value(t, crate.position, Vec2{42, 49})
+	testing.expect_value(t, crate.height, f32(26))
+	testing.expect_value(t, crate.velocity, Vec2{105, -20})
+	testing.expect_value(t, crate.vertical_velocity, f32(5))
 	testing.expect(t, !crate.grounded)
 	testing.expect(t, crate.held_by == nil)
 	testing.expect(t, holdable_blocks_character(crate))

@@ -7,6 +7,8 @@ Holdable :: struct {
 	using collider:  Collider,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
 	held_by:         ^Player,
+	held_offset:     Vec3,
+	held_pose_valid: bool,
 }
 
 holdable_create :: proc(position: Vec2) -> ^Holdable {

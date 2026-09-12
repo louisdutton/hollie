@@ -343,6 +343,28 @@ rendering_draw_character :: proc(
 			math.cos(angle) * anchor.x + math.sin(angle) * anchor.z,
 			-math.sin(angle) * anchor.x + math.cos(angle) * anchor.z,
 		}
+		// Cache the displayed release point, including the carrier's world lean.
+		anchor_position := geometry_position(
+			render_position + horizontal,
+			render_height + anchor.y,
+		)
+		if bank != 0 {
+			v := anchor_position - bank_pivot
+			cross := Vec3 {
+				bank_axis.y * v.z - bank_axis.z * v.y,
+				bank_axis.z * v.x - bank_axis.x * v.z,
+				bank_axis.x * v.y - bank_axis.y * v.x,
+			}
+			dot := bank_axis.x * v.x + bank_axis.y * v.y + bank_axis.z * v.z
+			anchor_position =
+				bank_pivot +
+				v * math.cos(bank) +
+				cross * math.sin(bank) +
+				bank_axis * dot * (1 - math.cos(bank))
+		}
+		player.carrying.held_offset =
+			anchor_position - geometry_position(player.position, player.height)
+		player.carrying.held_pose_valid = true
 		graphics.draw_model(
 			model_assets.crate,
 			geometry_grounded_position(
