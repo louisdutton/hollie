@@ -12,7 +12,7 @@ MODEL_PRESSURE_PAD_FILE :: "button-floor-square-raylib.glb"
 MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Idle   = "idle",
 	.Run    = "walk",
-	.Jump   = "sprint",
+	.Jump   = "idle", // The bundled model has no jump clip; keep a neutral airborne pose.
 	.Death  = "die",
 	.Attack = "attack-melee-right",
 	.Carry  = "walk-holding-both",
@@ -20,7 +20,7 @@ MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Idle   = .Loop,
 	.Run    = .Loop,
-	.Jump   = .Once_Hold,
+	.Jump   = .Loop,
 	.Death  = .Once_Hold,
 	.Attack = .Once_Hold,
 	.Carry  = .Loop,
