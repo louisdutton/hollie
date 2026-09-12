@@ -115,7 +115,10 @@ particle_emit_trail :: proc(
 ) {
 	delta := transform.position - previous
 	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
-	if !was_grounded || !transform.grounded || distance <= 0 || distance > 40 {
+	if (!was_grounded && !transform.swimming) ||
+	   (!transform.grounded && !transform.swimming) ||
+	   distance <= 0 ||
+	   distance > 40 {
 		transform.dust_distance = 0
 		return
 	}

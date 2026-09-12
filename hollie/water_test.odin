@@ -25,13 +25,48 @@ test_water_floats_bodies_and_allows_both_shore_crossings :: proc(t: ^testing.T) 
 	}
 	physics_move_axis(&body, collider, {size * 1.5, size * 0.5}, nil, true)
 	testing.expect_value(t, body.position.x, size * 1.5)
-	for _ in 0 ..< 60 do physics_step(&body, collider, nil, PHYSICS_STEP, true)
-	testing.expect_value(t, body.height, WATER_FLOAT_HEIGHT)
-	testing.expect(t, body.height > WATER_BED && body.grounded)
+	body.vertical_velocity = -120
+	deepest := body.height
+	for _ in 0 ..< 360 {
+		physics_step(&body, collider, nil, PHYSICS_STEP, true)
+		deepest = min(deepest, body.height)
+	}
+	equilibrium := WATER_SURFACE - min(WATER_DRAFT, collider.size.y * 0.55)
+	testing.expect(t, abs(body.height - equilibrium) < 0.1)
+	testing.expect(
+		t,
+		deepest < equilibrium - 1,
+		"entry momentum must carry the body below its resting draft",
+	)
+	testing.expect(t, body.height > WATER_BED && !body.grounded && body.swimming)
+	testing.expect(t, abs(body.vertical_velocity) < 0.1)
 	physics_move_axis(&body, collider, {size * 2.5, size * 0.5}, nil, true)
-	physics_step(&body, collider, nil, PHYSICS_STEP, true)
+	for _ in 0 ..< 60 do physics_step(&body, collider, nil, PHYSICS_STEP, true)
 	testing.expect_value(t, body.position.x, size * 2.5)
 	testing.expect_value(t, body.height, f32(0))
+	testing.expect(t, body.grounded && !body.swimming)
+}
+
+@(test)
+test_buoyancy_changes_velocity_without_snapping_height :: proc(t: ^testing.T) {
+	collider := Collider {
+		size = {8, 20, 8},
+	}
+	body := Transform {
+		height = WATER_SURFACE - 14,
+	}
+	before := body.height
+	body.vertical_velocity -= PHYSICS_GRAVITY * PHYSICS_STEP
+	water_apply_buoyancy(&body, collider, PHYSICS_STEP)
+	testing.expect_value(t, body.height, before)
+	testing.expect(t, body.vertical_velocity > 0 && body.swimming)
+	body = Transform {
+		height            = WATER_SURFACE + 1,
+		vertical_velocity = -100,
+	}
+	water_apply_buoyancy(&body, collider, PHYSICS_STEP)
+	testing.expect_value(t, body.vertical_velocity, f32(-100))
+	testing.expect(t, !body.swimming)
 }
 
 @(test)

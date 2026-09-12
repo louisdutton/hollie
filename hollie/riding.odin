@@ -62,8 +62,8 @@ riding_can_mount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	   animal.is_busy ||
 	   player.is_busy ||
 	   player.carrying != nil ||
-	   !player.grounded ||
-	   !animal.grounded {
+	   (!player.grounded && !player.swimming) ||
+	   (!animal.grounded && !animal.swimming) {
 		return false
 	}
 	if abs(player.height - animal.height) > PHYSICS_STEP_HEIGHT do return false
@@ -252,7 +252,7 @@ riding_find_dismount :: proc(
 		right + forward,
 		-right + forward,
 	}
-	height := animal.grounded ? animal.height : player.height
+	height := (animal.grounded || animal.swimming) ? animal.height : player.height
 	animal_bounds := collision_aabb_at(animal.position, animal.collider, animal.height)
 	start := collision_aabb_at(animal.position, player.collider, height)
 	for direction in directions {

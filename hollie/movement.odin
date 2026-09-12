@@ -51,6 +51,7 @@ Transform :: struct {
 	height:            f32,
 	vertical_velocity: f32,
 	grounded:          bool,
+	swimming:          bool,
 	dust_distance:     f32,
 }
 

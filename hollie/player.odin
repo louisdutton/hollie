@@ -134,17 +134,14 @@ player_update_movement :: proc() {
 			}
 
 			movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
-			if p.grounded do p.dismount_air_control = false
+			if p.grounded || p.swimming do p.dismount_air_control = false
 			if p.dismount_air_control {
 				p.velocity = movement_steer_air(p.velocity, movement_input, dt)
 			} else {
 				p.velocity = movement_accelerate(
 					p.velocity,
 					movement_input,
-					water_movement_profile(
-						PLAYER_MOVEMENT_PROFILE,
-						water_at(p.position) && p.grounded,
-					),
+					water_movement_profile(PLAYER_MOVEMENT_PROFILE, p.swimming),
 					dt,
 				)
 			}

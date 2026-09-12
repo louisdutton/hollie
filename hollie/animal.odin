@@ -41,7 +41,7 @@ animal_update_movement :: proc(
 	}
 	movement_profile = water_movement_profile(
 		movement_profile,
-		water_at(animal.position) && animal.grounded,
+		animal.swimming,
 		animal.kind == .Turtle,
 	)
 	previous := animal.velocity
@@ -178,7 +178,7 @@ animal_gait_blend :: proc(speed: f32) -> (walking: bool, blend: f32) {
 }
 
 animal_update_gait :: proc(enemy: ^Enemy, dt: f32) {
-	if !enemy.grounded do return
+	if !enemy.grounded && !enemy.swimming do return
 	speed := math.sqrt(enemy.velocity.x * enemy.velocity.x + enemy.velocity.y * enemy.velocity.y)
 	walking, blend := animal_gait_blend(speed)
 	// Keep the clips in the same stride phase while scaling cadence with travel.
@@ -210,7 +210,7 @@ animal_visual_bank :: proc(animal: ^Enemy) -> f32 {
 }
 
 animal_apply_pose :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
-	if !enemy.grounded {
+	if !enemy.grounded && !enemy.swimming {
 		graphics.update_model_animation(animal.model, animal.animations[animal.jump_clip], 0)
 	} else {
 		speed := math.sqrt(

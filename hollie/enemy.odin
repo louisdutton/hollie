@@ -38,7 +38,8 @@ enemy_create :: proc(
 		enemy.collider = animal_collider_from_bounds(animal.bounds, enemy.facing_direction)
 	}
 	if len(animations) > 0 do animation_init(&enemy.anim_data, animations)
-	enemy.height = water_floor_height(position)
+	// Spawn at the surface and let displacement and drag establish the draft.
+	if water_at(position) do enemy.height = WATER_SURFACE
 
 	append(&entities, enemy)
 	return &entities[len(entities) - 1].(Enemy)

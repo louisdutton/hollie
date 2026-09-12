@@ -171,7 +171,10 @@ camera_players_height :: proc(first, second: ^Player) -> f32 {
 camera_player_grounded :: proc(player: ^Player) -> bool {
 	if player == nil do return true
 	if animal := riding_animal_for_player(player.index); animal != nil {
-		return player.mount_elapsed >= player.mount_duration && animal.grounded
+		return(
+			player.mount_elapsed >= player.mount_duration &&
+			(animal.grounded || animal.swimming) \
+		)
 	}
-	return player.grounded
+	return player.grounded || player.swimming
 }

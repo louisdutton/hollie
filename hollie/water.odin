@@ -6,7 +6,7 @@ import "tilemap"
 
 WATER_SURFACE :: f32(-1.5)
 WATER_BED :: f32(-32)
-WATER_FLOAT_HEIGHT :: WATER_SURFACE - 8
+WATER_DRAFT :: f32(8)
 
 water_tile :: proc(x, y: int) -> bool {
 	tile := tilemap.get_base_tile(x, y)
@@ -17,8 +17,16 @@ water_bed_height :: proc(position: Vec2) -> f32 {
 	return water_at(position) ? WATER_BED : 0
 }
 
-water_floor_height :: proc(position: Vec2) -> f32 {
-	return water_at(position) ? WATER_FLOAT_HEIGHT : 0
+water_apply_buoyancy :: proc(body: ^Transform, collider: Collider, dt: f32) {
+	bottom := body.height + collider.offset.y
+	submerged := clamp(WATER_SURFACE - bottom, 0, collider.size.y)
+	if submerged <= 0 || bottom >= WATER_SURFACE || bottom + collider.size.y <= WATER_BED do return
+	body.swimming = true
+	// Displaced volume supplies lift; partial immersion also damps vertical motion.
+	draft := max(min(WATER_DRAFT, collider.size.y * 0.55), 0.1)
+	lift := PHYSICS_GRAVITY * submerged / draft
+	drag := f32(10) * min(submerged / draft, 1)
+	body.vertical_velocity = (body.vertical_velocity + lift * dt) / (1 + drag * dt)
 }
 
 water_movement_profile :: proc(

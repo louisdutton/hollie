@@ -116,11 +116,15 @@ physics_step :: proc(
 	)
 	previous := collision_aabb_at(body.position, collider, body.height)
 	body.vertical_velocity -= PHYSICS_GRAVITY * dt
+	body.swimming = false
+	if collide_tiles && water_at(body.position) {
+		water_apply_buoyancy(body, collider, dt)
+	}
 	next_height := body.height + body.vertical_velocity * dt
 	next := collision_aabb_at(body.position, collider, next_height)
 	body.grounded = false
 	if body.vertical_velocity <= 0 {
-		floor_height := collide_tiles ? water_floor_height(body.position) : f32(0)
+		floor_height := collide_tiles ? water_bed_height(body.position) : f32(0)
 		for obstacle in obstacles {
 			if physics_overlap_horizontal(next, obstacle) &&
 			   previous.min.y >= obstacle.max.y - PHYSICS_CONTACT_EPSILON &&
@@ -157,7 +161,7 @@ physics_step :: proc(
 }
 
 physics_jump :: proc(body: ^Transform, jump_speed: f32 = PHYSICS_JUMP_SPEED) {
-	if !body.grounded do return
+	if !body.grounded && !body.swimming do return
 	body.vertical_velocity = jump_speed
 	body.grounded = false
 }

@@ -111,7 +111,7 @@ animation_update_entities :: proc() {
 		case Player:
 			speed := math.sqrt(e.velocity.x * e.velocity.x + e.velocity.y * e.velocity.y)
 			ratio := clamp(speed / PLAYER_MOVEMENT_PROFILE.max_speed, 0, 1)
-			if e.grounded do e.stride_time += min(delta_time, 0.1) * ratio * 1.65
+			if e.grounded || e.swimming do e.stride_time += min(delta_time, 0.1) * ratio * 1.65
 			target_lean := e.grounded && !e.is_busy ? math.to_radians(f32(8)) * ratio : f32(0)
 			e.movement_lean +=
 				(target_lean - e.movement_lean) * (1 - math.exp(-20 * min(delta_time, 0.1)))
@@ -122,7 +122,7 @@ animation_update_entities :: proc() {
 				)
 			} else if e.carrying != nil {
 				animation_set_state(&e.anim_data, .Carry)
-			} else if !e.grounded {
+			} else if !e.grounded && !e.swimming {
 				animation_set_state(&e.anim_data, .Jump)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {
 				animation_set_state(&e.anim_data, .Run)
