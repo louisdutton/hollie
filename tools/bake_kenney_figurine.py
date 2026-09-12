@@ -93,7 +93,7 @@ def bake_action(
             pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
 
 
-def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_carry=True):
+def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_carry=True, add_jump=False):
     source_path, output_path = arguments()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -231,6 +231,24 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
             },
         )
 
+    if add_jump:
+        # A held airborne extension: front legs reach forward (-X), rear legs
+        # stretch back. Blender uses Z up; all four rigid legs stay straight.
+        jump_action = bpy.data.actions.new("jump")
+        armature.animation_data.action = jump_action
+        for part in parts:
+            pose_bone = armature.pose.bones[part.name]
+            world = rest_world[part.name].copy()
+            if part.name.startswith("leg-"):
+                location, _, scale = world.decompose()
+                angle = math.radians(55 if "front" in part.name else -55)
+                world = Matrix.LocRotScale(location, Matrix.Rotation(angle, 3, "Y").to_quaternion(), scale)
+            pose_bone.matrix = world @ rest_world[part.name].inverted() @ pose_bone.bone.matrix_local
+            for frame in (0, 60):
+                pose_bone.keyframe_insert("location", frame=frame, group=part.name)
+                pose_bone.keyframe_insert("rotation_quaternion", frame=frame, group=part.name)
+                pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
+
     # Remove the source hierarchy and source-only actions before export.
     armature.animation_data.action = None
     for source in list(bpy.data.objects):
@@ -252,7 +270,7 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
         export_bake_animation=True,
         export_skins=True,
     )
-    print(f"Baked {len(source_actions)} Kenney clips (carry layer: {add_carry}) to {output_path}")
+    print(f"Baked {len(source_actions)} Kenney clips (carry layer: {add_carry}, jump pose: {add_jump}) to {output_path}")
 
 
 if __name__ == "__main__":
