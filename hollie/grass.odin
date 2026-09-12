@@ -4,8 +4,8 @@ import "core:math"
 import "graphics"
 import "tilemap"
 
-GRASS_TRAIL_COUNT :: 32
-GRASS_TRAIL_LIFETIME :: f32(1.4)
+GRASS_TRAIL_COUNT :: 64
+GRASS_TRAIL_LIFETIME :: f32(2.6)
 
 Grass_Imprint :: struct {
 	position, direction:   Vec2,
@@ -36,7 +36,8 @@ grass_update_trail :: proc(dt: f32) {
 		)
 		bottom := player.height + player.collider.offset.y
 		if speed <= 3 || bottom >= 8 do continue
-		strength := clamp((speed - 3) / 65, 0, 1)
+		// Even a walking stride should leave a legible imprint.
+		strength := clamp(speed / 30, 0, 1)
 		strength = strength * strength * (3 - 2 * strength)
 		grass_trail[grass_trail_next] = {
 			position  = {
@@ -45,7 +46,7 @@ grass_update_trail :: proc(dt: f32) {
 			},
 			direction = player.velocity / speed,
 			radius    = max(player.collider.size.x, player.collider.size.z) * 0.5 + 3,
-			strength  = strength * clamp(1 - max(bottom, 0) / 8, 0, 1) * 0.75,
+			strength  = strength * clamp(1 - max(bottom, 0) / 8, 0, 1),
 		}
 		grass_trail_next = (grass_trail_next + 1) % GRASS_TRAIL_COUNT
 	}

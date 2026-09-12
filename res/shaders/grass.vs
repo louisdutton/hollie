@@ -7,11 +7,12 @@ uniform float grass_time;
 // World X/Z, contact radius, and movement/contact strength for each player.
 uniform vec4 grass_players[2];
 uniform vec4 grass_motion[2];
-uniform vec4 grass_trail[32];
-uniform vec4 grass_trail_motion[32];
+uniform vec4 grass_trail[64];
+uniform vec4 grass_trail_motion[64];
 out vec3 world_position;
 out float blade_height;
 out float blade;
+out float grass_contact;
 
 void main()
 {
@@ -37,11 +38,13 @@ void main()
     }
     // Use the strongest local imprint, not a sum: repeated footsteps should
     // never deepen into a crater. Each imprint retains its original direction.
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < 64; i++) {
         vec4 imprint = grass_trail[i];
         if (imprint.w <= 0.0) continue;
         float distance_to_imprint = length(vertexPosition.xz - imprint.xy);
-        float contact = (1.0 - smoothstep(0.0, imprint.z, distance_to_imprint)) * imprint.w;
+        // A full-strength inner footprint avoids fading most of the effect
+        // before the player has even uncovered it. Keep only the edge soft.
+        float contact = (1.0 - smoothstep(imprint.z * 0.4, imprint.z, distance_to_imprint)) * imprint.w;
         if (contact > flatten) {
             bend = grass_trail_motion[i].xy * contact;
             flatten = contact;
@@ -50,8 +53,9 @@ void main()
     // Keep overlapping players bounded and the roots planted.
     bend /= max(length(bend), 1.0);
     float tip_weight = blade_height * blade_height;
-    position.xz += bend * 2.5 * tip_weight;
-    position.y -= vertexPosition.y * flatten * 0.18 * tip_weight;
+    position.xz += bend * 3.8 * tip_weight;
+    position.y -= vertexPosition.y * flatten * 0.48 * tip_weight;
+    grass_contact = flatten * blade;
     // Anchor the painted colour to the leaf instead of sliding it through
     // world-space patches as the leaf bends.
     world_position = vertexPosition;

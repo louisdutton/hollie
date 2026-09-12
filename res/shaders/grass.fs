@@ -3,6 +3,7 @@
 in vec3 world_position;
 in float blade_height;
 in float blade;
+in float grass_contact;
 uniform float grass_time;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
@@ -71,5 +72,8 @@ void main()
         }
     }
     color = mix(color, color * vec3(0.56, 0.68, 0.65), shadow / 9.0);
+    // Pressed leaves catch less light, helping the narrow trail read even
+    // when its bend points into the isometric camera rather than sideways.
+    color *= 1.0 - grass_contact * 0.14;
     finalColor = vec4(color, 1.0);
 }
