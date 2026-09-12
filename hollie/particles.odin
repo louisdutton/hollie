@@ -134,7 +134,7 @@ particle_emit_trail :: proc(
 				Particle {
 					position = previous +
 					direction * next -
-					direction * (mounted ? 5 : 2) +
+					direction * (mounted ? 0 : 2) +
 					side * spread,
 					velocity = -direction * (3 + strength * 7) + side * rand.float32_range(-3, 3),
 					height = previous_height +
