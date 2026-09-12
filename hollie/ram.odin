@@ -81,9 +81,6 @@ bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[
 			height   = gate.height,
 		}
 		particle_crate_landing(&body, gate.collider, impact_speed)
-		animal.velocity *= 0.8
-		animal.ram_ready = false
-		animal.ram_charge_time = 0
 		return
 	}
 }
