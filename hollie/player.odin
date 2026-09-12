@@ -59,7 +59,7 @@ player_handle_input :: proc(p: ^Player) {
 			riding_dismount(p, animal)
 			return
 		}
-		if input.is_pressed_for_player(.Jump, p.index) {
+		if !animal.ram_ready && input.is_pressed_for_player(.Jump, p.index) {
 			jump_speed := animal.kind == .Bison ? PHYSICS_JUMP_SPEED * 0.8 : PHYSICS_JUMP_SPEED
 			physics_jump(&animal.transform, jump_speed)
 		}
