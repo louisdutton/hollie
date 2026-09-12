@@ -53,8 +53,8 @@ void main()
     // Keep overlapping players bounded and the roots planted.
     bend /= max(length(bend), 1.0);
     float tip_weight = blade_height * blade_height;
-    position.xz += bend * 3.8 * tip_weight;
-    position.y -= vertexPosition.y * flatten * 0.48 * tip_weight;
+    position.xz += bend * 3.2 * tip_weight;
+    position.y -= vertexPosition.y * flatten * 0.38 * tip_weight;
     grass_contact = flatten * blade;
     // Anchor the painted colour to the leaf instead of sliding it through
     // world-space patches as the leaf bends.
