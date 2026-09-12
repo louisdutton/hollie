@@ -71,6 +71,7 @@ gameplay_update :: proc(frame_dt: f32) {
 	}
 
 	pause_handle_input(frame_dt)
+	if game.pending_scene != nil || game.state == .Exiting do return
 
 	when ODIN_DEBUG {
 		if input.action_pressed(.Editor_Toggle) {

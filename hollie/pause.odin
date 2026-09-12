@@ -276,7 +276,7 @@ pause_activate_selected_item :: proc() {
 	case .Main: switch pause_state.focus.index {
 			case 0: pause_close()
 			case 1: pause_set_menu(.Options)
-			case 2: set_scene(.Title)
+			case 2: scene_request(&game, .Title)
 			case 3: pause_quit_game()
 			}
 	case .Options: switch pause_state.focus.index {

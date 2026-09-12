@@ -23,12 +23,13 @@ App_State :: enum {
 }
 
 Game_State :: struct {
-	state:        App_State,
-	scene:        Scene,
-	player_count: int,
-	font:         graphics.Font,
-	music:        audio.Music,
-	sounds:       audio.Sound_Collection,
+	state:         App_State,
+	scene:         Scene,
+	pending_scene: Maybe(Scene),
+	player_count:  int,
+	font:          graphics.Font,
+	music:         audio.Music,
+	sounds:        audio.Sound_Collection,
 }
 
 game: Game_State = {
@@ -108,12 +109,7 @@ update :: proc() {
 	dt := max(window.get_frame_time(), 0)
 	tween.update(dt)
 
-	switch game.scene {
-	case .Title:
-		audio.music_update(game.music)
-		update_title_screen(dt)
-	case .Gameplay: gameplay_update(dt)
-	}
+	scene_update(&game, dt)
 }
 
 // Handle external interruptions before any scene, menu, editor, tween, or

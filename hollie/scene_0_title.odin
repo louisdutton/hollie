@@ -117,10 +117,10 @@ title_activate_selected_item :: proc() {
 	case .Main: switch title_state.focus.index {
 			case 0:
 				game.player_count = 1
-				set_scene(.Gameplay)
+				scene_request(&game, .Gameplay)
 			case 1:
 				game.player_count = 2
-				set_scene(.Gameplay)
+				scene_request(&game, .Gameplay)
 			case 2: title_set_menu(.Options)
 			case 3: game.state = .Exiting
 			}

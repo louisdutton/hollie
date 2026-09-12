@@ -18,7 +18,7 @@ to :: #force_inline proc(
 	easing := ease.Ease.Quadratic_Out,
 	duration := time.Second,
 	delay: f64 = 0,
-) -> ^ease.Flux_Tween {
+) -> ^ease.Flux_Tween(F) {
 	tween := ease.flux_to(&flux, from, to, easing, duration, delay)
 	return tween
 }
