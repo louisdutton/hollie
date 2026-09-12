@@ -58,15 +58,22 @@ rendering_draw_grass :: proc() {
 				width :=
 					Vec3{math.cos(angle), 0, math.sin(angle)} *
 					(1.25 + grass_random(seed + 4) * 0.55)
-				mid := root + Vec3{0.3, height * 0.55, 0.1}
-				tip := root + Vec3{0.8, height, 0.3}
+				// Carry the leaf's width almost to the top, then close with a
+				// short, gently leaning cap instead of a long needle-like taper.
+				shoulder := root + Vec3{0.45, height * 0.82, 0.2}
+				tip := root + Vec3{0.85, height, 0.35}
 				color := graphics.Colour{255, 255, 255, u8(height / 8 * 255)}
 				// Both windings keep these opaque ribbons visible from either side.
 				for side in 0 ..< 2 {
 					w := side == 0 ? width : -width
-					graphics.draw_triangle_3d(root - w, root + w, mid + w * 0.55, color)
-					graphics.draw_triangle_3d(root - w, mid + w * 0.55, mid - w * 0.55, color)
-					graphics.draw_triangle_3d(mid - w * 0.55, mid + w * 0.55, tip, color)
+					graphics.draw_triangle_3d(root - w, root + w, shoulder + w * 0.7, color)
+					graphics.draw_triangle_3d(
+						root - w,
+						shoulder + w * 0.7,
+						shoulder - w * 0.7,
+						color,
+					)
+					graphics.draw_triangle_3d(shoulder - w * 0.7, shoulder + w * 0.7, tip, color)
 				}
 			}
 		}
