@@ -18,7 +18,6 @@ Player :: struct {
 	index:              input.Player_Index,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
 	carrying:           ^Holdable,
-	dismount_jumping:   bool,
 	head_turn:          f32,
 	movement_lean:      f32,
 	stride_time:        f32,
@@ -93,10 +92,6 @@ player_update_movement :: proc() {
 	for &entity in entities {
 		#partial switch &p in entity {
 		case Player:
-			if p.dismount_jumping {
-				if !p.grounded do continue
-				p.dismount_jumping = false
-			}
 			if animal := riding_animal_for_player(p.index); animal != nil {
 				if p.mount_elapsed < p.mount_duration {
 					p.mount_elapsed = min(p.mount_elapsed + dt, p.mount_duration)

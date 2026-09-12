@@ -306,7 +306,6 @@ riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	player.velocity = animal.velocity + direction * 70
 	player.vertical_velocity = PHYSICS_JUMP_SPEED + max(animal.vertical_velocity, 0)
 	player.grounded = false
-	player.dismount_jumping = true
 	animal.mounted = false
 	animal.coasting = true
 	return true
