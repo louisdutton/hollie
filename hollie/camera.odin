@@ -2,10 +2,11 @@ package hollie
 
 import "core:math"
 import "graphics"
+import "input"
 import "window"
 
 CAMERA_SMOOTH: f32 : 0.1 // interpolation factor used when following the target
-ZOOM_RATE :: 0.01 // zoom adjustment applied per input step
+ZOOM_RATE :: 0.6 // zoom adjustment per second at full input
 ZOOM_DEFAULT :: 1.8
 ZOOM_MAX :: 10.0
 ZOOM_MIN :: 1.0
@@ -87,11 +88,17 @@ camera_update_zoom :: proc() {
 		screen_scale = window.get_ui_scale()
 	}
 
+	zoom_input := input.get_zoom()
 	if graphics.is_key_down(.MINUS) {
-		camera_base_zoom = max(camera_base_zoom - ZOOM_RATE, ZOOM_MIN)
+		zoom_input -= 1
 	} else if graphics.is_key_down(.EQUAL) {
-		camera_base_zoom = min(camera_base_zoom + ZOOM_RATE, ZOOM_MAX)
+		zoom_input += 1
 	}
+	camera_base_zoom = clamp(
+		camera_base_zoom + clamp(zoom_input, -1, 1) * ZOOM_RATE * graphics.get_frame_time(),
+		ZOOM_MIN,
+		ZOOM_MAX,
+	)
 
 	camera.zoom = camera_base_zoom * screen_scale
 }

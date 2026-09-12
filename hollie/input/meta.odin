@@ -30,6 +30,19 @@ get_movement_for_player :: proc(id: Player_Index) -> (input: graphics.Vec2) {
 	return {0, 0}
 }
 
+// Right stick up zooms in; down zooms out. Either player can adjust the shared camera.
+get_zoom :: proc() -> f32 {
+	zoom: f32
+	for player in Player_Index {
+		if !is_gamepad_available(player) do continue
+		axis := get_gamepad_axis_movement(player, .RIGHT_Y)
+		if abs(axis) <= JS_DEADZONE do continue
+		amount := (abs(axis) - JS_DEADZONE) / (1 - JS_DEADZONE)
+		zoom += axis < 0 ? amount : -amount
+	}
+	return clamp(zoom, -1, 1)
+}
+
 Player_Input :: enum {
 	Attack,
 	Accept,
