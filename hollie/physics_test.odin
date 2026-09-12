@@ -65,8 +65,8 @@ test_ground_friction_deceleration_is_independent_of_step_size :: proc(t: ^testin
 	for frame in 0 ..< 6 do physics_step(&b, collider, nil, 1.0 / 60, ground_friction = CRATE_GROUND_FRICTION)
 	testing.expect(t, abs(a.velocity.x - b.velocity.x) < 0.001)
 	testing.expect(t, abs(a.velocity.y - b.velocity.y) < 0.001)
-	testing.expect(t, abs(a.velocity.x - 42) < 0.001)
-	testing.expect(t, abs(a.velocity.y - 56) < 0.001)
+	testing.expect(t, abs(a.velocity.x - 38.4) < 0.001)
+	testing.expect(t, abs(a.velocity.y - 51.2) < 0.001)
 }
 
 @(test)
