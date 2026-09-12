@@ -9,6 +9,7 @@ uniform vec4 grass_players[2];
 uniform vec4 grass_motion[2];
 uniform vec4 grass_trail[64];
 uniform vec4 grass_trail_motion[64];
+uniform int grass_trail_count;
 out vec3 world_position;
 out float blade_height;
 out float blade;
@@ -26,7 +27,7 @@ void main()
                    * blade_height * blade_height;
     vec2 bend = vec2(0.0);
     float flatten = 0.0;
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2 && blade > 0.0; i++) {
         vec4 player = grass_players[i];
         if (player.w <= 0.0 || player.z <= 0.0) continue;
         vec2 away = vertexPosition.xz - player.xy;
@@ -38,7 +39,7 @@ void main()
     }
     // Use the strongest local imprint, not a sum: repeated footsteps should
     // never deepen into a crater. Each imprint retains its original direction.
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < grass_trail_count && blade > 0.0; i++) {
         vec4 imprint = grass_trail[i];
         if (imprint.w <= 0.0) continue;
         float distance_to_imprint = length(vertexPosition.xz - imprint.xy);

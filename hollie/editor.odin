@@ -78,6 +78,7 @@ editor_toggle :: proc() {
 }
 
 editor_enter_edit_mode :: proc() {
+	grass_unload_geometry()
 	editor_state.mode = .Editing
 
 	editor_state.pre_edit_camera = camera
