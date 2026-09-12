@@ -244,13 +244,25 @@ rendering_draw_character :: proc(
 		bank = player.movement_lean
 		bank_axis = {facing.y, 0, -facing.x}
 		bank_pivot = geometry_position(position, base_height)
+		// Two small upward bobs per stride give the quick steps a light bounce.
+		walk := model_assets.character_animations[model_assets.character_animation_indices[.Run]]
+		phase :=
+			model_animation_frame(player.stride_time, walk, .Loop) /
+			f32(max(int(walk.keyframeCount) - 1, 1))
+		speed := math.sqrt(
+			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
+		)
+		render_height +=
+			(1 - math.cos(phase * 4 * math.PI)) *
+			0.4 *
+			clamp(speed / PLAYER_MOVEMENT_PROFILE.max_speed, 0, 1)
 		head := graphics.get_model_bone_index(model_assets.character, "head")
 		if head >= 0 && player.head_turn != 0 {
 			graphics.rotate_model_bone_y(
 				model_assets.character,
 				head,
 				model_assets.character.currentPose[head].translation,
-				player.head_turn * 0.65,
+				player.head_turn * 0.9,
 			)
 		}
 	}
