@@ -16,13 +16,18 @@ Movement :: struct {
 	is_busy:          bool,
 }
 
-movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^Collider) {
+movement_move :: proc(
+	moving_entity: ^Entity,
+	transform: ^Transform,
+	collider: ^Collider,
+	ground_friction: f32 = 0,
+) {
 	obstacles := physics_obstacles(moving_entity)
 	defer delete(obstacles)
 	remaining := min(graphics.get_frame_time(), 0.1)
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)
-		physics_step(transform, collider^, obstacles[:], dt, true)
+		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)
 		remaining -= dt
 	}
 
@@ -43,7 +48,7 @@ movement_update_positions :: proc() {
 	// Settle crates before characters so their support surfaces are current.
 	for &entity in entities {
 		if crate, ok := &entity.(Holdable); ok && crate.held_by == nil {
-			movement_move(&entity, &crate.transform, &crate.collider)
+			movement_move(&entity, &crate.transform, &crate.collider, CRATE_GROUND_FRICTION)
 		}
 	}
 	for &entity in entities {

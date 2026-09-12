@@ -1,5 +1,7 @@
 package hollie
 
+CRATE_GROUND_FRICTION :: f32(300) // horizontal deceleration in world units per second squared
+
 Holdable :: struct {
 	using transform: Transform,
 	using collider:  Collider,

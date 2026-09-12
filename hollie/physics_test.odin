@@ -3,6 +3,73 @@ package hollie
 import "core:testing"
 
 @(test)
+test_ground_friction_stops_crate_on_platform :: proc(t: ^testing.T) {
+	body := Transform {
+		position = {5, 5},
+		height   = 3,
+		grounded = true,
+		velocity = {60, 80},
+	}
+	collider := Collider {
+		size   = {2, 4, 2},
+		offset = {-1, 0, -1},
+	}
+	platform := [1]AABB{{min = {-100, 0, -100}, max = {100, 3, 100}}}
+	for frame in 0 ..< 120 {
+		physics_step(
+			&body,
+			collider,
+			platform[:],
+			PHYSICS_STEP,
+			ground_friction = CRATE_GROUND_FRICTION,
+		)
+	}
+	testing.expect_value(t, body.velocity, Vec2{})
+	testing.expect_value(t, body.height, f32(3))
+	stopped_position := body.position
+	physics_step(
+		&body,
+		collider,
+		platform[:],
+		PHYSICS_STEP,
+		ground_friction = CRATE_GROUND_FRICTION,
+	)
+	testing.expect_value(t, body.position, stopped_position)
+}
+
+@(test)
+test_ground_friction_preserves_airborne_momentum :: proc(t: ^testing.T) {
+	body := Transform {
+		height   = 20,
+		velocity = {60, -80},
+	}
+	collider := Collider {
+		size = {2, 4, 2},
+	}
+	physics_step(&body, collider, nil, PHYSICS_STEP, ground_friction = CRATE_GROUND_FRICTION)
+	testing.expect(t, !body.grounded)
+	testing.expect_value(t, body.velocity, Vec2{60, -80})
+}
+
+@(test)
+test_ground_friction_deceleration_is_independent_of_step_size :: proc(t: ^testing.T) {
+	a := Transform {
+		grounded = true,
+		velocity = {60, 80},
+	}
+	b := a
+	collider := Collider {
+		size = {2, 4, 2},
+	}
+	for frame in 0 ..< 12 do physics_step(&a, collider, nil, 1.0 / 120, ground_friction = CRATE_GROUND_FRICTION)
+	for frame in 0 ..< 6 do physics_step(&b, collider, nil, 1.0 / 60, ground_friction = CRATE_GROUND_FRICTION)
+	testing.expect(t, abs(a.velocity.x - b.velocity.x) < 0.001)
+	testing.expect(t, abs(a.velocity.y - b.velocity.y) < 0.001)
+	testing.expect(t, abs(a.velocity.x - 42) < 0.001)
+	testing.expect(t, abs(a.velocity.y - 56) < 0.001)
+}
+
+@(test)
 test_physics_lands_on_platform_without_falling_through :: proc(t: ^testing.T) {
 	body := Transform {
 		position          = {5, 5},

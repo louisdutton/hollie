@@ -1,5 +1,7 @@
 package hollie
 
+import "core:math"
+
 import "graphics"
 import "tilemap"
 
@@ -78,6 +80,7 @@ physics_step :: proc(
 	obstacles: []AABB,
 	dt: f32,
 	collide_tiles: bool = false,
+	ground_friction: f32 = 0,
 ) {
 	physics_move_axis(
 		body,
@@ -126,6 +129,13 @@ physics_step :: proc(
 		}
 	}
 	body.height = next_height
+	if body.grounded && ground_friction > 0 {
+		speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
+		if speed > 0 {
+			remaining_speed := max(speed - ground_friction * dt, 0)
+			body.velocity *= remaining_speed / speed
+		}
+	}
 }
 
 physics_jump :: proc(body: ^Transform) {
