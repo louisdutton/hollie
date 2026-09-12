@@ -44,7 +44,7 @@ riding_animal_for_player :: proc(index: input.Player_Index) -> ^Enemy {
 }
 
 riding_can_mount :: proc(player: ^Player, animal: ^Enemy) -> bool {
-	if animal_model_for_kind(animal.kind) == nil ||
+	if (animal.kind != .Horse && animal.kind != .Bison) ||
 	   animal.mounted ||
 	   animal.is_dying ||
 	   animal.is_busy ||

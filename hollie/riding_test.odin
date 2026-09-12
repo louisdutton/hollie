@@ -36,7 +36,9 @@ test_animals_can_be_mounted_only_when_available_and_grounded :: proc(t: ^testing
 		transform = {grounded = true},
 		collider = {size = {4, 6, 4}},
 	}
-	kinds := [3]content.Character_Kind{.Dog, .Horse, .Bison}
+	animal.kind = .Dog
+	testing.expect(t, !riding_can_mount(&player, &animal))
+	kinds := [2]content.Character_Kind{.Horse, .Bison}
 	for kind in kinds {
 		animal.kind = kind
 		testing.expect(t, riding_can_mount(&player, &animal))
@@ -56,7 +58,7 @@ test_animals_can_be_mounted_only_when_available_and_grounded :: proc(t: ^testing
 	player.carrying = nil
 	animal.kind = .Goblin
 	testing.expect(t, !riding_can_mount(&player, &animal))
-	animal.kind = .Dog
+	animal.kind = .Horse
 	animal.position = {100, 100}
 	testing.expect(t, !riding_can_mount(&player, &animal))
 }
