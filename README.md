@@ -19,7 +19,7 @@ explicitly.
 
 Follow [AGENTS.md](AGENTS.md). Use `devenv shell` for one-off commands. Agents
 must not launch the game or run routine checks manually; rely on the automated
-commit hook and CI unless a check is explicitly requested.
+commit hook unless a check is explicitly requested.
 
 On a machine with a graphical environment, developers can launch the debug game:
 
@@ -33,7 +33,7 @@ live in [input/actions.odin](hollie/input/actions.odin).
 ## Automated verification
 
 The commit hook runs `hollie:verify` for changes to code, resources, asset tools,
-environment configuration, formatting configuration, and CI workflows. It:
+environment configuration, and formatting configuration. It:
 
 1. Formats Odin and Nix sources.
 2. Checks the debug game and builds the release executable without launching it.
@@ -44,8 +44,7 @@ environment configuration, formatting configuration, and CI workflows. It:
 
 If formatting changes files, review and stage those changes before retrying the
 commit. Build artifacts used by verification live in a temporary directory that
-is removed on exit. GitHub Actions runs the same task for pushes and pull
-requests and requires formatting to leave a clean diff.
+is removed on exit.
 
 The headless checks do not exercise GPU rendering, audio playback, controller
 hardware, or Blender asset generation. Changes to those systems also need a

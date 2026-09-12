@@ -117,7 +117,7 @@ round trips, and actual interactions affected by a change.
 
 ## Reviewing future changes
 
-Keep commits complete and behaviorally coherent. Use the automated hook and CI
+Keep commits complete and behaviorally coherent. Use the automated commit hook
 for routine verification. Add regression tests for lifetime, timing, content,
 and interaction bugs; use isolated worlds and pure helpers where possible.
 Formatting and mechanical renames do not need tests that repeat the changed

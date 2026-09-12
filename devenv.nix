@@ -40,7 +40,7 @@
     enable = true;
     name = "Hollie verification";
     entry = "devenv tasks run hollie:verify";
-    files = "(^hollie/|^res/|^tools/|^devenv\\.|^odinfmt\\.json$|^\\.github/workflows/)";
+    files = "(^hollie/|^res/|^tools/|^devenv\\.|^odinfmt\\.json$)";
     pass_filenames = false;
   };
 
