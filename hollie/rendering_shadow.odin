@@ -16,7 +16,6 @@ shadow_map_apply_lighting_shaders :: proc() {
 	rendering_apply_shader(&model_assets.cube, rendering_state.lighting_shader)
 	rendering_apply_shader(&model_assets.wall, rendering_state.lighting_shader)
 	rendering_apply_shader(&model_assets.doorway_wall, rendering_state.lighting_shader)
-	rendering_apply_shader(&model_assets.door_indicator, rendering_state.lighting_shader)
 }
 
 shadow_map_apply_shaders :: proc() {
@@ -36,7 +35,6 @@ shadow_map_apply_shaders :: proc() {
 	rendering_apply_shader(&model_assets.cube, rendering_state.shadow_shader)
 	rendering_apply_shader(&model_assets.wall, rendering_state.shadow_shader)
 	rendering_apply_shader(&model_assets.doorway_wall, rendering_state.shadow_shader)
-	rendering_apply_shader(&model_assets.door_indicator, rendering_state.shadow_shader)
 }
 
 shadow_map_load :: proc() -> graphics.Render_Texture2D {

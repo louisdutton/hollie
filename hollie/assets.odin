@@ -43,7 +43,6 @@ Model_Assets :: struct {
 	cube:                           graphics.Model,
 	wall:                           graphics.Model,
 	doorway_wall:                   graphics.Model,
-	door_indicator:                 graphics.Model,
 	character_animations:           [^]graphics.Model_Animation,
 	character_animation_count:      c.int,
 	character_animation_indices:    [AnimationState]int,
@@ -76,7 +75,6 @@ model_assets_init :: proc() {
 	model_assets.cube = model_assets_load_model(root + "shape-cube.glb")
 	model_assets.wall = model_assets_load_model(root + "wall.glb")
 	model_assets.doorway_wall = model_assets_load_model(root + "wall-doorway-wide.glb")
-	model_assets.door_indicator = model_assets_load_model(root + "indicator-doorway.glb")
 	model_assets.character_bounds = graphics.get_model_bounding_box(model_assets.character)
 	model_assets.crate_bounds = graphics.get_model_bounding_box(model_assets.crate)
 	model_assets.pressure_pad_bounds = graphics.get_model_bounding_box(model_assets.pressure_pad)
@@ -179,6 +177,5 @@ model_assets_fini :: proc() {
 	if graphics.model_is_loaded(model_assets.cube) do graphics.unload_model(model_assets.cube)
 	if graphics.model_is_loaded(model_assets.wall) do graphics.unload_model(model_assets.wall)
 	if graphics.model_is_loaded(model_assets.doorway_wall) do graphics.unload_model(model_assets.doorway_wall)
-	if graphics.model_is_loaded(model_assets.door_indicator) do graphics.unload_model(model_assets.door_indicator)
 	model_assets = {}
 }

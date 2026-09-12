@@ -460,20 +460,7 @@ rendering_draw_entities :: proc() {
 					)
 				}
 			}
-		case Door:
-			collider_position := Vec2 {
-				e.position.x + e.collider.offset.x,
-				e.position.y + e.collider.offset.z,
-			}
-			center := collider_position + Vec2{e.collider.size.x, e.collider.size.z} / 2
-			graphics.draw_model(
-				model_assets.door_indicator,
-				geometry_position(center, 0.2),
-				{0, 1, 0},
-				0,
-				{e.collider.size.x / 0.6, 1, e.collider.size.z / 0.6},
-				graphics.Colour{142, 104, 190, 255},
-			)
+		case Door: continue
 		}
 	}
 }
