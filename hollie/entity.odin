@@ -1,5 +1,6 @@
 package hollie
 
+import "graphics"
 import "input"
 
 // Specific entity types
@@ -56,6 +57,7 @@ entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 
 // Update systems
 entity_system_update :: proc() {
+	water_time += graphics.get_frame_time()
 	pressure_plate_update_surfaces()
 	riding_sync_players()
 	player_update_input()

@@ -53,7 +53,8 @@ ai_update_animal :: proc(animal: ^Enemy) {
 		if animal.wait_timer <= 0 do direction = animal.move_direction
 	}
 	if direction != (Vec2{}) && animal.grounded {
-		obstacles := physics_obstacles(nil)
+		actor := Entity(animal^)
+		obstacles := physics_obstacles(&actor)
 		defer delete(obstacles)
 		probe := animal.position + animal.facing_direction * 18
 		if physics_blocked(

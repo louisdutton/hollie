@@ -13,6 +13,7 @@ ANIMAL_RUN_SPEED :: f32(160)
 animal_riding_profile :: proc(kind: content.Character_Kind) -> Movement_Profile {
 	profile := RIDING_MOVEMENT_PROFILE
 	if kind == .Horse do profile.max_speed = 200
+	if kind == .Turtle do profile.max_speed = 120
 	if kind == .Bison {
 		profile.max_speed = 140
 		profile.acceleration = 110
@@ -67,6 +68,7 @@ ANIMAL_MODEL_FILES :: [content.Character_Kind]string {
 	.Dog      = "world/props/animal-dog-raylib.glb",
 	.Horse    = "world/props/animal-horse-raylib.glb",
 	.Bison    = "world/props/animal-bison-raylib.glb",
+	.Turtle   = "world/props/animal-turtle-raylib.glb",
 }
 
 Animal_Model :: struct {

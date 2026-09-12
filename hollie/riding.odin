@@ -56,7 +56,7 @@ riding_animal_for_player :: proc(index: input.Player_Index) -> ^Enemy {
 }
 
 riding_can_mount :: proc(player: ^Player, animal: ^Enemy) -> bool {
-	if (animal.kind != .Horse && animal.kind != .Bison) ||
+	if (animal.kind != .Horse && animal.kind != .Bison && animal.kind != .Turtle) ||
 	   animal.mounted ||
 	   animal.is_dying ||
 	   animal.is_busy ||
@@ -262,6 +262,7 @@ riding_find_dismount :: proc(
 			animal.collider,
 			player.collider,
 		)
+		if collide_tiles && water_at(position) do continue
 		aabb := collision_aabb_at(position, player.collider, height)
 		if aabb.min.x < bounds.x ||
 		   aabb.max.x > bounds.x + bounds.width ||

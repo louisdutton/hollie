@@ -38,7 +38,7 @@ test_animals_can_be_mounted_only_when_available_and_grounded :: proc(t: ^testing
 	}
 	animal.kind = .Dog
 	testing.expect(t, !riding_can_mount(&player, &animal))
-	kinds := [2]content.Character_Kind{.Horse, .Bison}
+	kinds := [3]content.Character_Kind{.Horse, .Bison, .Turtle}
 	for kind in kinds {
 		animal.kind = kind
 		testing.expect(t, riding_can_mount(&player, &animal))

@@ -17,6 +17,7 @@ physics_overlap_horizontal :: proc(a, b: AABB) -> bool {
 
 physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 	obstacles := make([dynamic]AABB)
+	water_add_obstacles(exclude, &obstacles)
 	if tm := room_get_current(); tm != nil {
 		for structure in tm.structures {
 			for wall in house_wall_aabbs(structure.position, structure.size) do append(&obstacles, wall)

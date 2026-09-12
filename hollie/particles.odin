@@ -111,6 +111,7 @@ particle_emit_trail :: proc(
 	was_grounded: bool,
 	mounted: bool,
 	size_scale: f32 = 1,
+	color: graphics.Colour = {191, 174, 145, 90},
 ) {
 	delta := transform.position - previous
 	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
@@ -146,7 +147,7 @@ particle_emit_trail :: proc(
 					lifetime = lifetime,
 					max_lifetime = lifetime,
 					size = rand.float32_range(2, 3.4) * (0.6 + strength) * size_scale,
-					color = {191, 174, 145, 90},
+					color = color,
 				},
 			)
 		}

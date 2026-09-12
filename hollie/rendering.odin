@@ -95,6 +95,7 @@ rendering_draw_ground :: proc() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
 			tile := tilemap.get_base_tile(x, y)
 			if tile == nil || tile^ == .Empty do continue
+			tint := tile^ == .Water ? graphics.Colour{45, 137, 177, 255} : graphics.WHITE
 
 			graphics.draw_model(
 				model_assets.floor,
@@ -102,7 +103,7 @@ rendering_draw_ground :: proc() {
 				{0, 1, 0},
 				0,
 				{tile_size, 1, tile_size},
-				graphics.WHITE,
+				tint,
 			)
 		}
 	}
@@ -492,6 +493,7 @@ rendering_draw_entities :: proc() {
 }
 
 rendering_draw_particles :: proc() {
+	rendering_draw_water()
 	for &particle in particle_system.particles {
 		alpha_factor := particle.lifetime / particle.max_lifetime
 		color := particle.color

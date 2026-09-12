@@ -120,8 +120,26 @@ movement_move :: proc(
 	)
 	#partial switch e in moving_entity^ {
 	case Player: particle_emit_trail(transform, previous, previous_height, was_grounded, false)
-	case Enemy:
-		if e.mounted || e.coasting do particle_emit_trail(transform, previous, previous_height, was_grounded, true, e.ram_ready ? 1.6 : 1)
+	case Enemy: if e.kind == .Turtle {
+				particle_emit_trail(
+					transform,
+					previous,
+					previous_height,
+					was_grounded,
+					false,
+					0.6,
+					{174, 231, 240, 110},
+				)
+			} else if e.mounted || e.coasting {
+				particle_emit_trail(
+					transform,
+					previous,
+					previous_height,
+					was_grounded,
+					true,
+					e.ram_ready ? 1.6 : 1,
+				)
+			}
 	case Holdable:
 		if e.held_by == nil do particle_emit_trail(transform, previous, previous_height, was_grounded, false, 0.65)
 	}
