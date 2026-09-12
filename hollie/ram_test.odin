@@ -3,6 +3,25 @@ package hollie
 import "core:testing"
 
 @(test)
+test_bison_charge_unlocks_speed_and_limits_steering :: proc(t: ^testing.T) {
+	animal := Enemy {
+		kind = .Bison,
+		mounted = true,
+		transform = {grounded = true, velocity = {0, 140}},
+		movement = {facing_direction = {0, 1}},
+	}
+	profile := animal_riding_profile(.Bison)
+	animal_update_movement(&animal, {0, 1}, profile, 0.1)
+	testing.expect_value(t, animal.velocity.y, f32(140))
+	animal.ram_ready = true
+	for frame in 0 ..< 30 do animal_update_movement(&animal, {0, 1}, profile, 1.0 / 60)
+	testing.expect_value(t, animal.velocity.y, BISON_CHARGE_SPEED)
+	animal_update_movement(&animal, {1, 0}, profile, 0.1)
+	testing.expect(t, animal.facing_direction.x > 0 && animal.facing_direction.x < 0.12)
+	testing.expect(t, animal.facing_direction.y > 0.99)
+}
+
+@(test)
 test_bison_full_speed_state_requires_run_up_and_resets :: proc(t: ^testing.T) {
 	animal := Enemy {
 		kind = .Bison,

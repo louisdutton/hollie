@@ -5,6 +5,8 @@ import "tilemap"
 
 BISON_RAM_SPEED :: f32(100)
 BISON_CHARGE_TIME :: f32(0.75)
+BISON_CHARGE_SPEED :: f32(180)
+BISON_CHARGE_TURN_RATE :: f32(1.1)
 
 bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
 	// Build charge at top speed, but keep it through ordinary steering losses.

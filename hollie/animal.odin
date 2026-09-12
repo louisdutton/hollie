@@ -29,6 +29,9 @@ animal_update_movement :: proc(
 	profile: Movement_Profile,
 	dt: f32,
 ) {
+	charging := animal.kind == .Bison && animal.mounted && animal.ram_ready
+	movement_profile := profile
+	if charging do movement_profile.max_speed = BISON_CHARGE_SPEED
 	previous := animal.velocity
 	speed := math.sqrt(previous.x * previous.x + previous.y * previous.y)
 	magnitude := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)
@@ -38,12 +41,13 @@ animal_update_movement :: proc(
 		delta := math.atan2(math.sin(target - angle), math.cos(target - angle))
 		// Cap angular speed even when travelling slowly; reversals become arcs.
 		turn_rate := animal.mounted ? f32(2.8) : f32(1.5)
+		if charging do turn_rate = BISON_CHARGE_TURN_RATE
 		angle += clamp(delta, -turn_rate * dt, turn_rate * dt)
 		animal.facing_direction = {math.sin(angle), math.cos(angle)}
 		magnitude *= max(f32(0.25), math.cos(delta))
 	}
 	speed_input := magnitude > 0 ? Vec2{magnitude, 0} : Vec2{}
-	next_speed := movement_accelerate({speed, 0}, speed_input, profile, dt).x
+	next_speed := movement_accelerate({speed, 0}, speed_input, movement_profile, dt).x
 	animal.velocity = animal.facing_direction * next_speed
 	animal.turn_lean = riding_turn_lean(animal.turn_lean, previous, animal.velocity, dt)
 	animal.head_turn = riding_head_turn(animal.head_turn, animal.facing_direction, direction, dt)
