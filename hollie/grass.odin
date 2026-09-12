@@ -187,10 +187,10 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 		// Tall, overlapping ribbons keep the meadow full at the same density.
 		angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
 		width := Vec3{math.cos(angle), 0, math.sin(angle)} * (0.85 + grass_random(seed + 4) * 0.3)
-		// A low shoulder and a swept tip imply a curved taper with five vertices.
-		lean := Vec3{1.6, 0, 0.7} + width * (grass_random(seed + 5) - 0.5)
-		shoulder := root + lean * 0.28 + Vec3{0, height * 0.58, 0}
-		tip := root + lean + Vec3{0, height, 0}
+		// Store an upright ribbon. The shader bends its centreline as an arc
+		// using the same root and height for every vertex of the blade.
+		shoulder := root + Vec3{0, height * 0.58, 0}
+		tip := root + Vec3{0, height, 0}
 		// Alpha stores height over a 12-unit range (shared with grass.vs).
 		color := graphics.Colour{255, 255, 255, u8(height / 12 * 255)}
 		// Shared vertices retain both windings without running the vertex
@@ -206,6 +206,7 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 			},
 			[]u16{0, 1, 2, 0, 2, 3, 3, 2, 4, 2, 1, 0, 3, 2, 0, 4, 2, 3},
 			color,
+			{root.x, root.z},
 		)
 	}
 }

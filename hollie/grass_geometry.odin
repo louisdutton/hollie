@@ -7,6 +7,7 @@ GRASS_CHUNK_TILES :: 4
 
 Grass_Mesh_Builder :: struct {
 	positions: [dynamic]Vec3,
+	roots:     [dynamic]Vec2,
 	colors:    [dynamic]graphics.Colour,
 	indices:   [dynamic]u16,
 }
@@ -24,11 +25,13 @@ grass_mesh_append :: proc(
 	positions: []Vec3,
 	indices: []u16,
 	color: graphics.Colour,
+	root: Vec2 = {},
 ) {
 	base := u16(len(builder.positions))
 	for position in positions {
 		append(&builder.positions, position)
 		append(&builder.colors, color)
+		append(&builder.roots, color.a == 0 ? Vec2{position.x, position.z} : root)
 	}
 	for index in indices do append(&builder.indices, base + index)
 }
@@ -43,6 +46,7 @@ grass_unload_geometry :: proc() {
 grass_build_geometry :: proc() {
 	builder: Grass_Mesh_Builder
 	defer delete(builder.positions)
+	defer delete(builder.roots)
 	defer delete(builder.colors)
 	defer delete(builder.indices)
 	size := f32(tilemap.get_tile_size())
@@ -50,6 +54,7 @@ grass_build_geometry :: proc() {
 	for top := 0; top < height; top += GRASS_CHUNK_TILES {
 		for left := 0; left < width; left += GRASS_CHUNK_TILES {
 			clear(&builder.positions)
+			clear(&builder.roots)
 			clear(&builder.colors)
 			clear(&builder.indices)
 			right, bottom :=
@@ -64,6 +69,7 @@ grass_build_geometry :: proc() {
 				builder.positions[:],
 				builder.colors[:],
 				builder.indices[:],
+				builder.roots[:],
 			)
 			rendering_apply_shader(&model, rendering_state.grass_shader)
 			append(
@@ -86,6 +92,7 @@ rendering_draw_grass :: proc() {
 	if !graphics.shader_is_loaded(shader) || rendering_state.grass_time_location < 0 do return
 	if !grass_geometry_ready do grass_build_geometry()
 	grass_upload_players(shader)
+	rendering_set_shader_vec3(shader, "view_position", rendering_camera().position)
 	graphics.set_shader_float(shader, rendering_state.grass_time_location, &water_time)
 	for chunk in grass_chunks {
 		grass_upload_trail(shader, chunk.min, chunk.max)

@@ -118,6 +118,7 @@ rendering_init :: proc() {
 	)
 	shadow_map_apply_lighting_shaders()
 	rendering_configure_lighting(rendering_state.lighting_shader)
+	rendering_configure_lighting(rendering_state.grass_shader)
 	rendering_configure_lighting(rendering_state.character_lighting_shader)
 	shadow_map_init()
 }

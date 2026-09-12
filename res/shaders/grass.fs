@@ -1,44 +1,31 @@
 #version 330
 
 in vec3 world_position;
+in vec3 meadow_normal;
 in float blade_height;
 in float blade;
 in float grass_contact;
-in float wind_light;
-uniform float grass_time;
+in float meadow_tone;
+in float cloud_light;
+uniform vec3 view_position;
+uniform vec3 ambientColor;
+uniform vec3 keyDirection;
+uniform vec3 keyColor;
+uniform vec3 fillDirection;
+uniform vec3 fillColor;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
 uniform int shadowMapResolution;
 out vec4 finalColor;
 
-float hash(vec2 p)
-{
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-
-float noise(vec2 p)
-{
-    vec2 cell = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(cell), hash(cell + vec2(1, 0)), f.x),
-               mix(hash(cell + vec2(0, 1)), hash(cell + vec2(1, 1)), f.x), f.y);
-}
-
 void main()
 {
-    vec2 p = world_position.xz;
-    // Soft colour masses unite the full-density blades; no fine ground marks.
-    float patches = noise(p * 0.022) * 0.8 + noise(p * 0.05) * 0.2;
-    vec3 moss = vec3(0.23, 0.43, 0.25);
-    vec3 leaf = vec3(0.40, 0.60, 0.29);
-    vec3 sunlight = vec3(0.65, 0.75, 0.39);
-    vec3 color = mix(moss, leaf, smoothstep(0.15, 0.8, patches));
-    // Dark roots disappear into the ground; the upper leaf catches warm light.
-    float tip_light = smoothstep(0.25, 1.0, blade_height);
-    color = mix(color, sunlight, tip_light * (0.48 + patches * 0.16));
-    color *= mix(1.0, 0.88 + 0.12 * tip_light, blade);
-    color += vec3(0.025, 0.035, 0.012) * wind_light * mix(0.35, 1.0, tip_light);
+    // One low-frequency albedo field for the ground and all leaf roots.
+    // Tip brightness comes primarily from illumination, not a yellow gradient.
+    vec3 albedo = mix(vec3(0.30, 0.51, 0.24), vec3(0.46, 0.63, 0.30),
+                      smoothstep(0.18, 0.82, meadow_tone));
+    float upper_leaf = smoothstep(0.2, 0.95, blade_height);
+    albedo *= 1.0 + upper_leaf * 0.07;
 
     vec4 light_position = lightVP * vec4(world_position, 1.0);
     vec3 uv = light_position.xyz / light_position.w * 0.5 + 0.5;
@@ -51,9 +38,24 @@ void main()
             }
         }
     }
-    color = mix(color, color * vec3(0.56, 0.68, 0.65), shadow / 9.0);
-    // Pressed leaves catch less light, helping the narrow trail read even
-    // when its bend points into the isometric camera rather than sideways.
-    color *= 1.0 - grass_contact * 0.11;
-    finalColor = vec4(color, 1.0);
+    float visibility = (1.0 - shadow / 9.0) * mix(0.72, 1.0, cloud_light);
+    vec3 normal = normalize(meadow_normal);
+    vec3 light = -normalize(keyDirection);
+    vec3 view = normalize(view_position - world_position);
+    float diffuse = max(dot(normal, light), 0.0);
+    float fill = max(dot(normal, -normalize(fillDirection)), 0.0);
+    vec3 illumination = ambientColor + keyColor * diffuse * visibility + fillColor * fill;
+
+    // Broad, restrained transmission when looking toward the sun. This and
+    // the soft grazing highlight disappear under cast or cloud shadows.
+    float transmission = pow(max(dot(view, -light), 0.0), 3.0);
+    vec3 half_vector = normalize(light + view + vec3(0.0, 0.0001, 0.0));
+    float highlight = pow(max(dot(normal, half_vector), 0.0), 12.0);
+    float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 3.0);
+    vec3 linear_albedo = pow(albedo, vec3(2.2));
+    vec3 lit = linear_albedo * illumination;
+    lit += linear_albedo * keyColor * transmission * upper_leaf * visibility * 0.35;
+    lit += keyColor * (highlight * 0.035 + fresnel * 0.025) * upper_leaf * visibility;
+    lit *= 1.0 - grass_contact * 0.08;
+    finalColor = vec4(pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
 }
