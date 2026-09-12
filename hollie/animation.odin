@@ -41,7 +41,6 @@ AnimationState :: enum {
 	Jump,
 	Death,
 	Attack,
-	Roll,
 	Carry,
 }
 
@@ -113,8 +112,6 @@ animation_update_entities :: proc() {
 			if e.is_attacking {
 				e.facing_direction = e.attack_direction
 				animation_set_state(&e.anim_data, .Attack)
-			} else if e.is_rolling {
-				animation_set_state(&e.anim_data, .Roll)
 			} else if e.carrying != nil {
 				animation_set_state(&e.anim_data, .Carry)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {

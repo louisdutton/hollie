@@ -29,7 +29,7 @@ player_create :: proc(
 		transform = {position = position},
 		collider = model_character_collider(true),
 		health = {current = 100, max = 100, is_dying = false},
-		movement = {move_speed = 80, roll_speed = 160, facing_direction = {1, 0}},
+		movement = {move_speed = 80, facing_direction = {1, 0}},
 		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
 		index = index,
 	}
@@ -44,8 +44,7 @@ player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
 }
 
 player_handle_input :: proc(p: ^Player) {
-	// attack and rolling bools can probably be made redundant
-	if p.is_busy || p.is_attacking || p.is_rolling do return
+	if p.is_busy || p.is_attacking do return
 
 	// Carrying is a limited state so must be handled first
 	// there will likely be other states like this
@@ -62,7 +61,6 @@ player_handle_input :: proc(p: ^Player) {
 		}
 	}
 	if input.is_pressed_for_player(.Attack, p.index) do player_attack(p)
-	if input.is_pressed_for_player(.Roll, p.index) do player_roll(p)
 }
 
 player_update_input :: proc() {
@@ -77,15 +75,7 @@ player_update_movement :: proc() {
 	for &entity in entities {
 		#partial switch &p in entity {
 		case Player:
-			if p.is_rolling {
-				p.roll_timer += 1
-				if p.roll_timer >= 10 * INTERVAL {
-					p.is_rolling = false
-					p.roll_timer = 0
-				}
-			}
-
-			if p.is_rolling || p.knockback_timer > 0 || p.is_busy {
+			if p.knockback_timer > 0 || p.is_busy {
 				if p.knockback_timer > 0 {
 					p.velocity *= 0.85
 				} else if p.is_busy {
@@ -174,24 +164,6 @@ player_carry :: proc(p: ^Player) {
 }
 
 @(private)
-player_roll :: proc(p: ^Player) {
-	movement_input := input.get_movement_for_player(p.index)
-	is_moving := abs(movement_input.x) > 0 || abs(movement_input.y) > 0
-
-	if is_moving {
-		length := math.sqrt(
-			movement_input.x * movement_input.x + movement_input.y * movement_input.y,
-		)
-		p.velocity = (movement_input / length) * p.roll_speed
-		p.facing_direction = movement_input / length
-		p.is_rolling = true
-		p.roll_timer = 0
-
-		audio.sound_play(&game.sounds, audio.Sound_Kind.Dash)
-	}
-}
-
-@(private)
 player_attack :: proc(p: ^Player) {
 	p.is_attacking = true
 	p.attack_timer = 0
@@ -214,6 +186,6 @@ player_attack :: proc(p: ^Player) {
 		p.attack_direction = p.facing_direction
 	}
 
-	// Play attack grunt sound
+	// Play attack swing sound
 	audio.sound_play(&game.sounds, audio.Sound_Kind.Attack_Swing)
 }

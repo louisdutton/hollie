@@ -11,7 +11,6 @@ Control_Settings :: struct {
 	// Action keys
 	interact:   Key,
 	attack:     Key,
-	dodge:      Key,
 	pause:      Key,
 
 	// Utility keys
@@ -29,7 +28,6 @@ settings := Control_Settings {
 	// Default action keys
 	interact   = .E,
 	attack     = .SPACE,
-	dodge      = .LEFT_SHIFT,
 	pause      = .P,
 
 	// Default utility keys
@@ -50,7 +48,6 @@ key_bindings := []Control_Binding {
 	{"Move right", &settings.move_right},
 	{"Interact", &settings.interact},
 	{"Attack", &settings.attack},
-	{"Dodge", &settings.dodge},
 	{"Pause", &settings.pause},
 	{"Reload", &settings.reload},
 }
@@ -84,10 +81,6 @@ is_interact_pressed :: proc() -> bool {
 
 is_attack_pressed :: proc() -> bool {
 	return is_key_pressed(settings.attack)
-}
-
-is_dodge_pressed :: proc() -> bool {
-	return is_key_pressed(settings.dodge)
 }
 
 is_pause_pressed :: proc() -> bool {

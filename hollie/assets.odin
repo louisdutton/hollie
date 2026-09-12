@@ -15,7 +15,6 @@ MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Jump   = "sprint",
 	.Death  = "die",
 	.Attack = "attack-melee-right",
-	.Roll   = "sprint",
 	.Carry  = "walk-holding-both",
 }
 MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
@@ -24,7 +23,6 @@ MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Jump   = .Once_Hold,
 	.Death  = .Once_Hold,
 	.Attack = .Once_Hold,
-	.Roll   = .Once_Hold,
 	.Carry  = .Loop,
 }
 Pressure_Pad_State :: enum {

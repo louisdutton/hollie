@@ -10,10 +10,7 @@ Transform :: struct {
 
 Movement :: struct {
 	move_speed:       f32,
-	roll_speed:       f32,
 	facing_direction: Vec2,
-	is_rolling:       bool,
-	roll_timer:       u32,
 	is_busy:          bool,
 }
 

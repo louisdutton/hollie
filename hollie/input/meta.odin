@@ -33,7 +33,6 @@ get_movement_for_player :: proc(id: Player_Index) -> (input: graphics.Vec2) {
 Player_Input :: enum {
 	Attack,
 	Accept,
-	Roll,
 }
 
 // Returns true if the provided input was just pressed
@@ -44,10 +43,8 @@ is_pressed :: proc(input: Player_Input) -> bool {
 // Returns true if the provided input was just pressed for a specific player
 is_pressed_for_player :: proc(input: Player_Input, player_id: Player_Index) -> bool {
 	if player_id == .Player_1 {
-		// Player 1: J/K keys and gamepad 1
+		// Player 1: H/J keys and gamepad 1
 		switch input {
-		case .Roll:
-			return is_gamepad_button_pressed(.Player_1, .RIGHT_TRIGGER_2) || is_key_pressed(.K)
 		case .Accept:
 			return is_gamepad_button_pressed(.Player_1, .RIGHT_FACE_RIGHT) || is_key_pressed(.H)
 		case .Attack:
@@ -55,13 +52,8 @@ is_pressed_for_player :: proc(input: Player_Input, player_id: Player_Index) -> b
 		case: return false
 		}
 	} else if player_id == .Player_2 {
-		// Player 2: L/; keys and gamepad 2
+		// Player 2: L key and gamepad 2
 		switch input {
-		case .Roll:
-			return(
-					is_gamepad_button_pressed(.Player_2, .RIGHT_TRIGGER_2) ||
-					is_key_pressed(.SEMICOLON) \
-				)
 		case .Accept:
 			return is_gamepad_button_pressed(.Player_2, .RIGHT_FACE_RIGHT) || is_key_pressed(.L)
 		case .Attack:
