@@ -91,7 +91,9 @@ movement_move :: proc(
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)
 		if animal, ok := &moving_entity^.(Enemy); ok {
+			was_ready := animal.ram_ready
 			bison_update_ram_state(animal, dt)
+			if animal.ram_ready && !was_ready do particle_crate_landing(&animal.transform, animal.collider, 180)
 			bison_try_ram(animal, collider^, dt, &obstacles)
 		}
 		fall_speed := -transform.vertical_velocity

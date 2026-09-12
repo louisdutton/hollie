@@ -492,6 +492,23 @@ rendering_draw_entities :: proc() {
 }
 
 rendering_draw_particles :: proc() {
+	// A persistent ground cue makes the charged state readable from a distance.
+	for entity in entities {
+		if animal, ok := entity.(Enemy); ok && animal.ram_ready {
+			center := geometry_position(animal.position, animal.height + 0.15)
+			radius := max(animal.collider.size.x, animal.collider.size.z) * 0.5 + 2
+			for segment in 0 ..< 32 {
+				a := f32(segment) * 2 * math.PI / 32
+				b := f32(segment + 1) * 2 * math.PI / 32
+				d1 := Vec3{math.sin(a), 0, math.cos(a)}
+				d2 := Vec3{math.sin(b), 0, math.cos(b)}
+				inner1, outer1 := center + d1 * (radius - 1.2), center + d1 * radius
+				inner2, outer2 := center + d2 * (radius - 1.2), center + d2 * radius
+				graphics.draw_triangle_3d(inner1, outer1, outer2, {255, 195, 60, 230})
+				graphics.draw_triangle_3d(inner1, outer2, inner2, {255, 195, 60, 230})
+			}
+		}
+	}
 	for &particle in particle_system.particles {
 		alpha_factor := particle.lifetime / particle.max_lifetime
 		color := particle.color

@@ -6,7 +6,9 @@ import "tilemap"
 BISON_RAM_SPEED :: f32(100)
 
 bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
-	threshold := animal_riding_profile(.Bison).max_speed * 0.98
+	// Build charge at top speed, but keep it through ordinary steering losses.
+	threshold :=
+		animal_riding_profile(.Bison).max_speed * (animal.ram_ready ? f32(0.75) : f32(0.98))
 	fast :=
 		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y >=
 		threshold * threshold

@@ -15,6 +15,9 @@ test_bison_full_speed_state_requires_run_up_and_resets :: proc(t: ^testing.T) {
 	testing.expect(t, animal.ram_ready)
 	animal.velocity = {120, 0}
 	bison_update_ram_state(&animal, 0)
+	testing.expect(t, animal.ram_ready)
+	animal.velocity = {95, 0}
+	bison_update_ram_state(&animal, 0)
 	testing.expect(t, !animal.ram_ready && animal.ram_charge_time == 0)
 	animal.velocity = {140, 0}
 	animal.grounded = false
