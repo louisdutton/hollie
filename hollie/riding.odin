@@ -5,8 +5,6 @@ import "graphics"
 import "input"
 import "tilemap"
 
-RIDING_SPEED :: f32(160)
-
 // Store the player index on the animal, avoiding pointers into the entity array.
 riding_animal_for_player :: proc(index: input.Player_Index) -> ^Enemy {
 	for &entity in entities {

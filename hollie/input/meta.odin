@@ -1,6 +1,18 @@
 package input
 
 import "../graphics"
+import "core:math"
+
+combine_movement_input :: proc(keyboard, stick: graphics.Vec2) -> graphics.Vec2 {
+	stick_length := math.sqrt(stick.x * stick.x + stick.y * stick.y)
+	analog: graphics.Vec2
+	if stick_length > JS_DEADZONE {
+		analog = stick / stick_length * min((stick_length - JS_DEADZONE) / (1 - JS_DEADZONE), 1)
+	}
+	combined := vector2_normalize(keyboard) + analog
+	length := math.sqrt(combined.x * combined.x + combined.y * combined.y)
+	return length > 1 ? combined / length : combined
+}
 
 // returns the current movement input for player 1
 get_movement :: proc() -> (input: graphics.Vec2) {
@@ -15,15 +27,23 @@ get_movement_for_player :: proc(id: Player_Index) -> (input: graphics.Vec2) {
 		// Player 1: WASD
 		key_x = f32(int(is_key_down(.D)) - int(is_key_down(.A)))
 		key_y = f32(int(is_key_down(.S)) - int(is_key_down(.W)))
-		return vector2_normalize(
-			{key_x + gamepad_axis_x(.Player_1), key_y + gamepad_axis_y(.Player_1)},
+		return combine_movement_input(
+			{key_x, key_y},
+			{
+				get_gamepad_axis_movement(.Player_1, .LEFT_X),
+				get_gamepad_axis_movement(.Player_1, .LEFT_Y),
+			},
 		)
 	} else if id == .Player_2 {
 		// Player 2: Arrow keys
 		key_x = f32(int(is_key_down(.RIGHT)) - int(is_key_down(.LEFT)))
 		key_y = f32(int(is_key_down(.DOWN)) - int(is_key_down(.UP)))
-		return vector2_normalize(
-			{key_x + gamepad_axis_x(.Player_2), key_y + gamepad_axis_y(.Player_2)},
+		return combine_movement_input(
+			{key_x, key_y},
+			{
+				get_gamepad_axis_movement(.Player_2, .LEFT_X),
+				get_gamepad_axis_movement(.Player_2, .LEFT_Y),
+			},
 		)
 	}
 

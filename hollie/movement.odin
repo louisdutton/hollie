@@ -1,6 +1,37 @@
 package hollie
 
+import "core:math"
 import "graphics"
+
+Movement_Profile :: struct {
+	min_speed, max_speed:       f32,
+	acceleration, deceleration: f32,
+}
+
+PLAYER_MOVEMENT_PROFILE :: Movement_Profile{20, 80, 320, 480}
+RIDING_MOVEMENT_PROFILE :: Movement_Profile{40, 160, 240, 360}
+
+movement_accelerate :: proc(
+	velocity, direction: Vec2,
+	profile: Movement_Profile,
+	dt: f32,
+) -> Vec2 {
+	magnitude := math.sqrt(direction.x * direction.x + direction.y * direction.y)
+	target: Vec2
+	if magnitude > 0 {
+		speed := profile.min_speed + (profile.max_speed - profile.min_speed) * min(magnitude, 1)
+		target = direction / magnitude * speed
+	}
+	delta := target - velocity
+	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
+	if distance == 0 do return target
+	current_speed_squared := velocity.x * velocity.x + velocity.y * velocity.y
+	target_speed_squared := target.x * target.x + target.y * target.y
+	reversing := velocity.x * target.x + velocity.y * target.y < 0
+	rate :=
+		target_speed_squared < current_speed_squared || reversing ? profile.deceleration : profile.acceleration
+	return velocity + delta / distance * min(distance, rate * max(dt, 0))
+}
 
 Transform :: struct {
 	position:          Vec2,

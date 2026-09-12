@@ -1,6 +1,7 @@
 package hollie
 
 import "core:math"
+import "graphics"
 import "input"
 import "tilemap"
 
@@ -78,14 +79,24 @@ player_update_input :: proc() {
 }
 
 player_update_movement :: proc() {
+	dt := min(graphics.get_frame_time(), 0.1)
 	for &entity in entities {
 		#partial switch &p in entity {
 		case Player:
 			if animal := riding_animal_for_player(p.index); animal != nil {
+				if p.is_busy {
+					animal.velocity = {}
+					continue
+				}
 				movement_input: Vec2
 				if !p.is_busy do movement_input = camera_relative_movement(input.get_movement_for_player(p.index))
-				animal.velocity = movement_input * RIDING_SPEED
-				if movement_input != (Vec2{}) do animal.facing_direction = movement_input
+				animal.velocity = movement_accelerate(
+					animal.velocity,
+					movement_input,
+					RIDING_MOVEMENT_PROFILE,
+					dt,
+				)
+				if animal.velocity != (Vec2{}) do animal.facing_direction = animal.velocity / math.sqrt(animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y)
 				continue
 			}
 			if p.knockback_timer > 0 || p.is_busy {
@@ -98,9 +109,16 @@ player_update_movement :: proc() {
 			}
 
 			movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
-			p.velocity = movement_input * p.move_speed
-			if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
-				p.facing_direction = movement_input
+			p.velocity = movement_accelerate(
+				p.velocity,
+				movement_input,
+				PLAYER_MOVEMENT_PROFILE,
+				dt,
+			)
+			if p.velocity != (Vec2{}) {
+				p.facing_direction =
+					p.velocity /
+					math.sqrt(p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y)
 			}
 		}
 	}
