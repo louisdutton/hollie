@@ -1,5 +1,6 @@
 package hollie
 
+import "graphics"
 import "tilemap"
 
 PHYSICS_GRAVITY :: f32(800)
@@ -131,4 +132,124 @@ physics_jump :: proc(body: ^Transform) {
 	if !body.grounded do return
 	body.vertical_velocity = PHYSICS_JUMP_SPEED
 	body.grounded = false
+}
+
+// Resolve a newly enabled solid without moving the body through another wall.
+physics_eject :: proc(
+	body: ^Transform,
+	collider: Collider,
+	solid: AABB,
+	obstacles: []AABB,
+	bounds: graphics.Rect,
+	collide_tiles: bool = false,
+) -> bool {
+	start := collision_aabb_at(body.position, collider, body.height)
+	if !aabbs_intersect(start, solid) do return true
+	gap := PHYSICS_CONTACT_EPSILON
+	offsets := [5]Vec3 {
+		{solid.min.x - start.max.x - gap, 0, 0},
+		{solid.max.x - start.min.x + gap, 0, 0},
+		{0, 0, solid.min.z - start.max.z - gap},
+		{0, 0, solid.max.z - start.min.z + gap},
+		{0, solid.max.y - start.min.y + gap, 0},
+	}
+	best: Vec3
+	best_distance := f32(1e9)
+	for offset, index in offsets {
+		// Prefer a clear side; lifting onto the gate is a fallback.
+		if index == 4 && best_distance < 1e9 do break
+		candidate := AABB {
+			min = start.min + offset,
+			max = start.max + offset,
+		}
+		if candidate.min.x < bounds.x ||
+		   candidate.max.x > bounds.x + bounds.width ||
+		   candidate.min.z < bounds.y ||
+		   candidate.max.z > bounds.y + bounds.height {
+			continue
+		}
+		if physics_blocked(candidate, obstacles, collide_tiles) do continue
+		swept := AABB {
+			min = {
+				min(start.min.x, candidate.min.x),
+				min(start.min.y, candidate.min.y),
+				min(start.min.z, candidate.min.z),
+			},
+			max = {
+				max(start.max.x, candidate.max.x),
+				max(start.max.y, candidate.max.y),
+				max(start.max.z, candidate.max.z),
+			},
+		}
+		blocked := collide_tiles && tilemap.check_collision(swept)
+		for obstacle in obstacles {
+			if obstacle.min == solid.min && obstacle.max == solid.max do continue
+			if aabbs_intersect(swept, obstacle) do blocked = true
+		}
+		if blocked do continue
+		distance := offset.x * offset.x + offset.y * offset.y + offset.z * offset.z
+		if distance < best_distance do best, best_distance = offset, distance
+	}
+	if best_distance == 1e9 do return false
+	body.position += Vec2{best.x, best.z}
+	body.height += best.y
+	if best.x != 0 do body.velocity.x = 0
+	if best.z != 0 do body.velocity.y = 0
+	if best.y != 0 do body.vertical_velocity = 0
+	body.grounded = false
+	return true
+}
+
+Physics_Body_Snapshot :: struct {
+	body:   ^Transform,
+	before: Transform,
+}
+
+physics_close_gate :: proc(gate_entity: ^Entity) -> bool {
+	gate := &gate_entity.(Gate)
+	gate.open = false
+	solid := collision_entity_aabb(gate_entity)
+	snapshots := make([dynamic]Physics_Body_Snapshot)
+	defer delete(snapshots)
+	// Move crates first, so actors can avoid their final positions.
+	for pass in 0 ..< 2 {
+		for &entity in entities {
+			body: ^Transform
+			collider: Collider
+			switch &e in entity {
+			case Holdable:
+				if pass != 0 || e.held_by != nil do continue
+				body, collider = &e.transform, e.collider
+			case Player:
+				if pass != 1 do continue
+				body, collider = &e.transform, e.collider
+			case Enemy:
+				if pass != 1 do continue
+				body, collider = &e.transform, e.collider
+			case Npc:
+				if pass != 1 do continue
+				body, collider = &e.transform, e.collider
+			case Pressure_Plate, Gate, Door: continue
+			}
+			if !aabbs_intersect(collision_aabb_at(body.position, collider, body.height), solid) do continue
+			append(&snapshots, Physics_Body_Snapshot{body, body^})
+			obstacles := physics_obstacles(&entity)
+			resolved := physics_eject(
+				body,
+				collider,
+				solid,
+				obstacles[:],
+				room_get_collision_bounds(),
+				true,
+			)
+			delete(obstacles)
+			if !resolved {
+				// No safe placement: keep the gate open and retry next update.
+				for snapshot in snapshots do snapshot.body^ = snapshot.before
+				gate.open = true
+				return false
+			}
+		}
+	}
+	return true
 }

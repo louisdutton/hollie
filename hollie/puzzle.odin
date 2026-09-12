@@ -175,6 +175,10 @@ puzzle_update :: proc() {
 		// Apply inverted logic if needed
 		new_open_state := gate.inverted ? !all_triggers_active : all_triggers_active
 
-		gate.open = new_open_state
+		if new_open_state {
+			gate.open = true
+		} else if gate.open {
+			physics_close_gate(&gate_entity)
+		}
 	}
 }
