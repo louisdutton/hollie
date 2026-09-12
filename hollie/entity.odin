@@ -39,6 +39,8 @@ entity_destroy :: proc(entity: ^Entity) {
 }
 
 entity_destroy_all :: proc() {
+	water_wakes = {}
+	water_wake_next = 0
 	for &entity in entities {
 		entity_destroy(&entity)
 	}
@@ -65,6 +67,7 @@ entity_system_update :: proc() {
 	player_update_movement()
 	ai_update_movement()
 	movement_update_positions()
+	water_update_wakes(min(graphics.get_frame_time(), 0.1))
 	riding_sync_players()
 	puzzle_update()
 	riding_sync_players()

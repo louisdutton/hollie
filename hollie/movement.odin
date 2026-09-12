@@ -52,6 +52,7 @@ Transform :: struct {
 	vertical_velocity: f32,
 	grounded:          bool,
 	swimming:          bool,
+	wake_timer:        f32,
 	dust_distance:     f32,
 }
 

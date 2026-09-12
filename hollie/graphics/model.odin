@@ -283,6 +283,10 @@ set_shader_float :: #force_inline proc(shader: Shader, location: c.int, value: ^
 	rl.SetShaderValue(shader, location, value, .FLOAT)
 }
 
+set_shader_vec4_array :: proc(shader: Shader, location: c.int, values: [][4]f32) {
+	rl.SetShaderValueV(shader, location, raw_data(values), .VEC4, c.int(len(values)))
+}
+
 set_shader_vec2 :: #force_inline proc(shader: Shader, location: c.int, value: ^f32) {
 	rl.SetShaderValue(shader, location, value, .VEC2)
 }

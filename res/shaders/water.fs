@@ -5,6 +5,7 @@ in vec4 shore_edges;
 uniform float water_time;
 uniform float tile_size;
 uniform float surface_height;
+uniform vec4 wakes[48];
 out vec4 finalColor;
 
 float hash(vec2 p)
@@ -48,6 +49,18 @@ void main()
     float foam = (1.0 - smoothstep(0.3, 2.8, bank)) * (0.65 + detail * 0.35);
     foam += (1.0 - smoothstep(2.0, 6.0, bank)) * smoothstep(0.86, 0.98, ripple) * 0.20;
     float surface = smoothstep(surface_height - 0.6, surface_height, world_position.y);
+    float wake_foam = 0.0;
+    float wake_shade = 0.0;
+    for (int i = 0; i < 48; i++) {
+        if (wakes[i].w <= 0.0) continue;
+        float ring = length(p - wakes[i].xy) - wakes[i].z;
+        float envelope = exp(-ring * ring * 0.10) * wakes[i].w;
+        float crest = cos(ring * 1.15);
+        wake_foam += smoothstep(0.45, 0.95, crest) * envelope;
+        wake_shade += crest * envelope;
+    }
+    color += clamp(wake_shade, -1.0, 1.0) * vec3(0.04, 0.07, 0.06) * surface;
+    foam = clamp(foam + wake_foam * 0.70, 0.0, 1.0);
     color = mix(color * 0.78, color, surface);
     color = mix(color, vec3(0.86, 0.91, 0.77), foam * surface * 0.82);
     finalColor = vec4(color, mix(0.62, 0.82, foam * surface));
