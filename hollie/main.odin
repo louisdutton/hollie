@@ -43,8 +43,7 @@ main :: proc() {
 	defer fini()
 
 	for game.state != .Exiting {
-		update()
-		draw()
+		run_frame(update, draw)
 	}
 }
 

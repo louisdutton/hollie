@@ -35,6 +35,17 @@ storage. Saving capacity or an array index does not provide stable identity.
 Tests that exercise storage should create their own `World_State` and defer
 `world_fini`, avoiding mutation of the application's global world.
 
+## Scene and editor lifetimes
+
+Input handlers request scene changes with `scene_request`. The scene dispatcher
+applies the pending change only after the outgoing updater returns. Gameplay
+stops processing after a menu requests a change or quit. Quitting cancels a
+pending scene load; final application teardown releases the current scene.
+
+Editor entry and teardown both reset to `EDITOR_DEFAULT_STATE`, releasing owned
+buffers and clearing borrowed entity pointers. Repeated teardown is safe, and a
+new session does not inherit editing flags or references from the previous one.
+
 ## Resource ownership
 
 | Owner | Owned resources | Release point |
@@ -50,6 +61,12 @@ Tests that exercise storage should create their own `World_State` and defer
 `asset.path` allocates a path string: the caller must delete it after loading the
 resource. Resource loaders borrow path arguments; loading a resource does not
 transfer ownership of the path. Use a local binding followed by `defer delete`.
+
+`run_frame` reclaims `context.temp_allocator` after update and drawing have both
+returned, including any renderer flush at the end of drawing. `fmt.tprintf`
+results remain valid during that frame only. Anything retained in world, scene,
+or UI state must be copied with the regular allocator. Suspended frames and
+frames that request scene changes use the same cleanup boundary.
 
 The gameplay scene owns the source tilemap. `room_state.current_tilemap` borrows
 its address. `tilemap.load_tilemap` makes a deep working copy; the editor saves
