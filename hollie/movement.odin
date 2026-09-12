@@ -78,7 +78,13 @@ movement_move :: proc(
 	remaining := min(graphics.get_frame_time(), 0.1)
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)
+		fall_speed := -transform.vertical_velocity
+		airborne := !transform.grounded
 		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)
+		if crate, ok := moving_entity^.(Holdable);
+		   ok && crate.held_by == nil && airborne && transform.grounded && fall_speed > 20 {
+			particle_crate_landing(transform, collider^, fall_speed)
+		}
 		remaining -= dt
 	}
 
@@ -97,6 +103,8 @@ movement_move :: proc(
 	case Player: particle_emit_trail(transform, previous, previous_height, was_grounded, false)
 	case Enemy:
 		if e.mounted || e.coasting do particle_emit_trail(transform, previous, previous_height, was_grounded, true)
+	case Holdable:
+		if e.held_by == nil do particle_emit_trail(transform, previous, previous_height, was_grounded, false, 0.65)
 	}
 }
 

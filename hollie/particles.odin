@@ -110,6 +110,7 @@ particle_emit_trail :: proc(
 	previous_height: f32,
 	was_grounded: bool,
 	mounted: bool,
+	size_scale: f32 = 1,
 ) {
 	delta := transform.position - previous
 	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
@@ -144,7 +145,7 @@ particle_emit_trail :: proc(
 					dust = true,
 					lifetime = lifetime,
 					max_lifetime = lifetime,
-					size = rand.float32_range(2, 3.4) * (0.6 + strength),
+					size = rand.float32_range(2, 3.4) * (0.6 + strength) * size_scale,
 					color = {191, 174, 145, 90},
 				},
 			)
@@ -152,6 +153,34 @@ particle_emit_trail :: proc(
 		next += spacing
 	}
 	transform.dust_distance = math.mod(transform.dust_distance + distance, spacing)
+}
+
+particle_crate_landing :: proc(body: ^Transform, collider: Collider, impact_speed: f32) {
+	strength := clamp(impact_speed / 180, 0.2, 1)
+	center :=
+		body.position +
+		Vec2{collider.offset.x + collider.size.x / 2, collider.offset.z + collider.size.z / 2}
+	count := int(4 + strength * 6)
+	for index in 0 ..< count {
+		if len(particle_system.particles) >= 512 do break
+		angle := (f32(index) + rand.float32() * 0.5) * 2 * math.PI / f32(count)
+		direction := Vec2{math.cos(angle), math.sin(angle)}
+		lifetime := rand.float32_range(0.35, 0.65)
+		append(
+			&particle_system.particles,
+			Particle {
+				position = center + direction * Vec2{collider.size.x, collider.size.z} * 0.5,
+				velocity = direction * (5 + strength * 12),
+				height = body.height + collider.offset.y + 0.6,
+				rise_speed = rand.float32_range(2, 5),
+				dust = true,
+				lifetime = lifetime,
+				max_lifetime = lifetime,
+				size = rand.float32_range(1.5, 2.5) * (0.6 + strength),
+				color = {191, 174, 145, 90},
+			},
+		)
+	}
 }
 
 // Draw all particles
