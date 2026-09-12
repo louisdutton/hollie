@@ -41,7 +41,14 @@ get_model_bounding_box :: #force_inline proc(model: Model) -> Bounding_Box {
 }
 
 // Include the current pose even when raylib skins vertices on the GPU.
-get_animated_model_bounding_box :: proc(model: Model) -> Bounding_Box {
+get_model_bone_index :: proc(model: Model, name: string) -> int {
+	for index in 0 ..< int(model.skeleton.boneCount) {
+		if string(cstring(&model.skeleton.bones[index].name[0])) == name do return index
+	}
+	return -1
+}
+
+get_animated_model_bounding_box :: proc(model: Model, bone_filter: int = -1) -> Bounding_Box {
 	bounds := Bounding_Box {
 		min = {1e9, 1e9, 1e9},
 		max = {-1e9, -1e9, -1e9},
@@ -49,6 +56,16 @@ get_animated_model_bounding_box :: proc(model: Model) -> Bounding_Box {
 	for mesh_index in 0 ..< int(model.meshCount) {
 		mesh := model.meshes[mesh_index]
 		for vertex_index in 0 ..< int(mesh.vertexCount) {
+			if bone_filter >= 0 {
+				matches := false
+				if mesh.boneWeights != nil && mesh.boneIndices != nil {
+					for influence in 0 ..< 4 {
+						index := vertex_index * 4 + influence
+						if int(mesh.boneIndices[index]) == bone_filter && mesh.boneWeights[index] > 0 do matches = true
+					}
+				}
+				if !matches do continue
+			}
 			index := vertex_index * 3
 			position := [4]f32 {
 				mesh.vertices[index],

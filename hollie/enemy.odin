@@ -1,6 +1,7 @@
 package hollie
 
 import "content"
+import "input"
 
 Enemy :: struct {
 	using transform: Transform,
@@ -10,6 +11,8 @@ Enemy :: struct {
 	using ai:        Ai,
 	using anim_data: Animator,
 	kind:            content.Character_Kind,
+	mounted:         bool,
+	rider:           input.Player_Index,
 }
 
 enemy_create :: proc(

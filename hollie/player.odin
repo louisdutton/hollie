@@ -43,6 +43,14 @@ player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
 
 player_handle_input :: proc(p: ^Player) {
 	if p.is_busy do return
+	if animal := riding_animal_for_player(p.index); animal != nil {
+		if input.is_pressed_for_player(.Interact, p.index) {
+			riding_dismount(p, animal)
+			return
+		}
+		if input.is_pressed_for_player(.Jump, p.index) do physics_jump(&animal.transform)
+		return
+	}
 
 	// Carrying is a limited state so must be handled first
 	// there will likely be other states like this
@@ -54,7 +62,7 @@ player_handle_input :: proc(p: ^Player) {
 	if input.is_pressed_for_player(.Interact, p.index) {
 		if npc := npc_get_in_range(p.position, PLAYER_INTERACT_RANGE); npc != nil {
 			dialog_start(npc)
-		} else {
+		} else if !riding_try_mount(p) {
 			player_carry(p)
 		}
 	}
@@ -73,6 +81,13 @@ player_update_movement :: proc() {
 	for &entity in entities {
 		#partial switch &p in entity {
 		case Player:
+			if animal := riding_animal_for_player(p.index); animal != nil {
+				movement_input: Vec2
+				if !p.is_busy do movement_input = camera_relative_movement(input.get_movement_for_player(p.index))
+				animal.velocity = movement_input * RIDING_SPEED
+				if movement_input != (Vec2{}) do animal.facing_direction = movement_input
+				continue
+			}
 			if p.knockback_timer > 0 || p.is_busy {
 				if p.knockback_timer > 0 {
 					p.velocity *= 0.85

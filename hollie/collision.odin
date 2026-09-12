@@ -48,7 +48,9 @@ collision_entity_aabb :: proc(entity: ^Entity) -> AABB {
 	collider: Collider
 	base_height: f32
 	switch e in entity {
-	case Player: position, collider, base_height = e.position, e.collider, e.height
+	case Player:
+		position, collider, base_height = e.position, e.collider, e.height
+		if riding_animal_for_player(e.index) != nil do collider = model_assets.riding_collider
 	case Enemy: position, collider, base_height = e.position, e.collider, e.height
 	case Npc: position, collider, base_height = e.position, e.collider, e.height
 	case Pressure_Plate: position, collider, base_height = e.position, e.collider, e.height

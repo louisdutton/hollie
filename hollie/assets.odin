@@ -15,6 +15,7 @@ MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Jump  = "idle", // The bundled model has no jump clip; keep a neutral airborne pose.
 	.Death = "die",
 	.Carry = "walk-holding-both",
+	.Ride  = "sit",
 }
 MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Idle  = .Loop,
@@ -22,6 +23,7 @@ MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Jump  = .Loop,
 	.Death = .Once_Hold,
 	.Carry = .Loop,
+	.Ride  = .Once_Hold,
 }
 Pressure_Pad_State :: enum {
 	Off,
@@ -51,6 +53,8 @@ Model_Assets :: struct {
 	character_bounds:               graphics.Bounding_Box,
 	crate_bounds:                   graphics.Bounding_Box,
 	pressure_pad_bounds:            graphics.Bounding_Box,
+	riding_collider:                Collider,
+	riding_seat_height:             f32,
 }
 
 @(private)
@@ -98,6 +102,28 @@ model_assets_init :: proc() {
 		model_assets.character_animation_indices[animation_state] = clip_index
 	}
 
+	riding_clip_index := model_assets.character_animation_indices[.Ride]
+	assert(riding_clip_index >= 0, "player model must include its sit animation")
+	riding_clip := model_assets.character_animations[riding_clip_index]
+	graphics.update_model_animation(
+		model_assets.character,
+		riding_clip,
+		f32(max(int(riding_clip.keyframeCount) - 2, 0)),
+	)
+	riding_bounds := graphics.get_animated_model_bounding_box(model_assets.character)
+	model_assets.riding_collider = geometry_collider_from_bounds(
+		riding_bounds,
+		MODEL_CHARACTER_SCALE,
+		true,
+		true,
+	)
+	model_assets.riding_collider.offset.y =
+		(riding_bounds.min.y - model_assets.character_bounds.min.y) * MODEL_CHARACTER_SCALE
+	torso_index := graphics.get_model_bone_index(model_assets.character, "torso")
+	assert(torso_index >= 0, "player model must have a torso")
+	torso := graphics.get_animated_model_bounding_box(model_assets.character, torso_index)
+	model_assets.riding_seat_height =
+		(torso.min.y - model_assets.character_bounds.min.y) * MODEL_CHARACTER_SCALE
 	for &index in model_assets.pressure_pad_animation_indices do index = -1
 	pressure_pad_path := asset.path(root + MODEL_PRESSURE_PAD_FILE)
 	defer delete(pressure_pad_path)

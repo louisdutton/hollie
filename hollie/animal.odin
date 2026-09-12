@@ -21,6 +21,8 @@ Animal_Model :: struct {
 	animations:      [^]graphics.Model_Animation,
 	animation_count: c.int,
 	walk_clip:       int,
+	run_clip:        int,
+	seat:            Vec3,
 }
 
 animal_models: [content.Character_Kind]Animal_Model
@@ -41,10 +43,22 @@ animal_models_init :: proc() {
 		animal.animations = graphics.load_model_animations(path, &animal.animation_count)
 		delete(path)
 		animal.walk_clip = -1
+		animal.run_clip = -1
 		for index in 0 ..< int(animal.animation_count) {
 			if string(cstring(&animal.animations[index].name[0])) == "walk" do animal.walk_clip = index
+			if string(cstring(&animal.animations[index].name[0])) == "run" do animal.run_clip = index
 		}
 		assert(animal.walk_clip >= 0, "animal model must include its walk animation")
+		assert(animal.run_clip >= 0, "animal model must include its run animation")
+		graphics.update_model_animation(animal.model, animal.animations[animal.walk_clip], 0)
+		torso_index := graphics.get_model_bone_index(animal.model, "torso")
+		assert(torso_index >= 0, "animal model must have a torso")
+		torso := graphics.get_animated_model_bounding_box(animal.model, torso_index)
+		animal.seat = {
+			(torso.min.x + torso.max.x) * 0.5 * ANIMAL_MODEL_SCALE,
+			(torso.max.y - animal.bounds.min.y) * ANIMAL_MODEL_SCALE,
+			(torso.min.z + torso.max.z) * 0.5 * ANIMAL_MODEL_SCALE,
+		}
 	}
 }
 
@@ -69,7 +83,7 @@ animal_models_apply_shader :: proc(shadow: bool) {
 }
 
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
-	clip := animal.animations[animal.walk_clip]
+	clip := animal.animations[enemy.mounted ? animal.run_clip : animal.walk_clip]
 	frame: f32
 	if enemy.current_anim == .Run do frame = model_animation_frame(enemy.visual_time, clip, .Loop)
 	graphics.update_model_animation(animal.model, clip, frame)

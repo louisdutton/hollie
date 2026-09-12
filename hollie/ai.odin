@@ -12,7 +12,9 @@ Ai :: struct {
 ai_update_movement :: proc() {
 	for &entity in entities {
 		switch &e in entity {
-		case Enemy: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
+		case Enemy:
+			if e.mounted do continue
+			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
 		case Npc: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}

@@ -53,8 +53,12 @@ movement_update_positions :: proc() {
 	}
 	for &entity in entities {
 		switch &e in entity {
-		case Player: movement_move(&entity, &e.transform, &e.collider)
-		case Enemy: movement_move(&entity, &e.transform, &e.collider)
+		case Player:
+			if riding_animal_for_player(e.index) != nil do continue
+			movement_move(&entity, &e.transform, &e.collider)
+		case Enemy:
+			collider := riding_movement_collider(&e)
+			movement_move(&entity, &e.transform, &collider)
 		case Npc: movement_move(&entity, &e.transform, &e.collider)
 		case Pressure_Plate, Gate, Holdable, Door: continue
 		}

@@ -182,6 +182,7 @@ rendering_draw_character :: proc(
 	if clip_index >= 0 {
 		clip := model_assets.character_animations[clip_index]
 		clip_frame := model_animation_frame(anim.visual_time, clip, playback_modes[current_state])
+		if current_state == .Ride do clip_frame = f32(max(int(clip.keyframeCount) - 2, 0))
 		previous_state := anim.previous_anim
 		previous_clip_index := -1
 		previous_clip_index = model_assets.character_animation_indices[previous_state]

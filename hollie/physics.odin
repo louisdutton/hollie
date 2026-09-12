@@ -232,10 +232,11 @@ physics_close_gate :: proc(gate_entity: ^Entity) -> bool {
 				body, collider = &e.transform, e.collider
 			case Player:
 				if pass != 1 do continue
+				if riding_animal_for_player(e.index) != nil do continue
 				body, collider = &e.transform, e.collider
 			case Enemy:
 				if pass != 1 do continue
-				body, collider = &e.transform, e.collider
+				body, collider = &e.transform, riding_movement_collider(&e)
 			case Npc:
 				if pass != 1 do continue
 				body, collider = &e.transform, e.collider

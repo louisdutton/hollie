@@ -41,6 +41,7 @@ AnimationState :: enum {
 	Jump,
 	Death,
 	Carry,
+	Ride,
 }
 
 Animator :: struct {
@@ -108,7 +109,9 @@ animation_update_entities :: proc() {
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
-			if !e.grounded {
+			if riding_animal_for_player(e.index) != nil {
+				animation_set_state(&e.anim_data, .Ride)
+			} else if !e.grounded {
 				animation_set_state(&e.anim_data, .Jump)
 			} else if e.carrying != nil {
 				animation_set_state(&e.anim_data, .Carry)
