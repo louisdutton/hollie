@@ -4,6 +4,79 @@ import "core:math"
 import "graphics"
 import "tilemap"
 
+GRASS_TRAIL_COUNT :: 32
+GRASS_TRAIL_LIFETIME :: f32(1.4)
+
+Grass_Imprint :: struct {
+	position, direction:   Vec2,
+	radius, strength, age: f32,
+}
+
+grass_trail: [GRASS_TRAIL_COUNT]Grass_Imprint
+grass_trail_next: int
+grass_trail_timer: f32
+
+grass_reset_trail :: proc() {
+	grass_trail = {}
+	grass_trail_next = 0
+	grass_trail_timer = 0
+}
+
+grass_update_trail :: proc(dt: f32) {
+	if !grass_is_enabled() do return
+	for &imprint in grass_trail do imprint.age += dt
+	grass_trail_timer -= dt
+	if grass_trail_timer > 0 do return
+	grass_trail_timer = 0.1
+	for &entity in world.entities {
+		player, ok := &entity.(Player)
+		if !ok do continue
+		speed := math.sqrt(
+			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
+		)
+		bottom := player.height + player.collider.offset.y
+		if speed <= 3 || bottom >= 8 do continue
+		strength := clamp((speed - 3) / 65, 0, 1)
+		strength = strength * strength * (3 - 2 * strength)
+		grass_trail[grass_trail_next] = {
+			position  = {
+				player.position.x + player.collider.offset.x + player.collider.size.x * 0.5,
+				player.position.y + player.collider.offset.z + player.collider.size.z * 0.5,
+			},
+			direction = player.velocity / speed,
+			radius    = max(player.collider.size.x, player.collider.size.z) * 0.5 + 3,
+			strength  = strength * clamp(1 - max(bottom, 0) / 8, 0, 1) * 0.75,
+		}
+		grass_trail_next = (grass_trail_next + 1) % GRASS_TRAIL_COUNT
+	}
+}
+
+grass_upload_trail :: proc(shader: graphics.Shader) {
+	positions, directions: [GRASS_TRAIL_COUNT][4]f32
+	for imprint, index in grass_trail {
+		if imprint.strength <= 0 || imprint.age >= GRASS_TRAIL_LIFETIME do continue
+		remaining := 1 - imprint.age / GRASS_TRAIL_LIFETIME
+		fade := remaining * remaining * (3 - 2 * remaining)
+		positions[index] = {
+			imprint.position.x,
+			imprint.position.y,
+			imprint.radius,
+			imprint.strength * fade,
+		}
+		directions[index] = {imprint.direction.x, imprint.direction.y, 0, 0}
+	}
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "grass_trail[0]"),
+		positions[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "grass_trail_motion[0]"),
+		directions[:],
+	)
+}
+
 // Keep this first art study isolated from the existing rooms.
 grass_is_enabled :: proc() -> bool {
 	return gameplay_get_current_room() == "demo"
@@ -31,7 +104,7 @@ grass_upload_players :: proc(shader: graphics.Shader) {
 	players: [2][4]f32
 	motion: [2][4]f32
 	count := 0
-	for &entity in entities {
+	for &entity in world.entities {
 		player, ok := &entity.(Player)
 		if !ok do continue
 		if count >= len(players) do break
@@ -72,6 +145,7 @@ rendering_draw_grass :: proc() {
 	shader := rendering_state.grass_shader
 	if !graphics.shader_is_loaded(shader) || rendering_state.grass_time_location < 0 do return
 	grass_upload_players(shader)
+	grass_upload_trail(shader)
 	graphics.set_shader_float(shader, rendering_state.grass_time_location, &water_time)
 	graphics.begin_shader(shader)
 	defer graphics.end_shader()

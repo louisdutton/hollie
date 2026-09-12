@@ -28,6 +28,7 @@ simulation_update :: proc(dt: f32) {
 	// Gate closure can eject mounts; align riders again before animation and drawing.
 	riding_sync_players()
 	animation_update_entities(dt)
+	grass_update_trail(dt)
 	simulation_cleanup_dead(&world)
 }
 

@@ -317,6 +317,7 @@ room_reload :: proc() {
 }
 
 room_fini :: proc() {
+	grass_reset_trail()
 	if !room_state.is_loaded do return
 
 	if room_state.room_music.stream.buffer != nil {
