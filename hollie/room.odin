@@ -335,14 +335,14 @@ room_fini :: proc() {
 	room_state.is_loaded = false
 }
 
-room_update :: proc() {
+room_update :: proc(dt: f32) {
 	if room_state.is_loaded && room_state.room_music.stream.buffer != nil {
 		audio.music_update(room_state.room_music)
 	}
 
 	// Update level name display timer and fade out after 3 seconds
 	if room_state.is_loaded && room_state.room_name_opacity > 0.0 {
-		room_state.room_name_display_timer += graphics.get_frame_time()
+		room_state.room_name_display_timer += dt
 
 		// Start fading out after 2.5 seconds (0.5s fade in + 2s display)
 		if room_state.room_name_display_timer > 2.5 && room_state.room_name_opacity > 0.01 {

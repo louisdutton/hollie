@@ -1,7 +1,6 @@
 package hollie
 
 import "core:math"
-import "graphics"
 
 Movement_Profile :: struct {
 	min_speed, max_speed:       f32,
@@ -67,6 +66,7 @@ movement_move :: proc(
 	moving_entity: ^Entity,
 	transform: ^Transform,
 	collider: ^Collider,
+	dt: f32,
 	ground_friction: f32 = 0,
 ) {
 	previous, previous_height, was_grounded :=
@@ -90,24 +90,24 @@ movement_move :: proc(
 			)
 		}
 	}
-	remaining := min(graphics.get_frame_time(), 0.1)
+	remaining := dt
 	for remaining > 0 {
-		dt := min(remaining, PHYSICS_STEP)
+		step_dt := min(remaining, PHYSICS_STEP)
 		if animal, ok := &moving_entity^.(Enemy); ok {
 			was_ready := animal.ram_ready
-			bison_update_ram_state(animal, dt)
+			bison_update_ram_state(animal, step_dt)
 			if animal.ram_ready && !was_ready do particle_crate_landing(&animal.transform, animal.collider, 180)
-			bison_try_ram(animal, collider^, dt, &obstacles)
+			bison_try_ram(animal, collider^, step_dt, &obstacles)
 		}
 		fall_speed := -transform.vertical_velocity
 		airborne := !transform.grounded
-		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)
+		physics_step(transform, collider^, obstacles[:], step_dt, true, ground_friction)
 		if animal, ok := &moving_entity^.(Enemy); ok do bison_update_ram_state(animal, 0)
 		if crate, ok := moving_entity^.(Holdable);
 		   ok && crate.held_by == 0 && airborne && transform.grounded && fall_speed > 20 {
 			particle_crate_landing(transform, collider^, fall_speed)
 		}
-		remaining -= dt
+		remaining -= step_dt
 	}
 
 	room_bounds := room_get_collision_bounds()
@@ -148,7 +148,7 @@ movement_move :: proc(
 	}
 }
 
-movement_update_positions :: proc() {
+movement_update_positions :: proc(dt: f32) {
 	// Facing changes with steering and AI; keep physics and debug bounds aligned.
 	for &entity in world.entities {
 		if animal, ok := &entity.(Enemy); ok {
@@ -163,19 +163,24 @@ movement_update_positions :: proc() {
 	// Settle crates before characters so their support surfaces are current.
 	for &entity in world.entities {
 		if crate, ok := &entity.(Holdable); ok && crate.held_by == 0 {
-			movement_move(&entity, &crate.transform, &crate.collider, CRATE_GROUND_FRICTION)
+			movement_move(&entity, &crate.transform, &crate.collider, dt, CRATE_GROUND_FRICTION)
 		}
 	}
 	for &entity in world.entities {
 		switch &e in entity {
 		case Player:
 			if riding_animal_for_player(e.index) != nil do continue
-			movement_move(&entity, &e.transform, &e.collider)
+			movement_move(&entity, &e.transform, &e.collider, dt)
 		case Enemy:
 			collider := riding_movement_collider(&e)
-			movement_move(&entity, &e.transform, &collider)
-		case Npc: movement_move(&entity, &e.transform, &e.collider)
+			movement_move(&entity, &e.transform, &collider, dt)
+		case Npc: movement_move(&entity, &e.transform, &e.collider, dt)
 		case Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
+}
+
+// Equivalent to retaining 85% of knockback velocity per update at 60 Hz.
+movement_apply_knockback_drag :: proc(velocity: Vec2, dt: f32) -> Vec2 {
+	return velocity * math.pow(f32(0.85), max(dt, 0) * 60)
 }

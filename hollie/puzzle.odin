@@ -82,11 +82,11 @@ pressure_plate_supports :: proc(plate: ^Pressure_Plate, entity: ^Entity) -> bool
 	)
 }
 
-pressure_plate_update_surfaces :: proc() {
+pressure_plate_update_surfaces :: proc(dt: f32) {
 	for &entity in world.entities {
 		plate, ok := &entity.(Pressure_Plate)
 		if !ok do continue
-		plate.animation_time += graphics.get_frame_time()
+		plate.animation_time += dt
 		state := plate.active ? Pressure_Pad_State.On : Pressure_Pad_State.Off
 		clip_index := model_assets.pressure_pad_animation_indices[state]
 		if clip_index < 0 do continue

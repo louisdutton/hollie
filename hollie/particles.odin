@@ -76,8 +76,8 @@ particle_create_explosion :: proc(position: Vec2) {
 }
 
 // Update all particles
-particle_system_update :: proc() {
-	dt := min(graphics.get_frame_time(), 0.1)
+particle_system_update :: proc(dt: f32) {
+
 
 	// Update particles and remove expired ones
 	for i := len(particle_system.particles) - 1; i >= 0; i -= 1 {

@@ -38,7 +38,7 @@ camera_relative_movement :: proc(direction: Vec2) -> Vec2 {
 	return right * direction.x - forward * direction.y
 }
 
-camera_follow_target :: proc() {
+camera_follow_target :: proc(dt: f32) {
 	// Get both players and follow their center point using new entity system
 	player1 := entity_get_player(.Player_1)
 	player2 := entity_get_player(.Player_2)
@@ -54,7 +54,7 @@ camera_follow_target :: proc() {
 	} else {
 		return
 	}
-	dt := min(graphics.get_frame_time(), 0.1)
+
 	if camera_player_grounded(player1) && camera_player_grounded(player2) {
 		camera_grounded_time += dt
 	} else {
@@ -70,7 +70,7 @@ camera_follow_target :: proc() {
 	} else if abs(height_difference) > CAMERA_HEIGHT_DEAD_ZONE {
 		target_height :=
 			height_difference > 0 ? camera_height + height_difference - CAMERA_HEIGHT_DEAD_ZONE : camera_height + height_difference + CAMERA_HEIGHT_DEAD_ZONE
-		height_blend := 1 - math.exp(-3 * min(graphics.get_frame_time(), 0.1))
+		height_blend := 1 - math.exp(-3 * dt)
 		camera_height = math.lerp(camera_height, target_height, height_blend)
 	}
 
@@ -84,12 +84,12 @@ camera_follow_target :: proc() {
 	min_y := camera_bounds.y
 
 	camera.target.x = clamp(
-		math.lerp(camera.target.x, target_pos.x - x_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.x, target_pos.x - x_offset, camera_follow_blend(dt)),
 		min_x,
 		max_x,
 	)
 	camera.target.y = clamp(
-		math.lerp(camera.target.y, target_pos.y - y_offset, CAMERA_SMOOTH),
+		math.lerp(camera.target.y, target_pos.y - y_offset, camera_follow_blend(dt)),
 		min_y,
 		max_y,
 	)
@@ -97,15 +97,15 @@ camera_follow_target :: proc() {
 
 camera_init :: proc() {
 	screen_scale = window.get_ui_scale()
-	camera_update()
+	camera_update(0)
 }
 
-camera_update :: proc() {
-	camera_update_zoom()
-	camera_follow_target()
+camera_update :: proc(dt: f32) {
+	camera_update_zoom(dt)
+	camera_follow_target(dt)
 }
 
-camera_update_zoom :: proc() {
+camera_update_zoom :: proc(dt: f32) {
 	if window.is_resized() {
 		screen_scale = window.get_ui_scale()
 	}
@@ -117,7 +117,7 @@ camera_update_zoom :: proc() {
 		zoom_input += 1
 	}
 	camera_base_zoom = clamp(
-		camera_base_zoom + clamp(zoom_input, -1, 1) * ZOOM_RATE * graphics.get_frame_time(),
+		camera_base_zoom + clamp(zoom_input, -1, 1) * ZOOM_RATE * dt,
 		ZOOM_MIN,
 		ZOOM_MAX,
 	)
@@ -177,4 +177,9 @@ camera_player_grounded :: proc(player: ^Player) -> bool {
 		)
 	}
 	return player.grounded || player.swimming
+}
+
+// Preserve the original 60 Hz response at every rendering frame rate.
+camera_follow_blend :: proc(dt: f32) -> f32 {
+	return 1 - math.pow(1 - CAMERA_SMOOTH, max(dt, 0) * 60)
 }

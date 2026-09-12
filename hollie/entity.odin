@@ -1,6 +1,5 @@
 package hollie
 
-import "graphics"
 import "input"
 
 // Specific entity types
@@ -142,31 +141,31 @@ entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 }
 
 // Update systems
-entity_system_update :: proc() {
-	water_time += graphics.get_frame_time()
-	pressure_plate_update_surfaces()
+entity_system_update :: proc(dt: f32) {
+	water_time += dt
+	pressure_plate_update_surfaces(dt)
 	riding_sync_players()
 	player_update_input()
-	health_update()
-	player_update_movement()
-	ai_update_movement()
-	movement_update_positions()
-	water_update_wakes(min(graphics.get_frame_time(), 0.1))
+	health_update(dt)
+	player_update_movement(dt)
+	ai_update_movement(dt)
+	movement_update_positions(dt)
+	water_update_wakes(dt)
 	riding_sync_players()
 	puzzle_update()
 	riding_sync_players()
-	animation_update_entities()
+	animation_update_entities(dt)
 	entity_cleanup_dead()
 }
 
 entity_cleanup_dead :: proc() {
 	for i := len(world.entities) - 1; i >= 0; i -= 1 {
 		switch &e in world.entities[i] {
-		case Enemy: if e.is_dying && e.death_timer >= 13 * INTERVAL {
+		case Enemy: if e.is_dying && e.death_timer >= DEATH_DURATION {
 					particle_create_explosion(e.position)
 					entity_remove_at(i, &world)
 				}
-		case Npc: if e.is_dying && e.death_timer >= 13 * INTERVAL {
+		case Npc: if e.is_dying && e.death_timer >= DEATH_DURATION {
 					particle_create_explosion(e.position)
 					entity_remove_at(i, &world)
 				}

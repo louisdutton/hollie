@@ -105,14 +105,14 @@ update :: proc() {
 		design_height = window.get_design_height()
 	}
 
-	dt := window.get_frame_time()
+	dt := max(window.get_frame_time(), 0)
 	tween.update(dt)
 
 	switch game.scene {
 	case .Title:
 		audio.music_update(game.music)
-		update_title_screen()
-	case .Gameplay: gameplay_update()
+		update_title_screen(dt)
+	case .Gameplay: gameplay_update(dt)
 	}
 }
 

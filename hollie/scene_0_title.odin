@@ -27,11 +27,11 @@ init_title_screen :: proc() {
 
 unload_title_screen :: proc() {}
 
-update_title_screen :: proc() {
+update_title_screen :: proc(dt: f32) {
 	navigation := ui_focus_update(
 		&title_state.focus,
 		title_menu_item_count(title_state.menu_state),
-		graphics.get_frame_time(),
+		dt,
 	)
 	title_handle_input(navigation)
 }

@@ -2,7 +2,6 @@ package hollie
 
 import "core:math"
 import "core:math/rand"
-import "graphics"
 
 Ai :: struct {
 	wait_timer:     f32,
@@ -10,13 +9,13 @@ Ai :: struct {
 	move_direction: Vec2,
 }
 
-ai_update_movement :: proc() {
+ai_update_movement :: proc(dt: f32) {
 	for &entity in world.entities {
 		switch &e in entity {
 		case Enemy:
 			if e.mounted do continue
 			if e.coasting {
-				dt := min(graphics.get_frame_time(), 0.1)
+
 				animal_update_movement(&e, {}, RIDING_MOVEMENT_PROFILE, dt)
 				if e.velocity == (Vec2{}) {
 					e.coasting = false
@@ -25,15 +24,15 @@ ai_update_movement :: proc() {
 				continue
 			}
 			if animal_model_for_kind(e.kind) != nil {
-				ai_update_animal(&e)
+				ai_update_animal(&e, dt)
 				continue
 			}
 			if e.wait_timer > 0 {
-				e.wait_timer -= graphics.get_frame_time()
+				e.wait_timer -= dt
 				continue
 			}
-			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
-		case Npc: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
+			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai, dt)
+		case Npc: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai, dt)
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
@@ -52,8 +51,8 @@ ai_animal_terrain_clear :: proc(animal: ^Enemy, direction: Vec2, distance: f32) 
 	return true
 }
 
-ai_update_animal :: proc(animal: ^Enemy) {
-	dt := min(graphics.get_frame_time(), 0.1)
+ai_update_animal :: proc(animal: ^Enemy, dt: f32) {
+
 	direction: Vec2
 	if animal.wait_timer > 0 {
 		animal.wait_timer -= dt
@@ -119,17 +118,23 @@ ai_update_animal :: proc(animal: ^Enemy) {
 }
 
 @(private)
-ai_update_velocity :: proc(transform: ^Transform, movement: ^Movement, health: ^Health, ai: ^Ai) {
+ai_update_velocity :: proc(
+	transform: ^Transform,
+	movement: ^Movement,
+	health: ^Health,
+	ai: ^Ai,
+	dt: f32,
+) {
 	if health.is_dying || health.knockback_timer > 0 || movement.is_busy {
 		if health.knockback_timer > 0 {
-			transform.velocity *= 0.85
+			transform.velocity = movement_apply_knockback_drag(transform.velocity, dt)
 		} else {
 			transform.velocity = {0, 0}
 		}
 		return
 	}
 
-	ai.move_timer -= graphics.get_frame_time()
+	ai.move_timer -= dt
 	if ai.move_timer <= 0 {
 		ai.move_direction = {rand.float32_range(-1.0, 1.0), rand.float32_range(-1.0, 1.0)}
 		ai.move_timer = rand.float32_range(1.0, 3.0)

@@ -93,8 +93,8 @@ player_update_input :: proc() {
 	}
 }
 
-player_update_movement :: proc() {
-	dt := min(graphics.get_frame_time(), 0.1)
+player_update_movement :: proc(dt: f32) {
+
 	for &entity in world.entities {
 		#partial switch &p in entity {
 		case Player:
@@ -126,7 +126,7 @@ player_update_movement :: proc() {
 			}
 			if p.knockback_timer > 0 || p.is_busy {
 				if p.knockback_timer > 0 {
-					p.velocity *= 0.85
+					p.velocity = movement_apply_knockback_drag(p.velocity, dt)
 				} else if p.is_busy {
 					p.velocity = {0, 0}
 				}

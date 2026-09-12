@@ -64,12 +64,13 @@ gameplay_init :: proc() {
 	gameplay_state.doors_enabled = false // Disable doors until players move away from spawn
 }
 
-gameplay_update :: proc() {
+gameplay_update :: proc(frame_dt: f32) {
+	dt := simulation_delta_time(frame_dt)
 	if input.is_key_pressed(.P) || input.is_gamepad_button_pressed(.Player_1, .MIDDLE_RIGHT) {
 		pause_toggle()
 	}
 
-	pause_handle_input(graphics.get_frame_time())
+	pause_handle_input(frame_dt)
 
 	when ODIN_DEBUG {
 		if input.action_pressed(.Editor_Toggle) {
@@ -77,7 +78,7 @@ gameplay_update :: proc() {
 		}
 
 		if editor_is_active() {
-			editor_update()
+			editor_update(frame_dt)
 			return
 		}
 
@@ -120,8 +121,8 @@ gameplay_update :: proc() {
 	}
 
 	if !pause_is_active() {
-		room_update()
-		entity_system_update() // Handles all world.entities (players, enemies, NPCs, puzzles)
+		room_update(dt)
+		entity_system_update(dt) // Handles all world.entities (players, enemies, NPCs, puzzles)
 
 		// Check if doors should be enabled (no players in any door area)
 		if !gameplay_state.doors_enabled {
@@ -170,8 +171,8 @@ gameplay_update :: proc() {
 			}
 		}
 
-		particle_system_update()
-		camera_update()
+		particle_system_update(dt)
+		camera_update(dt)
 		dialog_update()
 	}
 }

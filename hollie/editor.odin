@@ -110,22 +110,22 @@ editor_reload_current_level :: proc() {
 	gameplay_load_room(current_room)
 }
 
-editor_update :: proc() {
+editor_update :: proc(dt: f32) {
 	if editor_state.mode != .Editing do return
 	if editor_state.save_message_timer > 0 {
-		editor_state.save_message_timer -= window.get_frame_time()
+		editor_state.save_message_timer -= dt
 		if editor_state.save_message_timer <= 0 {
 			delete(editor_state.save_message)
 			editor_state.save_message = ""
 		}
 	}
 
-	editor_handle_camera_input()
+	editor_handle_camera_input(dt)
 	editor_handle_tile_selection()
-	editor_handle_painting_input()
+	editor_handle_painting_input(dt)
 	editor_handle_ui_input()
 	editor_handle_cursor_hover()
-	editor_handle_entity_editing()
+	editor_handle_entity_editing(dt)
 }
 
 editor_handle_cursor_hover :: proc() {
@@ -146,8 +146,8 @@ editor_handle_cursor_hover :: proc() {
 	}
 }
 
-editor_handle_entity_editing :: proc() {
-	dt := window.get_frame_time()
+editor_handle_entity_editing :: proc(dt: f32) {
+
 	editor_state.edit_input_timer -= dt
 
 	// Enter/exit edit mode
@@ -229,8 +229,8 @@ editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
 	return false
 }
 
-editor_handle_camera_input :: proc() {
-	dt := window.get_frame_time()
+editor_handle_camera_input :: proc(dt: f32) {
+
 	move_speed: f32 = 300.0
 
 	movement := Vec2{0, 0}
@@ -324,8 +324,8 @@ editor_handle_tile_selection :: proc() {
 	}
 }
 
-editor_handle_painting_input :: proc() {
-	dt := window.get_frame_time()
+editor_handle_painting_input :: proc(dt: f32) {
+
 	move_threshold: f32 = 0.15
 
 	editor_state.cursor_move_timer -= dt
