@@ -9,6 +9,13 @@ import "graphics"
 ANIMAL_MODEL_SCALE :: f32(32)
 ANIMAL_WALK_SPEED :: f32(50)
 ANIMAL_RUN_SPEED :: f32(160)
+
+animal_riding_profile :: proc(kind: content.Character_Kind) -> Movement_Profile {
+	profile := RIDING_MOVEMENT_PROFILE
+	if kind == .Horse do profile.max_speed = 200
+	if kind == .Bison do profile.max_speed = 140
+	return profile
+}
 ANIMAL_WANDER_PROFILE :: Movement_Profile {
 	20,
 	ANIMAL_WALK_SPEED,
