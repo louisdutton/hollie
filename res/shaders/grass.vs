@@ -4,8 +4,9 @@ in vec3 vertexPosition;
 in vec4 vertexColor;
 uniform mat4 mvp;
 uniform float grass_time;
-// World X/Z, influence radius, and vertical contact strength for each player.
+// World X/Z, contact radius, and movement/contact strength for each player.
 uniform vec4 grass_players[2];
+uniform vec4 grass_motion[2];
 out vec3 world_position;
 out float blade_height;
 out float blade;
@@ -28,16 +29,18 @@ void main()
         vec2 away = vertexPosition.xz - player.xy;
         float distance_to_player = length(away);
         float contact = (1.0 - smoothstep(0.0, player.z, distance_to_player)) * player.w;
-        // A soft centre avoids an unstable direction directly underfoot.
-        bend += away / max(distance_to_player, 1.0) * contact;
+        // Brush leaves along the stride rather than opening a radial crater.
+        bend += grass_motion[i].xy * contact;
         flatten = max(flatten, contact);
     }
-    // Keep overlapping players bounded and the roots planted. Distance falloff
-    // lets blades ease upright as a player moves away, including while jumping.
+    // Keep overlapping players bounded and the roots planted. Contact fades
+    // with distance and speed, leaving only ambient wind when standing still.
     bend /= max(length(bend), 1.0);
     float tip_weight = blade_height * blade_height;
-    position.xz += bend * 5.5 * tip_weight;
-    position.y -= vertexPosition.y * flatten * 0.65 * tip_weight;
-    world_position = position;
+    position.xz += bend * 2.5 * tip_weight;
+    position.y -= vertexPosition.y * flatten * 0.18 * tip_weight;
+    // Anchor the painted colour to the leaf instead of sliding it through
+    // world-space patches as the leaf bends.
+    world_position = vertexPosition;
     gl_Position = mvp * vec4(position, 1.0);
 }

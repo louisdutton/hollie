@@ -29,17 +29,29 @@ grass_upload_players :: proc(shader: graphics.Shader) {
 	// Always upload both slots so leaving a room or removing player two
 	// cannot leave an invisible influence behind.
 	players: [2][4]f32
+	motion: [2][4]f32
 	count := 0
 	for &entity in entities {
 		player, ok := &entity.(Player)
 		if !ok do continue
 		if count >= len(players) do break
 		bottom := player.height + player.collider.offset.y
+		speed := math.sqrt(
+			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
+		)
+		strength := clamp((speed - 3) / 65, 0, 1)
+		strength = strength * strength * (3 - 2 * strength)
+		motion[count] = {
+			player.velocity.x / max(speed, 1),
+			player.velocity.y / max(speed, 1),
+			0,
+			0,
+		}
 		players[count] = {
 			player.position.x + player.collider.offset.x + player.collider.size.x * 0.5,
 			player.position.y + player.collider.offset.z + player.collider.size.z * 0.5,
-			max(player.collider.size.x, player.collider.size.z) * 0.5 + 7,
-			clamp(1 - max(bottom, 0) / 8, 0, 1),
+			max(player.collider.size.x, player.collider.size.z) * 0.5 + 3,
+			clamp(1 - max(bottom, 0) / 8, 0, 1) * strength,
 		}
 		count += 1
 	}
@@ -47,6 +59,11 @@ grass_upload_players :: proc(shader: graphics.Shader) {
 		shader,
 		graphics.get_shader_location(shader, "grass_players[0]"),
 		players[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "grass_motion[0]"),
+		motion[:],
 	)
 }
 
