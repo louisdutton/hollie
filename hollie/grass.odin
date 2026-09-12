@@ -25,10 +25,36 @@ grass_random :: proc(seed: int) -> f32 {
 	return value - math.floor(value)
 }
 
+grass_upload_players :: proc(shader: graphics.Shader) {
+	// Always upload both slots so leaving a room or removing player two
+	// cannot leave an invisible influence behind.
+	players: [2][4]f32
+	count := 0
+	for &entity in entities {
+		player, ok := &entity.(Player)
+		if !ok do continue
+		if count >= len(players) do break
+		bottom := player.height + player.collider.offset.y
+		players[count] = {
+			player.position.x + player.collider.offset.x + player.collider.size.x * 0.5,
+			player.position.y + player.collider.offset.z + player.collider.size.z * 0.5,
+			max(player.collider.size.x, player.collider.size.z) * 0.5 + 7,
+			clamp(1 - max(bottom, 0) / 8, 0, 1),
+		}
+		count += 1
+	}
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "grass_players[0]"),
+		players[:],
+	)
+}
+
 rendering_draw_grass :: proc() {
 	if !grass_is_enabled() do return
 	shader := rendering_state.grass_shader
 	if !graphics.shader_is_loaded(shader) || rendering_state.grass_time_location < 0 do return
+	grass_upload_players(shader)
 	graphics.set_shader_float(shader, rendering_state.grass_time_location, &water_time)
 	graphics.begin_shader(shader)
 	defer graphics.end_shader()

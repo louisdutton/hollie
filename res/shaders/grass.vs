@@ -4,6 +4,8 @@ in vec3 vertexPosition;
 in vec4 vertexColor;
 uniform mat4 mvp;
 uniform float grass_time;
+// World X/Z, influence radius, and vertical contact strength for each player.
+uniform vec4 grass_players[2];
 out vec3 world_position;
 out float blade_height;
 out float blade;
@@ -18,6 +20,24 @@ void main()
     // Squared tip weighting anchors the roots and bends the upper blade.
     position.xz += vec2(1.0, 0.45) * (0.55 + wave * 0.8 + flutter * 0.18)
                    * blade_height * blade_height;
+    vec2 bend = vec2(0.0);
+    float flatten = 0.0;
+    for (int i = 0; i < 2; i++) {
+        vec4 player = grass_players[i];
+        if (player.w <= 0.0 || player.z <= 0.0) continue;
+        vec2 away = vertexPosition.xz - player.xy;
+        float distance_to_player = length(away);
+        float contact = (1.0 - smoothstep(0.0, player.z, distance_to_player)) * player.w;
+        // A soft centre avoids an unstable direction directly underfoot.
+        bend += away / max(distance_to_player, 1.0) * contact;
+        flatten = max(flatten, contact);
+    }
+    // Keep overlapping players bounded and the roots planted. Distance falloff
+    // lets blades ease upright as a player moves away, including while jumping.
+    bend /= max(length(bend), 1.0);
+    float tip_weight = blade_height * blade_height;
+    position.xz += bend * 5.5 * tip_weight;
+    position.y -= vertexPosition.y * flatten * 0.65 * tip_weight;
     world_position = position;
     gl_Position = mvp * vec4(position, 1.0);
 }
