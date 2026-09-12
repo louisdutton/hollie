@@ -32,12 +32,7 @@ enemy_create :: proc(
 		kind = kind,
 	}
 	if animal := animal_model_for_kind(kind); animal != nil {
-		enemy.collider = geometry_collider_from_bounds(
-			animal.bounds,
-			ANIMAL_MODEL_SCALE,
-			true,
-			true,
-		)
+		enemy.collider = animal_collider_from_bounds(animal.bounds, enemy.facing_direction)
 	}
 	if len(animations) > 0 do animation_init(&enemy.anim_data, animations)
 

@@ -84,6 +84,17 @@ movement_move :: proc(
 }
 
 movement_update_positions :: proc() {
+	// Facing changes with steering and AI; keep physics and debug bounds aligned.
+	for &entity in entities {
+		if animal, ok := &entity.(Enemy); ok {
+			if model := animal_model_for_kind(animal.kind); model != nil {
+				animal.collider = animal_collider_from_bounds(
+					model.bounds,
+					animal.facing_direction,
+				)
+			}
+		}
+	}
 	// Settle crates before characters so their support surfaces are current.
 	for &entity in entities {
 		if crate, ok := &entity.(Holdable); ok && crate.held_by == nil {

@@ -32,6 +32,26 @@ Animal_Model :: struct {
 
 animal_models: [content.Character_Kind]Animal_Model
 
+animal_collider_from_bounds :: proc(bounds: graphics.Bounding_Box, facing: Vec2) -> Collider {
+	angle := math.to_radians(geometry_facing_angle(facing) + 90)
+	sine, cosine := math.sin(angle), math.cos(angle)
+	center := (bounds.min + bounds.max) * (0.5 * ANIMAL_MODEL_SCALE)
+	half := (bounds.max - bounds.min) * (0.5 * ANIMAL_MODEL_SCALE)
+	rotated_center := Vec2 {
+		cosine * center.x + sine * center.z,
+		-sine * center.x + cosine * center.z,
+	}
+	extent := Vec2 {
+		abs(cosine) * half.x + abs(sine) * half.z,
+		abs(sine) * half.x + abs(cosine) * half.z,
+	}
+	return {
+		offset = {rotated_center.x - extent.x, 0, rotated_center.y - extent.y},
+		size = {extent.x * 2, half.y * 2, extent.y * 2},
+		solid = true,
+	}
+}
+
 animal_model_for_kind :: proc(kind: content.Character_Kind) -> ^Animal_Model {
 	files := ANIMAL_MODEL_FILES
 	if files[kind] == "" do return nil
