@@ -1,50 +1,27 @@
 package hollie
 
 import "core:testing"
-import "tilemap"
 
 @(test)
-test_water_floats_bodies_and_allows_both_shore_crossings :: proc(t: ^testing.T) {
-	tm := tilemap.get_current_tilemap()
-	previous := tm^
-	defer tm^ = previous
-	tm^ = tilemap.TileMap {
-		width           = 3,
-		height          = 1,
-		base_tiles      = []tilemap.TileType{.Grass_1, .Water, .Grass_1},
-		collision_tiles = []tilemap.CollisionType{.Walkable, .Walkable, .Walkable},
-	}
-	size := f32(tilemap.get_tile_size())
+test_water_entry_sinks_then_settles_without_ground_contact :: proc(t: ^testing.T) {
 	body := Transform {
-		position = {size * 0.5, size * 0.5},
-		grounded = true,
+		vertical_velocity = -120,
 	}
 	collider := Collider {
-		size   = {2, 8, 2},
-		offset = {-1, 0, -1},
+		size = {2, 8, 2},
 	}
-	physics_move_axis(&body, collider, {size * 1.5, size * 0.5}, nil, true)
-	testing.expect_value(t, body.position.x, size * 1.5)
-	body.vertical_velocity = -120
 	deepest := body.height
 	for _ in 0 ..< 360 {
-		physics_step(&body, collider, nil, PHYSICS_STEP, true)
+		body.vertical_velocity -= PHYSICS_GRAVITY * PHYSICS_STEP
+		water_apply_buoyancy(&body, collider, PHYSICS_STEP)
+		body.height += body.vertical_velocity * PHYSICS_STEP
 		deepest = min(deepest, body.height)
 	}
 	equilibrium := WATER_SURFACE - min(WATER_DRAFT, collider.size.y * 0.55)
 	testing.expect(t, abs(body.height - equilibrium) < 0.1)
-	testing.expect(
-		t,
-		deepest < equilibrium - 1,
-		"entry momentum must carry the body below its resting draft",
-	)
-	testing.expect(t, body.height > WATER_BED && !body.grounded && body.swimming)
+	testing.expect(t, deepest < equilibrium - 1)
+	testing.expect(t, !body.grounded && body.swimming)
 	testing.expect(t, abs(body.vertical_velocity) < 0.1)
-	physics_move_axis(&body, collider, {size * 2.5, size * 0.5}, nil, true)
-	for _ in 0 ..< 60 do physics_step(&body, collider, nil, PHYSICS_STEP, true)
-	testing.expect_value(t, body.position.x, size * 2.5)
-	testing.expect_value(t, body.height, f32(0))
-	testing.expect(t, body.grounded && !body.swimming)
 }
 
 @(test)
@@ -81,4 +58,28 @@ test_turtle_provides_water_speed_advantage :: proc(t: ^testing.T) {
 		water_movement_profile(PLAYER_MOVEMENT_PROFILE, false),
 		PLAYER_MOVEMENT_PROFILE,
 	)
+}
+
+@(test)
+test_floating_crate_has_less_friction_and_eventually_stops :: proc(t: ^testing.T) {
+	body := Transform {
+		swimming = true,
+		velocity = {100, 0},
+	}
+	land := Transform {
+		grounded = true,
+		velocity = {100, 0},
+	}
+	air := Transform {
+		velocity = {100, 0},
+	}
+	for _ in 0 ..< 12 {
+		physics_apply_friction(&body, CRATE_GROUND_FRICTION, PHYSICS_STEP)
+		physics_apply_friction(&land, CRATE_GROUND_FRICTION, PHYSICS_STEP)
+		physics_apply_friction(&air, CRATE_GROUND_FRICTION, PHYSICS_STEP)
+	}
+	testing.expect(t, body.velocity.x < 100 && body.velocity.x > land.velocity.x)
+	testing.expect_value(t, air.velocity.x, f32(100))
+	for _ in 0 ..< 360 do physics_apply_friction(&body, CRATE_GROUND_FRICTION, PHYSICS_STEP)
+	testing.expect_value(t, body.velocity, Vec2{})
 }

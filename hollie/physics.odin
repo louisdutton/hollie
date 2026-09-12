@@ -151,10 +151,16 @@ physics_step :: proc(
 		}
 	}
 	body.height = next_height
-	if body.grounded && ground_friction > 0 {
+	physics_apply_friction(body, ground_friction, dt)
+}
+
+physics_apply_friction :: proc(body: ^Transform, ground_friction, dt: f32) {
+	friction := body.grounded ? ground_friction : f32(0)
+	if body.swimming && !body.grounded do friction = ground_friction * WATER_FRICTION_SCALE
+	if friction > 0 {
 		speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
 		if speed > 0 {
-			remaining_speed := max(speed - ground_friction * dt, 0)
+			remaining_speed := max(speed - friction * dt, 0)
 			body.velocity *= remaining_speed / speed
 		}
 	}
