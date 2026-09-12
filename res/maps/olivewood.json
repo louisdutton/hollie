@@ -8808,8 +8808,8 @@
       "id": "plate_1",
       "type": "pressure_plate",
       "position": {
-        "x": 496,
-        "y": 464
+        "x": 80,
+        "y": 128
       },
       "properties": {
         "requires_both": false,
@@ -8820,8 +8820,8 @@
       "id": "plate_2",
       "type": "pressure_plate",
       "position": {
-        "x": 592,
-        "y": 464
+        "x": 176,
+        "y": 128
       },
       "properties": {
         "requires_both": false,
@@ -8832,8 +8832,8 @@
       "id": "gate_1",
       "type": "gate",
       "position": {
-        "x": 528,
-        "y": 432
+        "x": 112,
+        "y": 96
       },
       "properties": {
         "gate_id": 1,
@@ -8852,8 +8852,8 @@
       "id": "holdable_1",
       "type": "holdable",
       "position": {
-        "x": 560,
-        "y": 528
+        "x": 144,
+        "y": 192
       }
     },
     {
