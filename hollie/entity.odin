@@ -2,8 +2,7 @@ package hollie
 
 import "input"
 
-// Specific entity types
-// Main entity union
+// Runtime entities share storage; persistent relationships use Entity_Id.
 Entity :: union {
 	Player,
 	Enemy,
@@ -120,7 +119,6 @@ entity_destroy :: proc(entity: ^Entity) {
 	}
 }
 
-
 entity_get_player :: proc(index: input.Player_Index, state: ^World_State) -> ^Player {
 	for &entity in state.entities {
 		if player, ok := &entity.(Player); ok && player.index == index {
@@ -128,21 +126,4 @@ entity_get_player :: proc(index: input.Player_Index, state: ^World_State) -> ^Pl
 		}
 	}
 	return nil
-}
-
-
-entity_cleanup_dead :: proc(state: ^World_State) {
-	for i := len(state.entities) - 1; i >= 0; i -= 1 {
-		switch &e in state.entities[i] {
-		case Enemy: if e.is_dying && e.death_timer >= DEATH_DURATION {
-					particle_create_explosion(e.position)
-					entity_remove_at(i, state)
-				}
-		case Npc: if e.is_dying && e.death_timer >= DEATH_DURATION {
-					particle_create_explosion(e.position)
-					entity_remove_at(i, state)
-				}
-		case Player, Pressure_Plate, Gate, Holdable, Door: continue
-		}
-	}
 }

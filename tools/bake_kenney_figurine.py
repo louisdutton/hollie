@@ -2,8 +2,8 @@
 
 Run with Blender in background mode:
     blender -b --python tools/bake_kenney_figurine.py -- \
-        res/art/kenney/prototype-kit/figurine.glb \
-        res/art/kenney/prototype-kit/figurine-raylib.glb
+        res/world/props/figurine.glb \
+        res/world/props/figurine-raylib.glb
 
 The source animation is sampled verbatim. Each mesh part is rigidly weighted to
 one bone. A carry-walk clip layers Kenney's holding arms over Kenney's walk.

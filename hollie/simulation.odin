@@ -28,5 +28,21 @@ simulation_update :: proc(dt: f32) {
 	// Gate closure can eject mounts; align riders again before animation and drawing.
 	riding_sync_players()
 	animation_update_entities(dt)
-	entity_cleanup_dead(&world)
+	simulation_cleanup_dead(&world)
+}
+
+simulation_cleanup_dead :: proc(state: ^World_State) {
+	for i := len(state.entities) - 1; i >= 0; i -= 1 {
+		switch &e in state.entities[i] {
+		case Enemy: if e.is_dying && e.death_timer >= DEATH_DURATION {
+					particle_create_explosion(e.position)
+					entity_remove_at(i, state)
+				}
+		case Npc: if e.is_dying && e.death_timer >= DEATH_DURATION {
+					particle_create_explosion(e.position)
+					entity_remove_at(i, state)
+				}
+		case Player, Pressure_Plate, Gate, Holdable, Door: continue
+		}
+	}
 }

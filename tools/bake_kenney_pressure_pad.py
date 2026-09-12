@@ -2,8 +2,8 @@
 
 Run with Blender in background mode:
     blender -b --python tools/bake_kenney_pressure_pad.py -- \
-        res/art/kenney/prototype-kit/button-floor-square.glb \
-        res/art/kenney/prototype-kit/button-floor-square-raylib.glb
+        res/world/props/button-floor-square.glb \
+        res/world/props/button-floor-square-raylib.glb
 """
 
 import math
