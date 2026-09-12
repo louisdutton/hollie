@@ -14,11 +14,11 @@ test_closing_gate_pushes_body_to_nearest_clear_side :: proc(t: ^testing.T) {
 		size   = {2, 4, 2},
 		offset = {-1, 0, -1},
 	}
-	gate := AABB {
+	gate := Aabb {
 		min = {4, 0, 2},
 		max = {6, 10, 8},
 	}
-	obstacles := [1]AABB{gate}
+	obstacles := [1]Aabb{gate}
 	testing.expect(
 		t,
 		physics_eject(&body, collider, gate, obstacles[:], graphics.Rect{0, 0, 10, 10}),
@@ -42,11 +42,11 @@ test_closing_gate_avoids_blocked_side :: proc(t: ^testing.T) {
 		size   = {2, 4, 2},
 		offset = {-1, 0, -1},
 	}
-	gate := AABB {
+	gate := Aabb {
 		min = {4, 0, 2},
 		max = {6, 10, 8},
 	}
-	obstacles := [2]AABB{gate, {min = {0, 0, 0}, max = {3.5, 20, 10}}}
+	obstacles := [2]Aabb{gate, {min = {0, 0, 0}, max = {3.5, 20, 10}}}
 	testing.expect(
 		t,
 		physics_eject(&body, collider, gate, obstacles[:], graphics.Rect{0, 0, 10, 10}),
@@ -69,11 +69,11 @@ test_closing_gate_lifts_body_only_with_headroom :: proc(t: ^testing.T) {
 		size   = {2, 4, 2},
 		offset = {-1, 0, -1},
 	}
-	gate := AABB {
+	gate := Aabb {
 		min = {4, 0, 4},
 		max = {6, 10, 6},
 	}
-	obstacles := [2]AABB{gate, {min = {4, 10, 4}, max = {6, 20, 6}}}
+	obstacles := [2]Aabb{gate, {min = {4, 10, 4}, max = {6, 20, 6}}}
 	bounds := graphics.Rect{4, 4, 2, 2}
 	before := body
 	testing.expect(t, !physics_eject(&body, collider, gate, obstacles[:], bounds))
@@ -94,11 +94,11 @@ test_closing_gate_does_not_move_body_above_it :: proc(t: ^testing.T) {
 		size   = {2, 4, 2},
 		offset = {-1, 0, -1},
 	}
-	gate := AABB {
+	gate := Aabb {
 		min = {4, 0, 4},
 		max = {6, 10, 6},
 	}
-	obstacles := [1]AABB{gate}
+	obstacles := [1]Aabb{gate}
 	testing.expect(
 		t,
 		physics_eject(&body, collider, gate, obstacles[:], graphics.Rect{0, 0, 10, 10}),

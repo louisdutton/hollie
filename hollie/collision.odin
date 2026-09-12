@@ -38,12 +38,12 @@ collision_door_for_player :: proc(player: ^Player) -> ^Door {
 
 
 // Gameplay positions use X/Z map coordinates. Collision volumes are always 3D.
-collision_aabb_at :: proc(position: Vec2, collider: Collider, base_height: f32 = 0) -> AABB {
+collision_aabb_at :: proc(position: Vec2, collider: Collider, base_height: f32 = 0) -> Aabb {
 	min := Vec3{position.x, base_height, position.y} + collider.offset
 	return {min = min, max = min + collider.size}
 }
 
-collision_entity_aabb :: proc(entity: ^Entity) -> AABB {
+collision_entity_aabb :: proc(entity: ^Entity) -> Aabb {
 	position: Vec2
 	collider: Collider
 	base_height: f32

@@ -18,12 +18,12 @@ test_invalid_map_reports_semantic_errors :: proc(t: ^testing.T) {
 	missing_triggers := make([dynamic]int)
 	append(&missing_triggers, 99)
 
-	tm := TileMap {
+	tm := Tile_Map {
 		width = 2,
 		height = 2,
-		base_tiles = []TileType{.Grass_1},
-		deco_tiles = []TileType{},
-		entities = []EntityData {
+		base_tiles = []Tile_Type{.Grass_1},
+		deco_tiles = []Tile_Type{},
+		entities = []Entity_Data {
 			{
 				x = 0,
 				y = 0,

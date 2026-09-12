@@ -11,7 +11,7 @@ Vec2 :: rl.Vector2
 
 TILE_SIZE :: 16 // width and height of one tile in world units
 
-EntityType :: enum {
+Entity_Type :: enum {
 	Player         = 0,
 	Enemy          = 1,
 	Pressure_Plate = 2,
@@ -22,16 +22,16 @@ EntityType :: enum {
 }
 
 /// Configuration for tilemap rendering and behavior
-TilemapConfig :: struct {
+Tilemap_Config :: struct {
 	world_tile_size: int,
 }
 
 @(private)
-config := TilemapConfig {
+config := Tilemap_Config {
 	world_tile_size = TILE_SIZE,
 }
 
-TileType :: enum u16 {
+Tile_Type :: enum u16 {
 	Empty = 0,
 	Water = 500,
 	Grass_1 = 1,
@@ -90,7 +90,7 @@ TileType :: enum u16 {
 	Door_Vertical = 43,
 }
 
-CollisionType :: enum u8 {
+Collision_Type :: enum u8 {
 	Walkable = 0,
 	Solid    = 1,
 }
@@ -102,11 +102,11 @@ Structure_Data :: struct {
 }
 
 
-EntityData :: struct {
+Entity_Data :: struct {
 	instance_id:       string,
 	x:                 int,
 	y:                 int,
-	entity_type:       EntityType,
+	entity_type:       Entity_Type,
 	player_index:      int,
 	character_kind:    content.Character_Kind,
 	trigger_id:        int,
@@ -121,16 +121,16 @@ EntityData :: struct {
 	required_triggers: [dynamic]int,
 }
 
-TileMap :: struct {
+Tile_Map :: struct {
 	width:            int,
 	height:           int,
-	base_tiles:       []TileType,
-	deco_tiles:       []TileType,
-	collision_tiles:  []CollisionType,
+	base_tiles:       []Tile_Type,
+	deco_tiles:       []Tile_Type,
+	collision_tiles:  []Collision_Type,
 	structures:       []Structure_Data,
-	entities:         []EntityData,
+	entities:         []Entity_Data,
 	tile_size:        int,
-	config:           TilemapConfig,
+	config:           Tilemap_Config,
 	room_id:          string,
 	room_name:        string,
 	music_path:       string,
@@ -145,14 +145,14 @@ has_floor :: proc(x, y: int) -> bool {
 	return tile != nil && tile^ != .Empty
 }
 
-entity_type_is_valid :: proc(entity_type: EntityType) -> bool {
+entity_type_is_valid :: proc(entity_type: Entity_Type) -> bool {
 	switch entity_type {
 	case .Player, .Enemy, .Pressure_Plate, .Gate, .Holdable, .Npc, .Door: return true
 	case: return false
 	}
 }
 
-clone_entity_data :: proc(entity: EntityData, allocator := context.allocator) -> EntityData {
+clone_entity_data :: proc(entity: Entity_Data, allocator := context.allocator) -> Entity_Data {
 	cloned := entity
 	cloned.instance_id = strings.clone(entity.instance_id, allocator)
 	cloned.target_room = strings.clone(entity.target_room, allocator)
@@ -162,7 +162,7 @@ clone_entity_data :: proc(entity: EntityData, allocator := context.allocator) ->
 	return cloned
 }
 
-destroy_entity_data :: proc(entity: ^EntityData, allocator := context.allocator) {
+destroy_entity_data :: proc(entity: ^Entity_Data, allocator := context.allocator) {
 	if entity == nil do return
 
 	delete(entity.instance_id, allocator)
@@ -172,7 +172,7 @@ destroy_entity_data :: proc(entity: ^EntityData, allocator := context.allocator)
 	entity^ = {}
 }
 
-destroy_tilemap :: proc(tm: ^TileMap, allocator := context.allocator) {
+destroy_tilemap :: proc(tm: ^Tile_Map, allocator := context.allocator) {
 	if tm == nil do return
 
 	delete(tm.base_tiles, allocator)
@@ -193,14 +193,14 @@ destroy_tilemap :: proc(tm: ^TileMap, allocator := context.allocator) {
 }
 
 @(private)
-tilemap := TileMap {
+tilemap := Tile_Map {
 	width = 50,
 	height = 30,
 	tile_size = TILE_SIZE,
 	config = {world_tile_size = TILE_SIZE},
 }
 
-load_tilemap :: proc(new_tilemap: TileMap) {
+load_tilemap :: proc(new_tilemap: Tile_Map) {
 	destroy_tilemap(&tilemap)
 
 	// Update global config
@@ -219,13 +219,13 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 	tilemap.collision_bounds = new_tilemap.collision_bounds
 
 	// Copy tile data
-	tilemap.base_tiles = make([]TileType, len(new_tilemap.base_tiles))
+	tilemap.base_tiles = make([]Tile_Type, len(new_tilemap.base_tiles))
 	copy(tilemap.base_tiles, new_tilemap.base_tiles)
 
-	tilemap.deco_tiles = make([]TileType, len(new_tilemap.deco_tiles))
+	tilemap.deco_tiles = make([]Tile_Type, len(new_tilemap.deco_tiles))
 	copy(tilemap.deco_tiles, new_tilemap.deco_tiles)
 
-	tilemap.collision_tiles = make([]CollisionType, len(new_tilemap.collision_tiles))
+	tilemap.collision_tiles = make([]Collision_Type, len(new_tilemap.collision_tiles))
 	copy(tilemap.collision_tiles, new_tilemap.collision_tiles)
 
 	tilemap.structures = make([]Structure_Data, len(new_tilemap.structures))
@@ -236,18 +236,18 @@ load_tilemap :: proc(new_tilemap: TileMap) {
 
 	// Copy entity data
 	if len(new_tilemap.entities) > 0 {
-		tilemap.entities = make([]EntityData, len(new_tilemap.entities))
+		tilemap.entities = make([]Entity_Data, len(new_tilemap.entities))
 		for i in 0 ..< len(new_tilemap.entities) {
 			tilemap.entities[i] = clone_entity_data(new_tilemap.entities[i])
 		}
 	}
 }
 
-get_tile :: proc(x, y: int) -> ^TileType {
+get_tile :: proc(x, y: int) -> ^Tile_Type {
 	return get_base_tile(x, y)
 }
 
-get_base_tile :: proc(x, y: int) -> ^TileType {
+get_base_tile :: proc(x, y: int) -> ^Tile_Type {
 	if x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height {
 		return nil
 	}
@@ -256,7 +256,7 @@ get_base_tile :: proc(x, y: int) -> ^TileType {
 	return &tilemap.base_tiles[index]
 }
 
-get_deco_tile :: proc(x, y: int) -> ^TileType {
+get_deco_tile :: proc(x, y: int) -> ^Tile_Type {
 	if x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height {
 		return nil
 	}
@@ -267,7 +267,7 @@ get_deco_tile :: proc(x, y: int) -> ^TileType {
 	return &tilemap.deco_tiles[index]
 }
 
-get_collision_tile :: proc(x, y: int) -> ^CollisionType {
+get_collision_tile :: proc(x, y: int) -> ^Collision_Type {
 	if x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height {
 		return nil
 	}
@@ -290,11 +290,11 @@ get_tilemap_height :: proc() -> int {
 	return tilemap.height
 }
 
-get_entities :: proc() -> []EntityData {
+get_entities :: proc() -> []Entity_Data {
 	return tilemap.entities
 }
 
-get_current_tilemap :: proc() -> ^TileMap {
+get_current_tilemap :: proc() -> ^Tile_Map {
 	return &tilemap
 }
 
@@ -318,8 +318,8 @@ get_collision_bounds :: proc() -> graphics.Rect {
 	return tilemap.collision_bounds
 }
 
-add_entity :: proc(x, y: int, entity_type: EntityType) {
-	entity := EntityData {
+add_entity :: proc(x, y: int, entity_type: Entity_Type) {
+	entity := Entity_Data {
 		instance_id       = uuid.to_string(uuid.generate_v4()),
 		x                 = x,
 		y                 = y,
@@ -329,12 +329,12 @@ add_entity :: proc(x, y: int, entity_type: EntityType) {
 		required_triggers = make([dynamic]int),
 	}
 
-	temp_entities := make([dynamic]EntityData, len(tilemap.entities))
+	temp_entities := make([dynamic]Entity_Data, len(tilemap.entities))
 	copy(temp_entities[:], tilemap.entities[:])
 	append(&temp_entities, entity)
 
 	delete(tilemap.entities)
-	tilemap.entities = make([]EntityData, len(temp_entities))
+	tilemap.entities = make([]Entity_Data, len(temp_entities))
 	copy(tilemap.entities, temp_entities[:])
 	delete(temp_entities)
 }
@@ -345,7 +345,7 @@ remove_entity_at :: proc(x, y: int) -> bool {
 		if entity.x == x && entity.y == y {
 			destroy_entity_data(entity)
 
-			temp_entities := make([dynamic]EntityData, 0, len(tilemap.entities) - 1)
+			temp_entities := make([dynamic]Entity_Data, 0, len(tilemap.entities) - 1)
 			for j in 0 ..< len(tilemap.entities) {
 				if j != i {
 					append(&temp_entities, tilemap.entities[j])
@@ -353,7 +353,7 @@ remove_entity_at :: proc(x, y: int) -> bool {
 			}
 
 			delete(tilemap.entities)
-			tilemap.entities = make([]EntityData, len(temp_entities))
+			tilemap.entities = make([]Entity_Data, len(temp_entities))
 			copy(tilemap.entities, temp_entities[:])
 			delete(temp_entities)
 			return true
@@ -377,7 +377,7 @@ is_tile_solid :: proc(x, y: int) -> bool {
 	return tile == nil || tile^ == .Solid
 }
 
-check_collision :: proc(aabb: spatial.AABB) -> bool {
+check_collision :: proc(aabb: spatial.Aabb) -> bool {
 	tile_size_f := f32(config.world_tile_size)
 	map_width := f32(tilemap.width * config.world_tile_size)
 	map_height := f32(tilemap.height * config.world_tile_size)

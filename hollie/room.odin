@@ -9,8 +9,8 @@ import "tilemap"
 import "tween"
 
 
-RoomState :: struct {
-	current_tilemap:         ^tilemap.TileMap,
+Room_State :: struct {
+	current_tilemap:         ^tilemap.Tile_Map,
 	is_loaded:               bool,
 	room_music:              audio.Music,
 	room_name_opacity:       f32,
@@ -18,7 +18,7 @@ RoomState :: struct {
 }
 
 @(private)
-room_state := RoomState{}
+room_state := Room_State{}
 
 @(private)
 room_collision_bounds: graphics.Rect
@@ -32,22 +32,22 @@ room_get_collision_bounds :: proc() -> graphics.Rect {
 }
 
 
-room_get_current :: proc() -> ^tilemap.TileMap {
+room_get_current :: proc() -> ^tilemap.Tile_Map {
 	return room_state.current_tilemap
 }
 
-room_door_spawn_candidates :: proc(door: AABB, player: Collider, interior: bool) -> [14]Vec2 {
-	gap :: f32(2)
+room_door_spawn_candidates :: proc(door: Aabb, player: Collider, interior: bool) -> [14]Vec2 {
+	GAP :: f32(2)
 	center_x := (door.min.x + door.max.x - player.size.x) / 2 - player.offset.x
 	center_z := (door.min.z + door.max.z - player.size.z) / 2 - player.offset.z
-	north := Vec2{center_x, door.min.z - player.offset.z - player.size.z - gap}
-	south := Vec2{center_x, door.max.z - player.offset.z + gap}
-	west := Vec2{door.min.x - player.offset.x - player.size.x - gap, center_z}
-	east := Vec2{door.max.x - player.offset.x + gap, center_z}
+	north := Vec2{center_x, door.min.z - player.offset.z - player.size.z - GAP}
+	south := Vec2{center_x, door.max.z - player.offset.z + GAP}
+	west := Vec2{door.min.x - player.offset.x - player.size.x - GAP, center_z}
+	east := Vec2{door.max.x - player.offset.x + GAP, center_z}
 	first, second := south, north
 	if interior do first, second = north, south
-	x_spacing := Vec2{player.size.x + gap, 0}
-	z_spacing := Vec2{0, player.size.z + gap}
+	x_spacing := Vec2{player.size.x + GAP, 0}
+	z_spacing := Vec2{0, player.size.z + GAP}
 	return {
 		first,
 		first - x_spacing,
@@ -66,7 +66,7 @@ room_door_spawn_candidates :: proc(door: AABB, player: Collider, interior: bool)
 	}
 }
 
-room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB) -> bool {
+room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []Aabb) -> bool {
 	aabb := collision_aabb_at(position, collider)
 	bounds := room_get_collision_bounds()
 	if aabb.min.x < bounds.x ||
@@ -78,7 +78,7 @@ room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB
 	// Exterior arrivals must remain outside the house, even though its interior is hollow.
 	if tm := room_get_current(); tm != nil && !tm.interior {
 		for structure in tm.structures {
-			footprint := AABB {
+			footprint := Aabb {
 				min = {structure.position.x, 0, structure.position.y},
 				max = {
 					structure.position.x + structure.size.x,
@@ -101,7 +101,7 @@ room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB
 	return true
 }
 
-room_find_door_spawn_position :: proc(door: Door, occupied: []AABB = nil) -> Vec2 {
+room_find_door_spawn_position :: proc(door: Door, occupied: []Aabb = nil) -> Vec2 {
 	player_collider := model_character_collider(true)
 	door_bounds := collision_aabb_at(door.position, door.collider, door.height)
 	candidates := room_door_spawn_candidates(
@@ -205,7 +205,7 @@ when ODIN_DEBUG {
 	}
 }
 
-room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
+room_init :: proc(tm: ^tilemap.Tile_Map, target_door: string = "") {
 	if room_state.is_loaded do room_fini()
 
 	room_state.current_tilemap = tm
@@ -291,7 +291,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 		spawn_pos := room_find_door_spawn_position(spawn_door^)
 		second_spawn: Vec2
 		if game.player_count == 2 {
-			occupied := [1]AABB{collision_aabb_at(spawn_pos, model_character_collider(true))}
+			occupied := [1]Aabb{collision_aabb_at(spawn_pos, model_character_collider(true))}
 			second_spawn = room_find_door_spawn_position(spawn_door^, occupied[:])
 		}
 		player_spawn_at(spawn_pos, input.Player_Index.Player_1)

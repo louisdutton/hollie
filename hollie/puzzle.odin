@@ -143,7 +143,7 @@ puzzle_update :: proc() {
 
 		if plate.active != was_active {
 			plate.animation_time = 0
-			audio.sound_play(&game.sounds, audio.Sound_Kind.PressurePlateToggle)
+			audio.sound_play(&game.sounds, audio.Sound_Kind.Pressure_Plate_Toggle)
 		}
 	}
 

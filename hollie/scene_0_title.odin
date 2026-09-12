@@ -11,12 +11,12 @@ Title_Menu_State :: enum {
 	Controls,
 }
 
-TITLE_MAIN_MENU_ITEMS := [?]string{"1 player", "2 players", "Options", "Exit game"}
+title_main_menu_items := [?]string{"1 player", "2 players", "Options", "Exit game"}
 
 @(private = "file")
 title_state := struct {
 	menu_state: Title_Menu_State,
-	focus:      UI_Focus,
+	focus:      Ui_Focus,
 } {
 	menu_state = .Main,
 }
@@ -55,7 +55,7 @@ draw_title_screen :: proc() {
 	ui_menu_action_bar(title_state.menu_state == .Audio || title_state.menu_state == .Visual)
 }
 
-title_handle_input :: proc(navigation: UI_Navigation) {
+title_handle_input :: proc(navigation: Ui_Navigation) {
 	if navigation.back {
 		switch title_state.menu_state {
 		case .Main: game.state = .Exiting
@@ -70,11 +70,11 @@ title_handle_input :: proc(navigation: UI_Navigation) {
 }
 
 title_draw_main_menu :: proc() {
-	ui_menu_panel("Main menu", TITLE_MAIN_MENU_ITEMS[:], title_state.focus)
+	ui_menu_panel("Main menu", title_main_menu_items[:], title_state.focus)
 }
 
 title_draw_options_menu :: proc() {
-	ui_menu_panel("Options", MENU_OPTIONS_ITEMS[:], title_state.focus)
+	ui_menu_panel("Options", menu_options_items[:], title_state.focus)
 }
 
 title_draw_audio_menu :: proc() {
@@ -96,8 +96,8 @@ title_set_menu :: proc(menu_state: Title_Menu_State) {
 
 title_menu_item_count :: proc(menu_state: Title_Menu_State) -> int {
 	switch menu_state {
-	case .Main: return len(TITLE_MAIN_MENU_ITEMS)
-	case .Options: return len(MENU_OPTIONS_ITEMS)
+	case .Main: return len(title_main_menu_items)
+	case .Options: return len(menu_options_items)
 	case .Audio, .Visual: return 4
 	case .Controls: return 1
 	}

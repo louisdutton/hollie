@@ -5,7 +5,7 @@ HOUSE_WALL_SCALE :: f32(8)
 HOUSE_ROOF_HEIGHT :: f32(7)
 HOUSE_ROOF_OVERHANG :: f32(4)
 
-house_roof_aabb :: proc(position, size: Vec2) -> AABB {
+house_roof_aabb :: proc(position, size: Vec2) -> Aabb {
 	return {
 		min = {
 			position.x - HOUSE_ROOF_OVERHANG,
@@ -22,7 +22,7 @@ house_roof_aabb :: proc(position, size: Vec2) -> AABB {
 
 // Bounds follow the wall and wide-doorway meshes in res/world/props.
 // The doorway's clear opening spans local Z [-0.45, 0.45], up to Y 0.8.
-house_wall_aabbs :: proc(position, size: Vec2) -> [6]AABB {
+house_wall_aabbs :: proc(position, size: Vec2) -> [6]Aabb {
 	x0, z0 := position.x, position.y
 	x1, z1 := x0 + size.x, z0 + size.y
 	center_x := (x0 + x1) / 2

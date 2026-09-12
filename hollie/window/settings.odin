@@ -27,7 +27,7 @@ Resolution :: struct {
 	name:   string,
 }
 
-RESOLUTIONS := []Resolution {
+resolutions := []Resolution {
 	{800, 450, "800x450"},
 	{1024, 576, "1024x576"},
 	{1280, 720, "1280x720"},
@@ -71,7 +71,7 @@ get_window_size :: proc() -> (i32, i32) {
 
 /// Get available resolutions
 get_available_resolutions :: proc() -> []Resolution {
-	return RESOLUTIONS
+	return resolutions
 }
 
 /// Get current VSync state

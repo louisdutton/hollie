@@ -4,12 +4,12 @@ import "core:math/linalg"
 
 Vec3 :: linalg.Vector3f32
 
-AABB :: struct {
+Aabb :: struct {
 	min: Vec3,
 	max: Vec3,
 }
 
-aabbs_intersect :: proc(a, b: AABB) -> bool {
+aabbs_intersect :: proc(a, b: Aabb) -> bool {
 	return(
 		a.min.x < b.max.x &&
 		a.max.x > b.min.x &&

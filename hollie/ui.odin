@@ -5,28 +5,28 @@ import "graphics"
 import "input"
 import "window"
 
-UI_Anchor :: enum {
+Ui_Anchor :: enum {
 	Top_Left,
 	Top_Right,
 }
 
-UI_Layout_Direction :: enum {
+Ui_Layout_Direction :: enum {
 	Column,
 	Row,
 }
 
-UI_Focus :: struct {
+Ui_Focus :: struct {
 	index:        int,
 	repeat_timer: f32,
 }
 
-UI_Navigation :: struct {
+Ui_Navigation :: struct {
 	adjust:  int,
 	confirm: bool,
 	back:    bool,
 }
 
-UI_Theme :: struct {
+Ui_Theme :: struct {
 	panel_background: graphics.Colour,
 	panel_border:     graphics.Colour,
 	text:             graphics.Colour,
@@ -38,22 +38,22 @@ UI_Theme :: struct {
 	line_height:      f32,
 }
 
-UI_Layout :: struct {
+Ui_Layout :: struct {
 	bounds:    graphics.Rect,
 	cursor_x:  f32,
 	cursor_y:  f32,
-	direction: UI_Layout_Direction,
+	direction: Ui_Layout_Direction,
 	gap:       f32,
 }
 
-UI_Context :: struct {
-	layouts: [8]UI_Layout,
+Ui_Context :: struct {
+	layouts: [8]Ui_Layout,
 	depth:   int,
-	theme:   UI_Theme,
+	theme:   Ui_Theme,
 }
 
 @(private)
-ui_context := UI_Context {
+ui_context := Ui_Context {
 	theme = {
 		panel_background = {7, 12, 16, 238},
 		panel_border = {48, 65, 72, 255},
@@ -84,7 +84,7 @@ ui_measure_text :: proc(text: string, size: int) -> int {
 }
 
 ui_anchored_rect :: proc(
-	anchor: UI_Anchor,
+	anchor: Ui_Anchor,
 	width, height: f32,
 	margin: f32 = 10,
 ) -> graphics.Rect {
@@ -126,7 +126,7 @@ ui_end_panel :: proc() {
 	ui_context.depth -= 1
 }
 
-ui_begin_layout :: proc(direction: UI_Layout_Direction, bounds: graphics.Rect, gap: f32 = 0) {
+ui_begin_layout :: proc(direction: Ui_Layout_Direction, bounds: graphics.Rect, gap: f32 = 0) {
 	assert(ui_context.depth < len(ui_context.layouts), "UI layout stack overflow")
 	ui_context.layouts[ui_context.depth] = {
 		bounds    = bounds,
@@ -153,13 +153,13 @@ ui_next_rect :: proc(width, height: f32) -> graphics.Rect {
 	return bounds
 }
 
-ui_focus_reset :: proc(focus: ^UI_Focus) {
+ui_focus_reset :: proc(focus: ^Ui_Focus) {
 	focus.index = 0
 	focus.repeat_timer = 0
 }
 
-ui_focus_update :: proc(focus: ^UI_Focus, item_count: int, delta_time: f32) -> UI_Navigation {
-	navigation := UI_Navigation {
+ui_focus_update :: proc(focus: ^Ui_Focus, item_count: int, delta_time: f32) -> Ui_Navigation {
+	navigation := Ui_Navigation {
 		confirm = input.action_pressed(.Menu_Confirm),
 		back    = input.action_pressed(.Menu_Back),
 	}
@@ -310,7 +310,7 @@ ui_button :: proc(bounds: graphics.Rect, text: string, selected: bool = false) {
 ui_menu_panel :: proc(
 	title: string,
 	items: []string,
-	focus: UI_Focus,
+	focus: Ui_Focus,
 	width: f32 = 300,
 	button_width: f32 = 220,
 	button_height: f32 = 34,
@@ -404,14 +404,14 @@ ui_draw_action_hint :: proc(
 	return ui_draw_prompt_label(prompt, binding.label, x, y, font_size, color)
 }
 
-ui_prompt_label_width :: proc(prompt: UI_Prompt_View, label: string, font_size: int = 11) -> f32 {
+ui_prompt_label_width :: proc(prompt: Ui_Prompt_View, label: string, font_size: int = 11) -> f32 {
 	prompt_width := ui_prompt_view_width(prompt)
 	if prompt_width == 0 do return 0
 	return prompt_width + 6 + f32(graphics.measure_text(label, i32(font_size)))
 }
 
 ui_draw_prompt_label :: proc(
-	prompt: UI_Prompt_View,
+	prompt: Ui_Prompt_View,
 	label: string,
 	x, y: f32,
 	font_size: int = 11,
@@ -494,7 +494,7 @@ ui_action_bar_rows :: proc(actions: []input.Action, width: f32) -> int {
 }
 
 @(private)
-ui_current_layout :: proc() -> ^UI_Layout {
+ui_current_layout :: proc() -> ^Ui_Layout {
 	assert(ui_context.depth > 0, "UI widget must be inside a panel")
 	return &ui_context.layouts[ui_context.depth - 1]
 }

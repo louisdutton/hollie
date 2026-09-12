@@ -20,7 +20,7 @@ Rendering_State :: struct {
 	shadow_shader:             graphics.Shader,
 	shadow_skinned_shader:     graphics.Shader,
 	character_flash_location:  c.int,
-	shadow_map:                graphics.Render_Texture2D,
+	shadow_map:                graphics.Render_Texture_2D,
 	light_view_projection:     graphics.Matrix,
 }
 

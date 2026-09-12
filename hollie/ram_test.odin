@@ -83,11 +83,11 @@ test_bison_full_speed_state_requires_run_up_and_resets :: proc(t: ^testing.T) {
 
 @(test)
 test_ram_detects_swept_head_on_contact :: proc(t: ^testing.T) {
-	body := AABB {
+	body := Aabb {
 		min = {0, 0, 0},
 		max = {10, 10, 10},
 	}
-	wall := AABB {
+	wall := Aabb {
 		min = {11, 0, -10},
 		max = {12, 18, 20},
 	}
@@ -104,11 +104,11 @@ test_ram_detects_swept_head_on_contact :: proc(t: ^testing.T) {
 
 @(test)
 test_ram_glancing_contact_uses_normal_speed :: proc(t: ^testing.T) {
-	body := AABB {
+	body := Aabb {
 		min = {0, 0, 0},
 		max = {10, 10, 10},
 	}
-	wall := AABB {
+	wall := Aabb {
 		min = {10.1, 0, -100},
 		max = {12, 18, 100},
 	}

@@ -5,7 +5,7 @@ import "graphics"
 import "tilemap"
 import "window"
 
-rendering_camera :: proc() -> graphics.Camera3D {
+rendering_camera :: proc() -> graphics.Camera_3D {
 	screen_width := f32(graphics.get_screen_width())
 	screen_height := f32(graphics.get_screen_height())
 	visible_width := screen_width / camera.zoom
@@ -512,7 +512,7 @@ rendering_scaled_text_size :: proc(design_size: int, screen_scale: f32) -> int {
 rendering_draw_label :: proc(
 	text: string,
 	world_position: graphics.Vec3,
-	camera_3d: graphics.Camera3D,
+	camera_3d: graphics.Camera_3D,
 	color: graphics.Colour,
 ) {
 	position := graphics.get_world_to_screen(world_position, camera_3d)
@@ -527,7 +527,7 @@ rendering_draw_label :: proc(
 	)
 }
 
-rendering_draw_labels :: proc(camera_3d: graphics.Camera3D) {
+rendering_draw_labels :: proc(camera_3d: graphics.Camera_3D) {
 	if game.player_count != 2 do return
 	for &entity in world.entities {
 		player, ok := &entity.(Player)

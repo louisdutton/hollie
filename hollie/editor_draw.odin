@@ -7,7 +7,7 @@ import "input"
 import "tilemap"
 import "window"
 
-EDITOR_ACTIONS := []input.Action { 	// actions shown in the editor's standard action bar
+editor_actions := []input.Action { 	// actions shown in the editor's standard action bar
 	.Editor_Move_Cursor,
 	.Editor_Paint,
 	.Editor_Erase,
@@ -23,7 +23,7 @@ EDITOR_ACTIONS := []input.Action { 	// actions shown in the editor's standard ac
 	.Editor_Toggle,
 }
 
-EDITOR_EDIT_ACTIONS := []input.Action { 	// actions shown while editing an entity
+editor_edit_actions := []input.Action { 	// actions shown while editing an entity
 	.Editor_Move_Cursor,
 	.Editor_Value_Previous,
 	.Editor_Value_Next,
@@ -58,7 +58,7 @@ editor_draw_ui :: proc() {
 	}
 }
 
-editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, alpha: u8) {
+editor_draw_tile_preview :: proc(tile_type: tilemap.Tile_Type, x, y, size: f32, alpha: u8) {
 	if tile_type == .Empty do return
 
 	color := graphics.Colour{120, 170, 120, alpha}
@@ -66,7 +66,7 @@ editor_draw_tile_preview :: proc(tile_type: tilemap.TileType, x, y, size: f32, a
 	graphics.draw_rect_outline(x, y, size, size, color = graphics.WHITE)
 }
 
-editor_draw_entity_preview :: proc(entity_type: tilemap.EntityType, x, y, size: f32, alpha: u8) {
+editor_draw_entity_preview :: proc(entity_type: tilemap.Entity_Type, x, y, size: f32, alpha: u8) {
 	color := graphics.Colour{}
 	icon_text := ""
 	switch entity_type {
@@ -119,7 +119,7 @@ editor_draw_tile_carousel :: proc(carousel_x, carousel_y: f32) {
 	}
 
 	if editor_state.selected_layer == .Entity {
-		entities := []tilemap.EntityType{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
+		entities := []tilemap.Entity_Type{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
 
 		current_index := -1
 		for entity, i in entities {
@@ -250,14 +250,14 @@ editor_draw_minimal_hud :: proc() {
 	ui_status(editor_state.save_message, editor_state.save_succeeded)
 	ui_end_panel()
 
-	actions := editor_state.is_editing_entity ? EDITOR_EDIT_ACTIONS : EDITOR_ACTIONS
+	actions := editor_state.is_editing_entity ? editor_edit_actions : editor_actions
 	controls_width := design_width - 20
 	controls_height := ui_action_bar_height(actions, controls_width)
 	controls_y := design_height - controls_height - 10
 	ui_action_bar(actions, {10, controls_y, controls_width, controls_height})
 }
 
-editor_draw_entity_inspector :: proc(entity: ^tilemap.EntityData) {
+editor_draw_entity_inspector :: proc(entity: ^tilemap.Entity_Data) {
 	ui_begin_panel(
 		fmt.tprintf("Entity: %v", entity.entity_type),
 		ui_anchored_rect(.Top_Right, 330, 220),

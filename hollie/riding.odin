@@ -195,7 +195,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	end := nearest.position + Vec2{offset.x, offset.z} + nearest.velocity * duration
 	start_bounds := collision_aabb_at(player.position, player.collider, player.height)
 	end_bounds := collision_aabb_at(end, player.collider, nearest.height + offset.y)
-	leap_bounds := AABB {
+	leap_bounds := Aabb {
 		min = {
 			min(start_bounds.min.x, end_bounds.min.x),
 			min(start_bounds.min.y, end_bounds.min.y),
@@ -231,7 +231,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 riding_find_dismount :: proc(
 	player: ^Player,
 	animal: ^Enemy,
-	obstacles: []AABB,
+	obstacles: []Aabb,
 	bounds: graphics.Rect,
 	collide_tiles: bool = false,
 ) -> (
@@ -270,7 +270,7 @@ riding_find_dismount :: proc(
 			continue
 		}
 		if physics_blocked(aabb, obstacles, collide_tiles) do continue
-		swept := AABB {
+		swept := Aabb {
 			min = {min(start.min.x, aabb.min.x), start.min.y, min(start.min.z, aabb.min.z)},
 			max = {max(start.max.x, aabb.max.x), start.max.y, max(start.max.z, aabb.max.z)},
 		}

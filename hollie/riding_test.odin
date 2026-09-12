@@ -83,7 +83,7 @@ test_ridden_animal_collider_includes_rider_headroom :: proc(t: ^testing.T) {
 		offset = {-2, 0, -2},
 	}
 	combined := riding_combined_collider(&animal, rider, {0, 9, 0}, 2)
-	ceiling := AABB {
+	ceiling := Aabb {
 		min = {-10, 12, -10},
 		max = {10, 15, 10},
 	}
@@ -102,7 +102,7 @@ test_dismount_chooses_clear_side_and_rejects_enclosed_animal :: proc(t: ^testing
 		collider = {size = {10, 10, 10}, offset = {-5, 0, -5}},
 		movement = {facing_direction = {0, 1}},
 	}
-	obstacles := [2]AABB {
+	obstacles := [2]Aabb {
 		collision_aabb_at(animal.position, animal.collider),
 		{min = {26, 0, 15}, max = {30, 20, 25}},
 	}

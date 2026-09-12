@@ -22,7 +22,7 @@ Room_File_Enemy_Wire :: struct {
 	kind: string,
 }
 
-Room_File_NPC :: struct {}
+Room_File_Npc :: struct {}
 
 Room_File_Holdable :: struct {}
 
@@ -48,7 +48,7 @@ Room_File_Gate :: struct {
 Room_File_Entity_Properties :: union #no_nil {
 	Room_File_Player,
 	Room_File_Enemy,
-	Room_File_NPC,
+	Room_File_Npc,
 	Room_File_Holdable,
 	Room_File_Door,
 	Room_File_Pressure_Plate,
@@ -154,7 +154,7 @@ decode_room_file_entity :: proc(
 	entity.position = wire.position
 	if !room_file_entity_type_is_known(wire.type) {
 		err = {
-			kind         = .unknown_entity_type,
+			kind         = .Unknown_Entity_Type,
 			entity_index = entity_index,
 			message      = fmt.aprintf("unknown entity type %q", wire.type),
 		}
@@ -166,7 +166,7 @@ decode_room_file_entity :: proc(
 	if _, ok := wire.properties.(json.Object);
 	   !ok && !(properties_are_empty && wire.properties == nil) {
 		err = {
-			kind         = .invalid_entity_properties,
+			kind         = .Invalid_Entity_Properties,
 			entity_index = entity_index,
 			message      = strings.clone("entity properties must be an object", allocator),
 		}
@@ -177,7 +177,7 @@ decode_room_file_entity :: proc(
 	if properties_error := room_file_entity_properties_error(wire, allocator);
 	   properties_error != "" {
 		err = {
-			kind         = .unknown_entity_property,
+			kind         = .Unknown_Entity_Property,
 			entity_index = entity_index,
 			message      = properties_error,
 		}
@@ -192,7 +192,7 @@ decode_room_file_entity :: proc(
 		entity.properties = properties
 		if !ok {
 			err = {
-				kind         = .invalid_entity_properties,
+				kind         = .Invalid_Entity_Properties,
 				entity_index = entity_index,
 				message      = strings.clone("player properties have invalid types", allocator),
 			}
@@ -202,7 +202,7 @@ decode_room_file_entity :: proc(
 		ok := decode_room_file_entity_properties(wire.properties, &properties_wire, allocator)
 		if !ok {
 			err = {
-				kind         = .invalid_entity_properties,
+				kind         = .Invalid_Entity_Properties,
 				entity_index = entity_index,
 				message      = strings.clone("enemy properties have invalid types", allocator),
 			}
@@ -213,7 +213,7 @@ decode_room_file_entity :: proc(
 		kind, known := content.character_kind_from_wire(properties_wire.kind)
 		if !known {
 			err = {
-				kind         = .unknown_content_variant,
+				kind         = .Unknown_Content_Variant,
 				entity_index = entity_index,
 				message      = fmt.aprintf("unknown enemy kind %q", properties_wire.kind),
 			}
@@ -223,7 +223,7 @@ decode_room_file_entity :: proc(
 			kind = kind,
 		}
 	case "npc":
-		properties: Room_File_NPC
+		properties: Room_File_Npc
 		entity.properties = properties
 	case "holdable":
 		properties: Room_File_Holdable
@@ -234,7 +234,7 @@ decode_room_file_entity :: proc(
 		entity.properties = properties
 		if !ok {
 			err = {
-				kind         = .invalid_entity_properties,
+				kind         = .Invalid_Entity_Properties,
 				entity_index = entity_index,
 				message      = strings.clone("door properties have invalid types", allocator),
 			}
@@ -245,7 +245,7 @@ decode_room_file_entity :: proc(
 		entity.properties = properties
 		if !ok {
 			err = {
-				kind         = .invalid_entity_properties,
+				kind         = .Invalid_Entity_Properties,
 				entity_index = entity_index,
 				message      = strings.clone(
 					"pressure plate properties have invalid types",
@@ -259,14 +259,14 @@ decode_room_file_entity :: proc(
 		entity.properties = properties
 		if !ok {
 			err = {
-				kind         = .invalid_entity_properties,
+				kind         = .Invalid_Entity_Properties,
 				entity_index = entity_index,
 				message      = strings.clone("gate properties have invalid types", allocator),
 			}
 		}
 	}
 
-	if err.kind != .none {
+	if err.kind != .None {
 		destroy_room_file_entity(&entity, allocator)
 	}
 	return
@@ -317,7 +317,7 @@ encode_room_file_entity :: proc(
 				allocator,
 			)
 		}
-	case Room_File_NPC:
+	case Room_File_Npc:
 		wire.type = "npc"
 		properties_ok = true
 	case Room_File_Holdable:
@@ -336,7 +336,7 @@ encode_room_file_entity :: proc(
 
 	if !properties_ok {
 		err = {
-			kind         = .invalid_entity_properties,
+			kind         = .Invalid_Entity_Properties,
 			entity_index = entity_index,
 		}
 	}
@@ -350,7 +350,7 @@ destroy_room_file_entity :: proc(entity: ^Room_File_Entity, allocator := context
 	switch &properties in entity.properties {
 	case Room_File_Player,
 	     Room_File_Enemy,
-	     Room_File_NPC,
+	     Room_File_Npc,
 	     Room_File_Holdable,
 	     Room_File_Pressure_Plate:
 	case Room_File_Door:

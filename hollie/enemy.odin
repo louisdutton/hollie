@@ -51,7 +51,7 @@ enemy_spawn_kind_at :: proc(position: Vec2, kind: content.Character_Kind) {
 	case .Skeleton: enemy_create(position, skeleton_animations[:], kind)
 	case .Human: enemy_create(position, human_animations[:], kind)
 	case .Dog, .Horse, .Bison, .Turtle:
-		animations: [len(AnimationState)]Animation
+		animations: [len(Animation_State)]Animation
 		for &animation in animations do animation.frame_count = 1
 		enemy_create(position, animations[:], kind)
 	}

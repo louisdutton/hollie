@@ -45,21 +45,21 @@ test_collider_aabb_respects_mesh_derived_offset :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		collision_aabb_at({10, 20}, collider),
-		AABB{min = {4, 0, 18}, max = {16, 5, 26}},
+		Aabb{min = {4, 0, 18}, max = {16, 5, 26}},
 	)
 }
 
 @(test)
 test_collision_aabbs_require_vertical_overlap :: proc(t: ^testing.T) {
-	grounded := AABB {
+	grounded := Aabb {
 		min = {0, 0, 0},
 		max = {10, 2, 10},
 	}
-	above := AABB {
+	above := Aabb {
 		min = {0, 3, 0},
 		max = {10, 5, 10},
 	}
-	overlapping := AABB {
+	overlapping := Aabb {
 		min = {5, 1, 5},
 		max = {15, 4, 15},
 	}

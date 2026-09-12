@@ -6,7 +6,7 @@ import "core:os"
 
 Loaded_Map :: struct {
 	path: string,
-	tm:   tilemap.TileMap,
+	tm:   tilemap.Tile_Map,
 }
 
 find_room :: proc(maps: []Loaded_Map, room_id: string) -> (^Loaded_Map, bool) {
@@ -16,7 +16,7 @@ find_room :: proc(maps: []Loaded_Map, room_id: string) -> (^Loaded_Map, bool) {
 	return nil, false
 }
 
-room_has_door_marker :: proc(tm: ^tilemap.TileMap, marker: string) -> bool {
+room_has_door_marker :: proc(tm: ^tilemap.Tile_Map, marker: string) -> bool {
 	for entity in tm.entities {
 		if entity.entity_type == .Door && entity.target_door == marker do return true
 	}
@@ -37,7 +37,7 @@ main :: proc() {
 
 	for map_path in os.args[2:] {
 		tm, load_error := tilemap.load_tilemap_file(map_path, resource_root)
-		if load_error.kind != .none {
+		if load_error.kind != .None {
 			fmt.eprintfln("error: %s", load_error.message)
 			tilemap.destroy_room_file_io_error(&load_error)
 			error_count += 1

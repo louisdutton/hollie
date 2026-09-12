@@ -7,23 +7,23 @@ import "core:strings"
 ROOM_FILE_RESOURCE_DIRECTORY :: "maps"
 ROOM_FILE_EXTENSION :: ".json"
 
-Room_File_IO_Error_Kind :: enum {
-	none,
-	invalid_extension,
-	read_failed,
-	decode_failed,
-	validation_failed,
-	conversion_failed,
-	encode_failed,
-	create_temp_failed,
-	write_failed,
-	sync_failed,
-	close_failed,
-	replace_failed,
+Room_File_Io_Error_Kind :: enum {
+	None,
+	Invalid_Extension,
+	Read_Failed,
+	Decode_Failed,
+	Validation_Failed,
+	Conversion_Failed,
+	Encode_Failed,
+	Create_Temp_Failed,
+	Write_Failed,
+	Sync_Failed,
+	Close_Failed,
+	Replace_Failed,
 }
 
-Room_File_IO_Error :: struct {
-	kind:         Room_File_IO_Error_Kind,
+Room_File_Io_Error :: struct {
+	kind:         Room_File_Io_Error_Kind,
 	entity_index: int,
 	message:      string,
 }
@@ -33,10 +33,10 @@ room_file_path_has_canonical_extension :: proc(path: string) -> bool {
 }
 
 room_file_io_error :: proc(
-	kind: Room_File_IO_Error_Kind,
+	kind: Room_File_Io_Error_Kind,
 	path, reason: string,
 	entity_index := -1,
-) -> Room_File_IO_Error {
+) -> Room_File_Io_Error {
 	return {
 		kind = kind,
 		entity_index = entity_index,
@@ -47,7 +47,7 @@ room_file_io_error :: proc(
 room_file_validation_error :: proc(
 	path: string,
 	errors: []Validation_Error,
-) -> Room_File_IO_Error {
+) -> Room_File_Io_Error {
 	assert(len(errors) > 0)
 	first := errors[0]
 	remainder := len(errors) - 1
@@ -67,7 +67,7 @@ room_file_validation_error :: proc(
 	} else if remainder > 0 {
 		reason = fmt.tprintf("%s (+%d more validation errors)", first.message, remainder)
 	}
-	return room_file_io_error(.validation_failed, path, reason, first.entity_index)
+	return room_file_io_error(.Validation_Failed, path, reason, first.entity_index)
 }
 
 load_room_file_json5 :: proc(
@@ -76,24 +76,24 @@ load_room_file_json5 :: proc(
 	allocator := context.allocator,
 ) -> (
 	room: Room_File,
-	err: Room_File_IO_Error,
+	err: Room_File_Io_Error,
 ) {
 	context.allocator = allocator
 	if !room_file_path_has_canonical_extension(path) {
-		return {}, room_file_io_error(.invalid_extension, path, fmt.tprintf("room filenames must end in %s", ROOM_FILE_EXTENSION))
+		return {}, room_file_io_error(.Invalid_Extension, path, fmt.tprintf("room filenames must end in %s", ROOM_FILE_EXTENSION))
 	}
 
 	data, read_error := os.read_entire_file(path, allocator)
 	if read_error != nil {
-		return {}, room_file_io_error(.read_failed, path, fmt.tprintf("could not read room file: %v", read_error))
+		return {}, room_file_io_error(.Read_Failed, path, fmt.tprintf("could not read room file: %v", read_error))
 	}
 	defer delete(data, allocator)
 
 	decode_error: Room_File_Decode_Error
 	room, decode_error = decode_room_file_json5(string(data), allocator)
-	if decode_error.kind != .none {
+	if decode_error.kind != .None {
 		err = room_file_io_error(
-			.decode_failed,
+			.Decode_Failed,
 			path,
 			decode_error.message,
 			decode_error.entity_index,
@@ -117,13 +117,13 @@ load_tilemap_file :: proc(
 	resource_root := "",
 	allocator := context.allocator,
 ) -> (
-	tm: TileMap,
-	err: Room_File_IO_Error,
+	tm: Tile_Map,
+	err: Room_File_Io_Error,
 ) {
 	context.allocator = allocator
 	room: Room_File
 	room, err = load_room_file_json5(path, resource_root, allocator)
-	if err.kind != .none do return
+	if err.kind != .None do return
 	defer destroy_room_file(&room, allocator)
 
 	validation_errors: [dynamic]Validation_Error
@@ -140,11 +140,11 @@ save_room_file_json5_atomic :: proc(
 	room: ^Room_File,
 	resource_root := "",
 	allocator := context.allocator,
-) -> Room_File_IO_Error {
+) -> Room_File_Io_Error {
 	context.allocator = allocator
 	if !room_file_path_has_canonical_extension(path) {
 		return room_file_io_error(
-			.invalid_extension,
+			.Invalid_Extension,
 			path,
 			fmt.tprintf("room filenames must end in %s", ROOM_FILE_EXTENSION),
 		)
@@ -157,16 +157,16 @@ save_room_file_json5_atomic :: proc(
 	}
 
 	data, encode_error := encode_room_file_json5(room^, allocator)
-	if encode_error.kind != .none {
+	if encode_error.kind != .None {
 		if encode_error.entity_index >= 0 {
 			return room_file_io_error(
-				.encode_failed,
+				.Encode_Failed,
 				path,
 				fmt.tprintf("entity %d could not be encoded", encode_error.entity_index + 1),
 				encode_error.entity_index,
 			)
 		}
-		return room_file_io_error(.encode_failed, path, "room could not be encoded")
+		return room_file_io_error(.Encode_Failed, path, "room could not be encoded")
 	}
 	defer delete(data, allocator)
 
@@ -175,7 +175,7 @@ save_room_file_json5_atomic :: proc(
 	temp_file, create_error := os.create_temp_file(os.dir(path), temp_pattern)
 	if create_error != nil {
 		return room_file_io_error(
-			.create_temp_failed,
+			.Create_Temp_Failed,
 			path,
 			fmt.tprintf("could not create a temporary room file: %v", create_error),
 		)
@@ -190,7 +190,7 @@ save_room_file_json5_atomic :: proc(
 	if write_error != nil || written != len(data) {
 		_ = os.close(temp_file)
 		return room_file_io_error(
-			.write_failed,
+			.Write_Failed,
 			path,
 			fmt.tprintf("could not write the temporary room file: %v", write_error),
 		)
@@ -199,7 +199,7 @@ save_room_file_json5_atomic :: proc(
 	if sync_error := os.sync(temp_file); sync_error != nil {
 		_ = os.close(temp_file)
 		return room_file_io_error(
-			.sync_failed,
+			.Sync_Failed,
 			path,
 			fmt.tprintf("could not sync the temporary room file: %v", sync_error),
 		)
@@ -207,7 +207,7 @@ save_room_file_json5_atomic :: proc(
 
 	if close_error := os.close(temp_file); close_error != nil {
 		return room_file_io_error(
-			.close_failed,
+			.Close_Failed,
 			path,
 			fmt.tprintf("could not close the temporary room file: %v", close_error),
 		)
@@ -215,7 +215,7 @@ save_room_file_json5_atomic :: proc(
 
 	if replace_error := os.rename(temp_path, path); replace_error != nil {
 		return room_file_io_error(
-			.replace_failed,
+			.Replace_Failed,
 			path,
 			fmt.tprintf("could not replace the room file: %v", replace_error),
 		)
@@ -226,15 +226,15 @@ save_room_file_json5_atomic :: proc(
 
 save_tilemap_file_atomic :: proc(
 	path: string,
-	tm: ^TileMap,
+	tm: ^Tile_Map,
 	resource_root := "",
 	allocator := context.allocator,
-) -> Room_File_IO_Error {
+) -> Room_File_Io_Error {
 	context.allocator = allocator
 	room, conversion_error := tilemap_to_room_file(tm^, allocator)
-	if conversion_error.kind != .none {
+	if conversion_error.kind != .None {
 		return room_file_io_error(
-			.conversion_failed,
+			.Conversion_Failed,
 			path,
 			fmt.tprintf(
 				"entity %d has an unsupported runtime type",
@@ -247,7 +247,7 @@ save_tilemap_file_atomic :: proc(
 	return save_room_file_json5_atomic(path, &room, resource_root, allocator)
 }
 
-destroy_room_file_io_error :: proc(err: ^Room_File_IO_Error, allocator := context.allocator) {
+destroy_room_file_io_error :: proc(err: ^Room_File_Io_Error, allocator := context.allocator) {
 	if err == nil do return
 	delete(err.message, allocator)
 	err^ = {}

@@ -16,13 +16,13 @@ Pause_Menu_State :: enum {
 	Controls,
 }
 
-PAUSE_MAIN_MENU_ITEMS := [?]string{"Resume", "Options", "Return to menu", "Quit game"}
-MENU_OPTIONS_ITEMS := [?]string{"Audio", "Visual", "Controls", "Back"}
+pause_main_menu_items := [?]string{"Resume", "Options", "Return to menu", "Quit game"}
+menu_options_items := [?]string{"Audio", "Visual", "Controls", "Back"}
 
 @(private = "file")
 pause_state := struct {
 	menu_state: Pause_Menu_State,
-	focus:      UI_Focus,
+	focus:      Ui_Focus,
 } {
 	menu_state = .Hidden,
 }
@@ -97,12 +97,12 @@ pause_draw :: proc() {
 
 // Draw the main pause menu
 pause_draw_main_menu :: proc() {
-	ui_menu_panel("", PAUSE_MAIN_MENU_ITEMS[:], pause_state.focus)
+	ui_menu_panel("", pause_main_menu_items[:], pause_state.focus)
 }
 
 // Draw the options submenu
 pause_draw_options_menu :: proc() {
-	ui_menu_panel("Options", MENU_OPTIONS_ITEMS[:], pause_state.focus)
+	ui_menu_panel("Options", menu_options_items[:], pause_state.focus)
 }
 
 // Audio options menu with volume controls
@@ -110,7 +110,7 @@ pause_draw_audio_menu :: proc() {
 	menu_draw_audio_options(pause_state.focus)
 }
 
-menu_draw_audio_options :: proc(focus: UI_Focus) {
+menu_draw_audio_options :: proc(focus: Ui_Focus) {
 	menu_width: f32 = 350
 	menu_height: f32 = 280
 	menu_rect := ui_centered_rect(menu_width, menu_height)
@@ -151,7 +151,7 @@ pause_draw_visual_menu :: proc() {
 	menu_draw_visual_options(pause_state.focus)
 }
 
-menu_draw_visual_options :: proc(focus: UI_Focus) {
+menu_draw_visual_options :: proc(focus: Ui_Focus) {
 	fullscreen_text := window.is_fullscreen() ? "Fullscreen: on" : "Fullscreen: off"
 	current_width, current_height := window.get_window_size()
 	resolution_text := fmt.tprintf("Resolution: %dx%d", current_width, current_height)
@@ -165,7 +165,7 @@ pause_draw_controls_menu :: proc() {
 	menu_draw_controls(pause_state.focus)
 }
 
-menu_draw_controls :: proc(focus: UI_Focus) {
+menu_draw_controls :: proc(focus: Ui_Focus) {
 	menu_width: f32 = 400
 	menu_height: f32 = 350
 	menu_rect := ui_centered_rect(menu_width, menu_height)
@@ -254,8 +254,8 @@ pause_set_menu :: proc(menu_state: Pause_Menu_State) {
 pause_menu_item_count :: proc(menu_state: Pause_Menu_State) -> int {
 	switch menu_state {
 	case .Hidden: return 0
-	case .Main: return len(PAUSE_MAIN_MENU_ITEMS)
-	case .Options: return len(MENU_OPTIONS_ITEMS)
+	case .Main: return len(pause_main_menu_items)
+	case .Options: return len(menu_options_items)
 	case .Audio, .Visual: return 4
 	case .Controls: return 1
 	}

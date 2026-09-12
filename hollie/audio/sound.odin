@@ -5,11 +5,11 @@ import "core:math/rand"
 import rl "vendor:raylib"
 
 Sound_Kind :: enum {
-	GateOpen,
-	PressurePlateToggle,
-	SwitchOn,
-	SwitchOff,
-	ButtonPress,
+	Gate_Open,
+	Pressure_Plate_Toggle,
+	Switch_On,
+	Switch_Off,
+	Button_Press,
 }
 
 Sound :: struct {
@@ -23,11 +23,11 @@ Sound_Collection :: [Sound_Kind]Sound
 sound_init :: proc() -> Sound_Collection {
 	sounds: Sound_Collection
 
-	sounds[.GateOpen] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
-	sounds[.PressurePlateToggle] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
-	sounds[.SwitchOn] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
-	sounds[.SwitchOff] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
-	sounds[.ButtonPress] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.Gate_Open] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
+	sounds[.Pressure_Plate_Toggle] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.Switch_On] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
+	sounds[.Switch_Off] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
+	sounds[.Button_Press] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	return sounds
 }
 

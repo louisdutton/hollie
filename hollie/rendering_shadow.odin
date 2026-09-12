@@ -37,8 +37,8 @@ shadow_map_apply_shaders :: proc() {
 	rendering_apply_shader(&model_assets.doorway_wall, rendering_state.shadow_shader)
 }
 
-shadow_map_load :: proc() -> graphics.Render_Texture2D {
-	target: graphics.Render_Texture2D
+shadow_map_load :: proc() -> graphics.Render_Texture_2D {
+	target: graphics.Render_Texture_2D
 	target.id = graphics.load_framebuffer()
 	target.texture.width = RENDERING_SHADOW_MAP_RESOLUTION
 	target.texture.height = RENDERING_SHADOW_MAP_RESOLUTION
@@ -86,7 +86,7 @@ shadow_map_fini :: proc() {
 	}
 }
 
-shadow_map_camera :: proc(camera_3d: graphics.Camera3D) -> graphics.Camera3D {
+shadow_map_camera :: proc(camera_3d: graphics.Camera_3D) -> graphics.Camera_3D {
 	direction := RENDERING_LIGHT_DIRECTION
 	length := math.sqrt(
 		direction.x * direction.x + direction.y * direction.y + direction.z * direction.z,
@@ -132,7 +132,7 @@ shadow_map_bind_for_rendering :: proc() {
 	graphics.active_texture_slot(0)
 }
 
-shadow_map_render :: proc(camera_3d: graphics.Camera3D) {
+shadow_map_render :: proc(camera_3d: graphics.Camera_3D) {
 	shadow_map_apply_shaders()
 	light_camera := shadow_map_camera(camera_3d)
 	light_view := graphics.get_camera_view_matrix(&light_camera)

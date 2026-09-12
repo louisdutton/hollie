@@ -10,7 +10,7 @@ UI_FRAME_ASSET_ROOT :: UI_ASSET_ROOT + "frame/"
 UI_INPUT_ASSET_ROOT :: UI_ASSET_ROOT + "input/"
 UI_MAX_PROMPT_TEXTURES :: 4 // maximum textures needed to compose one input prompt
 
-UI_FRAME_PATHS :: [UI_Frame_Style]string {
+UI_FRAME_PATHS :: [Ui_Frame_Style]string {
 	.Panel_Surface  = UI_FRAME_ASSET_ROOT + "panel-000.png",
 	.Panel_Outline  = UI_FRAME_ASSET_ROOT + "panel-border-000.png",
 	.Action_Bar     = UI_FRAME_ASSET_ROOT + "panel-border-005.png",
@@ -19,7 +19,7 @@ UI_FRAME_PATHS :: [UI_Frame_Style]string {
 	.Focus_Fill     = UI_FRAME_ASSET_ROOT + "panel-008.png",
 }
 
-UI_KEY_PROMPT_PATHS :: [UI_Key_Prompt]string {
+UI_KEY_PROMPT_PATHS :: [Ui_Key_Prompt]string {
 	.Arrows            = UI_INPUT_ASSET_ROOT + "keyboard-arrows.png",
 	.Arrows_Horizontal = UI_INPUT_ASSET_ROOT + "keyboard-arrows-horizontal.png",
 	.A                 = UI_INPUT_ASSET_ROOT + "keyboard-a.png",
@@ -43,7 +43,7 @@ UI_KEY_PROMPT_PATHS :: [UI_Key_Prompt]string {
 	.Backspace         = UI_INPUT_ASSET_ROOT + "keyboard-backspace.png",
 }
 
-UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][UI_Gamepad_Prompt]string {
+UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][Ui_Gamepad_Prompt]string {
 	.Xbox = {
 		.Face_Up = UI_INPUT_ASSET_ROOT + "xbox-button-y.png",
 		.Face_Right = UI_INPUT_ASSET_ROOT + "xbox-button-b.png",
@@ -97,7 +97,7 @@ UI_GAMEPAD_PROMPT_PATHS :: [input.Gamepad_Layout][UI_Gamepad_Prompt]string {
 	},
 }
 
-UI_Key_Prompt :: enum {
+Ui_Key_Prompt :: enum {
 	Arrows,
 	Arrows_Horizontal,
 	A,
@@ -121,7 +121,7 @@ UI_Key_Prompt :: enum {
 	Backspace,
 }
 
-UI_Gamepad_Prompt :: enum {
+Ui_Gamepad_Prompt :: enum {
 	Face_Up,
 	Face_Right,
 	Face_Down,
@@ -139,7 +139,7 @@ UI_Gamepad_Prompt :: enum {
 	Dpad_Horizontal,
 }
 
-UI_Frame_Style :: enum {
+Ui_Frame_Style :: enum {
 	Panel_Surface,
 	Panel_Outline,
 	Action_Bar,
@@ -148,26 +148,26 @@ UI_Frame_Style :: enum {
 	Focus_Fill,
 }
 
-UI_Prompt_View :: struct {
-	textures: [UI_MAX_PROMPT_TEXTURES]graphics.Texture2D,
+Ui_Prompt_View :: struct {
+	textures: [UI_MAX_PROMPT_TEXTURES]graphics.Texture_2D,
 	count:    int,
 }
 
-UI_Assets :: struct {
-	frames:          [UI_Frame_Style]graphics.Texture2D,
-	title_divider:   graphics.Texture2D,
+Ui_Assets :: struct {
+	frames:          [Ui_Frame_Style]graphics.Texture_2D,
+	title_divider:   graphics.Texture_2D,
 	horizontal_fade: graphics.Shader,
-	key_prompts:     [UI_Key_Prompt]graphics.Texture2D,
-	gamepad_prompts: [input.Gamepad_Layout][UI_Gamepad_Prompt]graphics.Texture2D,
+	key_prompts:     [Ui_Key_Prompt]graphics.Texture_2D,
+	gamepad_prompts: [input.Gamepad_Layout][Ui_Gamepad_Prompt]graphics.Texture_2D,
 }
 
 @(private)
-ui_assets: UI_Assets
+ui_assets: Ui_Assets
 
 ui_assets_init :: proc() {
 	frame_paths := UI_FRAME_PATHS
 	for style_index in 0 ..< len(ui_assets.frames) {
-		style := UI_Frame_Style(style_index)
+		style := Ui_Frame_Style(style_index)
 		texture := ui_assets_load_texture(frame_paths[style])
 		graphics.set_texture_filter(texture, .POINT)
 		ui_assets.frames[style] = texture
@@ -180,7 +180,7 @@ ui_assets_init :: proc() {
 
 	key_prompt_paths := UI_KEY_PROMPT_PATHS
 	for prompt_index in 0 ..< len(ui_assets.key_prompts) {
-		prompt := UI_Key_Prompt(prompt_index)
+		prompt := Ui_Key_Prompt(prompt_index)
 		texture := ui_assets_load_texture(key_prompt_paths[prompt])
 		graphics.generate_texture_mipmaps(&texture)
 		graphics.set_texture_filter(texture, .TRILINEAR)
@@ -191,7 +191,7 @@ ui_assets_init :: proc() {
 	for layout_index in 0 ..< len(ui_assets.gamepad_prompts) {
 		layout := input.Gamepad_Layout(layout_index)
 		for prompt_index in 0 ..< len(ui_assets.gamepad_prompts[layout]) {
-			prompt := UI_Gamepad_Prompt(prompt_index)
+			prompt := Ui_Gamepad_Prompt(prompt_index)
 			texture := ui_assets_load_texture(gamepad_prompt_paths[layout][prompt])
 			graphics.generate_texture_mipmaps(&texture)
 			graphics.set_texture_filter(texture, .TRILINEAR)
@@ -211,13 +211,13 @@ ui_assets_fini :: proc() {
 	ui_assets = {}
 }
 
-ui_draw_frame :: proc(style: UI_Frame_Style, bounds: graphics.Rect, tint := graphics.WHITE) {
+ui_draw_frame :: proc(style: Ui_Frame_Style, bounds: graphics.Rect, tint := graphics.WHITE) {
 	texture := ui_assets.frames[style]
 	graphics.draw_nine_patch(texture, bounds, 16, 16, 16, 16, tint)
 }
 
 ui_draw_horizontally_faded_frame :: proc(
-	style: UI_Frame_Style,
+	style: Ui_Frame_Style,
 	bounds: graphics.Rect,
 	fade_width: f32,
 	tint := graphics.WHITE,
@@ -250,11 +250,11 @@ ui_draw_title_divider :: proc(bounds: graphics.Rect, mirrored: bool, tint := gra
 	graphics.draw_texture_pro(texture, source, bounds, {}, 0, tint)
 }
 
-ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
+ui_action_prompt_view :: proc(action: input.Action) -> Ui_Prompt_View {
 	binding := input.action_binding(action)
 	if input.active_device() == .Gamepad && input.is_gamepad_available(.Player_1) {
 		layout := input.active_gamepad_layout()
-		view := UI_Prompt_View{}
+		view := Ui_Prompt_View{}
 		#partial switch action {
 		case .Menu_Navigate:
 			view.textures[0] = ui_assets.gamepad_prompts[layout][.Left_Stick]
@@ -283,7 +283,7 @@ ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
 		return view
 	}
 
-	view := UI_Prompt_View{}
+	view := Ui_Prompt_View{}
 	#partial switch action {
 	case .Menu_Navigate:
 		view.textures[0] = ui_assets.key_prompts[.Arrows]
@@ -321,10 +321,10 @@ ui_action_prompt_view :: proc(action: input.Action) -> UI_Prompt_View {
 	return view
 }
 
-ui_key_prompt_view :: proc(key: input.Key) -> UI_Prompt_View {
+ui_key_prompt_view :: proc(key: input.Key) -> Ui_Prompt_View {
 	prompt, found := ui_key_prompt_for_key(key)
 	if !found do return {}
-	view := UI_Prompt_View {
+	view := Ui_Prompt_View {
 		count = 1,
 	}
 	view.textures[0] = ui_assets.key_prompts[prompt]
@@ -334,11 +334,11 @@ ui_key_prompt_view :: proc(key: input.Key) -> UI_Prompt_View {
 ui_control_prompt_view :: proc(
 	key: input.Key,
 	gamepad_button: input.Gamepad_Button,
-) -> UI_Prompt_View {
+) -> Ui_Prompt_View {
 	if input.active_device() == .Gamepad && input.is_gamepad_available(.Player_1) {
 		prompt, found := ui_gamepad_prompt_for_button(gamepad_button)
 		if !found do return {}
-		view := UI_Prompt_View {
+		view := Ui_Prompt_View {
 			count = 1,
 		}
 		view.textures[0] = ui_assets.gamepad_prompts[input.active_gamepad_layout()][prompt]
@@ -347,12 +347,12 @@ ui_control_prompt_view :: proc(
 	return ui_key_prompt_view(key)
 }
 
-ui_prompt_view_width :: proc(view: UI_Prompt_View, size: f32 = 18, gap: f32 = 2) -> f32 {
+ui_prompt_view_width :: proc(view: Ui_Prompt_View, size: f32 = 18, gap: f32 = 2) -> f32 {
 	if view.count == 0 do return 0
 	return f32(view.count) * size + f32(view.count - 1) * gap
 }
 
-ui_draw_prompt_view :: proc(view: UI_Prompt_View, x, y: f32, size: f32 = 18, gap: f32 = 2) {
+ui_draw_prompt_view :: proc(view: Ui_Prompt_View, x, y: f32, size: f32 = 18, gap: f32 = 2) {
 	for index in 0 ..< view.count {
 		texture := view.textures[index]
 		destination := graphics.Rect{x + f32(index) * (size + gap), y, size, size}
@@ -368,7 +368,7 @@ ui_draw_prompt_view :: proc(view: UI_Prompt_View, x, y: f32, size: f32 = 18, gap
 }
 
 @(private)
-ui_key_prompt_for_key :: proc(key: input.Key) -> (UI_Key_Prompt, bool) {
+ui_key_prompt_for_key :: proc(key: input.Key) -> (Ui_Key_Prompt, bool) {
 	#partial switch key {
 	case .A: return .A, true
 	case .D: return .D, true
@@ -394,7 +394,7 @@ ui_key_prompt_for_key :: proc(key: input.Key) -> (UI_Key_Prompt, bool) {
 }
 
 @(private)
-ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepad_Prompt, bool) {
+ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (Ui_Gamepad_Prompt, bool) {
 	#partial switch button {
 	case .RIGHT_FACE_UP: return .Face_Up, true
 	case .RIGHT_FACE_RIGHT: return .Face_Right, true
@@ -414,7 +414,7 @@ ui_gamepad_prompt_for_button :: proc(button: input.Gamepad_Button) -> (UI_Gamepa
 }
 
 @(private)
-ui_assets_load_texture :: proc(relative_path: string) -> graphics.Texture2D {
+ui_assets_load_texture :: proc(relative_path: string) -> graphics.Texture_2D {
 	path := asset.path(relative_path)
 	defer delete(path)
 	return graphics.load_texture(path)

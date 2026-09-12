@@ -5,7 +5,7 @@ import "graphics"
 import "input"
 import "tilemap"
 
-PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable world.entities
+PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable entities
 PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped item
 PLAYER_DROP_GAP :: 2 // clearance kept between the player and a dropped item
 

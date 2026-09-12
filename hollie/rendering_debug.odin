@@ -102,7 +102,7 @@ when ODIN_DEBUG {
 		}
 	}
 
-	debug_draw_labels :: proc(camera_3d: graphics.Camera3D) {
+	debug_draw_labels :: proc(camera_3d: graphics.Camera_3D) {
 		for &entity in world.entities {
 			door, ok := &entity.(Door)
 			if !ok do continue

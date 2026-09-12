@@ -102,7 +102,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 			)
 		}
 		for collision, index in room.layers.collision {
-			if collision > u8(CollisionType.Solid) {
+			if collision > u8(Collision_Type.Solid) {
 				validation_add_owned_error(
 					&errors,
 					fmt.aprintf("collision tile %d must be 0 or 1", index),
@@ -198,7 +198,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 					validation_add_error(&errors, "enemy kind is invalid", entity_index)
 				}
 
-		case Room_File_NPC, Room_File_Holdable:
+		case Room_File_Npc, Room_File_Holdable:
 
 		case Room_File_Door:
 			if properties.size.width <= 0 || properties.size.height <= 0 {
@@ -314,7 +314,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 	return errors
 }
 
-validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validation_Error {
+validate_tilemap :: proc(tm: ^Tile_Map, resource_root := "") -> [dynamic]Validation_Error {
 	errors := make([dynamic]Validation_Error)
 
 	if tm.width <= 0 do validation_add_error(&errors, "width must be positive")

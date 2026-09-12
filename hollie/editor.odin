@@ -23,8 +23,8 @@ Editor_Layer :: enum {
 
 Editor_State :: struct {
 	mode:               Editor_Mode,
-	selected_tile:      tilemap.TileType,
-	selected_entity:    tilemap.EntityType,
+	selected_tile:      tilemap.Tile_Type,
+	selected_entity:    tilemap.Entity_Type,
 	selected_layer:     Editor_Layer,
 	is_painting:        bool,
 	is_erasing:         bool,
@@ -35,9 +35,9 @@ Editor_State :: struct {
 	cursor_y:           int,
 	cursor_visible:     bool,
 	cursor_move_timer:  f32,
-	pre_edit_camera:    graphics.Camera2D,
+	pre_edit_camera:    graphics.Camera_2D,
 	pre_edit_players:   [dynamic]Vec2,
-	hovered_entity:     ^tilemap.EntityData,
+	hovered_entity:     ^tilemap.Entity_Data,
 	is_editing_entity:  bool,
 	edit_input_timer:   f32,
 	save_message:       string,
@@ -219,7 +219,7 @@ editor_handle_entity_editing :: proc(dt: f32) {
 	}
 }
 
-editor_entity_has_data :: proc(entity: ^tilemap.EntityData) -> bool {
+editor_entity_has_data :: proc(entity: ^tilemap.Entity_Data) -> bool {
 	#partial switch entity.entity_type {
 	case .Pressure_Plate: return entity.trigger_id != 0
 	case .Gate: return entity.gate_id != 0 || len(entity.required_triggers) > 0
@@ -262,14 +262,14 @@ editor_handle_camera_input :: proc(dt: f32) {
 	}
 }
 
-BASE_TILES := []tilemap.TileType{.Grass_1}
+base_tiles := []tilemap.Tile_Type{.Grass_1}
 
-DECORATION_TILES := []tilemap.TileType{.Empty}
+decoration_tiles := []tilemap.Tile_Type{.Empty}
 
-editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
+editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.Tile_Type {
 	switch layer {
-	case .Base: return BASE_TILES
-	case .Decoration: return DECORATION_TILES
+	case .Base: return base_tiles
+	case .Decoration: return decoration_tiles
 	case .Collision: return {}
 	case .Entity: return {}
 	}
@@ -278,7 +278,7 @@ editor_get_tiles_for_layer :: proc(layer: Editor_Layer) -> []tilemap.TileType {
 
 editor_handle_tile_selection :: proc() {
 	if editor_state.selected_layer == .Entity {
-		entities := []tilemap.EntityType{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
+		entities := []tilemap.Entity_Type{.Enemy, .Npc, .Holdable, .Pressure_Plate, .Gate, .Door}
 
 		current_index := -1
 		for entity, i in entities {
@@ -431,7 +431,7 @@ editor_save_current_tilemap :: proc() {
 		resource_root,
 	)
 	defer tilemap.destroy_room_file_io_error(&save_error)
-	if save_error.kind == .none {
+	if save_error.kind == .None {
 		fmt.println("Tilemap saved to:", full_path)
 		editor_set_save_message("Room saved", true)
 	} else {
@@ -529,7 +529,7 @@ editor_cycle_door_name :: proc(door_name: ^string) {
 	editor_replace_string(door_name, door_names[new_index])
 }
 
-editor_cycle_character_kind :: proc(entity: ^tilemap.EntityData, direction: int) {
+editor_cycle_character_kind :: proc(entity: ^tilemap.Entity_Data, direction: int) {
 	if entity.entity_type != .Enemy do return
 
 	kind_count := len(content.Character_Kind)

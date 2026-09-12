@@ -10,12 +10,12 @@ test_collision_map_supports_non_rectangular_walkable_areas :: proc(t: ^testing.T
 	defer tilemap = previous_tilemap
 	defer config = previous_config
 
-	tilemap = TileMap {
+	tilemap = Tile_Map {
 		width = 3,
 		height = 2,
 		tile_size = 16,
 		config = {world_tile_size = 16},
-		collision_tiles = []CollisionType{.Solid, .Walkable, .Solid, .Solid, .Walkable, .Solid},
+		collision_tiles = []Collision_Type{.Solid, .Walkable, .Solid, .Solid, .Walkable, .Solid},
 	}
 	config = tilemap.config
 
@@ -24,17 +24,17 @@ test_collision_map_supports_non_rectangular_walkable_areas :: proc(t: ^testing.T
 	testing.expect(t, is_tile_solid(-1, 0), "outside the map should be solid")
 	testing.expect(
 		t,
-		!check_collision(spatial.AABB{min = {16, 0, 0}, max = {32, 1, 16}}),
+		!check_collision(spatial.Aabb{min = {16, 0, 0}, max = {32, 1, 16}}),
 		"a collider ending on a tile edge should not include the adjacent solid tile",
 	)
 	testing.expect(
 		t,
-		check_collision(spatial.AABB{min = {24, 0, 0}, max = {40, 1, 16}}),
+		check_collision(spatial.Aabb{min = {24, 0, 0}, max = {40, 1, 16}}),
 		"a collider spanning a solid tile should collide",
 	)
 	testing.expect(
 		t,
-		check_collision(spatial.AABB{min = {-1, 0, 0}, max = {15, 1, 16}}),
+		check_collision(spatial.Aabb{min = {-1, 0, 0}, max = {15, 1, 16}}),
 		"a collider leaving the map should collide",
 	)
 }

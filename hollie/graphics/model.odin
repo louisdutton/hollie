@@ -6,12 +6,12 @@ import rl "vendor:raylib"
 
 Vec3 :: rl.Vector3
 Bounding_Box :: rl.BoundingBox
-Camera3D :: rl.Camera3D
+Camera_3D :: rl.Camera3D
 Camera_Projection :: rl.CameraProjection
 Model :: rl.Model
 Model_Animation :: rl.ModelAnimation
 Shader :: rl.Shader
-Render_Texture2D :: rl.RenderTexture2D
+Render_Texture_2D :: rl.RenderTexture2D
 Matrix :: rl.Matrix
 Pixel_Format :: rl.PixelFormat
 
@@ -243,7 +243,7 @@ draw_triangle_3d :: #force_inline proc(a, b, c: Vec3, color: Colour) {
 }
 
 
-begin_mode_3d :: #force_inline proc(camera: Camera3D) {
+begin_mode_3d :: #force_inline proc(camera: Camera_3D) {
 	rl.BeginMode3D(camera)
 }
 
@@ -251,15 +251,15 @@ end_mode_3d :: #force_inline proc() {
 	rl.EndMode3D()
 }
 
-get_world_to_screen :: #force_inline proc(position: Vec3, camera: Camera3D) -> Vec2 {
+get_world_to_screen :: #force_inline proc(position: Vec3, camera: Camera_3D) -> Vec2 {
 	return rl.GetWorldToScreen(position, camera)
 }
 
-get_camera_view_matrix :: #force_inline proc(camera: ^Camera3D) -> Matrix {
+get_camera_view_matrix :: #force_inline proc(camera: ^Camera_3D) -> Matrix {
 	return rl.GetCameraViewMatrix(camera)
 }
 
-get_camera_projection_matrix :: #force_inline proc(camera: ^Camera3D, aspect: f32) -> Matrix {
+get_camera_projection_matrix :: #force_inline proc(camera: ^Camera_3D, aspect: f32) -> Matrix {
 	return rl.GetCameraProjectionMatrix(camera, aspect)
 }
 
@@ -311,7 +311,7 @@ end_shader :: #force_inline proc() {
 	rl.EndShaderMode()
 }
 
-begin_render_texture :: #force_inline proc(target: Render_Texture2D) {
+begin_render_texture :: #force_inline proc(target: Render_Texture_2D) {
 	rl.BeginTextureMode(target)
 }
 

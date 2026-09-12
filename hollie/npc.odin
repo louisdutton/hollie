@@ -1,6 +1,6 @@
 package hollie
 
-VILLAGER_DIALOG := []Dialog_Message {
+villager_dialog := []Dialog_Message {
 	{text = "Hello there, traveler!", speaker = "Village NPC"},
 	{text = "Welcome to our peaceful village.", speaker = "Village NPC"},
 	{text = "Feel free to explore around.", speaker = "Village NPC"},
@@ -35,7 +35,7 @@ npc_create :: proc(
 }
 
 npc_spawn_at :: proc(position: Vec2) -> ^Npc {
-	return npc_create(position, human_animations[:], VILLAGER_DIALOG)
+	return npc_create(position, human_animations[:], villager_dialog)
 }
 
 

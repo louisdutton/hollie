@@ -31,7 +31,7 @@ animation_frame_at_time :: proc(
 	return 0
 }
 
-AnimationState :: enum {
+Animation_State :: enum {
 	Idle,
 	Run,
 	Jump,
@@ -43,8 +43,8 @@ AnimationState :: enum {
 Animator :: struct {
 	frame_counts:  []int,
 	visual_time:   f32,
-	current_anim:  AnimationState,
-	previous_anim: AnimationState,
+	current_anim:  Animation_State,
+	previous_anim: Animation_State,
 	previous_time: f32,
 	blend_elapsed: f32,
 }
@@ -71,7 +71,7 @@ animation_update :: proc(anim_data: ^Animator, dt: f32) {
 
 }
 
-animation_set_state :: proc(anim_data: ^Animator, state: AnimationState) {
+animation_set_state :: proc(anim_data: ^Animator, state: Animation_State) {
 	// detect state change
 	if anim_data.current_anim != state {
 		anim_data.previous_anim = anim_data.current_anim

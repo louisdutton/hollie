@@ -3,8 +3,8 @@ package tilemap
 import "core:strings"
 
 Room_File_Conversion_Error_Kind :: enum {
-	none,
-	invalid_entity_type,
+	None,
+	Invalid_Entity_Type,
 }
 
 Room_File_Conversion_Error :: struct {
@@ -17,7 +17,7 @@ room_file_to_tilemap :: proc(
 	resource_root := "",
 	allocator := context.allocator,
 ) -> (
-	tm: TileMap,
+	tm: Tile_Map,
 	errors: [dynamic]Validation_Error,
 ) {
 	context.allocator = allocator
@@ -32,8 +32,8 @@ room_file_to_tilemap :: proc(
 room_file_to_tilemap_unchecked :: proc(
 	room: Room_File,
 	allocator := context.allocator,
-) -> TileMap {
-	tm := TileMap {
+) -> Tile_Map {
+	tm := Tile_Map {
 		width = room.size.width,
 		height = room.size.height,
 		tile_size = room.grid.tile_size,
@@ -56,17 +56,17 @@ room_file_to_tilemap_unchecked :: proc(
 		},
 	}
 
-	tm.base_tiles = make([]TileType, len(room.layers.base), allocator)
+	tm.base_tiles = make([]Tile_Type, len(room.layers.base), allocator)
 	for tile, index in room.layers.base {
-		tm.base_tiles[index] = TileType(tile)
+		tm.base_tiles[index] = Tile_Type(tile)
 	}
-	tm.deco_tiles = make([]TileType, len(room.layers.decoration), allocator)
+	tm.deco_tiles = make([]Tile_Type, len(room.layers.decoration), allocator)
 	for tile, index in room.layers.decoration {
-		tm.deco_tiles[index] = TileType(tile)
+		tm.deco_tiles[index] = Tile_Type(tile)
 	}
-	tm.collision_tiles = make([]CollisionType, room.size.width * room.size.height, allocator)
+	tm.collision_tiles = make([]Collision_Type, room.size.width * room.size.height, allocator)
 	for tile, index in room.layers.collision {
-		tm.collision_tiles[index] = CollisionType(tile)
+		tm.collision_tiles[index] = Collision_Type(tile)
 	}
 	tm.structures = make([]Structure_Data, len(room.structures), allocator)
 	for structure, index in room.structures {
@@ -77,7 +77,7 @@ room_file_to_tilemap_unchecked :: proc(
 		}
 	}
 
-	tm.entities = make([]EntityData, len(room.entities), allocator)
+	tm.entities = make([]Entity_Data, len(room.entities), allocator)
 	for file_entity, entity_index in room.entities {
 		entity := &tm.entities[entity_index]
 		entity.instance_id = strings.clone(file_entity.id, allocator)
@@ -94,7 +94,7 @@ room_file_to_tilemap_unchecked :: proc(
 		case Room_File_Enemy:
 			entity.entity_type = .Enemy
 			entity.character_kind = properties.kind
-		case Room_File_NPC: entity.entity_type = .Npc
+		case Room_File_Npc: entity.entity_type = .Npc
 		case Room_File_Holdable: entity.entity_type = .Holdable
 		case Room_File_Door:
 			entity.entity_type = .Door
@@ -125,7 +125,7 @@ room_file_to_tilemap_unchecked :: proc(
 }
 
 tilemap_to_room_file :: proc(
-	tm: TileMap,
+	tm: Tile_Map,
 	allocator := context.allocator,
 ) -> (
 	room: Room_File,
@@ -179,7 +179,7 @@ tilemap_to_room_file :: proc(
 	for entity, entity_index in tm.entities {
 		if !entity_type_is_valid(entity.entity_type) {
 			destroy_room_file(&room, allocator)
-			return {}, {kind = .invalid_entity_type, entity_index = entity_index}
+			return {}, {kind = .Invalid_Entity_Type, entity_index = entity_index}
 		}
 
 		file_entity := &room.entities[entity_index]
@@ -196,7 +196,7 @@ tilemap_to_room_file :: proc(
 		case .Enemy: file_entity.properties = Room_File_Enemy {
 					kind = entity.character_kind,
 				}
-		case .Npc: file_entity.properties = Room_File_NPC{}
+		case .Npc: file_entity.properties = Room_File_Npc{}
 		case .Holdable: file_entity.properties = Room_File_Holdable{}
 		case .Door: file_entity.properties = Room_File_Door {
 					size = {width = entity.width, height = entity.height},

@@ -25,7 +25,7 @@ bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
 }
 
 // Swept contact time and speed into the struck face, rather than total speed.
-ram_contact :: proc(body, wall: AABB, velocity: Vec2, dt: f32) -> (f32, f32, bool) {
+ram_contact :: proc(body, wall: Aabb, velocity: Vec2, dt: f32) -> (f32, f32, bool) {
 	if body.max.y <= wall.min.y || body.min.y >= wall.max.y do return 0, 0, false
 	if aabbs_intersect(body, wall) do return 0, 0, false
 	entry, leave := f32(-1e9), f32(1e9)
@@ -46,7 +46,7 @@ ram_contact :: proc(body, wall: AABB, velocity: Vec2, dt: f32) -> (f32, f32, boo
 	return entry, impact_speed, entry >= 0 && entry <= dt && entry <= leave
 }
 
-bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[dynamic]AABB) {
+bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[dynamic]Aabb) {
 	if animal.kind != .Bison || !animal.mounted || !animal.grounded || !animal.ram_ready do return
 	body := collision_aabb_at(animal.position, collider, animal.height)
 	nearest := -1

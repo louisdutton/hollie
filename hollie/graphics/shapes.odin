@@ -5,7 +5,7 @@ import rl "vendor:raylib"
 DEFAULT_THICKNESS :: 1
 DEFAULT_BG_COLOR :: BLACK
 ROUNDED_SEGMENTS :: 3 // the number of segments used to render the corners of rounded rectangles
-ROUNDED_VARIANTS := [?]f32{0.1, 0.25, 0.5, 1.0} // the degree of roundedness for a rectangle (0..1)
+rounded_variants := [?]f32{0.1, 0.25, 0.5, 1.0} // the degree of roundedness for a rectangle (0..1)
 
 Roundness :: enum {
 	Small,
@@ -49,7 +49,7 @@ draw_rect_rounded :: #force_inline proc(
 	color := DEFAULT_BG_COLOR,
 ) {
 	rect := rl.Rectangle{x, y, w, h}
-	rl.DrawRectangleRounded(rect, ROUNDED_VARIANTS[roundness], ROUNDED_SEGMENTS, color)
+	rl.DrawRectangleRounded(rect, rounded_variants[roundness], ROUNDED_SEGMENTS, color)
 }
 
 draw_line :: #force_inline proc(start_x, start_y, end_x, end_y: f32, color: Colour) {

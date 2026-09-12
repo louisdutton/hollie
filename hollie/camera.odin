@@ -17,7 +17,7 @@ camera_bounds: graphics.Rect
 camera_height: f32
 camera_grounded_time: f32
 CAMERA_HEIGHT_DEAD_ZONE :: f32(32) // Slightly taller than a regular jump.
-camera := graphics.Camera2D {
+camera := graphics.Camera_2D {
 	zoom = camera_base_zoom,
 }
 

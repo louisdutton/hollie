@@ -17,12 +17,12 @@ Room_Registry :: struct {
 }
 
 Room_Registry_Error_Kind :: enum {
-	none,
-	directory_read_failed,
-	room_load_failed,
-	room_id_mismatch,
-	duplicate_room_id,
-	no_rooms_found,
+	None,
+	Directory_Read_Failed,
+	Room_Load_Failed,
+	Room_Id_Mismatch,
+	Duplicate_Room_Id,
+	No_Rooms_Found,
 }
 
 Room_Registry_Error :: struct {
@@ -50,7 +50,7 @@ room_registry_load :: proc(
 	files, read_error := os.read_all_directory_by_path(directory, allocator)
 	if read_error != nil {
 		destroy_room_registry(&registry, allocator)
-		return {}, room_registry_error(.directory_read_failed, fmt.tprintf("%s: could not discover rooms: %v", directory, read_error))
+		return {}, room_registry_error(.Directory_Read_Failed, fmt.tprintf("%s: could not discover rooms: %v", directory, read_error))
 	}
 	defer os.file_info_slice_delete(files, allocator)
 
@@ -61,8 +61,8 @@ room_registry_load :: proc(
 		}
 
 		room, load_error := tilemap.load_room_file_json5(file.fullpath, resource_root, allocator)
-		if load_error.kind != .none {
-			err = room_registry_error(.room_load_failed, load_error.message)
+		if load_error.kind != .None {
+			err = room_registry_error(.Room_Load_Failed, load_error.message)
 			tilemap.destroy_room_file_io_error(&load_error, allocator)
 			destroy_room_registry(&registry, allocator)
 			return {}, err
@@ -72,7 +72,7 @@ room_registry_load :: proc(
 		filename_id, _ := os.split_filename(file.name)
 		if filename_id != room.id {
 			err = room_registry_error(
-				.room_id_mismatch,
+				.Room_Id_Mismatch,
 				fmt.tprintf(
 					"%s: room id %q must match filename %q",
 					file.fullpath,
@@ -88,7 +88,7 @@ room_registry_load :: proc(
 		for existing in registry.entries {
 			if existing.id == room.id {
 				err = room_registry_error(
-					.duplicate_room_id,
+					.Duplicate_Room_Id,
 					fmt.tprintf(
 						"%s: room id %q is already registered by %s",
 						file.fullpath,
@@ -115,7 +115,7 @@ room_registry_load :: proc(
 
 	if len(registry.entries) == 0 {
 		destroy_room_registry(&registry, allocator)
-		return {}, room_registry_error(.no_rooms_found, fmt.tprintf("%s: no %s room files found", directory, tilemap.ROOM_FILE_EXTENSION))
+		return {}, room_registry_error(.No_Rooms_Found, fmt.tprintf("%s: no %s room files found", directory, tilemap.ROOM_FILE_EXTENSION))
 	}
 
 	slice.sort_by(

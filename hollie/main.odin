@@ -10,7 +10,7 @@ import "window"
 
 Vec2 :: graphics.Vec2
 Vec3 :: spatial.Vec3
-AABB :: spatial.AABB
+Aabb :: spatial.Aabb
 
 // Global state
 design_width: i32

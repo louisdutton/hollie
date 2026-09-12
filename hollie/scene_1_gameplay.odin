@@ -17,7 +17,7 @@ gameplay_room_registry: Room_Registry
 // Gameplay Screen
 @(private = "file")
 gameplay_state := struct {
-	current_tilemap:     tilemap.TileMap,
+	current_tilemap:     tilemap.Tile_Map,
 	current_room_id:     string,
 	is_transitioning:    bool,
 	transition_opacity:  f32,
@@ -46,7 +46,7 @@ gameplay_init :: proc() {
 	defer delete(resource_root)
 	registry_error: Room_Registry_Error
 	gameplay_room_registry, registry_error = room_registry_load(maps_directory, resource_root)
-	assert(registry_error.kind == .none, registry_error.message)
+	assert(registry_error.kind == .None, registry_error.message)
 	destroy_room_registry_error(&registry_error)
 
 	camera_init()
@@ -260,7 +260,7 @@ gameplay_load_room :: proc(room_id: string, target_door: string = "") {
 	resource_root := asset.path("")
 	defer delete(resource_root)
 	tilemap_result, load_error := tilemap.load_tilemap_file(room.path, resource_root)
-	assert(load_error.kind == .none, load_error.message)
+	assert(load_error.kind == .None, load_error.message)
 	tilemap.destroy_room_file_io_error(&load_error)
 
 	previous_tilemap := gameplay_state.current_tilemap

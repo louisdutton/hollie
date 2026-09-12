@@ -11,13 +11,13 @@ PHYSICS_STEP :: f32(1.0 / 120.0)
 PHYSICS_STEP_HEIGHT :: f32(6)
 PHYSICS_CONTACT_EPSILON :: f32(0.01)
 
-physics_overlap_horizontal :: proc(a, b: AABB) -> bool {
+physics_overlap_horizontal :: proc(a, b: Aabb) -> bool {
 	return a.min.x < b.max.x && a.max.x > b.min.x && a.min.z < b.max.z && a.max.z > b.min.z
 }
 
 // Returns caller-owned obstacle storage. This query never mutates entity state.
-physics_obstacles :: proc(exclude: ^Entity, state: ^World_State) -> [dynamic]AABB {
-	obstacles := make([dynamic]AABB)
+physics_obstacles :: proc(exclude: ^Entity, state: ^World_State) -> [dynamic]Aabb {
+	obstacles := make([dynamic]Aabb)
 	if tm := room_get_current(); tm != nil {
 		for structure in tm.structures {
 			for wall in house_wall_aabbs(structure.position, structure.size) do append(&obstacles, wall)
@@ -52,7 +52,7 @@ physics_obstacles :: proc(exclude: ^Entity, state: ^World_State) -> [dynamic]AAB
 	return obstacles
 }
 
-physics_blocked :: proc(aabb: AABB, obstacles: []AABB, collide_tiles: bool) -> bool {
+physics_blocked :: proc(aabb: Aabb, obstacles: []Aabb, collide_tiles: bool) -> bool {
 	for obstacle in obstacles {
 		if aabbs_intersect(aabb, obstacle) do return true
 	}
@@ -63,7 +63,7 @@ physics_move_axis :: proc(
 	body: ^Transform,
 	collider: Collider,
 	position: Vec2,
-	obstacles: []AABB,
+	obstacles: []Aabb,
 	collide_tiles: bool,
 ) {
 	aabb := collision_aabb_at(position, collider, body.height)
@@ -92,7 +92,7 @@ physics_move_axis :: proc(
 physics_step :: proc(
 	body: ^Transform,
 	collider: Collider,
-	obstacles: []AABB,
+	obstacles: []Aabb,
 	dt: f32,
 	collide_tiles: bool = false,
 	ground_friction: f32 = 0,
@@ -173,8 +173,8 @@ physics_jump :: proc(body: ^Transform, jump_speed: f32 = PHYSICS_JUMP_SPEED) {
 physics_eject :: proc(
 	body: ^Transform,
 	collider: Collider,
-	solid: AABB,
-	obstacles: []AABB,
+	solid: Aabb,
+	obstacles: []Aabb,
 	bounds: graphics.Rect,
 	collide_tiles: bool = false,
 ) -> bool {
@@ -193,7 +193,7 @@ physics_eject :: proc(
 	for offset, index in offsets {
 		// Prefer a clear side; lifting onto the gate is a fallback.
 		if index == 4 && best_distance < 1e9 do break
-		candidate := AABB {
+		candidate := Aabb {
 			min = start.min + offset,
 			max = start.max + offset,
 		}
@@ -204,7 +204,7 @@ physics_eject :: proc(
 			continue
 		}
 		if physics_blocked(candidate, obstacles, collide_tiles) do continue
-		swept := AABB {
+		swept := Aabb {
 			min = {
 				min(start.min.x, candidate.min.x),
 				min(start.min.y, candidate.min.y),

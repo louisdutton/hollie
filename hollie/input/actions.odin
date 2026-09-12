@@ -38,7 +38,7 @@ Action_Binding :: struct {
 	gamepad_button: Gamepad_Button,
 }
 
-ACTION_BINDINGS := [Action]Action_Binding {
+action_bindings := [Action]Action_Binding {
 	.Menu_Navigate = {label = "Navigate"},
 	.Menu_Adjust = {label = "Adjust"},
 	.Menu_Confirm = {label = "Select", key = .ENTER, gamepad_button = .RIGHT_FACE_RIGHT},
@@ -67,7 +67,7 @@ ACTION_BINDINGS := [Action]Action_Binding {
 }
 
 action_binding :: proc(action: Action) -> Action_Binding {
-	return ACTION_BINDINGS[action]
+	return action_bindings[action]
 }
 
 action_pressed :: proc(action: Action) -> bool {

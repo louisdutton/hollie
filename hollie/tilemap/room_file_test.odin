@@ -128,7 +128,7 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	testing.expect(t, enemy_ok, "enemy properties should be typed")
 	if enemy_ok do testing.expect_value(t, enemy.kind, content.Character_Kind.Goblin)
 
-	_, npc_ok := room.entities[2].properties.(Room_File_NPC)
+	_, npc_ok := room.entities[2].properties.(Room_File_Npc)
 	testing.expect(t, npc_ok, "NPC properties should be typed")
 
 	_, holdable_ok := room.entities[3].properties.(Room_File_Holdable)
@@ -165,8 +165,8 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 @(test)
 test_room_file_json5_contract :: proc(t: ^testing.T) {
 	room, decode_error := decode_room_file_json5(ROOM_FILE_CONTRACT_TEST_JSON5)
-	testing.expect(t, decode_error.kind == .none, "the room file contract should decode")
-	if decode_error.kind != .none do return
+	testing.expect(t, decode_error.kind == .None, "the room file contract should decode")
+	if decode_error.kind != .None do return
 	defer destroy_room_file(&room)
 
 	expect_room_file_contract(t, room)
@@ -175,8 +175,8 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	testing.expect_value(t, len(validation_errors), 0)
 
 	encoded, encode_error := encode_room_file_json5(room)
-	testing.expect(t, encode_error.kind == .none, "the room file contract should encode")
-	if encode_error.kind != .none do return
+	testing.expect(t, encode_error.kind == .None, "the room file contract should encode")
+	if encode_error.kind != .None do return
 	defer delete(encoded)
 	testing.expect(
 		t,
@@ -185,8 +185,8 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	)
 
 	roundtripped, roundtrip_error := decode_room_file_json5(string(encoded))
-	testing.expect(t, roundtrip_error.kind == .none, "encoded room data should decode again")
-	if roundtrip_error.kind != .none do return
+	testing.expect(t, roundtrip_error.kind == .None, "encoded room data should decode again")
+	if roundtrip_error.kind != .None do return
 	defer destroy_room_file(&roundtripped)
 
 	expect_room_file_contract(t, roundtripped)
@@ -202,7 +202,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	}`,
 	)
 	defer destroy_room_file_decode_error(&unknown_error)
-	testing.expect_value(t, unknown_error.kind, Room_File_Decode_Error_Kind.unknown_entity_type)
+	testing.expect_value(t, unknown_error.kind, Room_File_Decode_Error_Kind.Unknown_Entity_Type)
 	testing.expect_value(t, unknown_error.entity_index, 0)
 	testing.expect_value(t, unknown_error.message, `unknown entity type "teleporter"`)
 
@@ -220,7 +220,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		properties_error.kind,
-		Room_File_Decode_Error_Kind.invalid_entity_properties,
+		Room_File_Decode_Error_Kind.Invalid_Entity_Properties,
 	)
 	testing.expect_value(t, properties_error.entity_index, 0)
 
@@ -238,7 +238,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		unknown_property_error.kind,
-		Room_File_Decode_Error_Kind.unknown_entity_property,
+		Room_File_Decode_Error_Kind.Unknown_Entity_Property,
 	)
 	testing.expect_value(
 		t,
@@ -260,7 +260,7 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		unknown_kind_error.kind,
-		Room_File_Decode_Error_Kind.unknown_content_variant,
+		Room_File_Decode_Error_Kind.Unknown_Content_Variant,
 	)
 	testing.expect_value(t, unknown_kind_error.entity_index, 0)
 	testing.expect_value(t, unknown_kind_error.message, `unknown enemy kind "Orc"`)
@@ -269,8 +269,8 @@ test_room_file_json5_contract :: proc(t: ^testing.T) {
 @(test)
 test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	room, decode_error := decode_room_file_json5(ROOM_FILE_CONTRACT_TEST_JSON5)
-	testing.expect(t, decode_error.kind == .none, "the room file contract should decode")
-	if decode_error.kind != .none do return
+	testing.expect(t, decode_error.kind == .None, "the room file contract should decode")
+	if decode_error.kind != .None do return
 	defer destroy_room_file(&room)
 
 	tm, validation_errors := room_file_to_tilemap(room)
@@ -292,18 +292,18 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	}
 
 	converted, conversion_error := tilemap_to_room_file(tm)
-	testing.expect_value(t, conversion_error.kind, Room_File_Conversion_Error_Kind.none)
-	if conversion_error.kind != .none do return
+	testing.expect_value(t, conversion_error.kind, Room_File_Conversion_Error_Kind.None)
+	if conversion_error.kind != .None do return
 	defer destroy_room_file(&converted)
 
 	original_json, original_encode_error := encode_room_file_json5(room)
-	testing.expect_value(t, original_encode_error.kind, Room_File_Encode_Error_Kind.none)
-	if original_encode_error.kind != .none do return
+	testing.expect_value(t, original_encode_error.kind, Room_File_Encode_Error_Kind.None)
+	if original_encode_error.kind != .None do return
 	defer delete(original_json)
 
 	converted_json, converted_encode_error := encode_room_file_json5(converted)
-	testing.expect_value(t, converted_encode_error.kind, Room_File_Encode_Error_Kind.none)
-	if converted_encode_error.kind != .none do return
+	testing.expect_value(t, converted_encode_error.kind, Room_File_Encode_Error_Kind.None)
+	if converted_encode_error.kind != .None do return
 	defer delete(converted_json)
 
 	testing.expect_value(t, string(converted_json), string(original_json))

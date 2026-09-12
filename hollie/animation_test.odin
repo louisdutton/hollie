@@ -23,7 +23,7 @@ test_animation_tracks_visual_elapsed_time :: proc(t: ^testing.T) {
 	testing.expect_value(t, animator.visual_time, f32(0.125))
 	animation_set_state(&animator, .Run)
 	testing.expect_value(t, animator.visual_time, f32(0))
-	testing.expect_value(t, animator.previous_anim, AnimationState.Idle)
+	testing.expect_value(t, animator.previous_anim, Animation_State.Idle)
 	testing.expect_value(t, animator.previous_time, f32(0.125))
 	testing.expect_value(t, animator.blend_elapsed, f32(0))
 }

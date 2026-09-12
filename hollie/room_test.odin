@@ -4,7 +4,7 @@ import "core:testing"
 
 @(test)
 test_door_spawn_candidates_use_floor_footprint_and_clear_trigger :: proc(t: ^testing.T) {
-	door := AABB {
+	door := Aabb {
 		min = {48, 0, 128},
 		max = {80, 18, 144},
 	}
@@ -28,7 +28,7 @@ test_door_spawn_candidates_use_floor_footprint_and_clear_trigger :: proc(t: ^tes
 
 @(test)
 test_exterior_has_two_spawns_in_front_of_house_despite_pressure_plate :: proc(t: ^testing.T) {
-	door := AABB {
+	door := Aabb {
 		min = {48, 0, 80},
 		max = {80, 18, 96},
 	}
@@ -36,12 +36,12 @@ test_exterior_has_two_spawns_in_front_of_house_despite_pressure_plate :: proc(t:
 		size   = {16, 22.4, 16},
 		offset = {-8, 0, -8},
 	}
-	plate := AABB {
+	plate := Aabb {
 		min = {64, 0, 112},
 		max = {96, 5, 144},
 	}
 	candidates := room_door_spawn_candidates(door, player, false)
-	occupied: AABB
+	occupied: Aabb
 	count := 0
 	for candidate in candidates[:5] {
 		aabb := collision_aabb_at(candidate, player)

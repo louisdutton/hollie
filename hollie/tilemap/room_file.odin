@@ -56,12 +56,12 @@ Room_File_Wire :: struct {
 }
 
 Room_File_Decode_Error_Kind :: enum {
-	none,
-	invalid_json5,
-	unknown_entity_type,
-	unknown_entity_property,
-	unknown_content_variant,
-	invalid_entity_properties,
+	None,
+	Invalid_Json5,
+	Unknown_Entity_Type,
+	Unknown_Entity_Property,
+	Unknown_Content_Variant,
+	Invalid_Entity_Properties,
 }
 
 Room_File_Decode_Error :: struct {
@@ -71,9 +71,9 @@ Room_File_Decode_Error :: struct {
 }
 
 Room_File_Encode_Error_Kind :: enum {
-	none,
-	invalid_entity_properties,
-	json_encoding_failed,
+	None,
+	Invalid_Entity_Properties,
+	Json_Encoding_Failed,
 }
 
 Room_File_Encode_Error :: struct {
@@ -104,7 +104,7 @@ decode_room_file_json5 :: proc(
 	json_error := json.unmarshal_string(content, &wire, .JSON5, allocator)
 	if json_error != nil {
 		destroy_room_file_wire(&wire, allocator)
-		return {}, {kind = .invalid_json5, entity_index = -1, message = fmt.aprintf("invalid JSON5: %v", json_error)}
+		return {}, {kind = .Invalid_Json5, entity_index = -1, message = fmt.aprintf("invalid JSON5: %v", json_error)}
 	}
 	defer destroy_room_file_wire(&wire, allocator)
 
@@ -131,7 +131,7 @@ decode_room_file_json5 :: proc(
 			entity_index,
 			allocator,
 		)
-		if err.kind != .none {
+		if err.kind != .None {
 			destroy_room_file(&room, allocator)
 			return
 		}
@@ -162,14 +162,14 @@ encode_room_file_json5 :: proc(
 
 	for entity, entity_index in room.entities {
 		wire.entities[entity_index], err = encode_room_file_entity(entity, entity_index, allocator)
-		if err.kind != .none do return
+		if err.kind != .None do return
 	}
 
 	marshal_error: json.Marshal_Error
 	data, marshal_error = json.marshal(wire, room_file_json5_options(), allocator)
 	if marshal_error != nil {
 		err = {
-			kind         = .json_encoding_failed,
+			kind         = .Json_Encoding_Failed,
 			entity_index = -1,
 		}
 	}
