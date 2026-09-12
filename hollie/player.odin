@@ -10,23 +10,23 @@ PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped i
 PLAYER_DROP_GAP :: 2 // clearance kept between the player and a dropped item
 
 Player :: struct {
-	using transform:    Transform,
-	using collider:     Collider,
-	using health:       Health,
-	using movement:     Movement,
-	using anim_data:    Animator,
-	index:              input.Player_Index,
+	using transform:      Transform,
+	using collider:       Collider,
+	using health:         Health,
+	using movement:       Movement,
+	using anim_data:      Animator,
+	index:                input.Player_Index,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
-	carrying:           ^Holdable,
-	head_turn:          f32,
-	movement_lean:      f32,
-	stride_time:        f32,
-	dismount_momentum:  Vec2,
-	mount_elapsed:      f32,
-	mount_duration:     f32,
-	mount_start:        Vec2,
-	mount_start_height: f32,
-	mount_start_facing: Vec2,
+	carrying:             ^Holdable,
+	head_turn:            f32,
+	movement_lean:        f32,
+	stride_time:          f32,
+	dismount_air_control: bool,
+	mount_elapsed:        f32,
+	mount_duration:       f32,
+	mount_start:          Vec2,
+	mount_start_height:   f32,
+	mount_start_facing:   Vec2,
 }
 
 player_create :: proc(
@@ -124,15 +124,17 @@ player_update_movement :: proc() {
 			}
 
 			movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
-			if p.grounded do p.dismount_momentum = {}
-			p.velocity =
-				p.dismount_momentum +
-				movement_accelerate(
-					p.velocity - p.dismount_momentum,
+			if p.grounded do p.dismount_air_control = false
+			if p.dismount_air_control {
+				p.velocity = movement_steer_air(p.velocity, movement_input, dt)
+			} else {
+				p.velocity = movement_accelerate(
+					p.velocity,
 					movement_input,
 					PLAYER_MOVEMENT_PROFILE,
 					dt,
 				)
+			}
 			if p.velocity != (Vec2{}) {
 				p.facing_direction =
 					p.velocity /

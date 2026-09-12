@@ -11,6 +11,18 @@ Movement_Profile :: struct {
 PLAYER_MOVEMENT_PROFILE :: Movement_Profile{20, 80, 640, 960}
 RIDING_MOVEMENT_PROFILE :: Movement_Profile{40, 160, 240, 360}
 
+movement_steer_air :: proc(velocity, direction: Vec2, dt: f32) -> Vec2 {
+	speed := math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+	if speed == 0 || direction == (Vec2{}) do return velocity
+	angle := math.atan2(velocity.x, velocity.y)
+	target := math.atan2(direction.x, direction.y)
+	delta := math.atan2(math.sin(target - angle), math.cos(target - angle))
+	input_strength := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)
+	max_turn := PLAYER_MOVEMENT_PROFILE.acceleration / speed * input_strength * max(dt, 0)
+	angle += clamp(delta, -max_turn, max_turn)
+	return Vec2{math.sin(angle), math.cos(angle)} * speed
+}
+
 movement_accelerate :: proc(
 	velocity, direction: Vec2,
 	profile: Movement_Profile,

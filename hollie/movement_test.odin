@@ -3,6 +3,15 @@ package hollie
 import "core:testing"
 
 @(test)
+test_dismount_steering_preserves_speed :: proc(t: ^testing.T) {
+	velocity := Vec2{160, 0}
+	testing.expect_value(t, movement_steer_air(velocity, {}, 0.1), velocity)
+	for frame in 0 ..< 60 do velocity = movement_steer_air(velocity, {0, 1}, 1.0 / 60)
+	testing.expect(t, abs(velocity.x) < 0.01)
+	testing.expect(t, abs(velocity.y - 160) < 0.01)
+}
+
+@(test)
 test_movement_accelerates_caps_speed_and_stops :: proc(t: ^testing.T) {
 	profiles := [2]Movement_Profile{PLAYER_MOVEMENT_PROFILE, RIDING_MOVEMENT_PROFILE}
 	for profile in profiles {
