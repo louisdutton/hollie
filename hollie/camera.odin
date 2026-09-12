@@ -15,6 +15,7 @@ ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
 // Camera state
 camera_bounds: graphics.Rect
 camera_height: f32
+camera_grounded_time: f32
 CAMERA_HEIGHT_DEAD_ZONE :: f32(32) // Slightly taller than a regular jump.
 camera := graphics.Camera2D {
 	zoom = camera_base_zoom,
@@ -53,8 +54,20 @@ camera_follow_target :: proc() {
 	} else {
 		return
 	}
+	dt := min(graphics.get_frame_time(), 0.1)
+	if camera_player_grounded(player1) && camera_player_grounded(player2) {
+		camera_grounded_time += dt
+	} else {
+		camera_grounded_time = 0
+	}
 	height_difference := camera_players_height(player1, player2) - camera_height
-	if abs(height_difference) > CAMERA_HEIGHT_DEAD_ZONE {
+	if camera_grounded_time > 0.15 {
+		camera_height = math.lerp(
+			camera_height,
+			camera_players_height(player1, player2),
+			1 - math.exp(-3 * dt),
+		)
+	} else if abs(height_difference) > CAMERA_HEIGHT_DEAD_ZONE {
 		target_height :=
 			height_difference > 0 ? camera_height + height_difference - CAMERA_HEIGHT_DEAD_ZONE : camera_height + height_difference + CAMERA_HEIGHT_DEAD_ZONE
 		height_blend := 1 - math.exp(-3 * min(graphics.get_frame_time(), 0.1))
@@ -133,6 +146,7 @@ camera_snap_to_target :: proc() {
 		return
 	}
 	camera_height = camera_players_height(player1, player2)
+	camera_grounded_time = 0
 
 	scale := 2 * camera.zoom
 	x_offset := f32(window.get_screen_width()) / scale
@@ -152,4 +166,12 @@ camera_players_height :: proc(first, second: ^Player) -> f32 {
 	if first != nil do return first.height
 	if second != nil do return second.height
 	return 0
+}
+
+camera_player_grounded :: proc(player: ^Player) -> bool {
+	if player == nil do return true
+	if animal := riding_animal_for_player(player.index); animal != nil {
+		return player.mount_elapsed >= player.mount_duration && animal.grounded
+	}
+	return player.grounded
 }
