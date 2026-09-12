@@ -31,7 +31,7 @@ MODEL_PRESSURE_PAD_CLIP_NAMES :: [Pressure_Pad_State]string {
 	.Off = "toggle-off",
 	.On  = "toggle-on",
 }
-MODEL_CHARACTER_FILE :: "figurine-raylib.glb"
+MODEL_CHARACTER_FILE :: "figurine-cube-raylib.glb"
 
 Model_Assets :: struct {
 	floor:                          graphics.Model,
