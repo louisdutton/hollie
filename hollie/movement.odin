@@ -90,6 +90,9 @@ movement_move :: proc(
 	remaining := min(graphics.get_frame_time(), 0.1)
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)
+		if animal, ok := &moving_entity^.(Enemy); ok {
+			bison_try_ram(animal, collider^, dt, &obstacles)
+		}
 		fall_speed := -transform.vertical_velocity
 		airborne := !transform.grounded
 		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)

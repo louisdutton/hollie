@@ -42,6 +42,7 @@ Room_File_Gate :: struct {
 	size:                 Room_File_Size,
 	required_trigger_ids: []int,
 	inverted:             bool `json:"inverted,omitempty"`,
+	breakable:            bool `json:"breakable,omitempty"`,
 }
 
 Room_File_Entity_Properties :: union #no_nil {
@@ -87,7 +88,8 @@ room_file_entity_property_is_allowed :: proc(entity_type, property: string) -> b
 				property == "gate_id" ||
 				property == "size" ||
 				property == "required_trigger_ids" ||
-				property == "inverted" \
+				property == "inverted" ||
+				property == "breakable" \
 			)
 	case: return false
 	}

@@ -114,6 +114,7 @@ room_file_to_tilemap_unchecked :: proc(
 			entity.width = properties.size.width
 			entity.height = properties.size.height
 			entity.inverted = properties.inverted
+			entity.breakable = properties.breakable
 			for trigger_id in properties.required_trigger_ids {
 				append(&entity.required_triggers, trigger_id)
 			}
@@ -214,6 +215,7 @@ tilemap_to_room_file :: proc(
 				size = {width = entity.width, height = entity.height},
 				required_trigger_ids = required_trigger_ids,
 				inverted = entity.inverted,
+				breakable = entity.breakable,
 			}
 		}
 	}

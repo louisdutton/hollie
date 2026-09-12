@@ -263,7 +263,7 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				}
 			}
 
-			if len(properties.required_trigger_ids) == 0 {
+			if !properties.breakable && len(properties.required_trigger_ids) == 0 {
 				validation_add_error(
 					&errors,
 					"gate must require at least one trigger",
@@ -443,7 +443,7 @@ validate_tilemap :: proc(tm: ^TileMap, resource_root := "") -> [dynamic]Validati
 			}
 
 		case .Gate:
-			if len(entity.required_triggers) == 0 {
+			if !entity.breakable && len(entity.required_triggers) == 0 {
 				validation_add_error(
 					&errors,
 					"gate must require at least one trigger",

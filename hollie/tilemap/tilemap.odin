@@ -112,6 +112,7 @@ EntityData :: struct {
 	gate_id:           int,
 	requires_both:     bool,
 	inverted:          bool,
+	breakable:         bool,
 	width:             int,
 	height:            int,
 	target_room:       string,

@@ -21,6 +21,7 @@ Gate :: struct {
 	open:              bool,
 	required_triggers: [dynamic]int,
 	inverted:          bool,
+	breakable:         bool,
 }
 
 pressure_plate_create :: proc(
@@ -150,6 +151,7 @@ puzzle_update :: proc() {
 	for &gate_entity in entities {
 		gate, ok := &gate_entity.(Gate)
 		if !ok do continue
+		if gate.breakable do continue
 		assert(len(gate.required_triggers) > 0)
 
 		all_triggers_active := true

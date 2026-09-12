@@ -465,6 +465,10 @@ rendering_draw_entities :: proc() {
 			)
 		case Gate:
 			if e.open do continue
+			if e.breakable {
+				rendering_draw_weak_wall(&e)
+				continue
+			}
 			block_size: f32 = 16
 			for y in 0 ..< int(e.collider.size.z / block_size) {
 				for x in 0 ..< int(e.collider.size.x / block_size) {

@@ -8684,6 +8684,17 @@
   ],
   "entities": [
     {
+      "id": "weak_wall_1",
+      "type": "gate",
+      "position": { "x": 672, "y": 416 },
+      "properties": {
+        "gate_id": 2,
+        "size": { "width": 12, "height": 64 },
+        "required_trigger_ids": [],
+        "breakable": true
+      }
+    },
+    {
       "id": "player_1_spawn",
       "type": "player",
       "position": {

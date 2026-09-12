@@ -242,6 +242,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 			for trigger_id in entity.required_triggers {
 				append(&gate.required_triggers, trigger_id)
 			}
+			gate.breakable = entity.breakable
 		case .Holdable: holdable_spawn_at(position)
 		case .Npc: npc_spawn_at(position)
 		case .Door:
