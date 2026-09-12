@@ -215,18 +215,29 @@ rendering_draw_character :: proc(
 	)
 	bank: f32
 	bank_axis, bank_pivot: Vec3
+	render_position, render_height := position, base_height
 	if mount != nil {
 		bank = mount.turn_lean
 		bank_axis = {mount.facing_direction.x, 0, mount.facing_direction.y}
 		bank_pivot = geometry_position(mount.position, mount.height)
+		// Follow the actual blended torso pose, so the saddle and rider bob
+		// together through walking, running and the held airborne pose.
+		animal := animal_model_for_kind(mount.kind)
+		seat_delta := riding_seat_offset(
+			mount.facing_direction,
+			animal_animated_seat(mount, animal) - animal.seat,
+			0,
+		)
+		render_position += {seat_delta.x, seat_delta.z}
+		render_height += seat_delta.y
 	}
 	graphics.draw_model(
 		model_assets.character,
 		geometry_grounded_position(
-			position,
+			render_position,
 			model_assets.character_bounds,
 			MODEL_CHARACTER_SCALE,
-			base_height,
+			render_height,
 		),
 		{0, 1, 0},
 		geometry_facing_angle(facing),

@@ -15,7 +15,7 @@ MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
 	.Jump  = "idle", // The bundled model has no jump clip; keep a neutral airborne pose.
 	.Death = "die",
 	.Carry = "walk-holding-both",
-	.Ride  = "sit",
+	.Ride  = "ride",
 }
 MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
 	.Idle  = .Loop,
@@ -103,7 +103,7 @@ model_assets_init :: proc() {
 	}
 
 	riding_clip_index := model_assets.character_animation_indices[.Ride]
-	assert(riding_clip_index >= 0, "player model must include its sit animation")
+	assert(riding_clip_index >= 0, "player model must include its riding animation")
 	riding_clip := model_assets.character_animations[riding_clip_index]
 	graphics.update_model_animation(
 		model_assets.character,

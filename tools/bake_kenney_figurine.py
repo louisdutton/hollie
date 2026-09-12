@@ -93,7 +93,7 @@ def bake_action(
             pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
 
 
-def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_carry=True, add_jump=False):
+def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_carry=True, add_jump=False, add_ride=True):
     source_path, output_path = arguments()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -230,6 +230,34 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
                 "arm-right": Matrix.Rotation(-math.pi / 2, 4, "X"),
             },
         )
+
+    if add_ride:
+        # Author a seated astride pose at the existing hip/shoulder hinges.
+        # In Blender the figurine faces -Y, with Z up and its left side at +X.
+        for node in nodes:
+            node.animation_data_clear()
+            node.matrix_basis = rest_basis[node.name].copy()
+        rotations = {
+            "torso": Matrix.Rotation(math.radians(20), 4, "X"),
+            "head": Matrix.Rotation(math.radians(-10), 4, "X"),
+            "arm-left": Matrix.Rotation(math.radians(-65), 4, "X") @ Matrix.Rotation(math.radians(10), 4, "Y"),
+            "arm-right": Matrix.Rotation(math.radians(-65), 4, "X") @ Matrix.Rotation(math.radians(-10), 4, "Y"),
+            "leg-left": Matrix.Rotation(math.radians(-20), 4, "X") @ Matrix.Rotation(math.radians(-60), 4, "Y"),
+            "leg-right": Matrix.Rotation(math.radians(-20), 4, "X") @ Matrix.Rotation(math.radians(60), 4, "Y"),
+        }
+        for node in nodes:
+            if node.name in rotations:
+                node.matrix_basis = rest_basis[node.name] @ rotations[node.name]
+        bpy.context.view_layer.update()
+        ride_action = bpy.data.actions.new("ride")
+        armature.animation_data.action = ride_action
+        for part in parts:
+            pose_bone = armature.pose.bones[part.name]
+            pose_bone.matrix = part.matrix_world @ rest_world[part.name].inverted() @ pose_bone.bone.matrix_local
+            for frame in (0, 60):
+                pose_bone.keyframe_insert("location", frame=frame, group=part.name)
+                pose_bone.keyframe_insert("rotation_quaternion", frame=frame, group=part.name)
+                pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
 
     if add_jump:
         # A held airborne extension: front legs reach forward (-X), rear legs

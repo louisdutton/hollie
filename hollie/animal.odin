@@ -108,7 +108,7 @@ animal_update_gait :: proc(enemy: ^Enemy, dt: f32) {
 	enemy.gait_phase = math.mod(enemy.gait_phase + speed / stride_length * max(dt, 0), 1)
 }
 
-rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
+animal_apply_pose :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	if !enemy.grounded {
 		graphics.update_model_animation(animal.model, animal.animations[animal.jump_clip], 0)
 	} else {
@@ -131,6 +131,21 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 			blend,
 		)
 	}
+}
+
+animal_animated_seat :: proc(enemy: ^Enemy, animal: ^Animal_Model) -> Vec3 {
+	animal_apply_pose(enemy, animal)
+	torso_index := graphics.get_model_bone_index(animal.model, "torso")
+	torso := graphics.get_animated_model_bounding_box(animal.model, torso_index)
+	return {
+		(torso.min.x + torso.max.x) * 0.5 * ANIMAL_MODEL_SCALE,
+		(torso.max.y - animal.bounds.min.y) * ANIMAL_MODEL_SCALE,
+		(torso.min.z + torso.max.z) * 0.5 * ANIMAL_MODEL_SCALE,
+	}
+}
+
+rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
+	animal_apply_pose(enemy, animal)
 	graphics.draw_model(
 		animal.model,
 		geometry_grounded_position(
