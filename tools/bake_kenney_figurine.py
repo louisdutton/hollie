@@ -218,7 +218,7 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
             rest_basis,
             rest_world,
             armature,
-            motion_weights={"arm-left": 0.35, "arm-right": 0.35} if add_carry and clip_name == "walk" else None,
+            motion_weights={"arm-left": 0.35, "arm-right": 0.35, "head": 0} if add_carry and clip_name == "walk" else None,
         )
 
     if add_carry:
@@ -232,6 +232,7 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
             rest_world,
             armature,
             overrides={"arm-left": holding_action, "arm-right": holding_action},
+            motion_weights={"head": 0},
             post_rotations={
                 "arm-left": Matrix.Rotation(-math.pi / 2, 4, "X"),
                 "arm-right": Matrix.Rotation(-math.pi / 2, 4, "X"),
