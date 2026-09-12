@@ -9,6 +9,28 @@ import "graphics"
 ANIMAL_MODEL_SCALE :: f32(32)
 ANIMAL_WALK_SPEED :: f32(50)
 ANIMAL_RUN_SPEED :: f32(160)
+ANIMAL_WANDER_PROFILE :: Movement_Profile {
+	20,
+	ANIMAL_WALK_SPEED,
+	RIDING_MOVEMENT_PROFILE.acceleration,
+	RIDING_MOVEMENT_PROFILE.deceleration,
+}
+
+animal_update_movement :: proc(
+	animal: ^Enemy,
+	direction: Vec2,
+	profile: Movement_Profile,
+	dt: f32,
+) {
+	previous := animal.velocity
+	animal.velocity = movement_accelerate(previous, direction, profile, dt)
+	animal.turn_lean = riding_turn_lean(animal.turn_lean, previous, animal.velocity, dt)
+	speed := math.sqrt(
+		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y,
+	)
+	if speed > 0 do animal.facing_direction = animal.velocity / speed
+	animal.head_turn = riding_head_turn(animal.head_turn, animal.facing_direction, direction, dt)
+}
 ANIMAL_MODEL_FILES :: [content.Character_Kind]string {
 	.Goblin   = "",
 	.Skeleton = "",
@@ -166,7 +188,7 @@ animal_animated_seat :: proc(enemy: ^Enemy, animal: ^Animal_Model) -> Vec3 {
 
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	animal_apply_pose(enemy, animal)
-	if (enemy.mounted || enemy.coasting) && enemy.head_turn != 0 {
+	if enemy.head_turn != 0 {
 		head := graphics.get_model_bone_index(animal.model, "head")
 		neck := graphics.get_model_bone_index(animal.model, "neck")
 		pivot_bone := neck >= 0 ? neck : head

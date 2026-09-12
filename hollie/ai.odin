@@ -16,13 +16,15 @@ ai_update_movement :: proc() {
 			if e.mounted do continue
 			if e.coasting {
 				dt := min(graphics.get_frame_time(), 0.1)
-				e.velocity = movement_accelerate(e.velocity, {}, RIDING_MOVEMENT_PROFILE, dt)
-				e.turn_lean = riding_turn_lean(e.turn_lean, {}, {}, dt)
-				e.head_turn = riding_head_turn(e.head_turn, e.facing_direction, {}, dt)
+				animal_update_movement(&e, {}, RIDING_MOVEMENT_PROFILE, dt)
 				if e.velocity == (Vec2{}) {
 					e.coasting = false
 					e.wait_timer = 0.5
 				}
+				continue
+			}
+			if animal_model_for_kind(e.kind) != nil {
+				ai_update_animal(&e)
 				continue
 			}
 			if e.wait_timer > 0 {
@@ -34,6 +36,23 @@ ai_update_movement :: proc() {
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}
 	}
+}
+
+ai_update_animal :: proc(animal: ^Enemy) {
+	dt := min(graphics.get_frame_time(), 0.1)
+	direction: Vec2
+	if animal.wait_timer > 0 {
+		animal.wait_timer -= dt
+	} else if !animal.is_busy && !animal.is_dying && animal.knockback_timer <= 0 {
+		animal.move_timer -= dt
+		if animal.move_timer <= 0 {
+			animal.move_direction = {rand.float32_range(-1, 1), rand.float32_range(-1, 1)}
+			animal.move_timer = rand.float32_range(1, 3)
+			if rand.float32() < 0.25 do animal.wait_timer = rand.float32_range(0.5, 1.5)
+		}
+		if animal.wait_timer <= 0 do direction = animal.move_direction
+	}
+	animal_update_movement(animal, direction, ANIMAL_WANDER_PROFILE, dt)
 }
 
 @(private)

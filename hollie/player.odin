@@ -115,26 +115,7 @@ player_update_movement :: proc() {
 				}
 				movement_input: Vec2
 				if !p.is_busy do movement_input = camera_relative_movement(input.get_movement_for_player(p.index))
-				previous_velocity := animal.velocity
-				animal.velocity = movement_accelerate(
-					animal.velocity,
-					movement_input,
-					RIDING_MOVEMENT_PROFILE,
-					dt,
-				)
-				animal.turn_lean = riding_turn_lean(
-					animal.turn_lean,
-					previous_velocity,
-					animal.velocity,
-					dt,
-				)
-				if animal.velocity != (Vec2{}) do animal.facing_direction = animal.velocity / math.sqrt(animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y)
-				animal.head_turn = riding_head_turn(
-					animal.head_turn,
-					animal.facing_direction,
-					movement_input,
-					dt,
-				)
+				animal_update_movement(animal, movement_input, RIDING_MOVEMENT_PROFILE, dt)
 				continue
 			}
 			if p.knockback_timer > 0 || p.is_busy {
