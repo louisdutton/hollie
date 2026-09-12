@@ -6,7 +6,7 @@ import "tilemap"
 
 WATER_SURFACE :: f32(-1.5)
 WATER_BED :: f32(-32)
-WATER_FLOAT_HEIGHT :: WATER_SURFACE - 3
+WATER_FLOAT_HEIGHT :: WATER_SURFACE - 8
 
 water_tile :: proc(x, y: int) -> bool {
 	tile := tilemap.get_base_tile(x, y)
