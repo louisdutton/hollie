@@ -19,6 +19,9 @@ Player :: struct {
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
 	carrying:         ^Holdable,
 	dismount_jumping: bool,
+	head_turn:        f32,
+	movement_lean:    f32,
+	stride_time:      f32,
 }
 
 player_create :: proc(
@@ -145,6 +148,12 @@ player_update_movement :: proc() {
 					p.velocity /
 					math.sqrt(p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y)
 			}
+			p.head_turn = riding_head_turn(
+				p.head_turn,
+				p.facing_direction,
+				movement_input,
+				dt * 1.5,
+			)
 		}
 	}
 }

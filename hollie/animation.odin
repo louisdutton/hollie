@@ -109,6 +109,12 @@ animation_update_entities :: proc() {
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
+			speed := math.sqrt(e.velocity.x * e.velocity.x + e.velocity.y * e.velocity.y)
+			ratio := clamp(speed / PLAYER_MOVEMENT_PROFILE.max_speed, 0, 1)
+			e.stride_time += min(delta_time, 0.1) * ratio
+			target_lean := e.grounded && !e.is_busy ? math.to_radians(f32(12)) * ratio : f32(0)
+			e.movement_lean +=
+				(target_lean - e.movement_lean) * (1 - math.exp(-20 * min(delta_time, 0.1)))
 			if riding_animal_for_player(e.index) != nil {
 				animation_set_state(&e.anim_data, .Ride)
 			} else if !e.grounded {

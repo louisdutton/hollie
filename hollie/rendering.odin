@@ -176,6 +176,7 @@ rendering_draw_character :: proc(
 	flash_amount: f32,
 	base_height: f32 = 0,
 	mount: ^Enemy = nil,
+	player: ^Player = nil,
 ) {
 	current_state := anim.current_anim
 	playback_modes := MODEL_CHARACTER_PLAYBACK
@@ -183,6 +184,7 @@ rendering_draw_character :: proc(
 	if clip_index >= 0 {
 		clip := model_assets.character_animations[clip_index]
 		clip_frame := model_animation_frame(anim.visual_time, clip, playback_modes[current_state])
+		if player != nil && current_state == .Carry do clip_frame = model_animation_frame(player.stride_time, clip, .Loop)
 		if current_state == .Ride && mount != nil {
 			speed := math.sqrt(
 				mount.velocity.x * mount.velocity.x + mount.velocity.y * mount.velocity.y,
@@ -214,6 +216,21 @@ rendering_draw_character :: proc(
 			graphics.update_model_animation(model_assets.character, clip, clip_frame)
 		}
 	}
+	if player != nil && mount == nil && (current_state == .Idle || current_state == .Run) {
+		idle := model_assets.character_animations[model_assets.character_animation_indices[.Idle]]
+		walk := model_assets.character_animations[model_assets.character_animation_indices[.Run]]
+		speed := math.sqrt(
+			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
+		)
+		graphics.update_model_animation_blended(
+			model_assets.character,
+			idle,
+			0,
+			walk,
+			model_animation_frame(player.stride_time, walk, .Loop),
+			clamp(speed / 40, 0, 1),
+		)
+	}
 	flash := min(max(flash_amount, 0), 1)
 	graphics.set_shader_float(
 		rendering_state.active_character_shader,
@@ -223,6 +240,20 @@ rendering_draw_character :: proc(
 	bank: f32
 	bank_axis, bank_pivot: Vec3
 	render_position, render_height := position, base_height
+	if player != nil && mount == nil && player.grounded && !player.is_busy {
+		bank = player.movement_lean
+		bank_axis = {facing.y, 0, -facing.x}
+		bank_pivot = geometry_position(position, base_height)
+		head := graphics.get_model_bone_index(model_assets.character, "head")
+		if head >= 0 && player.head_turn != 0 {
+			graphics.rotate_model_bone_y(
+				model_assets.character,
+				head,
+				model_assets.character.currentPose[head].translation,
+				player.head_turn * 0.65,
+			)
+		}
+	}
 	if mount != nil {
 		bank = mount.turn_lean
 		bank_axis = {mount.facing_direction.x, 0, mount.facing_direction.y}
@@ -293,6 +324,7 @@ rendering_draw_entities :: proc() {
 				e.hit_flash_timer / 0.2,
 				e.height,
 				riding_animal_for_player(e.index),
+				&e,
 			)
 		case Enemy:
 			if animal := animal_model_for_kind(e.kind); animal != nil {
