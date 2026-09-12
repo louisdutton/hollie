@@ -58,6 +58,23 @@ movement_move :: proc(
 		transform.position, transform.height, transform.grounded
 	obstacles := physics_obstacles(moving_entity)
 	defer delete(obstacles)
+	// Recover overlaps from spawning, collider rotation, or moved solids using
+	// the same safe ejection routine used when puzzle gates close.
+	for obstacle in obstacles {
+		if aabbs_intersect(
+			collision_aabb_at(transform.position, collider^, transform.height),
+			obstacle,
+		) {
+			physics_eject(
+				transform,
+				collider^,
+				obstacle,
+				obstacles[:],
+				room_get_collision_bounds(),
+				true,
+			)
+		}
+	}
 	remaining := min(graphics.get_frame_time(), 0.1)
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)

@@ -52,6 +52,35 @@ ai_update_animal :: proc(animal: ^Enemy) {
 		}
 		if animal.wait_timer <= 0 do direction = animal.move_direction
 	}
+	if direction != (Vec2{}) && animal.grounded {
+		obstacles := physics_obstacles(nil)
+		defer delete(obstacles)
+		probe := animal.position + animal.facing_direction * 18
+		if physics_blocked(
+			collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
+			obstacles[:],
+			true,
+		) {
+			// Pick a clear side before reaching a wall, rather than pushing at it
+			// until the wandering timer happens to select another heading.
+			right := Vec2{animal.facing_direction.y, -animal.facing_direction.x}
+			direction = -animal.facing_direction
+			sides := [2]Vec2{right, -right}
+			for side in sides {
+				probe = animal.position + side * 18
+				if !physics_blocked(
+					collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
+					obstacles[:],
+					true,
+				) {
+					direction = side
+					break
+				}
+			}
+			animal.move_direction = direction
+			animal.move_timer = 1
+		}
+	}
 	animal_update_movement(animal, direction, ANIMAL_WANDER_PROFILE, dt)
 }
 

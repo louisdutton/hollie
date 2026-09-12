@@ -23,12 +23,22 @@ animal_update_movement :: proc(
 	dt: f32,
 ) {
 	previous := animal.velocity
-	animal.velocity = movement_accelerate(previous, direction, profile, dt)
+	speed := math.sqrt(previous.x * previous.x + previous.y * previous.y)
+	magnitude := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)
+	if magnitude > 0 {
+		angle := math.atan2(animal.facing_direction.x, animal.facing_direction.y)
+		target := math.atan2(direction.x, direction.y)
+		delta := math.atan2(math.sin(target - angle), math.cos(target - angle))
+		// Cap angular speed even when travelling slowly; reversals become arcs.
+		turn_rate := animal.mounted ? f32(2.8) : f32(1.5)
+		angle += clamp(delta, -turn_rate * dt, turn_rate * dt)
+		animal.facing_direction = {math.sin(angle), math.cos(angle)}
+		magnitude *= max(f32(0.25), math.cos(delta))
+	}
+	speed_input := magnitude > 0 ? Vec2{magnitude, 0} : Vec2{}
+	next_speed := movement_accelerate({speed, 0}, speed_input, profile, dt).x
+	animal.velocity = animal.facing_direction * next_speed
 	animal.turn_lean = riding_turn_lean(animal.turn_lean, previous, animal.velocity, dt)
-	speed := math.sqrt(
-		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y,
-	)
-	if speed > 0 do animal.facing_direction = animal.velocity / speed
 	animal.head_turn = riding_head_turn(animal.head_turn, animal.facing_direction, direction, dt)
 }
 ANIMAL_MODEL_FILES :: [content.Character_Kind]string {

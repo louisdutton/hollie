@@ -4,6 +4,20 @@ import "core:testing"
 import "graphics"
 
 @(test)
+test_wandering_animal_reverses_gradually_and_brakes :: proc(t: ^testing.T) {
+	animal := Enemy {
+		transform = {velocity = {0, 50}},
+		movement = {facing_direction = {0, 1}},
+	}
+	animal_update_movement(&animal, {0, -1}, ANIMAL_WANDER_PROFILE, 0.1)
+	testing.expect(t, animal.facing_direction.y > 0.98)
+	testing.expect(t, abs(animal.facing_direction.x) < 0.16)
+	testing.expect(t, animal.velocity.y > 0 && animal.velocity.y < 50)
+	for frame in 0 ..< 60 do animal_update_movement(&animal, {}, ANIMAL_WANDER_PROFILE, 1.0 / 60)
+	testing.expect_value(t, animal.velocity, Vec2{})
+}
+
+@(test)
 test_animal_collider_preserves_width_and_rotates_with_facing :: proc(t: ^testing.T) {
 	bounds := graphics.Bounding_Box {
 		min = {-0.5, 0, -0.125},
