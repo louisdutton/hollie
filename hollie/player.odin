@@ -29,11 +29,7 @@ Player :: struct {
 	mount_start_facing:   Vec2,
 }
 
-player_create :: proc(
-	position: Vec2,
-	index: input.Player_Index,
-	animations: []Animation,
-) -> ^Player {
+player_create :: proc(position: Vec2, index: input.Player_Index) -> ^Player {
 	player := Player {
 		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
@@ -41,14 +37,14 @@ player_create :: proc(
 		movement = {move_speed = 80, facing_direction = {1, 0}},
 		index = index,
 	}
-	if len(animations) > 0 do animation_init(&player.anim_data, animations)
+	animation_init(&player.anim_data)
 
 	value := entity_add(player, &world)
 	return &value^.(Player)
 }
 
 player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
-	player_create(pos, index, player_animations[:])
+	player_create(pos, index)
 }
 
 player_handle_input :: proc(p: ^Player) {

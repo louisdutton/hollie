@@ -115,11 +115,8 @@ entity_system_fini :: proc() {
 
 entity_destroy :: proc(entity: ^Entity) {
 	switch &e in entity {
-	case Player: animation_fini(&e.anim_data)
-	case Enemy: animation_fini(&e.anim_data)
-	case Npc: animation_fini(&e.anim_data)
 	case Gate: delete(e.required_triggers)
-	case Pressure_Plate, Holdable, Door: return
+	case Player, Enemy, Npc, Pressure_Plate, Holdable, Door: return
 	}
 }
 

@@ -16,11 +16,7 @@ Npc :: struct {
 	dialog_messages: []Dialog_Message,
 }
 
-npc_create :: proc(
-	position: Vec2,
-	animations: []Animation,
-	dialog_messages: []Dialog_Message = {},
-) -> ^Npc {
+npc_create :: proc(position: Vec2, dialog_messages: []Dialog_Message = {}) -> ^Npc {
 	npc := Npc {
 		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
@@ -28,14 +24,14 @@ npc_create :: proc(
 		movement = {move_speed = 30, facing_direction = {1, 0}},
 		dialog_messages = dialog_messages,
 	}
-	if len(animations) > 0 do animation_init(&npc.anim_data, animations)
+	animation_init(&npc.anim_data)
 
 	value := entity_add(npc, &world)
 	return &value^.(Npc)
 }
 
 npc_spawn_at :: proc(position: Vec2) -> ^Npc {
-	return npc_create(position, human_animations[:], villager_dialog)
+	return npc_create(position, villager_dialog)
 }
 
 

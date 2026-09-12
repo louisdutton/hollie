@@ -9,10 +9,6 @@ Animation_Playback :: enum {
 	Once_Hold,
 }
 
-Animation :: struct {
-	frame_count: int,
-}
-
 animation_frame_at_time :: proc(
 	elapsed_time: f32,
 	frame_count: int,
@@ -41,7 +37,6 @@ Animation_State :: enum {
 }
 
 Animator :: struct {
-	frame_counts:  []int,
 	visual_time:   f32,
 	current_anim:  Animation_State,
 	previous_anim: Animation_State,
@@ -49,26 +44,17 @@ Animator :: struct {
 	blend_elapsed: f32,
 }
 
-animation_init :: proc(anim: ^Animator, animations: []Animation) {
-	anim.frame_counts = make([]int, len(animations))
-
-	for animation, i in animations {
-		anim.frame_counts[i] = animation.frame_count
+// Animation clips and their frame counts belong to model assets, not actors.
+animation_init :: proc(anim: ^Animator) {
+	anim^ = {
+		blend_elapsed = 1e9,
 	}
-
-
-	anim.visual_time = 0
-	anim.current_anim = .Idle
-	anim.previous_anim = .Idle
-	anim.previous_time = 0
-	anim.blend_elapsed = 1e9
 }
 
 animation_update :: proc(anim_data: ^Animator, dt: f32) {
 	anim_data.visual_time += dt
 	anim_data.previous_time += dt
 	anim_data.blend_elapsed += dt
-
 }
 
 animation_set_state :: proc(anim_data: ^Animator, state: Animation_State) {
@@ -78,15 +64,10 @@ animation_set_state :: proc(anim_data: ^Animator, state: Animation_State) {
 		anim_data.previous_time = anim_data.visual_time
 		anim_data.blend_elapsed = 0
 
-
 		anim_data.visual_time = 0
 	}
 
 	anim_data.current_anim = state
-}
-
-animation_fini :: proc(anim_data: ^Animator) {
-	delete(anim_data.frame_counts)
 }
 
 animation_update_entities :: proc(dt: f32) {

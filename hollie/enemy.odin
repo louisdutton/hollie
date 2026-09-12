@@ -22,11 +22,7 @@ Enemy :: struct {
 	gait_phase:      f32,
 }
 
-enemy_create :: proc(
-	position: Vec2,
-	animations: []Animation,
-	kind: content.Character_Kind = .Goblin,
-) -> ^Enemy {
+enemy_create :: proc(position: Vec2, kind: content.Character_Kind = .Goblin) -> ^Enemy {
 	enemy := Enemy {
 		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
@@ -37,7 +33,7 @@ enemy_create :: proc(
 	if animal := animal_model_for_kind(kind); animal != nil {
 		enemy.collider = animal_collider_from_bounds(animal.bounds, enemy.facing_direction)
 	}
-	if len(animations) > 0 do animation_init(&enemy.anim_data, animations)
+	animation_init(&enemy.anim_data)
 	// Spawn at the surface and let displacement and drag establish the draft.
 	if water_at(position) do enemy.height = WATER_SURFACE
 
@@ -46,13 +42,5 @@ enemy_create :: proc(
 }
 
 enemy_spawn_kind_at :: proc(position: Vec2, kind: content.Character_Kind) {
-	switch kind {
-	case .Goblin: enemy_create(position, goblin_animations[:], kind)
-	case .Skeleton: enemy_create(position, skeleton_animations[:], kind)
-	case .Human: enemy_create(position, human_animations[:], kind)
-	case .Dog, .Horse, .Bison, .Turtle:
-		animations: [len(Animation_State)]Animation
-		for &animation in animations do animation.frame_count = 1
-		enemy_create(position, animations[:], kind)
-	}
+	enemy_create(position, kind)
 }
