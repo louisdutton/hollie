@@ -28,6 +28,21 @@ void main()
 	vec4 lightSpacePosition = lightVP*vec4(fragPosition, 1.0);
 	vec3 shadowCoordinates = lightSpacePosition.xyz/lightSpacePosition.w;
 	shadowCoordinates = shadowCoordinates*0.5 + 0.5;
+	vec2 texelSize = vec2(1.0/float(shadowMapResolution));
+	// Compute depth slope in shadow UV space before any divergent branches.
+	vec3 shadowDx = dFdx(shadowCoordinates);
+	vec3 shadowDy = dFdy(shadowCoordinates);
+	float determinant = shadowDx.x*shadowDy.y - shadowDx.y*shadowDy.x;
+	vec2 depthSlope = vec2(0.0);
+	if (abs(determinant) > 1e-10)
+	{
+		depthSlope = vec2(
+			shadowDy.y*shadowDx.z - shadowDx.y*shadowDy.z,
+			shadowDx.x*shadowDy.z - shadowDy.x*shadowDx.z
+		)/determinant;
+	}
+	// Cover the 3x3 filter radius plus half a texel of sampling uncertainty.
+	float slopeBias = min(1.5*dot(abs(depthSlope), texelSize), 0.01);
 	float shadow = 0.0;
 	bool insideShadowMap =
 		shadowCoordinates.x >= 0.0 && shadowCoordinates.x <= 1.0 &&
@@ -35,8 +50,7 @@ void main()
 		shadowCoordinates.z >= 0.0 && shadowCoordinates.z <= 1.0;
 	if (insideShadowMap)
 	{
-		float bias = max(0.0002*(1.0 - keyAmount), 0.00002) + 0.00001;
-		vec2 texelSize = vec2(1.0/float(shadowMapResolution));
+		float bias = max(0.0002*(1.0 - keyAmount), 0.00002) + 0.00001 + slopeBias;
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
