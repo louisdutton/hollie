@@ -27,3 +27,19 @@ holdable_create :: proc(position: Vec2) -> ^Holdable {
 holdable_spawn_at :: proc(position: Vec2) -> ^Holdable {
 	return holdable_create(position)
 }
+
+// End the drop exemption only in the simulation phase, never during collision queries.
+holdable_update_release_contacts :: proc(state: ^World_State) {
+	for &entity in state.entities {
+		crate, ok := &entity.(Holdable)
+		if !ok || !crate.release_ignore_player do continue
+		player := entity_get_player(crate.release_player, state)
+		if player == nil ||
+		   !physics_overlap_horizontal(
+				   collision_aabb_at(crate.position, crate.collider, crate.height),
+				   collision_aabb_at(player.position, player.collider, player.height),
+			   ) {
+			crate.release_ignore_player = false
+		}
+	}
+}

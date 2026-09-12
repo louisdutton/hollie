@@ -110,7 +110,6 @@ entity_system_init :: proc() {
 }
 
 entity_system_fini :: proc() {
-	entity_destroy_all()
 	world_fini(&world)
 }
 
@@ -124,15 +123,9 @@ entity_destroy :: proc(entity: ^Entity) {
 	}
 }
 
-entity_destroy_all :: proc() {
-	water_wakes = {}
-	water_wake_next = 0
-	world_clear_entities(&world)
-	clear(&particle_system.particles)
-}
 
-entity_get_player :: proc(index: input.Player_Index) -> ^Player {
-	for &entity in world.entities {
+entity_get_player :: proc(index: input.Player_Index, state: ^World_State) -> ^Player {
+	for &entity in state.entities {
 		if player, ok := &entity.(Player); ok && player.index == index {
 			return player
 		}
@@ -140,34 +133,17 @@ entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 	return nil
 }
 
-// Update systems
-entity_system_update :: proc(dt: f32) {
-	water_time += dt
-	pressure_plate_update_surfaces(dt)
-	riding_sync_players()
-	player_update_input()
-	health_update(dt)
-	player_update_movement(dt)
-	ai_update_movement(dt)
-	movement_update_positions(dt)
-	water_update_wakes(dt)
-	riding_sync_players()
-	puzzle_update()
-	riding_sync_players()
-	animation_update_entities(dt)
-	entity_cleanup_dead()
-}
 
-entity_cleanup_dead :: proc() {
-	for i := len(world.entities) - 1; i >= 0; i -= 1 {
-		switch &e in world.entities[i] {
+entity_cleanup_dead :: proc(state: ^World_State) {
+	for i := len(state.entities) - 1; i >= 0; i -= 1 {
+		switch &e in state.entities[i] {
 		case Enemy: if e.is_dying && e.death_timer >= DEATH_DURATION {
 					particle_create_explosion(e.position)
-					entity_remove_at(i, &world)
+					entity_remove_at(i, state)
 				}
 		case Npc: if e.is_dying && e.death_timer >= DEATH_DURATION {
 					particle_create_explosion(e.position)
-					entity_remove_at(i, &world)
+					entity_remove_at(i, state)
 				}
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue
 		}

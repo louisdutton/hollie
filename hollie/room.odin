@@ -329,7 +329,10 @@ room_fini :: proc() {
 	tilemap.fini()
 
 	// Clear entities for level unload/reload
-	entity_destroy_all()
+	water_wakes = {}
+	water_wake_next = 0
+	clear(&particle_system.particles)
+	world_clear_entities(&world)
 
 	room_state.current_tilemap = nil
 	room_state.is_loaded = false

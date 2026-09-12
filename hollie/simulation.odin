@@ -6,3 +6,27 @@ MAX_SIMULATION_DELTA :: f32(0.1)
 simulation_delta_time :: proc(frame_dt: f32) -> f32 {
 	return clamp(frame_dt, 0, MAX_SIMULATION_DELTA)
 }
+
+// Gameplay phases are ordered: support motion, intent, body motion, puzzles, visuals.
+simulation_update :: proc(dt: f32) {
+	water_time += dt
+	// Moving pads carry their resting bodies before input is evaluated.
+	pressure_plate_update_surfaces(dt)
+	riding_sync_players()
+
+	player_update_input()
+	health_update(dt)
+	player_update_movement(dt)
+	ai_update_movement(dt)
+
+	simulation_update_positions(dt)
+	holdable_update_release_contacts(&world)
+	water_update_wakes(dt)
+	// Pressure plates must see riders at their post-movement positions.
+	riding_sync_players()
+	puzzle_update()
+	// Gate closure can eject mounts; align riders again before animation and drawing.
+	riding_sync_players()
+	animation_update_entities(dt)
+	entity_cleanup_dead(&world)
+}

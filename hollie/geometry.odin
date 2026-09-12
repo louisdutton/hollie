@@ -6,8 +6,7 @@ import "spatial"
 
 aabbs_intersect :: spatial.aabbs_intersect
 
-// TODO: this shouldnt be here
-// this is for accurate distance and shouldn't be used in performance-critical contexts
+// Euclidean distance in the horizontal gameplay plane.
 get_distance :: proc(a, b: Vec2) -> f32 {
 	return math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
 }

@@ -71,7 +71,7 @@ ai_update_animal :: proc(animal: ^Enemy, dt: f32) {
 	look_ahead := max(f32(24), speed / 1.5 + 12)
 	if direction != (Vec2{}) && (animal.grounded || animal.swimming) {
 		actor := Entity(animal^)
-		obstacles := physics_obstacles(&actor)
+		obstacles := physics_obstacles(&actor, &world)
 		defer delete(obstacles)
 		probe := animal.position + animal.facing_direction * 18
 		requested := direction / math.sqrt(direction.x * direction.x + direction.y * direction.y)

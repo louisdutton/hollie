@@ -15,7 +15,8 @@ physics_overlap_horizontal :: proc(a, b: AABB) -> bool {
 	return a.min.x < b.max.x && a.max.x > b.min.x && a.min.z < b.max.z && a.max.z > b.min.z
 }
 
-physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
+// Returns caller-owned obstacle storage. This query never mutates entity state.
+physics_obstacles :: proc(exclude: ^Entity, state: ^World_State) -> [dynamic]AABB {
 	obstacles := make([dynamic]AABB)
 	if tm := room_get_current(); tm != nil {
 		for structure in tm.structures {
@@ -23,7 +24,7 @@ physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 			append(&obstacles, house_roof_aabb(structure.position, structure.size))
 		}
 	}
-	for &entity in world.entities {
+	for &entity in state.entities {
 		if &entity == exclude do continue
 		solid := false
 		switch e in entity {
@@ -41,10 +42,6 @@ physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 					)
 					if physics_overlap_horizontal(crate_bounds, player_bounds) {
 						solid = false
-					} else {
-						// Once clear, normal collision resumes permanently.
-						crate := &entity.(Holdable)
-						crate.release_ignore_player = false
 					}
 				}
 			}
@@ -272,7 +269,7 @@ physics_close_gate :: proc(gate_entity: ^Entity) -> bool {
 			}
 			if !aabbs_intersect(collision_aabb_at(body.position, collider, body.height), solid) do continue
 			append(&snapshots, Physics_Body_Snapshot{body, body^})
-			obstacles := physics_obstacles(&entity)
+			obstacles := physics_obstacles(&entity, &world)
 			resolved := physics_eject(
 				body,
 				collider,

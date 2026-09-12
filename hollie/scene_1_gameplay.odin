@@ -122,7 +122,7 @@ gameplay_update :: proc(frame_dt: f32) {
 
 	if !pause_is_active() {
 		room_update(dt)
-		entity_system_update(dt) // Handles all world.entities (players, enemies, NPCs, puzzles)
+		simulation_update(dt)
 
 		// Check if doors should be enabled (no players in any door area)
 		if !gameplay_state.doors_enabled {
@@ -211,7 +211,7 @@ gameplay_draw :: proc() {
 
 		room_draw_name()
 		dialog_draw()
-		draw_transition_overlay()
+		draw_transition_overlay(gameplay_state.transition_opacity)
 
 		pause_draw()
 	}
@@ -238,14 +238,6 @@ gameplay_fini :: proc() {
 	model_assets_fini()
 	entity_system_fini()
 	particle_system_fini()
-}
-
-// TODO: move this elsewhere
-draw_transition_overlay :: proc() {
-	if gameplay_state.is_transitioning && gameplay_state.transition_opacity > 0.01 {
-		alpha := u8(gameplay_state.transition_opacity * 255)
-		graphics.draw_rect_i(0, 0, design_width, design_height, graphics.Colour{0, 0, 0, alpha})
-	}
 }
 
 gameplay_get_current_room :: proc() -> string {
@@ -276,9 +268,4 @@ gameplay_load_room :: proc(room_id: string, target_door: string = "") {
 	gameplay_state.current_tilemap = tilemap_result
 	room_init(&gameplay_state.current_tilemap, target_door)
 	tilemap.destroy_tilemap(&previous_tilemap)
-}
-
-// updates the tilemap of the current room
-gameplay_update_current_room :: proc(new_tilemap: tilemap.TileMap) {
-	gameplay_state.current_tilemap = new_tilemap
 }

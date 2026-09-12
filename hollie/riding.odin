@@ -150,7 +150,7 @@ riding_sync_player :: proc(player: ^Player, animal: ^Enemy) {
 riding_sync_players :: proc() {
 	for &entity in world.entities {
 		if animal, ok := &entity.(Enemy); ok && animal.mounted {
-			if player := entity_get_player(animal.rider); player != nil do riding_sync_player(player, animal)
+			if player := entity_get_player(animal.rider, &world); player != nil do riding_sync_player(player, animal)
 		}
 	}
 }
@@ -211,7 +211,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 			max(start_bounds.max.z, end_bounds.max.z),
 		},
 	}
-	obstacles := physics_obstacles(nil)
+	obstacles := physics_obstacles(nil, &world)
 	defer delete(obstacles)
 	if physics_blocked(leap_bounds, obstacles[:], true) do return false
 	player.mount_elapsed = 0
@@ -285,7 +285,7 @@ riding_find_dismount :: proc(
 }
 
 riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
-	obstacles := physics_obstacles(nil)
+	obstacles := physics_obstacles(nil, &world)
 	defer delete(obstacles)
 	append(&obstacles, collision_aabb_at(animal.position, animal.collider, animal.height))
 	position, _, clear := riding_find_dismount(

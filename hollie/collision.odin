@@ -88,7 +88,7 @@ collision_check_solid :: proc(
 	exclude: ^Entity = nil,
 	height: f32 = 0,
 ) -> bool {
-	obstacles := physics_obstacles(exclude)
+	obstacles := physics_obstacles(exclude, &world)
 	defer delete(obstacles)
 	return physics_blocked(collision_aabb_at(position, collider, height), obstacles[:], false)
 }
