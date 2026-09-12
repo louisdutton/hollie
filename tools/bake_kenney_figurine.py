@@ -65,8 +65,10 @@ def bake_action(
     armature,
     overrides=None,
     post_rotations=None,
+    motion_weights=None,
 ):
     post_rotations = post_rotations or {}
+    motion_weights = motion_weights or {}
     baked_action = bpy.data.actions.new(clip_name)
     armature.animation_data.action = baked_action
     for pose_bone in armature.pose.bones:
@@ -75,6 +77,10 @@ def bake_action(
     set_source_action(source_action, nodes, rest_basis, overrides)
     for frame in sample_frames(source_action):
         bpy.context.scene.frame_set(int(frame), subframe=frame - int(frame))
+        bpy.context.view_layer.update()
+        for node in nodes:
+            if node.name in motion_weights:
+                node.matrix_basis = rest_basis[node.name].lerp(node.matrix_basis, motion_weights[node.name])
         bpy.context.view_layer.update()
         for part in parts:
             pose_bone = armature.pose.bones[part.name]
@@ -212,6 +218,7 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
             rest_basis,
             rest_world,
             armature,
+            motion_weights={"arm-left": 0.35, "arm-right": 0.35} if add_carry and clip_name == "walk" else None,
         )
 
     if add_carry:
