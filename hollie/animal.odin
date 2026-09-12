@@ -164,6 +164,7 @@ animal_update_gait :: proc(enemy: ^Enemy, dt: f32) {
 	walking, blend := animal_gait_blend(speed)
 	// Keep the clips in the same stride phase while scaling cadence with travel.
 	stride_length := walking ? f32(25) : 25 + 15 * blend
+	if enemy.kind == .Bison do stride_length *= 1.7
 	enemy.gait_phase = math.mod(enemy.gait_phase + speed / stride_length * max(dt, 0), 1)
 }
 
@@ -177,7 +178,7 @@ animal_gait_weight :: proc(animal: ^Enemy) -> f32 {
 
 animal_gait_bob :: proc(animal: ^Enemy) -> f32 {
 	stride := math.sin(animal.gait_phase * 2 * math.PI)
-	return stride * stride * 1.8 * animal_gait_weight(animal)
+	return stride * stride * 2.3 * animal_gait_weight(animal)
 }
 
 animal_visual_bank :: proc(animal: ^Enemy) -> f32 {
