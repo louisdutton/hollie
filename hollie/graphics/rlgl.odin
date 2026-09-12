@@ -1,10 +1,11 @@
 package graphics
 
 import "core:c"
+import rl "vendor:raylib"
 
 RL_ATTACHMENT_DEPTH :: c.int(100)
 RL_ATTACHMENT_TEXTURE2D :: c.int(100)
-SHADER_UNIFORM_INT :: c.int(0)
+SHADER_UNIFORM_INT :: c.int(rl.ShaderUniformDataType.INT)
 
 foreign import raylib_rlgl "system:raylib"
 
