@@ -15,6 +15,7 @@ ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
 // Camera state
 camera_bounds: graphics.Rect
 camera_height: f32
+CAMERA_HEIGHT_DEAD_ZONE :: f32(32) // Slightly taller than a regular jump.
 camera := graphics.Camera2D {
 	zoom = camera_base_zoom,
 }
@@ -52,8 +53,13 @@ camera_follow_target :: proc() {
 	} else {
 		return
 	}
-	height_blend := 1 - math.exp(-8 * min(graphics.get_frame_time(), 0.1))
-	camera_height = math.lerp(camera_height, camera_players_height(player1, player2), height_blend)
+	height_difference := camera_players_height(player1, player2) - camera_height
+	if abs(height_difference) > CAMERA_HEIGHT_DEAD_ZONE {
+		target_height :=
+			height_difference > 0 ? camera_height + height_difference - CAMERA_HEIGHT_DEAD_ZONE : camera_height + height_difference + CAMERA_HEIGHT_DEAD_ZONE
+		height_blend := 1 - math.exp(-3 * min(graphics.get_frame_time(), 0.1))
+		camera_height = math.lerp(camera_height, target_height, height_blend)
+	}
 
 	scale := 2 * camera.zoom
 	x_offset := f32(window.get_screen_width()) / scale
