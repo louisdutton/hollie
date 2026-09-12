@@ -3,6 +3,37 @@ package hollie
 import "core:testing"
 
 @(test)
+test_bison_charge_accepts_near_full_stick_in_each_direction :: proc(t: ^testing.T) {
+	directions := [4]Vec2{{0.92, 0}, {-0.92, 0}, {0, 0.92}, {0.650538, 0.650538}}
+	for direction in directions {
+		animal := Enemy {
+			kind = .Bison,
+			mounted = true,
+			transform = {grounded = true},
+			movement = {facing_direction = {0, 1}},
+		}
+		for frame in 0 ..< 300 {
+			animal_update_movement(&animal, direction, animal_riding_profile(.Bison), 1.0 / 60)
+			bison_update_ram_state(&animal, 1.0 / 60)
+		}
+		testing.expect(t, animal.ram_ready)
+	}
+}
+
+@(test)
+test_bison_charge_buildup_tolerates_small_speed_dips :: proc(t: ^testing.T) {
+	animal := Enemy {
+		kind = .Bison,
+		mounted = true,
+		transform = {grounded = true, velocity = {140, 0}},
+	}
+	bison_update_ram_state(&animal, 0.4)
+	animal.velocity = {130, 0}
+	bison_update_ram_state(&animal, 0.4)
+	testing.expect(t, animal.ram_ready)
+}
+
+@(test)
 test_bison_charge_unlocks_speed_and_limits_steering :: proc(t: ^testing.T) {
 	animal := Enemy {
 		kind = .Bison,

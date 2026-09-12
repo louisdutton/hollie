@@ -41,6 +41,8 @@ animal_update_movement :: proc(
 	previous := animal.velocity
 	speed := math.sqrt(previous.x * previous.x + previous.y * previous.y)
 	magnitude := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)
+	// Controllers do not always reach a perfect unit circle at full tilt.
+	if animal.kind == .Bison && animal.mounted && magnitude >= 0.9 do magnitude = 1
 	if magnitude > 0 {
 		angle := math.atan2(animal.facing_direction.x, animal.facing_direction.y)
 		target := math.atan2(direction.x, direction.y)

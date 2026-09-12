@@ -10,8 +10,9 @@ BISON_CHARGE_TURN_RATE :: f32(1.1)
 
 bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
 	// Build charge at top speed, but keep it through ordinary steering losses.
-	threshold :=
-		animal_riding_profile(.Bison).max_speed * (animal.ram_ready ? f32(0.75) : f32(0.98))
+	threshold_ratio := animal.ram_ready ? f32(0.75) : f32(0.95)
+	if !animal.ram_ready && animal.ram_charge_time > 0 do threshold_ratio = 0.9
+	threshold := animal_riding_profile(.Bison).max_speed * threshold_ratio
 	fast :=
 		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y >=
 		threshold * threshold
