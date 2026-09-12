@@ -4,6 +4,7 @@ import "graphics"
 import "tilemap"
 
 BISON_RAM_SPEED :: f32(100)
+BISON_CHARGE_TIME :: f32(0.75)
 
 bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
 	// Build charge at top speed, but keep it through ordinary steering losses.
@@ -18,7 +19,7 @@ bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
 		return
 	}
 	animal.ram_charge_time += dt
-	animal.ram_ready = animal.ram_charge_time >= 0.15
+	animal.ram_ready = animal.ram_charge_time >= BISON_CHARGE_TIME
 }
 
 // Swept contact time and speed into the struck face, rather than total speed.

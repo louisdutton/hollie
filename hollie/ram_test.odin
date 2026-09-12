@@ -12,6 +12,8 @@ test_bison_full_speed_state_requires_run_up_and_resets :: proc(t: ^testing.T) {
 	bison_update_ram_state(&animal, 0.1)
 	testing.expect(t, !animal.ram_ready)
 	bison_update_ram_state(&animal, 0.1)
+	testing.expect(t, !animal.ram_ready)
+	bison_update_ram_state(&animal, 0.6)
 	testing.expect(t, animal.ram_ready)
 	animal.velocity = {120, 0}
 	bison_update_ram_state(&animal, 0)
