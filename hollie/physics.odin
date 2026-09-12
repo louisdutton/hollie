@@ -23,7 +23,7 @@ physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 			append(&obstacles, house_roof_aabb(structure.position, structure.size))
 		}
 	}
-	for &entity in entities {
+	for &entity in world.entities {
 		if &entity == exclude do continue
 		solid := false
 		switch e in entity {
@@ -251,12 +251,12 @@ physics_close_gate :: proc(gate_entity: ^Entity) -> bool {
 	defer delete(snapshots)
 	// Move crates first, so actors can avoid their final positions.
 	for pass in 0 ..< 2 {
-		for &entity in entities {
+		for &entity in world.entities {
 			body: ^Transform
 			collider: Collider
 			switch &e in entity {
 			case Holdable:
-				if pass != 0 || e.held_by != nil do continue
+				if pass != 0 || e.held_by != 0 do continue
 				body, collider = &e.transform, e.collider
 			case Player:
 				if pass != 1 do continue

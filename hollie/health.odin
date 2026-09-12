@@ -13,7 +13,7 @@ Health :: struct {
 
 health_update :: proc() {
 	delta_time := graphics.get_frame_time()
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &e in entity {
 		case Player: health_update_timers(&e.health, delta_time)
 		case Enemy: health_update_timers(&e.health, delta_time)

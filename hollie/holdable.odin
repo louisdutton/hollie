@@ -7,8 +7,8 @@ CRATE_GROUND_FRICTION :: f32(360) // horizontal deceleration in world units per 
 Holdable :: struct {
 	using transform:       Transform,
 	using collider:        Collider,
-	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
-	held_by:               ^Player,
+	// Persistent relationships use IDs; resolved pointers are borrowed until storage changes.
+	held_by:               Entity_Id,
 	held_offset:           Vec3,
 	held_pose_valid:       bool,
 	release_ignore_player: bool,
@@ -20,8 +20,8 @@ holdable_create :: proc(position: Vec2) -> ^Holdable {
 		transform = {position = position, grounded = true},
 		collider = model_crate_collider(true),
 	}
-	append(&entities, holdable)
-	return &entities[len(entities) - 1].(Holdable)
+	value := entity_add(holdable, &world)
+	return &value^.(Holdable)
 }
 
 holdable_spawn_at :: proc(position: Vec2) -> ^Holdable {

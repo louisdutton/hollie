@@ -11,7 +11,7 @@ Ai :: struct {
 }
 
 ai_update_movement :: proc() {
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &e in entity {
 		case Enemy:
 			if e.mounted do continue

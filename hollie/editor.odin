@@ -81,7 +81,7 @@ editor_enter_edit_mode :: proc() {
 	editor_state.pre_edit_camera = camera
 
 	clear(&editor_state.pre_edit_players)
-	for &entity in entities {
+	for &entity in world.entities {
 		if player, ok := &entity.(Player); ok {
 			append(&editor_state.pre_edit_players, player.position)
 		}
@@ -94,7 +94,7 @@ editor_exit_edit_mode :: proc() {
 	camera = editor_state.pre_edit_camera
 
 	player_index := 0
-	for &entity in entities {
+	for &entity in world.entities {
 		if player, ok := &entity.(Player); ok {
 			if player_index >= len(editor_state.pre_edit_players) do break
 			player.position = editor_state.pre_edit_players[player_index]

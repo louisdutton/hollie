@@ -49,7 +49,7 @@ riding_turn_lean :: proc(lean: f32, previous_velocity, velocity: Vec2, dt: f32) 
 
 // Store the player index on the animal, avoiding pointers into the entity array.
 riding_animal_for_player :: proc(index: input.Player_Index) -> ^Enemy {
-	for &entity in entities {
+	for &entity in world.entities {
 		if animal, ok := &entity.(Enemy); ok && animal.mounted && animal.rider == index do return animal
 	}
 	return nil
@@ -61,7 +61,7 @@ riding_can_mount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	   animal.is_dying ||
 	   animal.is_busy ||
 	   player.is_busy ||
-	   player.carrying != nil ||
+	   player.carrying != 0 ||
 	   (!player.grounded && !player.swimming) ||
 	   (!animal.grounded && !animal.swimming) {
 		return false
@@ -148,7 +148,7 @@ riding_sync_player :: proc(player: ^Player, animal: ^Enemy) {
 }
 
 riding_sync_players :: proc() {
-	for &entity in entities {
+	for &entity in world.entities {
 		if animal, ok := &entity.(Enemy); ok && animal.mounted {
 			if player := entity_get_player(animal.rider); player != nil do riding_sync_player(player, animal)
 		}
@@ -159,7 +159,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	if riding_animal_for_player(player.index) != nil do return false
 	nearest: ^Enemy
 	nearest_distance := f32(1e9)
-	for &entity in entities {
+	for &entity in world.entities {
 		animal, ok := &entity.(Enemy)
 		if !ok || !riding_can_mount(player, animal) do continue
 		model := animal_model_for_kind(animal.kind)

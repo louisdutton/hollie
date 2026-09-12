@@ -46,6 +46,7 @@ movement_accelerate :: proc(
 }
 
 Transform :: struct {
+	entity_id:         Entity_Id,
 	position:          Vec2,
 	velocity:          Vec2,
 	height:            f32,
@@ -103,7 +104,7 @@ movement_move :: proc(
 		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)
 		if animal, ok := &moving_entity^.(Enemy); ok do bison_update_ram_state(animal, 0)
 		if crate, ok := moving_entity^.(Holdable);
-		   ok && crate.held_by == nil && airborne && transform.grounded && fall_speed > 20 {
+		   ok && crate.held_by == 0 && airborne && transform.grounded && fall_speed > 20 {
 			particle_crate_landing(transform, collider^, fall_speed)
 		}
 		remaining -= dt
@@ -143,13 +144,13 @@ movement_move :: proc(
 				)
 			}
 	case Holdable:
-		if e.held_by == nil do particle_emit_trail(transform, previous, previous_height, was_grounded, false, 0.65)
+		if e.held_by == 0 do particle_emit_trail(transform, previous, previous_height, was_grounded, false, 0.65)
 	}
 }
 
 movement_update_positions :: proc() {
 	// Facing changes with steering and AI; keep physics and debug bounds aligned.
-	for &entity in entities {
+	for &entity in world.entities {
 		if animal, ok := &entity.(Enemy); ok {
 			if model := animal_model_for_kind(animal.kind); model != nil {
 				animal.collider = animal_collider_from_bounds(
@@ -160,12 +161,12 @@ movement_update_positions :: proc() {
 		}
 	}
 	// Settle crates before characters so their support surfaces are current.
-	for &entity in entities {
-		if crate, ok := &entity.(Holdable); ok && crate.held_by == nil {
+	for &entity in world.entities {
+		if crate, ok := &entity.(Holdable); ok && crate.held_by == 0 {
 			movement_move(&entity, &crate.transform, &crate.collider, CRATE_GROUND_FRICTION)
 		}
 	}
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &e in entity {
 		case Player:
 			if riding_animal_for_player(e.index) != nil do continue

@@ -30,8 +30,8 @@ npc_create :: proc(
 	}
 	if len(animations) > 0 do animation_init(&npc.anim_data, animations)
 
-	append(&entities, npc)
-	return &entities[len(entities) - 1].(Npc)
+	value := entity_add(npc, &world)
+	return &value^.(Npc)
 }
 
 npc_spawn_at :: proc(position: Vec2) -> ^Npc {
@@ -41,7 +41,7 @@ npc_spawn_at :: proc(position: Vec2) -> ^Npc {
 
 // returns the first npc within the provided radius
 npc_get_in_range :: proc(pos: Vec2, radius: f32) -> ^Npc {
-	for &entity in entities {
+	for &entity in world.entities {
 		if npc, ok := &entity.(Npc);
 		   ok && len(npc.dialog_messages) > 0 && get_distance(npc.position, pos) <= radius {
 			return npc

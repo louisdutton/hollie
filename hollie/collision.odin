@@ -7,7 +7,7 @@ Collider :: struct {
 }
 
 collision_door_contains_point :: proc(position: Vec3) -> bool {
-	for &entity in entities {
+	for &entity in world.entities {
 		if door, ok := &entity.(Door); ok {
 			aabb := collision_aabb_at(door.position, door.collider)
 			if position.x >= aabb.min.x &&
@@ -24,7 +24,7 @@ collision_door_contains_point :: proc(position: Vec3) -> bool {
 }
 
 collision_door_for_player :: proc(player: ^Player) -> ^Door {
-	for &entity in entities {
+	for &entity in world.entities {
 		door, ok := &entity.(Door)
 		if !ok do continue
 		door_entity := Entity(door^)
@@ -57,9 +57,9 @@ collision_entity_aabb :: proc(entity: ^Entity) -> AABB {
 	case Gate: position, collider, base_height = e.position, e.collider, e.height
 	case Holdable:
 		position, collider, base_height = e.position, e.collider, e.height
-		if e.held_by != nil {
-			position = e.held_by.position
-			base_height = e.held_by.height + RENDERING_CARRIED_ITEM_HEIGHT
+		if carrier := entity_get_carrier(e.held_by, &world); carrier != nil {
+			position = carrier.position
+			base_height = carrier.height + RENDERING_CARRIED_ITEM_HEIGHT
 		}
 	case Door: position, collider, base_height = e.position, e.collider, e.height
 	}
@@ -94,7 +94,7 @@ collision_check_solid :: proc(
 }
 
 holdable_blocks_character :: proc(holdable: Holdable) -> bool {
-	return holdable.collider.solid && holdable.held_by == nil
+	return holdable.collider.solid && holdable.held_by == 0
 }
 
 // Update systems

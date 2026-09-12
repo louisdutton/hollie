@@ -142,7 +142,7 @@ water_wake_next: int
 
 water_update_wakes :: proc(dt: f32) {
 	for &wake in water_wakes do wake.age += dt
-	for &entity in entities {
+	for &entity in world.entities {
 		body: ^Transform
 		collider: Collider
 		switch &e in entity {
@@ -150,7 +150,7 @@ water_update_wakes :: proc(dt: f32) {
 		case Enemy: body, collider = &e.transform, e.collider
 		case Npc: body, collider = &e.transform, e.collider
 		case Holdable:
-			if e.held_by != nil do continue
+			if e.held_by != 0 do continue
 			body, collider = &e.transform, e.collider
 		case Pressure_Plate, Gate, Door: continue
 		}

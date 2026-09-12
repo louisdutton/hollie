@@ -4,12 +4,15 @@ import "core:testing"
 
 @(test)
 test_player_releases_carried_item_with_momentum_and_small_impulse :: proc(t: ^testing.T) {
-	crate := Holdable {
+	state: World_State
+	defer world_fini(&state)
+	crate_value := Holdable {
 		collider = {size = {12, 12, 12}, offset = {-6, 0, -6}, solid = true},
 		held_offset = {2, 21, -1},
 		held_pose_valid = true,
 	}
-	player := Player {
+	crate_id := entity_id(entity_add(crate_value, &state)^)
+	player_value := Player {
 		transform = {
 			position = {40, 50},
 			velocity = {60, -20},
@@ -18,21 +21,23 @@ test_player_releases_carried_item_with_momentum_and_small_impulse :: proc(t: ^te
 		},
 		collider = {size = {16, 16, 16}, offset = {-8, 0, -8}},
 		movement = {facing_direction = {1, 0}},
-		carrying = &crate,
+		carrying = crate_id,
 	}
-	crate.held_by = &player
-	testing.expect(t, !holdable_blocks_character(crate))
+	player := &entity_add(player_value, &state)^.(Player)
+	crate := entity_get_holdable(crate_id, &state)
+	crate.held_by = player.entity_id
+	testing.expect(t, !holdable_blocks_character(crate^))
 
-	player_drop(&player)
+	player_drop(player, &state)
 
 	testing.expect_value(t, crate.position, Vec2{42, 49})
 	testing.expect_value(t, crate.height, f32(26))
 	testing.expect_value(t, crate.velocity, Vec2{105, -20})
 	testing.expect_value(t, crate.vertical_velocity, f32(5))
 	testing.expect(t, !crate.grounded)
-	testing.expect(t, crate.held_by == nil)
-	testing.expect(t, holdable_blocks_character(crate))
-	testing.expect(t, player.carrying == nil)
+	testing.expect(t, crate.held_by == 0)
+	testing.expect(t, holdable_blocks_character(crate^))
+	testing.expect(t, player.carrying == 0)
 
 	diagonal_position := player_drop_position({40, 50}, {1, 1}, player.collider, crate.collider)
 	testing.expect(t, diagonal_position.x > player.position.x)

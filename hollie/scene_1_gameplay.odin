@@ -121,12 +121,12 @@ gameplay_update :: proc() {
 
 	if !pause_is_active() {
 		room_update()
-		entity_system_update() // Handles all entities (players, enemies, NPCs, puzzles)
+		entity_system_update() // Handles all world.entities (players, enemies, NPCs, puzzles)
 
 		// Check if doors should be enabled (no players in any door area)
 		if !gameplay_state.doors_enabled {
 			all_players_clear := true
-			for &entity in entities {
+			for &entity in world.entities {
 				player, ok := &entity.(Player)
 				if !ok do continue
 				if collision_door_for_player(player) != nil {
@@ -142,7 +142,7 @@ gameplay_update :: proc() {
 
 		// Check for door collisions with any player
 		if !gameplay_state.is_transitioning && gameplay_state.doors_enabled {
-			for &entity in entities {
+			for &entity in world.entities {
 				player, ok := &entity.(Player)
 				if !ok do continue
 				door := collision_door_for_player(player)

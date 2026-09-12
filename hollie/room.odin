@@ -93,7 +93,7 @@ room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB
 	for other in occupied {
 		if aabbs_intersect(aabb, other) do return false
 	}
-	for &entity in entities {
+	for &entity in world.entities {
 		if _, ok := &entity.(Door); ok && aabbs_intersect(aabb, collision_entity_aabb(&entity)) {
 			return false
 		}
@@ -164,14 +164,14 @@ when ODIN_DEBUG {
 	room_draw_doors_debug :: proc() {
 		if !room_state.is_loaded do return
 
-		for &door_entity_value in entities {
+		for &door_entity_value in world.entities {
 			door, ok := &door_entity_value.(Door)
 			if !ok do continue
 			door_entity := Entity(door^)
 			door_aabb := collision_entity_aabb(&door_entity)
 
 			is_intersection := false
-			for &player_entity in entities {
+			for &player_entity in world.entities {
 				player, ok := &player_entity.(Player)
 				if !ok do continue
 				player_entity_value := Entity(player^)
@@ -262,7 +262,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	first_door: ^Door = nil
 	if target_door != "" {
 		// Find the door with matching target_door field
-		for &entity in entities {
+		for &entity in world.entities {
 			door, ok := &entity.(Door)
 			if !ok do continue
 			if first_door == nil do first_door = door
@@ -276,7 +276,7 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	// If no target door specified or not found, use first door
 	if spawn_door == nil {
 		if first_door == nil {
-			for &entity in entities {
+			for &entity in world.entities {
 				if door, ok := &entity.(Door); ok {
 					first_door = door
 					break
@@ -424,7 +424,7 @@ when ODIN_DEBUG {
 		if !room_state.is_loaded do return
 
 		// Draw pressure plate collision boxes
-		for &entity in entities {
+		for &entity in world.entities {
 			plate, ok := &entity.(Pressure_Plate)
 			if !ok do continue
 			outline_color := plate.active ? graphics.GREEN : graphics.RED
@@ -438,7 +438,7 @@ when ODIN_DEBUG {
 		}
 
 		// Draw gate collision boxes
-		for &entity in entities {
+		for &entity in world.entities {
 			gate, ok := &entity.(Gate)
 			if !ok do continue
 			if !gate.open {

@@ -56,11 +56,10 @@ test_only_dropped_crates_overlap_pressure_plates :: proc(t: ^testing.T) {
 	}
 	testing.expect(t, pressure_plate_has_crate(&plate, &crate))
 
-	carrier: Player
-	crate.held_by = &carrier
+	crate.held_by = 1
 	testing.expect(t, !pressure_plate_has_crate(&plate, &crate))
 
-	crate.held_by = nil
+	crate.held_by = 0
 	crate.position = {30, 30}
 	testing.expect(t, !pressure_plate_has_crate(&plate, &crate))
 }

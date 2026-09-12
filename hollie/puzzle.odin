@@ -36,8 +36,8 @@ pressure_plate_create :: proc(
 		requires_both = requires_both,
 		animation_time = 1e9,
 	}
-	append(&entities, plate)
-	return &entities[len(entities) - 1].(Pressure_Plate)
+	value := entity_add(plate, &world)
+	return &value^.(Pressure_Plate)
 }
 
 gate_create :: proc(position, size: Vec2, gate_id: int, inverted: bool = false) -> ^Gate {
@@ -48,8 +48,8 @@ gate_create :: proc(position, size: Vec2, gate_id: int, inverted: bool = false) 
 		required_triggers = make([dynamic]int),
 		inverted = inverted,
 	}
-	append(&entities, gate)
-	return &entities[len(entities) - 1].(Gate)
+	value := entity_add(gate, &world)
+	return &value^.(Gate)
 }
 
 pressure_plate_has_required_weight :: proc(
@@ -70,7 +70,7 @@ pressure_plate_supports :: proc(plate: ^Pressure_Plate, entity: ^Entity) -> bool
 	switch e in entity^ {
 	case Player: grounded = e.grounded
 	case Enemy: grounded = e.grounded
-	case Holdable: grounded = e.grounded && e.held_by == nil
+	case Holdable: grounded = e.grounded && e.held_by == 0
 	case Npc, Pressure_Plate, Gate, Door: return false
 	}
 	if !grounded do return false
@@ -83,7 +83,7 @@ pressure_plate_supports :: proc(plate: ^Pressure_Plate, entity: ^Entity) -> bool
 }
 
 pressure_plate_update_surfaces :: proc() {
-	for &entity in entities {
+	for &entity in world.entities {
 		plate, ok := &entity.(Pressure_Plate)
 		if !ok do continue
 		plate.animation_time += graphics.get_frame_time()
@@ -101,7 +101,7 @@ pressure_plate_update_surfaces :: proc() {
 			(bounds.max.y - model_assets.pressure_pad_bounds.min.y) * MODEL_PRESSURE_PAD_SCALE
 		delta := new_height - plate.collider.size.y
 		// Keep resting weight attached while the button depresses or rises.
-		for &body in entities {
+		for &body in world.entities {
 			if !pressure_plate_supports(plate, &body) do continue
 			switch &e in body {
 			case Player: e.height += delta
@@ -117,7 +117,7 @@ pressure_plate_update_surfaces :: proc() {
 puzzle_update :: proc() {
 
 	// Update pressure plate states
-	for &plate_entity in entities {
+	for &plate_entity in world.entities {
 		plate, ok := &plate_entity.(Pressure_Plate)
 		if !ok do continue
 		was_active := plate.active
@@ -127,7 +127,7 @@ puzzle_update :: proc() {
 
 		// Players, enemies, and resting crates each contribute one unit of pressure.
 		other_weight := 0
-		for &body in entities {
+		for &body in world.entities {
 			if !pressure_plate_supports(plate, &body) do continue
 			if player, ok := &body.(Player); ok {
 				plate.activated_by += {player.index}
@@ -148,7 +148,7 @@ puzzle_update :: proc() {
 	}
 
 	// Update gate states based on trigger requirements
-	for &gate_entity in entities {
+	for &gate_entity in world.entities {
 		gate, ok := &gate_entity.(Gate)
 		if !ok do continue
 		if gate.breakable do continue
@@ -159,7 +159,7 @@ puzzle_update :: proc() {
 			trigger_active := false
 
 			// Check if this trigger ID matches any pressure plate
-			for &plate_entity in entities {
+			for &plate_entity in world.entities {
 				plate, ok := &plate_entity.(Pressure_Plate)
 				if !ok do continue
 				if plate.trigger_id == trigger_id {

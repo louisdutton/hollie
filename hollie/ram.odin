@@ -66,7 +66,7 @@ bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[
 		swept.max[axis] += max(travel[axis], 0)
 	}
 	if tilemap.check_collision(swept) do return
-	for &entity in entities {
+	for &entity in world.entities {
 		gate, ok := &entity.(Gate)
 		if !ok || !gate.breakable || gate.open do continue
 		bounds := collision_entity_aabb(&entity)

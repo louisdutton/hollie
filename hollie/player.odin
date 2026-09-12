@@ -5,7 +5,7 @@ import "graphics"
 import "input"
 import "tilemap"
 
-PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable entities
+PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable world.entities
 PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped item
 PLAYER_DROP_GAP :: 2 // clearance kept between the player and a dropped item
 
@@ -16,8 +16,8 @@ Player :: struct {
 	using movement:       Movement,
 	using anim_data:      Animator,
 	index:                input.Player_Index,
-	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
-	carrying:             ^Holdable,
+	// Persistent relationships use IDs; resolved pointers are borrowed until storage changes.
+	carrying:             Entity_Id,
 	head_turn:            f32,
 	movement_lean:        f32,
 	stride_time:          f32,
@@ -43,8 +43,8 @@ player_create :: proc(
 	}
 	if len(animations) > 0 do animation_init(&player.anim_data, animations)
 
-	append(&entities, player)
-	return &entities[len(entities) - 1].(Player)
+	value := entity_add(player, &world)
+	return &value^.(Player)
 }
 
 player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
@@ -70,8 +70,8 @@ player_handle_input :: proc(p: ^Player) {
 
 	// Carrying is a limited state so must be handled first
 	// there will likely be other states like this
-	if p.carrying != nil && input.is_pressed_for_player(.Interact, p.index) {
-		player_drop(p)
+	if p.carrying != 0 && input.is_pressed_for_player(.Interact, p.index) {
+		player_drop(p, &world)
 		return
 	}
 
@@ -86,7 +86,7 @@ player_handle_input :: proc(p: ^Player) {
 }
 
 player_update_input :: proc() {
-	for &entity in entities {
+	for &entity in world.entities {
 		#partial switch &p in entity {
 		case Player: player_handle_input(&p)
 		}
@@ -95,7 +95,7 @@ player_update_input :: proc() {
 
 player_update_movement :: proc() {
 	dt := min(graphics.get_frame_time(), 0.1)
-	for &entity in entities {
+	for &entity in world.entities {
 		#partial switch &p in entity {
 		case Player:
 			if animal := riding_animal_for_player(p.index); animal != nil {
@@ -161,29 +161,34 @@ player_update_movement :: proc() {
 }
 
 @(private)
-player_drop :: proc(p: ^Player) {
-	offset := Vec3{0, RENDERING_CARRIED_ITEM_HEIGHT, 0}
-	if p.carrying.held_pose_valid do offset = p.carrying.held_offset
-	position := p.position + Vec2{offset.x, offset.z}
-	height := p.height + offset.y
-	if collision_check_solid(position, p.carrying.collider, height = height) ||
-	   (room_get_current() != nil &&
-			   tilemap.check_collision(collision_aabb_at(position, p.carrying.collider, height))) {
+player_drop :: proc(p: ^Player, state: ^World_State) {
+	crate := entity_get_holdable(p.carrying, state)
+	if crate == nil {
+		p.carrying = 0
 		return
 	}
-	p.carrying.height = height
+	offset := Vec3{0, RENDERING_CARRIED_ITEM_HEIGHT, 0}
+	if crate.held_pose_valid do offset = crate.held_offset
+	position := p.position + Vec2{offset.x, offset.z}
+	height := p.height + offset.y
+	if collision_check_solid(position, crate.collider, height = height) ||
+	   (room_get_current() != nil &&
+			   tilemap.check_collision(collision_aabb_at(position, crate.collider, height))) {
+		return
+	}
+	crate.height = height
 	direction := p.facing_direction
 	length := math.sqrt(direction.x * direction.x + direction.y * direction.y)
 	if length > 0 do direction /= length
-	p.carrying.velocity = p.velocity + direction * 45
-	p.carrying.vertical_velocity = p.vertical_velocity + 15
-	p.carrying.grounded = false
-	p.carrying.held_by = nil
-	p.carrying.release_ignore_player = true
-	p.carrying.release_player = p.index
-	p.carrying.held_pose_valid = false
-	p.carrying.position = position
-	p.carrying = nil
+	crate.velocity = p.velocity + direction * 45
+	crate.vertical_velocity = p.vertical_velocity + 15
+	crate.grounded = false
+	crate.held_by = 0
+	crate.release_ignore_player = true
+	crate.release_player = p.index
+	crate.held_pose_valid = false
+	crate.position = position
+	p.carrying = 0
 }
 
 player_drop_position :: proc(
@@ -231,14 +236,14 @@ player_drop_position :: proc(
 // this is a little messy, we shouldn't really have to iterate twice like this.
 @(private)
 player_carry :: proc(p: ^Player) {
-	for &entity in entities {
+	for &entity in world.entities {
 		holdable, ok := &entity.(Holdable)
 		if !ok do continue
-		if holdable.held_by == nil {
+		if holdable.held_by == 0 {
 			if get_distance(holdable.position, p.position) <= PLAYER_INTERACT_RANGE &&
 			   abs(holdable.height - p.height) <= PLAYER_INTERACT_RANGE {
-				holdable.held_by = p
-				p.carrying = holdable
+				holdable.held_by = p.entity_id
+				p.carrying = holdable.entity_id
 				break
 			}
 		}

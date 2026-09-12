@@ -52,10 +52,9 @@ test_animals_can_be_mounted_only_when_available_and_grounded :: proc(t: ^testing
 	player.grounded = false
 	testing.expect(t, !riding_can_mount(&player, &animal))
 	player.grounded = true
-	crate: Holdable
-	player.carrying = &crate
+	player.carrying = 1
 	testing.expect(t, !riding_can_mount(&player, &animal))
-	player.carrying = nil
+	player.carrying = 0
 	animal.kind = .Goblin
 	testing.expect(t, !riding_can_mount(&player, &animal))
 	animal.kind = .Horse

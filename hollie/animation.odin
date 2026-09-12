@@ -106,7 +106,7 @@ animation_fini :: proc(anim_data: ^Animator) {
 
 animation_update_entities :: proc() {
 	delta_time := graphics.get_frame_time()
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &e in entity {
 		case Player:
 			speed := math.sqrt(e.velocity.x * e.velocity.x + e.velocity.y * e.velocity.y)
@@ -120,7 +120,7 @@ animation_update_entities :: proc() {
 					&e.anim_data,
 					e.mount_elapsed < e.mount_duration * 0.7 ? .Jump : .Ride,
 				)
-			} else if e.carrying != nil {
+			} else if e.carrying != 0 {
 				animation_set_state(&e.anim_data, .Carry)
 			} else if !e.grounded && !e.swimming {
 				animation_set_state(&e.anim_data, .Jump)

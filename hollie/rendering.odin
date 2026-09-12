@@ -327,7 +327,9 @@ rendering_draw_character :: proc(
 		rendering_state.character_flash_location,
 		&flash,
 	)
-	if player != nil && player.carrying != nil {
+	crate: ^Holdable
+	if player != nil do crate = entity_get_holdable(player.carrying, &world)
+	if crate != nil {
 		// Sample the same arm pose that was just drawn, then apply the same
 		// world bob and lean so the crate stays supported by the hands.
 		left := graphics.get_animated_model_bounding_box(
@@ -366,9 +368,8 @@ rendering_draw_character :: proc(
 				cross * math.sin(bank) +
 				bank_axis * dot * (1 - math.cos(bank))
 		}
-		player.carrying.held_offset =
-			anchor_position - geometry_position(player.position, player.height)
-		player.carrying.held_pose_valid = true
+		crate.held_offset = anchor_position - geometry_position(player.position, player.height)
+		crate.held_pose_valid = true
 		graphics.draw_model(
 			model_assets.crate,
 			geometry_grounded_position(
@@ -389,7 +390,7 @@ rendering_draw_character :: proc(
 }
 
 rendering_draw_entities :: proc() {
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &e in entity {
 		case Player:
 			tint :=
@@ -429,15 +430,12 @@ rendering_draw_entities :: proc() {
 				e.height,
 			)
 		case Holdable:
-			if e.held_by != nil do continue // Drawn with the carrier's animated hands.
+			if e.held_by != 0 do continue // Drawn with the carrier's animated hands.
 			base_height := e.height
-			if e.held_by != nil {
-				base_height = e.held_by.height + RENDERING_CARRIED_ITEM_HEIGHT
-			}
 			graphics.draw_model(
 				model_assets.crate,
 				geometry_grounded_position(
-					e.held_by != nil ? e.held_by.position : e.position,
+					e.position,
 					model_assets.crate_bounds,
 					MODEL_CRATE_SCALE,
 					base_height,
@@ -531,7 +529,7 @@ rendering_draw_label :: proc(
 
 rendering_draw_labels :: proc(camera_3d: graphics.Camera3D) {
 	if game.player_count != 2 do return
-	for &entity in entities {
+	for &entity in world.entities {
 		player, ok := &entity.(Player)
 		if !ok do continue
 		label := player.index == .Player_1 ? "P1" : "P2"

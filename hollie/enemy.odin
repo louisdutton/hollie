@@ -41,8 +41,8 @@ enemy_create :: proc(
 	// Spawn at the surface and let displacement and drag establish the draft.
 	if water_at(position) do enemy.height = WATER_SURFACE
 
-	append(&entities, enemy)
-	return &entities[len(entities) - 1].(Enemy)
+	value := entity_add(enemy, &world)
+	return &value^.(Enemy)
 }
 
 enemy_spawn_kind_at :: proc(position: Vec2, kind: content.Character_Kind) {

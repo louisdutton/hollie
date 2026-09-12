@@ -120,7 +120,7 @@ dialog_is_active :: proc() -> bool {
 
 // TODO: we should only mark participating NPCs as busy
 dialog_set_all_busy :: proc(busy: bool) {
-	for &entity in entities {
+	for &entity in world.entities {
 		switch &actor in &entity {
 		case Player: actor.is_busy = busy
 		case Npc: actor.is_busy = busy

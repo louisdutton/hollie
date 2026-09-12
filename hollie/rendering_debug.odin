@@ -82,7 +82,7 @@ when ODIN_DEBUG {
 			}
 		}
 
-		for &entity in entities {
+		for &entity in world.entities {
 			aabb := collision_entity_aabb(&entity)
 			color: graphics.Colour
 			switch e in entity {
@@ -103,7 +103,7 @@ when ODIN_DEBUG {
 	}
 
 	debug_draw_labels :: proc(camera_3d: graphics.Camera3D) {
-		for &entity in entities {
+		for &entity in world.entities {
 			door, ok := &entity.(Door)
 			if !ok do continue
 			center := door.position + Vec2{door.collider.size.x, door.collider.size.z} / 2
