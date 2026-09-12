@@ -156,9 +156,9 @@ physics_step :: proc(
 	}
 }
 
-physics_jump :: proc(body: ^Transform) {
+physics_jump :: proc(body: ^Transform, jump_speed: f32 = PHYSICS_JUMP_SPEED) {
 	if !body.grounded do return
-	body.vertical_velocity = PHYSICS_JUMP_SPEED
+	body.vertical_velocity = jump_speed
 	body.grounded = false
 }
 
