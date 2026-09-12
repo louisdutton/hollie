@@ -14,16 +14,18 @@ out vec3 world_position;
 out float blade_height;
 out float blade;
 out float grass_contact;
+out float wind_light;
 
 void main()
 {
     blade = step(0.01, vertexColor.a);
-    blade_height = clamp(vertexPosition.y / max(vertexColor.a * 8.0, 0.01), 0.0, 1.0) * blade;
+    blade_height = clamp(vertexPosition.y / max(vertexColor.a * 12.0, 0.01), 0.0, 1.0) * blade;
     vec3 position = vertexPosition;
-    float wave = sin(dot(position.xz, vec2(0.045, 0.032)) - grass_time * 1.3);
-    float flutter = sin(dot(position.xz, vec2(0.31, -0.18)) + grass_time * 2.4);
+    float wave = sin(dot(position.xz, vec2(0.025, 0.018)) - grass_time * 1.05);
+    float ripple = sin(dot(position.xz, vec2(0.075, -0.04)) - grass_time * 1.7);
+    wind_light = smoothstep(0.05, 0.9, wave * 0.8 + ripple * 0.2);
     // Squared tip weighting anchors the roots and bends the upper blade.
-    position.xz += vec2(1.0, 0.45) * (0.55 + wave * 0.8 + flutter * 0.18)
+    position.xz += vec2(1.0, 0.45) * (0.4 + wave * 1.1 + ripple * 0.25)
                    * blade_height * blade_height;
     vec2 bend = vec2(0.0);
     float flatten = 0.0;

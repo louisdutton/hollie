@@ -115,6 +115,17 @@ grass_random :: proc(seed: int) -> f32 {
 	return value - math.floor(value)
 }
 
+// Smooth, world-space height groups rather than unrelated tall/short blades.
+grass_clump :: proc(position: Vec2) -> f32 {
+	p := position * 0.035
+	x, y := int(math.floor(p.x)), int(math.floor(p.y))
+	f := p - Vec2{f32(x), f32(y)}
+	f = f * f * (Vec2{3, 3} - 2 * f)
+	a, b := grass_random(x * 137 + y * 311), grass_random((x + 1) * 137 + y * 311)
+	c, d := grass_random(x * 137 + (y + 1) * 311), grass_random((x + 1) * 137 + (y + 1) * 311)
+	return (a + (b - a) * f.x) * (1 - f.y) + (c + (d - c) * f.x) * f.y
+}
+
 grass_upload_players :: proc(shader: graphics.Shader) {
 	// Always upload both slots so leaving a room or removing player two
 	// cannot leave an invisible influence behind.
@@ -172,16 +183,16 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 			0.04,
 			top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
 		}
-		height := 4.2 + grass_random(seed + 2) * 3.4
-		// Overlap the 2.67-unit planting cells and present the broad face
-		// to the isometric camera instead of losing random blades edge-on.
+		height := 6.4 + grass_clump({root.x, root.z}) * 2.4 + grass_random(seed + 2) * 0.8
+		// Tall, overlapping ribbons keep the meadow full at the same density.
 		angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
-		width := Vec3{math.cos(angle), 0, math.sin(angle)} * (1.25 + grass_random(seed + 4) * 0.55)
-		// Carry the leaf's width almost to the top, then close with a
-		// short, gently leaning cap instead of a long needle-like taper.
-		shoulder := root + Vec3{0.45, height * 0.82, 0.2}
-		tip := root + Vec3{0.85, height, 0.35}
-		color := graphics.Colour{255, 255, 255, u8(height / 8 * 255)}
+		width := Vec3{math.cos(angle), 0, math.sin(angle)} * (0.85 + grass_random(seed + 4) * 0.3)
+		// A low shoulder and a swept tip imply a curved taper with five vertices.
+		lean := Vec3{1.6, 0, 0.7} + width * (grass_random(seed + 5) - 0.5)
+		shoulder := root + lean * 0.28 + Vec3{0, height * 0.58, 0}
+		tip := root + lean + Vec3{0, height, 0}
+		// Alpha stores height over a 12-unit range (shared with grass.vs).
+		color := graphics.Colour{255, 255, 255, u8(height / 12 * 255)}
 		// Shared vertices retain both windings without running the vertex
 		// shader separately for every triangle corner.
 		grass_mesh_append(
@@ -189,8 +200,8 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 			[]Vec3 {
 				root - width,
 				root + width,
-				shoulder + width * 0.7,
-				shoulder - width * 0.7,
+				shoulder + width * 0.62,
+				shoulder - width * 0.62,
 				tip,
 			},
 			[]u16{0, 1, 2, 0, 2, 3, 3, 2, 4, 2, 1, 0, 3, 2, 0, 4, 2, 3},
