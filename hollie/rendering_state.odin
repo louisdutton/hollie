@@ -12,6 +12,8 @@ RENDERING_BACKGROUND_COLOR :: graphics.Colour{54, 54, 60, 255}
 RENDERING_LIGHT_DIRECTION :: graphics.Vec3{-0.5, -0.7, 0.5}
 
 Rendering_State :: struct {
+	water_shader:              graphics.Shader,
+	water_time_location:       c.int,
 	lighting_shader:           graphics.Shader,
 	character_lighting_shader: graphics.Shader,
 	active_character_shader:   graphics.Shader,
@@ -46,6 +48,24 @@ rendering_configure_lighting :: proc(shader: graphics.Shader) {
 }
 
 rendering_init :: proc() {
+	water_vertex_path := asset.path("shaders/water.vs")
+	defer delete(water_vertex_path)
+	water_fragment_path := asset.path("shaders/water.fs")
+	defer delete(water_fragment_path)
+	rendering_state.water_shader = graphics.load_shader(
+		cstring(raw_data(water_vertex_path)),
+		cstring(raw_data(water_fragment_path)),
+	)
+	rendering_state.water_time_location = graphics.get_shader_location(
+		rendering_state.water_shader,
+		"water_time",
+	)
+	water_surface := WATER_SURFACE
+	graphics.set_shader_float(
+		rendering_state.water_shader,
+		graphics.get_shader_location(rendering_state.water_shader, "surface_height"),
+		&water_surface,
+	)
 	vertex_shader_path := asset.path("shaders/world_lighting.vs")
 	defer delete(vertex_shader_path)
 	skinned_vertex_shader_path := asset.path("shaders/world_lighting_skinned.vs")
@@ -93,6 +113,7 @@ rendering_prepare :: proc() {
 }
 
 rendering_fini :: proc() {
+	if graphics.shader_is_loaded(rendering_state.water_shader) do graphics.unload_shader(rendering_state.water_shader)
 	shadow_map_fini()
 	if graphics.shader_is_loaded(rendering_state.character_lighting_shader) {
 		graphics.unload_shader(rendering_state.character_lighting_shader)

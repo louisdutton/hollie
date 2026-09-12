@@ -83,12 +83,28 @@ rendering_draw_water_banks :: proc(x, y: int, bed: f32) {
 
 rendering_draw_water :: proc() {
 	size := f32(tilemap.get_tile_size())
+	shader := rendering_state.water_shader
+	shaded := graphics.shader_is_loaded(shader) && rendering_state.water_time_location >= 0
+	if shaded {
+		graphics.set_shader_float(shader, rendering_state.water_time_location, &water_time)
+		graphics.set_shader_float(shader, graphics.get_shader_location(shader, "tile_size"), &size)
+		graphics.begin_shader(shader)
+	}
+	defer if shaded do graphics.end_shader()
 	for y in 0 ..< tilemap.get_tilemap_height() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
 			if !water_tile(x, y) do continue
 			left, right := f32(x) * size, f32(x + 1) * size
 			top, bottom := f32(y) * size, f32(y + 1) * size
 			color := graphics.Colour{55, 163, 180, 150}
+			if shaded {
+				color = {
+					water_tile(x - 1, y) ? 0 : 255,
+					water_tile(x + 1, y) ? 0 : 255,
+					water_tile(x, y - 1) ? 0 : 255,
+					water_tile(x, y + 1) ? 0 : 255,
+				}
+			}
 			rendering_water_quad(
 				{left, WATER_SURFACE, top},
 				{left, WATER_SURFACE, bottom},
@@ -103,19 +119,6 @@ rendering_draw_water :: proc() {
 			if !water_tile(x + 1, y) do rendering_water_quad({right, bed, bottom}, {right, bed, top}, {right, WATER_SURFACE, top}, {right, WATER_SURFACE, bottom}, color)
 			if !water_tile(x, y - 1) do rendering_water_quad({right, bed, top}, {left, bed, top}, {left, WATER_SURFACE, top}, {right, WATER_SURFACE, top}, color)
 			if !water_tile(x, y + 1) do rendering_water_quad({left, bed, bottom}, {right, bed, bottom}, {right, WATER_SURFACE, bottom}, {left, WATER_SURFACE, bottom}, color)
-			if (x + y) % 3 == 0 {
-				wave := math.sin(water_time * 1.5 + f32(x + y))
-				graphics.draw_cube(
-					{(f32(x) + 0.5) * size + wave * 2, WATER_SURFACE + 0.1, (f32(y) + 0.5) * size},
-					{5 + wave, 0.08, 0.4},
-					{116, 203, 211, 200},
-				)
-			}
-			// Thin pale edges mark the shore without obscuring the water.
-			if !water_tile(x, y - 1) do graphics.draw_cube({(f32(x) + 0.5) * size, WATER_SURFACE + 0.08, f32(y) * size + 0.5}, {size, 0.08, 1}, {180, 217, 196, 255})
-			if !water_tile(x, y + 1) do graphics.draw_cube({(f32(x) + 0.5) * size, WATER_SURFACE + 0.08, f32(y + 1) * size - 0.5}, {size, 0.08, 1}, {180, 217, 196, 255})
-			if !water_tile(x - 1, y) do graphics.draw_cube({f32(x) * size + 0.5, WATER_SURFACE + 0.08, (f32(y) + 0.5) * size}, {1, 0.08, size}, {180, 217, 196, 255})
-			if !water_tile(x + 1, y) do graphics.draw_cube({f32(x + 1) * size - 0.5, WATER_SURFACE + 0.08, (f32(y) + 0.5) * size}, {1, 0.08, size}, {180, 217, 196, 255})
 		}
 	}
 }
