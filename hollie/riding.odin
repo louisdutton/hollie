@@ -154,6 +154,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	}
 	if nearest == nil do return false
 	nearest.mounted = true
+	nearest.coasting = false
 	nearest.turn_lean = 0
 	nearest.head_turn = 0
 	nearest.rider = player.index
@@ -222,7 +223,7 @@ riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	obstacles := physics_obstacles(nil)
 	defer delete(obstacles)
 	append(&obstacles, collision_aabb_at(animal.position, animal.collider, animal.height))
-	position, height, clear := riding_find_dismount(
+	position, _, clear := riding_find_dismount(
 		player,
 		animal,
 		obstacles[:],
@@ -230,14 +231,18 @@ riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 		true,
 	)
 	if !clear do return false
-	player.position = position
+	// Stand up on the back and leap sideways instead of teleporting to the ground.
+	height := max(player.height, animal.height + animal.collider.offset.y + animal.collider.size.y)
+	launch_bounds := collision_aabb_at(player.position, player.collider, height)
+	if physics_blocked(launch_bounds, obstacles[:], true) do return false
+	direction := position - animal.position
+	direction /= math.sqrt(direction.x * direction.x + direction.y * direction.y)
 	player.height = height
-	player.velocity = animal.velocity
-	player.vertical_velocity = animal.vertical_velocity
+	player.velocity = animal.velocity + direction * 70
+	player.vertical_velocity = PHYSICS_JUMP_SPEED + max(animal.vertical_velocity, 0)
 	player.grounded = false
+	player.dismount_jumping = true
 	animal.mounted = false
-	animal.turn_lean = 0
-	animal.head_turn = 0
-	animal.velocity = {}
+	animal.coasting = true
 	return true
 }

@@ -12,6 +12,7 @@ Enemy :: struct {
 	using anim_data: Animator,
 	kind:            content.Character_Kind,
 	mounted:         bool,
+	coasting:        bool,
 	rider:           input.Player_Index,
 	turn_lean:       f32,
 	head_turn:       f32,

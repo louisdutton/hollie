@@ -146,7 +146,7 @@ animal_animated_seat :: proc(enemy: ^Enemy, animal: ^Animal_Model) -> Vec3 {
 
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	animal_apply_pose(enemy, animal)
-	if enemy.mounted && enemy.head_turn != 0 {
+	if (enemy.mounted || enemy.coasting) && enemy.head_turn != 0 {
 		head := graphics.get_model_bone_index(animal.model, "head")
 		neck := graphics.get_model_bone_index(animal.model, "neck")
 		pivot_bone := neck >= 0 ? neck : head

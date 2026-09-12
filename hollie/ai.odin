@@ -14,6 +14,21 @@ ai_update_movement :: proc() {
 		switch &e in entity {
 		case Enemy:
 			if e.mounted do continue
+			if e.coasting {
+				dt := min(graphics.get_frame_time(), 0.1)
+				e.velocity = movement_accelerate(e.velocity, {}, RIDING_MOVEMENT_PROFILE, dt)
+				e.turn_lean = riding_turn_lean(e.turn_lean, {}, {}, dt)
+				e.head_turn = riding_head_turn(e.head_turn, e.facing_direction, {}, dt)
+				if e.velocity == (Vec2{}) {
+					e.coasting = false
+					e.wait_timer = 0.5
+				}
+				continue
+			}
+			if e.wait_timer > 0 {
+				e.wait_timer -= graphics.get_frame_time()
+				continue
+			}
 			ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
 		case Npc: ai_update_velocity(&e.transform, &e.movement, &e.health, &e.ai)
 		case Player, Pressure_Plate, Gate, Holdable, Door: continue

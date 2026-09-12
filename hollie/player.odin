@@ -10,14 +10,15 @@ PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped i
 PLAYER_DROP_GAP :: 2 // clearance kept between the player and a dropped item
 
 Player :: struct {
-	using transform: Transform,
-	using collider:  Collider,
-	using health:    Health,
-	using movement:  Movement,
-	using anim_data: Animator,
-	index:           input.Player_Index,
+	using transform:  Transform,
+	using collider:   Collider,
+	using health:     Health,
+	using movement:   Movement,
+	using anim_data:  Animator,
+	index:            input.Player_Index,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
-	carrying:        ^Holdable,
+	carrying:         ^Holdable,
+	dismount_jumping: bool,
 }
 
 player_create :: proc(
@@ -83,6 +84,10 @@ player_update_movement :: proc() {
 	for &entity in entities {
 		#partial switch &p in entity {
 		case Player:
+			if p.dismount_jumping {
+				if !p.grounded do continue
+				p.dismount_jumping = false
+			}
 			if animal := riding_animal_for_player(p.index); animal != nil {
 				if p.is_busy {
 					animal.velocity = {}

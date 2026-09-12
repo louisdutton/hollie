@@ -79,7 +79,7 @@ movement_move :: proc(
 	#partial switch e in moving_entity^ {
 	case Player: particle_emit_trail(transform, previous, previous_height, was_grounded, false)
 	case Enemy:
-		if e.mounted do particle_emit_trail(transform, previous, previous_height, was_grounded, true)
+		if e.mounted || e.coasting do particle_emit_trail(transform, previous, previous_height, was_grounded, true)
 	}
 }
 
