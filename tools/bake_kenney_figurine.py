@@ -15,6 +15,7 @@ import sys
 
 import bpy
 from mathutils import Matrix
+from mathutils.kdtree import KDTree
 
 
 PART_NAMES = ("leg-left", "leg-right", "torso", "arm-left", "arm-right", "head")
@@ -92,7 +93,7 @@ def bake_action(
             pose_bone.keyframe_insert("scale", frame=frame, group=part.name)
 
 
-def main():
+def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_carry=True):
     source_path, output_path = arguments()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -107,16 +108,25 @@ def main():
             collection.remove(block)
 
     bpy.ops.import_scene.gltf(filepath=str(source_path))
-    nodes = [bpy.data.objects[name] for name in ANIMATED_NODE_NAMES]
-    parts = [bpy.data.objects[name] for name in PART_NAMES]
+    if part_names is None:
+        part_names = tuple(obj.name for obj in bpy.data.objects if obj.type == "MESH")
+    if animated_node_names is None:
+        animated_node_names = tuple(obj.name for obj in bpy.data.objects)
+    nodes = [bpy.data.objects[name] for name in animated_node_names]
+    parts = [bpy.data.objects[name] for name in part_names]
     source_actions = [(action.name, action) for action in bpy.data.actions]
     source_actions_by_name = dict(source_actions)
-    static_action = bpy.data.actions["static"]
+    static_action = bpy.data.actions.get("static")
 
     # The imported static clip contains the authored rest transforms.
     bpy.context.scene.frame_set(0)
     initial_basis = {node.name: node.matrix_basis.copy() for node in nodes}
-    set_source_action(static_action, nodes, initial_basis)
+    if static_action is not None:
+        set_source_action(static_action, nodes, initial_basis)
+    else:
+        for node in nodes:
+            node.animation_data_clear()
+            node.matrix_basis = initial_basis[node.name].copy()
     bpy.context.view_layer.update()
     rest_basis = {node.name: node.matrix_basis.copy() for node in nodes}
     rest_world = {part.name: part.matrix_world.copy() for part in parts}
@@ -145,6 +155,7 @@ def main():
         group.add(range(len(baked.data.vertices)), 1.0, "REPLACE")
         baked_parts.append(baked)
 
+    bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
     for baked in baked_parts:
         baked.select_set(True)
@@ -156,11 +167,15 @@ def main():
         tuple(character_mesh.matrix_world @ vertex.co)
         for vertex in character_mesh.data.vertices
     )
-    rest_error = max(
-        abs(actual[axis] - expected[axis])
-        for actual, expected in zip(actual_vertices, expected_vertices)
-        for axis in range(3)
-    )
+    if len(actual_vertices) != len(expected_vertices):
+        raise RuntimeError("Joining changed the vertex count")
+    # Joining can introduce tiny coordinate rounding differences that reorder
+    # lexicographically sorted vertices. Compare spatially instead.
+    tree = KDTree(len(actual_vertices))
+    for index, vertex in enumerate(actual_vertices):
+        tree.insert(vertex, index)
+    tree.balance()
+    rest_error = max(tree.find(vertex)[2] for vertex in expected_vertices)
     if rest_error > 0.000001:
         raise RuntimeError(f"Joined rest geometry moved by {rest_error}")
 
@@ -171,7 +186,7 @@ def main():
     armature.select_set(True)
     character_mesh.select_set(False)
     bpy.ops.object.mode_set(mode="EDIT")
-    for part_name in PART_NAMES:
+    for part_name in part_names:
         bone = armature_data.edit_bones.new(part_name)
         # Bind each rigid bone at the original object's authored origin. This is
         # the hinge used by Kenney's rotations (shoulder, hip, neck, and so on).
@@ -199,21 +214,22 @@ def main():
             armature,
         )
 
-    holding_action = source_actions_by_name["holding-both"]
-    bake_action(
-        "walk-holding-both",
-        source_actions_by_name["walk"],
-        nodes,
-        parts,
-        rest_basis,
-        rest_world,
-        armature,
-        overrides={"arm-left": holding_action, "arm-right": holding_action},
-        post_rotations={
-            "arm-left": Matrix.Rotation(-math.pi / 2, 4, "X"),
-            "arm-right": Matrix.Rotation(-math.pi / 2, 4, "X"),
-        },
-    )
+    if add_carry:
+        holding_action = source_actions_by_name["holding-both"]
+        bake_action(
+            "walk-holding-both",
+            source_actions_by_name["walk"],
+            nodes,
+            parts,
+            rest_basis,
+            rest_world,
+            armature,
+            overrides={"arm-left": holding_action, "arm-right": holding_action},
+            post_rotations={
+                "arm-left": Matrix.Rotation(-math.pi / 2, 4, "X"),
+                "arm-right": Matrix.Rotation(-math.pi / 2, 4, "X"),
+            },
+        )
 
     # Remove the source hierarchy and source-only actions before export.
     armature.animation_data.action = None
@@ -236,7 +252,7 @@ def main():
         export_bake_animation=True,
         export_skins=True,
     )
-    print(f"Baked {len(source_actions)} Kenney clips and carry-walk layer to {output_path}")
+    print(f"Baked {len(source_actions)} Kenney clips (carry layer: {add_carry}) to {output_path}")
 
 
 if __name__ == "__main__":

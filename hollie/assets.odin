@@ -63,6 +63,7 @@ model_assets_load_model :: proc(relative_path: string) -> graphics.Model {
 }
 
 model_assets_init :: proc() {
+	animal_models_init()
 	root :: "world/props/"
 	model_assets.floor = model_assets_load_model(root + "floor-square.glb")
 	model_assets.character = model_assets_load_model(root + MODEL_CHARACTER_FILE)
@@ -121,6 +122,7 @@ model_assets_init :: proc() {
 }
 
 model_assets_fini :: proc() {
+	animal_models_fini()
 	if model_assets.character_animation_count > 0 {
 		graphics.unload_model_animations(
 			model_assets.character_animations,

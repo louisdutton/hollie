@@ -8,6 +8,7 @@ RENDERING_SHADOW_MAP_RESOLUTION :: 1024 // width and height of the shadow-map te
 RENDERING_SHADOW_MARGIN :: f32(64) // extra world-space coverage around the camera view
 
 shadow_map_apply_lighting_shaders :: proc() {
+	animal_models_apply_shader(false)
 	rendering_apply_shader(&model_assets.floor, rendering_state.lighting_shader)
 	rendering_apply_shader(&model_assets.character, rendering_state.active_character_shader)
 	rendering_apply_shader(&model_assets.crate, rendering_state.lighting_shader)
@@ -19,6 +20,7 @@ shadow_map_apply_lighting_shaders :: proc() {
 }
 
 shadow_map_apply_shaders :: proc() {
+	animal_models_apply_shader(true)
 	rendering_apply_shader(&model_assets.floor, rendering_state.shadow_shader)
 	character_shader := rendering_state.shadow_shader
 	if graphics.model_uses_gpu_skinning(&model_assets.character) {

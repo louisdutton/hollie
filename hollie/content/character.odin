@@ -6,6 +6,9 @@ Character_Kind :: enum {
 	Goblin,
 	Skeleton,
 	Human,
+	Dog,
+	Horse,
+	Bison,
 }
 
 character_kind_from_wire :: proc(name: string) -> (Character_Kind, bool) {

@@ -247,6 +247,10 @@ rendering_draw_entities :: proc() {
 				e.height,
 			)
 		case Enemy:
+			if animal := animal_model_for_kind(e.kind); animal != nil {
+				rendering_draw_animal(&e, animal)
+				continue
+			}
 			tint := graphics.Colour{196, 92, 88, 255}
 			rendering_draw_character(
 				&e.anim_data,
