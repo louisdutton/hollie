@@ -1,14 +1,18 @@
 package hollie
 
+import "input"
+
 CRATE_GROUND_FRICTION :: f32(360) // horizontal deceleration in world units per second squared
 
 Holdable :: struct {
-	using transform: Transform,
-	using collider:  Collider,
+	using transform:       Transform,
+	using collider:        Collider,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
-	held_by:         ^Player,
-	held_offset:     Vec3,
-	held_pose_valid: bool,
+	held_by:               ^Player,
+	held_offset:           Vec3,
+	held_pose_valid:       bool,
+	release_ignore_player: bool,
+	release_player:        input.Player_Index,
 }
 
 holdable_create :: proc(position: Vec2) -> ^Holdable {

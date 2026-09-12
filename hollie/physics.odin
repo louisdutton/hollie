@@ -29,7 +29,25 @@ physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 		switch e in entity {
 		case Pressure_Plate: solid = true
 		case Gate: solid = e.collider.solid && !e.open
-		case Holdable: solid = holdable_blocks_character(e)
+		case Holdable:
+			solid = holdable_blocks_character(e)
+			if e.release_ignore_player && exclude != nil {
+				if player, ok := exclude^.(Player); ok && player.index == e.release_player {
+					crate_bounds := collision_entity_aabb(&entity)
+					player_bounds := collision_aabb_at(
+						player.position,
+						player.collider,
+						player.height,
+					)
+					if physics_overlap_horizontal(crate_bounds, player_bounds) {
+						solid = false
+					} else {
+						// Once clear, normal collision resumes permanently.
+						crate := &entity.(Holdable)
+						crate.release_ignore_player = false
+					}
+				}
+			}
 		case Player, Enemy, Npc, Door: continue
 		}
 		if solid do append(&obstacles, collision_entity_aabb(&entity))

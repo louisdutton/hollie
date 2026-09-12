@@ -168,6 +168,8 @@ player_drop :: proc(p: ^Player) {
 	p.carrying.vertical_velocity = p.vertical_velocity + 15
 	p.carrying.grounded = false
 	p.carrying.held_by = nil
+	p.carrying.release_ignore_player = true
+	p.carrying.release_player = p.index
 	p.carrying.held_pose_valid = false
 	p.carrying.position = position
 	p.carrying = nil
