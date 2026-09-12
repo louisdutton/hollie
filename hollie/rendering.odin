@@ -183,7 +183,14 @@ rendering_draw_character :: proc(
 	if clip_index >= 0 {
 		clip := model_assets.character_animations[clip_index]
 		clip_frame := model_animation_frame(anim.visual_time, clip, playback_modes[current_state])
-		if current_state == .Ride do clip_frame = f32(max(int(clip.keyframeCount) - 2, 0))
+		if current_state == .Ride && mount != nil {
+			speed := math.sqrt(
+				mount.velocity.x * mount.velocity.x + mount.velocity.y * mount.velocity.y,
+			)
+			_, lean := animal_gait_blend(speed)
+			if speed <= ANIMAL_WALK_SPEED do lean = 0
+			clip_frame = lean * f32(max(int(clip.keyframeCount) - 2, 0))
+		}
 		previous_state := anim.previous_anim
 		previous_clip_index := -1
 		previous_clip_index = model_assets.character_animation_indices[previous_state]
@@ -230,6 +237,13 @@ rendering_draw_character :: proc(
 		)
 		render_position += {seat_delta.x, seat_delta.z}
 		render_height += seat_delta.y
+		rider_torso := graphics.get_animated_model_bounding_box(
+			model_assets.character,
+			graphics.get_model_bone_index(model_assets.character, "torso"),
+		)
+		seat_height :=
+			(rider_torso.min.y - model_assets.character_bounds.min.y) * MODEL_CHARACTER_SCALE
+		render_height += model_assets.riding_seat_height - seat_height
 	}
 	graphics.draw_model(
 		model_assets.character,

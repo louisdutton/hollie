@@ -245,16 +245,22 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
             "leg-left": Matrix.Rotation(math.radians(-20), 4, "X") @ Matrix.Rotation(math.radians(-60), 4, "Y"),
             "leg-right": Matrix.Rotation(math.radians(-20), 4, "X") @ Matrix.Rotation(math.radians(60), 4, "Y"),
         }
-        for node in nodes:
-            if node.name in rotations:
-                node.matrix_basis = rest_basis[node.name] @ rotations[node.name]
-        bpy.context.view_layer.update()
         ride_action = bpy.data.actions.new("ride")
         armature.animation_data.action = ride_action
-        for part in parts:
-            pose_bone = armature.pose.bones[part.name]
-            pose_bone.matrix = part.matrix_world @ rest_world[part.name].inverted() @ pose_bone.bone.matrix_local
-            for frame in (0, 60):
+        # This clip is a speed-driven pose range, not a timed animation.
+        for frame in range(61):
+            amount = frame / 60
+            rotations["torso"] = Matrix.Rotation(math.radians(20 * amount), 4, "X")
+            rotations["head"] = Matrix.Rotation(math.radians(-10 * amount), 4, "X")
+            for side, inward in (("left", 10), ("right", -10)):
+                rotations[f"arm-{side}"] = Matrix.Rotation(math.radians(-45 - 20 * amount), 4, "X") @ Matrix.Rotation(math.radians(inward), 4, "Y")
+            for node in nodes:
+                if node.name in rotations:
+                    node.matrix_basis = rest_basis[node.name] @ rotations[node.name]
+            bpy.context.view_layer.update()
+            for part in parts:
+                pose_bone = armature.pose.bones[part.name]
+                pose_bone.matrix = part.matrix_world @ rest_world[part.name].inverted() @ pose_bone.bone.matrix_local
                 pose_bone.keyframe_insert("location", frame=frame, group=part.name)
                 pose_bone.keyframe_insert("rotation_quaternion", frame=frame, group=part.name)
                 pose_bone.keyframe_insert("scale", frame=frame, group=part.name)

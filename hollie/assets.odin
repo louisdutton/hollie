@@ -111,6 +111,17 @@ model_assets_init :: proc() {
 		f32(max(int(riding_clip.keyframeCount) - 2, 0)),
 	)
 	riding_bounds := graphics.get_animated_model_bounding_box(model_assets.character)
+	graphics.update_model_animation(model_assets.character, riding_clip, 0)
+	upright_bounds := graphics.get_animated_model_bounding_box(model_assets.character)
+	for axis in 0 ..< 3 {
+		riding_bounds.min[axis] = min(riding_bounds.min[axis], upright_bounds.min[axis])
+		riding_bounds.max[axis] = max(riding_bounds.max[axis], upright_bounds.max[axis])
+	}
+	graphics.update_model_animation(
+		model_assets.character,
+		riding_clip,
+		f32(max(int(riding_clip.keyframeCount) - 2, 0)),
+	)
 	model_assets.riding_collider = geometry_collider_from_bounds(
 		riding_bounds,
 		MODEL_CHARACTER_SCALE,
