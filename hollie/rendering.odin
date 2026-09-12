@@ -270,7 +270,7 @@ rendering_draw_character :: proc(
 		progress :=
 			player != nil ? riding_mount_blend(player.mount_elapsed, player.mount_duration) : f32(1)
 		mount_blend := clamp((progress - 0.7) / 0.3, 0, 1)
-		bank = mount.turn_lean * mount_blend
+		bank = animal_visual_bank(mount) * mount_blend
 		bank_axis = {mount.facing_direction.x, 0, mount.facing_direction.y}
 		bank_pivot = geometry_position(mount.position, mount.height)
 		// Follow the actual blended torso pose, so the saddle and rider bob
@@ -282,7 +282,7 @@ rendering_draw_character :: proc(
 			0,
 		)
 		render_position += Vec2{seat_delta.x, seat_delta.z} * mount_blend
-		render_height += seat_delta.y * mount_blend
+		render_height += (seat_delta.y + animal_gait_bob(mount)) * mount_blend
 		rider_torso := graphics.get_animated_model_bounding_box(
 			model_assets.character,
 			graphics.get_model_bone_index(model_assets.character, "torso"),

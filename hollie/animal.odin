@@ -167,6 +167,28 @@ animal_update_gait :: proc(enemy: ^Enemy, dt: f32) {
 	enemy.gait_phase = math.mod(enemy.gait_phase + speed / stride_length * max(dt, 0), 1)
 }
 
+animal_gait_weight :: proc(animal: ^Enemy) -> f32 {
+	if animal.kind != .Bison || !animal.grounded do return 0
+	speed := math.sqrt(
+		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y,
+	)
+	return clamp(speed / animal_riding_profile(.Bison).max_speed, 0, 1)
+}
+
+animal_gait_bob :: proc(animal: ^Enemy) -> f32 {
+	stride := math.sin(animal.gait_phase * 2 * math.PI)
+	return stride * stride * 1.8 * animal_gait_weight(animal)
+}
+
+animal_visual_bank :: proc(animal: ^Enemy) -> f32 {
+	return(
+		animal.turn_lean +
+		math.sin(animal.gait_phase * 2 * math.PI) *
+			math.to_radians(f32(3)) *
+			animal_gait_weight(animal) \
+	)
+}
+
 animal_apply_pose :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	if !enemy.grounded {
 		graphics.update_model_animation(animal.model, animal.animations[animal.jump_clip], 0)
@@ -225,7 +247,7 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 			enemy.position,
 			animal.bounds,
 			ANIMAL_MODEL_SCALE,
-			enemy.height,
+			enemy.height + animal_gait_bob(enemy),
 		),
 		{0, 1, 0},
 		geometry_facing_angle(enemy.facing_direction) + 90, // Kenney animals face local -X.
@@ -236,7 +258,7 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 			u8(255 - 195 * enemy.ram_visual),
 			255,
 		},
-		enemy.turn_lean,
+		animal_visual_bank(enemy),
 		{enemy.facing_direction.x, 0, enemy.facing_direction.y},
 		geometry_position(enemy.position, enemy.height),
 	)
