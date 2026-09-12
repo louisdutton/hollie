@@ -123,6 +123,7 @@ animation_update_entities :: proc() {
 			animation_update(&e.anim_data, delta_time)
 
 		case Enemy:
+			if animal_model_for_kind(e.kind) != nil do animal_update_gait(&e, min(delta_time, 0.1))
 			if e.is_dying {
 				animation_set_state(&e.anim_data, .Death)
 			} else if abs(e.velocity.x) > 0 || abs(e.velocity.y) > 0 {

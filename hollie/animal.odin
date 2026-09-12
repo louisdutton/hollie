@@ -3,9 +3,12 @@ package hollie
 import "asset"
 import "content"
 import "core:c"
+import "core:math"
 import "graphics"
 
 ANIMAL_MODEL_SCALE :: f32(32)
+ANIMAL_WALK_SPEED :: f32(50)
+ANIMAL_RUN_SPEED :: f32(160)
 ANIMAL_MODEL_FILES :: [content.Character_Kind]string {
 	.Goblin   = "",
 	.Skeleton = "",
@@ -23,6 +26,7 @@ Animal_Model :: struct {
 	walk_clip:       int,
 	run_clip:        int,
 	jump_clip:       int,
+	idle_clip:       int,
 	seat:            Vec3,
 }
 
@@ -46,14 +50,17 @@ animal_models_init :: proc() {
 		animal.walk_clip = -1
 		animal.run_clip = -1
 		animal.jump_clip = -1
+		animal.idle_clip = -1
 		for index in 0 ..< int(animal.animation_count) {
 			if string(cstring(&animal.animations[index].name[0])) == "walk" do animal.walk_clip = index
 			if string(cstring(&animal.animations[index].name[0])) == "run" do animal.run_clip = index
 			if string(cstring(&animal.animations[index].name[0])) == "jump" do animal.jump_clip = index
+			if string(cstring(&animal.animations[index].name[0])) == "down" do animal.idle_clip = index
 		}
 		assert(animal.walk_clip >= 0, "animal model must include its walk animation")
 		assert(animal.run_clip >= 0, "animal model must include its run animation")
 		assert(animal.jump_clip >= 0, "animal model must include its jump animation")
+		assert(animal.idle_clip >= 0, "animal model must include its standing pose")
 		graphics.update_model_animation(animal.model, animal.animations[animal.walk_clip], 0)
 		torso_index := graphics.get_model_bone_index(animal.model, "torso")
 		assert(torso_index >= 0, "animal model must have a torso")
@@ -86,15 +93,44 @@ animal_models_apply_shader :: proc(shadow: bool) {
 	}
 }
 
+// A continuous blend tree: standing -> walking -> running, in world units/sec.
+animal_gait_blend :: proc(speed: f32) -> (walking: bool, blend: f32) {
+	if speed <= ANIMAL_WALK_SPEED do return true, clamp(speed / ANIMAL_WALK_SPEED, 0, 1)
+	return false, clamp((speed - ANIMAL_WALK_SPEED) / (ANIMAL_RUN_SPEED - ANIMAL_WALK_SPEED), 0, 1)
+}
+
+animal_update_gait :: proc(enemy: ^Enemy, dt: f32) {
+	if !enemy.grounded do return
+	speed := math.sqrt(enemy.velocity.x * enemy.velocity.x + enemy.velocity.y * enemy.velocity.y)
+	walking, blend := animal_gait_blend(speed)
+	// Keep the clips in the same stride phase while scaling cadence with travel.
+	stride_length := walking ? f32(25) : 25 + 15 * blend
+	enemy.gait_phase = math.mod(enemy.gait_phase + speed / stride_length * max(dt, 0), 1)
+}
+
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
-	clip := animal.animations[enemy.mounted ? animal.run_clip : animal.walk_clip]
-	frame: f32
 	if !enemy.grounded {
-		clip = animal.animations[animal.jump_clip]
-	} else if enemy.current_anim == .Run {
-		frame = model_animation_frame(enemy.visual_time, clip, .Loop)
+		graphics.update_model_animation(animal.model, animal.animations[animal.jump_clip], 0)
+	} else {
+		speed := math.sqrt(
+			enemy.velocity.x * enemy.velocity.x + enemy.velocity.y * enemy.velocity.y,
+		)
+		walking, blend := animal_gait_blend(speed)
+		first := animal.animations[walking ? animal.idle_clip : animal.walk_clip]
+		second := animal.animations[walking ? animal.walk_clip : animal.run_clip]
+		// The first frame of 'down' is the authored standing pose, held still.
+		first_frame :=
+			walking ? f32(0) : enemy.gait_phase * f32(max(int(first.keyframeCount) - 1, 0))
+		second_frame := enemy.gait_phase * f32(max(int(second.keyframeCount) - 1, 0))
+		graphics.update_model_animation_blended(
+			animal.model,
+			first,
+			first_frame,
+			second,
+			second_frame,
+			blend,
+		)
 	}
-	graphics.update_model_animation(animal.model, clip, frame)
 	graphics.draw_model(
 		animal.model,
 		geometry_grounded_position(
