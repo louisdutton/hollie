@@ -45,8 +45,7 @@ Editor_State :: struct {
 	save_message_timer: f32,
 }
 
-@(private)
-editor_state := Editor_State {
+EDITOR_DEFAULT_STATE :: Editor_State {
 	mode               = .Disabled,
 	selected_tile      = .Grass_1,
 	selected_entity    = .Enemy,
@@ -60,8 +59,11 @@ editor_state := Editor_State {
 	cursor_move_timer  = 0.0,
 }
 
-editor_init :: proc() {
+@(private)
+editor_state := EDITOR_DEFAULT_STATE
 
+editor_init :: proc() {
+	editor_reset(&editor_state)
 }
 
 editor_is_active :: proc() -> bool {
@@ -547,6 +549,12 @@ editor_replace_string :: proc(destination: ^string, value: string) {
 }
 
 editor_fini :: proc() {
-	delete(editor_state.pre_edit_players)
-	delete(editor_state.save_message)
+	editor_reset(&editor_state)
+}
+
+// Both entry and teardown leave a reusable, disabled editor with no borrowed pointers.
+editor_reset :: proc(state: ^Editor_State) {
+	delete(state.pre_edit_players)
+	delete(state.save_message)
+	state^ = EDITOR_DEFAULT_STATE
 }
