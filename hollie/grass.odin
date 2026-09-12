@@ -1,0 +1,72 @@
+package hollie
+
+import "core:math"
+import "graphics"
+import "tilemap"
+
+// Keep this first art study isolated from the existing rooms.
+grass_is_enabled :: proc() -> bool {
+	return gameplay_get_current_room() == "demo"
+}
+
+grass_tile :: proc(x, y: int) -> bool {
+	tile := tilemap.get_base_tile(x, y)
+	if tile == nil do return false
+	#partial switch tile^ {
+	case .Grass_1, .Grass_2, .Grass_3, .Grass_4, .Grass_5, .Grass_6, .Grass_7, .Grass_8:
+		return true
+	case: return false
+	}
+}
+
+// Stable placement: editing or revisiting a room never reshuffles the meadow.
+grass_random :: proc(seed: int) -> f32 {
+	value := math.sin(f32(seed) * 12.9898) * 43758.5453
+	return value - math.floor(value)
+}
+
+rendering_draw_grass :: proc() {
+	if !grass_is_enabled() do return
+	shader := rendering_state.grass_shader
+	if !graphics.shader_is_loaded(shader) || rendering_state.grass_time_location < 0 do return
+	graphics.set_shader_float(shader, rendering_state.grass_time_location, &water_time)
+	graphics.begin_shader(shader)
+	defer graphics.end_shader()
+
+	size := f32(tilemap.get_tile_size())
+	for y in 0 ..< tilemap.get_tilemap_height() {
+		for x in 0 ..< tilemap.get_tilemap_width() {
+			if !grass_tile(x, y) do continue
+			left, top := f32(x) * size, f32(y) * size
+			// Alpha encodes blade height; zero marks the continuous ground wash.
+			a, b := Vec3{left, 0.03, top}, Vec3{left, 0.03, top + size}
+			c, d := Vec3{left + size, 0.03, top + size}, Vec3{left + size, 0.03, top}
+			ground := graphics.Colour{255, 255, 255, 0}
+			graphics.draw_triangle_3d(a, b, c, ground)
+			graphics.draw_triangle_3d(a, c, d, ground)
+			for blade in 0 ..< 36 {
+				seed := (y * tilemap.get_tilemap_width() + x) * 251 + blade * 7
+				root := Vec3 {
+					left + (f32(blade % 6) + 0.2 + grass_random(seed) * 0.6) * size / 6,
+					0.04,
+					top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
+				}
+				height := 2.4 + grass_random(seed + 2) * 3.8
+				angle := grass_random(seed + 3) * 2 * math.PI
+				width :=
+					Vec3{math.cos(angle), 0, math.sin(angle)} *
+					(0.35 + grass_random(seed + 4) * 0.35)
+				mid := root + Vec3{0.3, height * 0.55, 0.1}
+				tip := root + Vec3{0.8, height, 0.3}
+				color := graphics.Colour{255, 255, 255, u8(height / 8 * 255)}
+				// Both windings keep these opaque ribbons visible from either side.
+				for side in 0 ..< 2 {
+					w := side == 0 ? width : -width
+					graphics.draw_triangle_3d(root - w, root + w, mid + w * 0.55, color)
+					graphics.draw_triangle_3d(root - w, mid + w * 0.55, mid - w * 0.55, color)
+					graphics.draw_triangle_3d(mid - w * 0.55, mid + w * 0.55, tip, color)
+				}
+			}
+		}
+	}
+}

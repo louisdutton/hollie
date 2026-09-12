@@ -69,7 +69,8 @@ shadow_map_load :: proc() -> graphics.Render_Texture_2D {
 shadow_map_init :: proc() {
 	rendering_state.shadow_map = shadow_map_load()
 	resolution := c.int(RENDERING_SHADOW_MAP_RESOLUTION)
-	shaders := [2]graphics.Shader {
+	shaders := [3]graphics.Shader {
+		rendering_state.grass_shader,
 		rendering_state.lighting_shader,
 		rendering_state.character_lighting_shader,
 	}
@@ -120,7 +121,8 @@ shadow_map_bind :: proc(shader: graphics.Shader) {
 }
 
 shadow_map_bind_for_rendering :: proc() {
-	shaders := [2]graphics.Shader {
+	shaders := [3]graphics.Shader {
+		rendering_state.grass_shader,
 		rendering_state.lighting_shader,
 		rendering_state.character_lighting_shader,
 	}

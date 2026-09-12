@@ -9,7 +9,7 @@ import "input"
 import "tilemap"
 import "tween"
 
-INITIAL_ROOM_ID :: "small_room"
+INITIAL_ROOM_ID :: "demo"
 
 @(private)
 gameplay_room_registry: Room_Registry

@@ -12,6 +12,8 @@ RENDERING_BACKGROUND_COLOR :: graphics.Colour{54, 54, 60, 255}
 RENDERING_LIGHT_DIRECTION :: graphics.Vec3{-0.5, -0.7, 0.5}
 
 Rendering_State :: struct {
+	grass_shader:              graphics.Shader,
+	grass_time_location:       c.int,
 	water_shader:              graphics.Shader,
 	water_time_location:       c.int,
 	lighting_shader:           graphics.Shader,
@@ -48,6 +50,18 @@ rendering_configure_lighting :: proc(shader: graphics.Shader) {
 }
 
 rendering_init :: proc() {
+	grass_vertex_path := asset.path("shaders/grass.vs")
+	defer delete(grass_vertex_path)
+	grass_fragment_path := asset.path("shaders/grass.fs")
+	defer delete(grass_fragment_path)
+	rendering_state.grass_shader = graphics.load_shader(
+		cstring(raw_data(grass_vertex_path)),
+		cstring(raw_data(grass_fragment_path)),
+	)
+	rendering_state.grass_time_location = graphics.get_shader_location(
+		rendering_state.grass_shader,
+		"grass_time",
+	)
 	water_vertex_path := asset.path("shaders/water.vs")
 	defer delete(water_vertex_path)
 	water_fragment_path := asset.path("shaders/water.fs")
@@ -113,6 +127,7 @@ rendering_prepare :: proc() {
 }
 
 rendering_fini :: proc() {
+	if graphics.shader_is_loaded(rendering_state.grass_shader) do graphics.unload_shader(rendering_state.grass_shader)
 	if graphics.shader_is_loaded(rendering_state.water_shader) do graphics.unload_shader(rendering_state.water_shader)
 	shadow_map_fini()
 	if graphics.shader_is_loaded(rendering_state.character_lighting_shader) {

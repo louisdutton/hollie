@@ -544,12 +544,15 @@ rendering_draw_labels :: proc(camera_3d: graphics.Camera_3D) {
 }
 
 rendering_draw :: proc(show_debug: bool = false) {
-	graphics.clear_background(RENDERING_BACKGROUND_COLOR)
+	graphics.clear_background(
+		grass_is_enabled() ? graphics.Colour{178, 195, 160, 255} : RENDERING_BACKGROUND_COLOR,
+	)
 	camera_3d := rendering_camera()
 	shadow_map_bind_for_rendering()
 	graphics.begin_mode_3d(camera_3d)
 
 	rendering_draw_ground()
+	rendering_draw_grass()
 	rendering_draw_interior_walls()
 	rendering_draw_entities()
 	rendering_draw_particles()
