@@ -249,7 +249,13 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	animal_apply_pose(enemy, animal)
 	if enemy.ram_visual > 0.001 {
 		head := graphics.get_model_bone_index(animal.model, "head")
-		if head >= 0 do graphics.rotate_model_bone_z(animal.model, head, animal.model.currentPose[head].translation, math.to_radians(f32(25)) * enemy.ram_visual)
+		if head >= 0 {
+			pivot := animal.model.currentPose[head].translation
+			angle := math.to_radians(f32(25)) * enemy.ram_visual
+			graphics.rotate_model_bone_z(animal.model, head, pivot, angle)
+			jaw := graphics.get_model_bone_index(animal.model, "jaw")
+			graphics.rotate_model_bone_z(animal.model, jaw, pivot, angle)
+		}
 	}
 	if enemy.head_turn != 0 {
 		head := graphics.get_model_bone_index(animal.model, "head")
@@ -259,6 +265,9 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 			pivot := animal.model.currentPose[pivot_bone].translation
 			graphics.rotate_model_bone_y(animal.model, head, pivot, enemy.head_turn)
 			graphics.rotate_model_bone_y(animal.model, neck, pivot, enemy.head_turn)
+			// Matrix overlays do not propagate through the imported hierarchy.
+			jaw := graphics.get_model_bone_index(animal.model, "jaw")
+			graphics.rotate_model_bone_y(animal.model, jaw, pivot, enemy.head_turn)
 		}
 	}
 	graphics.draw_model(
