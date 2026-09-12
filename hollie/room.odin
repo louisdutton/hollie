@@ -36,25 +36,100 @@ room_get_current :: proc() -> ^tilemap.TileMap {
 	return room_state.current_tilemap
 }
 
-@(private = "file")
-room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
+room_door_spawn_candidates :: proc(door: AABB, player: Collider, interior: bool) -> [14]Vec2 {
+	gap :: f32(2)
+	center_x := (door.min.x + door.max.x - player.size.x) / 2 - player.offset.x
+	center_z := (door.min.z + door.max.z - player.size.z) / 2 - player.offset.z
+	north := Vec2{center_x, door.min.z - player.offset.z - player.size.z - gap}
+	south := Vec2{center_x, door.max.z - player.offset.z + gap}
+	west := Vec2{door.min.x - player.offset.x - player.size.x - gap, center_z}
+	east := Vec2{door.max.x - player.offset.x + gap, center_z}
+	first, second := south, north
+	if interior do first, second = north, south
+	x_spacing := Vec2{player.size.x + gap, 0}
+	z_spacing := Vec2{0, player.size.z + gap}
+	return {
+		first,
+		first - x_spacing,
+		first + x_spacing,
+		first - 2 * x_spacing,
+		first + 2 * x_spacing,
+		second,
+		second - x_spacing,
+		second + x_spacing,
+		west,
+		west - z_spacing,
+		west + z_spacing,
+		east,
+		east - z_spacing,
+		east + z_spacing,
+	}
+}
+
+room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB) -> bool {
+	aabb := collision_aabb_at(position, collider)
+	bounds := room_get_collision_bounds()
+	if aabb.min.x < bounds.x ||
+	   aabb.max.x > bounds.x + bounds.width ||
+	   aabb.min.z < bounds.y ||
+	   aabb.max.z > bounds.y + bounds.height {
+		return false
+	}
+	// Exterior arrivals must remain outside the house, even though its interior is hollow.
+	if tm := room_get_current(); tm != nil && !tm.interior {
+		for structure in tm.structures {
+			footprint := AABB {
+				min = {structure.position.x, 0, structure.position.y},
+				max = {
+					structure.position.x + structure.size.x,
+					HOUSE_WALL_HEIGHT,
+					structure.position.y + structure.size.y,
+				},
+			}
+			if physics_overlap_horizontal(aabb, footprint) do return false
+		}
+	}
+	if tilemap.check_collision(aabb) || collision_check_solid(position, collider) do return false
+	for other in occupied {
+		if aabbs_intersect(aabb, other) do return false
+	}
+	for &entity in entities {
+		if _, ok := &entity.(Door); ok && aabbs_intersect(aabb, collision_entity_aabb(&entity)) {
+			return false
+		}
+	}
+	return true
+}
+
+room_find_door_spawn_position :: proc(door: Door, occupied: []AABB = nil) -> Vec2 {
 	player_collider := model_character_collider(true)
-	player_size := player_collider.size
-	door_center := door.position + Vec2{door.collider.size.x, door.collider.size.z} / 2
-	candidates := [5]Vec2 {
-		{door_center.x, door.position.y + door.collider.size.z + player_size.z},
-		{door_center.x, door.position.y - player_size.y},
-		{door.position.x + door.collider.size.x + player_size.x, door_center.y},
-		{door.position.x - player_size.x, door_center.y},
-		door_center,
-	}
-
+	door_bounds := collision_aabb_at(door.position, door.collider, door.height)
+	candidates := room_door_spawn_candidates(
+		door_bounds,
+		player_collider,
+		room_get_current().interior,
+	)
 	for candidate in candidates {
-		aabb := collision_aabb_at(candidate, player_collider)
-		if !tilemap.check_collision(aabb) && !collision_check_solid(candidate, player_collider) do return candidate
+		if room_spawn_is_clear(candidate, player_collider, occupied) do return candidate
 	}
-
-	return door_center
+	// Search for the nearest clear floor position if the doorway is crowded.
+	door_center := Vec2 {
+		(door_bounds.min.x + door_bounds.max.x) / 2,
+		(door_bounds.min.z + door_bounds.max.z) / 2,
+	}
+	best: Vec2
+	best_distance := f32(1e9)
+	tile_size := f32(tilemap.get_tile_size())
+	for y in 0 ..< tilemap.get_tilemap_height() {
+		for x in 0 ..< tilemap.get_tilemap_width() {
+			candidate := Vec2{(f32(x) + 0.5) * tile_size, (f32(y) + 0.5) * tile_size}
+			if !tilemap.has_floor(x, y) || !room_spawn_is_clear(candidate, player_collider, occupied) do continue
+			distance := get_distance(candidate, door_center)
+			if distance < best_distance do best, best_distance = candidate, distance
+		}
+	}
+	assert(best_distance < 1e9, "room has no clear player spawn outside its door triggers")
+	return best
 }
 
 when ODIN_DEBUG {
@@ -209,10 +284,16 @@ room_init :: proc(tm: ^tilemap.TileMap, target_door: string = "") {
 	}
 
 	if spawn_door != nil {
-		spawn_pos := room_find_door_spawn_position(spawn_door)
+		// Resolve both positions before appending can invalidate the door pointer.
+		spawn_pos := room_find_door_spawn_position(spawn_door^)
+		second_spawn: Vec2
+		if game.player_count == 2 {
+			occupied := [1]AABB{collision_aabb_at(spawn_pos, model_character_collider(true))}
+			second_spawn = room_find_door_spawn_position(spawn_door^, occupied[:])
+		}
 		player_spawn_at(spawn_pos, input.Player_Index.Player_1)
 		if game.player_count == 2 {
-			player_spawn_at(spawn_pos + Vec2{16, 0}, input.Player_Index.Player_2)
+			player_spawn_at(second_spawn, input.Player_Index.Player_2)
 		}
 	}
 
