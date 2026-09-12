@@ -1,6 +1,5 @@
 package hollie
 
-import "audio"
 import "core:math"
 import "input"
 import "tilemap"
@@ -14,7 +13,6 @@ Player :: struct {
 	using collider:  Collider,
 	using health:    Health,
 	using movement:  Movement,
-	using combat:    Combat,
 	using anim_data: Animator,
 	index:           input.Player_Index,
 	// TODO: Replace persistent pointers into the dynamic entity array with stable references.
@@ -31,7 +29,6 @@ player_create :: proc(
 		collider = model_character_collider(true),
 		health = {current = 100, max = 100, is_dying = false},
 		movement = {move_speed = 80, facing_direction = {1, 0}},
-		combat = {damage = 25, range = 32, attack_width = 32, attack_height = 32},
 		index = index,
 	}
 	if len(animations) > 0 do animation_init(&player.anim_data, animations)
@@ -45,23 +42,22 @@ player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
 }
 
 player_handle_input :: proc(p: ^Player) {
-	if p.is_busy || p.is_attacking do return
+	if p.is_busy do return
 
 	// Carrying is a limited state so must be handled first
 	// there will likely be other states like this
-	if p.carrying != nil && input.is_pressed_for_player(.Accept, p.index) {
+	if p.carrying != nil && input.is_pressed_for_player(.Interact, p.index) {
 		player_drop(p)
 		return
 	}
 
-	if input.is_pressed_for_player(.Accept, p.index) {
+	if input.is_pressed_for_player(.Interact, p.index) {
 		if npc := npc_get_in_range(p.position, PLAYER_INTERACT_RANGE); npc != nil {
 			dialog_start(npc)
 		} else {
 			player_carry(p)
 		}
 	}
-	if input.is_pressed_for_player(.Attack, p.index) do player_attack(p)
 	if input.is_pressed_for_player(.Jump, p.index) do physics_jump(&p.transform)
 }
 
@@ -175,31 +171,4 @@ player_carry :: proc(p: ^Player) {
 			}
 		}
 	}
-}
-
-@(private)
-player_attack :: proc(p: ^Player) {
-	p.is_attacking = true
-	p.attack_timer = 0
-	p.attack_hit = false
-
-	// Lock attack direction based on current movement or facing
-	movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
-	if abs(movement_input.x) > 0 || abs(movement_input.y) > 0 {
-		// Use current movement direction
-		p.attack_direction = {movement_input.x, movement_input.y}
-		if abs(p.attack_direction.x) > 0 || abs(p.attack_direction.y) > 0 {
-			length := math.sqrt(
-				p.attack_direction.x * p.attack_direction.x +
-				p.attack_direction.y * p.attack_direction.y,
-			)
-			p.attack_direction = p.attack_direction / length
-		}
-	} else {
-		// Use current facing direction if not moving
-		p.attack_direction = p.facing_direction
-	}
-
-	// Play attack swing sound
-	audio.sound_play(&game.sounds, audio.Sound_Kind.Attack_Swing)
 }

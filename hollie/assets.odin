@@ -10,20 +10,18 @@ MODEL_CRATE_SCALE :: f32(24)
 MODEL_PRESSURE_PAD_SCALE :: f32(32)
 MODEL_PRESSURE_PAD_FILE :: "button-floor-square-raylib.glb"
 MODEL_CHARACTER_CLIP_NAMES :: [AnimationState]string {
-	.Idle   = "idle",
-	.Run    = "walk",
-	.Jump   = "idle", // The bundled model has no jump clip; keep a neutral airborne pose.
-	.Death  = "die",
-	.Attack = "attack-melee-right",
-	.Carry  = "walk-holding-both",
+	.Idle  = "idle",
+	.Run   = "walk",
+	.Jump  = "idle", // The bundled model has no jump clip; keep a neutral airborne pose.
+	.Death = "die",
+	.Carry = "walk-holding-both",
 }
 MODEL_CHARACTER_PLAYBACK :: [AnimationState]Animation_Playback {
-	.Idle   = .Loop,
-	.Run    = .Loop,
-	.Jump   = .Loop,
-	.Death  = .Once_Hold,
-	.Attack = .Once_Hold,
-	.Carry  = .Loop,
+	.Idle  = .Loop,
+	.Run   = .Loop,
+	.Jump  = .Loop,
+	.Death = .Once_Hold,
+	.Carry = .Loop,
 }
 Pressure_Pad_State :: enum {
 	Off,

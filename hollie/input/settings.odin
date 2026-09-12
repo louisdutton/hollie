@@ -10,7 +10,6 @@ Control_Settings :: struct {
 
 	// Action keys
 	interact:   Key,
-	attack:     Key,
 	jump:       Key,
 	pause:      Key,
 
@@ -27,9 +26,8 @@ settings := Control_Settings {
 	move_right = .D,
 
 	// Default action keys
-	interact   = .E,
-	attack     = .SPACE,
-	jump       = .K,
+	interact   = .J,
+	jump       = .H,
 	pause      = .P,
 
 	// Default utility keys
@@ -49,7 +47,6 @@ key_bindings := []Control_Binding {
 	{"Move left", &settings.move_left},
 	{"Move right", &settings.move_right},
 	{"Interact", &settings.interact},
-	{"Attack", &settings.attack},
 	{"Jump", &settings.jump},
 	{"Pause", &settings.pause},
 	{"Reload", &settings.reload},
@@ -80,10 +77,6 @@ is_move_right_pressed :: proc() -> bool {
 /// Action input using current key bindings
 is_interact_pressed :: proc() -> bool {
 	return is_key_pressed(settings.interact)
-}
-
-is_attack_pressed :: proc() -> bool {
-	return is_key_pressed(settings.attack)
 }
 
 is_pause_pressed :: proc() -> bool {

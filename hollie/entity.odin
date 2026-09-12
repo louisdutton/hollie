@@ -57,11 +57,10 @@ entity_get_player :: proc(index: input.Player_Index) -> ^Player {
 entity_system_update :: proc() {
 	pressure_plate_update_surfaces()
 	player_update_input()
-	combat_update_timers()
+	health_update()
 	player_update_movement()
 	ai_update_movement()
 	movement_update_positions()
-	combat_update()
 	puzzle_update()
 	animation_update_entities()
 	entity_cleanup_dead()

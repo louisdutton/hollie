@@ -5,10 +5,6 @@ import "core:math/rand"
 import rl "vendor:raylib"
 
 Sound_Kind :: enum {
-	Attack_Swing,
-	AttackHit,
-	EnemyHit,
-	EnemyDeath,
 	GateOpen,
 	PressurePlateToggle,
 	SwitchOn,
@@ -27,17 +23,6 @@ Sound_Collection :: [Sound_Kind]Sound
 sound_init :: proc() -> Sound_Collection {
 	sounds: Sound_Collection
 
-	sounds[.Attack_Swing] = _sound_init(
-		{"audio/fx/combat/whoosh-short-light.wav", "audio/fx/impact/whoosh-arm-swing-01-wide.wav"},
-	)
-	sounds[.AttackHit] = _sound_init(
-		{
-			"audio/fx/impact/punch-percussive-heavy-08.wav",
-			"audio/fx/impact/punch-percussive-heavy-09.wav",
-		},
-	)
-	sounds[.EnemyHit] = _sound_init({"audio/fx/impact/punch-squelch-heavy-05.wav"})
-	sounds[.EnemyDeath] = _sound_init({"audio/fx/impact/waterplosion.wav"})
 	sounds[.GateOpen] = _sound_init({"audio/fx/impact/whoosh-airy-flutter-01.wav"})
 	sounds[.PressurePlateToggle] = _sound_init({"audio/fx/impact/hit-short-04.wav"})
 	sounds[.SwitchOn] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
