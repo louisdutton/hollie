@@ -244,6 +244,16 @@ rendering_draw_character :: proc(
 		seat_height :=
 			(rider_torso.min.y - model_assets.character_bounds.min.y) * MODEL_CHARACTER_SCALE
 		render_height += model_assets.riding_seat_height - seat_height
+		// Share the mount's anticipation, with a smaller turn for the rider.
+		head := graphics.get_model_bone_index(model_assets.character, "head")
+		if head >= 0 && mount.head_turn != 0 {
+			graphics.rotate_model_bone_y(
+				model_assets.character,
+				head,
+				model_assets.character.currentPose[head].translation,
+				mount.head_turn * 0.5,
+			)
+		}
 	}
 	graphics.draw_model(
 		model_assets.character,
