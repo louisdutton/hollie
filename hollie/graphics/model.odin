@@ -1,6 +1,7 @@
 package graphics
 
 import "core:c"
+import "core:math"
 import rl "vendor:raylib"
 
 Vec3 :: rl.Vector3
@@ -133,8 +134,39 @@ draw_model :: #force_inline proc(
 	rotation_angle: f32,
 	scale: Vec3,
 	tint: Colour,
+	bank: f32 = 0,
+	bank_axis: Vec3 = {},
+	bank_pivot: Vec3 = {},
 ) {
-	rl.DrawModelEx(model, position, rotation_axis, rotation_angle, scale, tint)
+	draw_position, axis, angle := position, rotation_axis, rotation_angle
+	if bank != 0 {
+		// Compose the world-space bank with the model's facing rotation.
+		a := bank_axis * math.sin(bank / 2)
+		aw := math.cos(bank / 2)
+		b := rotation_axis * math.sin(math.to_radians(rotation_angle) / 2)
+		bw := math.cos(math.to_radians(rotation_angle) / 2)
+		cross := Vec3{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}
+		q := a * bw + b * aw + cross
+		qw := aw * bw - (a.x * b.x + a.y * b.y + a.z * b.z)
+		length := math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z)
+		if length > 0 {
+			axis = q / length
+			angle = math.to_degrees(2 * math.atan2(length, qw))
+		}
+		v := position - bank_pivot
+		cross_v := Vec3 {
+			bank_axis.y * v.z - bank_axis.z * v.y,
+			bank_axis.z * v.x - bank_axis.x * v.z,
+			bank_axis.x * v.y - bank_axis.y * v.x,
+		}
+		dot := bank_axis.x * v.x + bank_axis.y * v.y + bank_axis.z * v.z
+		draw_position =
+			bank_pivot +
+			v * math.cos(bank) +
+			cross_v * math.sin(bank) +
+			bank_axis * dot * (1 - math.cos(bank))
+	}
+	rl.DrawModelEx(model, draw_position, axis, angle, scale, tint)
 }
 
 draw_cube :: #force_inline proc(position, size: Vec3, color: Colour) {

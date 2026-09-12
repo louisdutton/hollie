@@ -175,6 +175,7 @@ rendering_draw_character :: proc(
 	tint: graphics.Colour,
 	flash_amount: f32,
 	base_height: f32 = 0,
+	mount: ^Enemy = nil,
 ) {
 	current_state := anim.current_anim
 	playback_modes := MODEL_CHARACTER_PLAYBACK
@@ -212,6 +213,13 @@ rendering_draw_character :: proc(
 		rendering_state.character_flash_location,
 		&flash,
 	)
+	bank: f32
+	bank_axis, bank_pivot: Vec3
+	if mount != nil {
+		bank = mount.turn_lean
+		bank_axis = {mount.facing_direction.x, 0, mount.facing_direction.y}
+		bank_pivot = geometry_position(mount.position, mount.height)
+	}
 	graphics.draw_model(
 		model_assets.character,
 		geometry_grounded_position(
@@ -224,6 +232,9 @@ rendering_draw_character :: proc(
 		geometry_facing_angle(facing),
 		{MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE},
 		tint,
+		bank,
+		bank_axis,
+		bank_pivot,
 	)
 	flash = 0
 	graphics.set_shader_float(
@@ -246,6 +257,7 @@ rendering_draw_entities :: proc() {
 				tint,
 				e.hit_flash_timer / 0.2,
 				e.height,
+				riding_animal_for_player(e.index),
 			)
 		case Enemy:
 			if animal := animal_model_for_kind(e.kind); animal != nil {

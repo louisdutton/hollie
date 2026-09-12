@@ -13,6 +13,7 @@ Enemy :: struct {
 	kind:            content.Character_Kind,
 	mounted:         bool,
 	rider:           input.Player_Index,
+	turn_lean:       f32,
 }
 
 enemy_create :: proc(

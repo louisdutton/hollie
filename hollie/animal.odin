@@ -99,5 +99,8 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 		geometry_facing_angle(enemy.facing_direction) + 90, // Kenney animals face local -X.
 		{ANIMAL_MODEL_SCALE, ANIMAL_MODEL_SCALE, ANIMAL_MODEL_SCALE},
 		graphics.WHITE,
+		enemy.turn_lean,
+		{enemy.facing_direction.x, 0, enemy.facing_direction.y},
+		geometry_position(enemy.position, enemy.height),
 	)
 }

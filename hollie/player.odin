@@ -86,14 +86,22 @@ player_update_movement :: proc() {
 			if animal := riding_animal_for_player(p.index); animal != nil {
 				if p.is_busy {
 					animal.velocity = {}
+					animal.turn_lean = riding_turn_lean(animal.turn_lean, {}, {}, dt)
 					continue
 				}
 				movement_input: Vec2
 				if !p.is_busy do movement_input = camera_relative_movement(input.get_movement_for_player(p.index))
+				previous_velocity := animal.velocity
 				animal.velocity = movement_accelerate(
 					animal.velocity,
 					movement_input,
 					RIDING_MOVEMENT_PROFILE,
+					dt,
+				)
+				animal.turn_lean = riding_turn_lean(
+					animal.turn_lean,
+					previous_velocity,
+					animal.velocity,
 					dt,
 				)
 				if animal.velocity != (Vec2{}) do animal.facing_direction = animal.velocity / math.sqrt(animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y)

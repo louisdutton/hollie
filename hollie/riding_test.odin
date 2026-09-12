@@ -5,6 +5,18 @@ import "core:testing"
 import "graphics"
 
 @(test)
+test_riding_turn_lean_tracks_turn_and_settles :: proc(t: ^testing.T) {
+	left := riding_turn_lean(0, {160, 0}, {159, 4}, 1.0 / 60)
+	right := riding_turn_lean(0, {160, 0}, {159, -4}, 1.0 / 60)
+	testing.expect(t, left > 0 && left < 0.315)
+	testing.expect(t, abs(left + right) < 0.0001)
+	testing.expect_value(t, riding_turn_lean(0, {20, 0}, {19, 4}, 1.0 / 60), f32(0))
+	settled := left
+	for frame in 0 ..< 60 do settled = riding_turn_lean(settled, {160, 0}, {160, 0}, 1.0 / 60)
+	testing.expect(t, abs(settled) < 0.0001)
+	testing.expect_value(t, riding_turn_lean(left, {}, {}, 0), left)
+}
+@(test)
 test_animals_can_be_mounted_only_when_available_and_grounded :: proc(t: ^testing.T) {
 	player := Player {
 		transform = {grounded = true},

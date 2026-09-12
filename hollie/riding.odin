@@ -5,6 +5,23 @@ import "graphics"
 import "input"
 import "tilemap"
 
+// Bank around the travel direction, into lateral acceleration. Angles are radians.
+riding_turn_lean :: proc(lean: f32, previous_velocity, velocity: Vec2, dt: f32) -> f32 {
+	if dt <= 0 do return lean
+	speed := math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+	target: f32
+	if speed > 0 {
+		lateral_acceleration :=
+			(previous_velocity.x * velocity.y - previous_velocity.y * velocity.x) / (speed * dt)
+		speed_weight := clamp((speed / RIDING_MOVEMENT_PROFILE.max_speed - 0.35) / 0.65, 0, 1)
+		target =
+			clamp(lateral_acceleration / RIDING_MOVEMENT_PROFILE.acceleration, -1, 1) *
+			speed_weight *
+			math.to_radians(f32(18))
+	}
+	return lean + (target - lean) * (1 - math.exp(-10 * dt))
+}
+
 // Store the player index on the animal, avoiding pointers into the entity array.
 riding_animal_for_player :: proc(index: input.Player_Index) -> ^Enemy {
 	for &entity in entities {
@@ -124,6 +141,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	}
 	if nearest == nil do return false
 	nearest.mounted = true
+	nearest.turn_lean = 0
 	nearest.rider = player.index
 	nearest.velocity = {}
 	riding_sync_player(player, nearest)
@@ -204,6 +222,7 @@ riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	player.vertical_velocity = animal.vertical_velocity
 	player.grounded = false
 	animal.mounted = false
+	animal.turn_lean = 0
 	animal.velocity = {}
 	return true
 }
