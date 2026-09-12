@@ -5,11 +5,12 @@ import "graphics"
 import "input"
 import "tilemap"
 
-RIDING_MOUNT_DURATION :: f32(0.4)
+RIDING_MOUNT_DURATION :: f32(0.32)
 
 riding_mount_blend :: proc(elapsed: f32) -> f32 {
 	t := clamp(elapsed / RIDING_MOUNT_DURATION, 0, 1)
-	return t * t * (3 - 2 * t)
+	// Immediate launch, with most of the easing reserved for settling in.
+	return 1 - (1 - t) * (1 - t) * (1 - t)
 }
 
 riding_head_turn :: proc(turn: f32, facing, steering: Vec2, dt: f32) -> f32 {
@@ -123,13 +124,12 @@ riding_sync_player :: proc(player: ^Player, animal: ^Enemy) {
 	player.grounded = false // The animal, rather than the rider, bears weight on the ground.
 	player.facing_direction = animal.facing_direction
 	if player.mount_elapsed < RIDING_MOUNT_DURATION {
-		t := clamp(player.mount_elapsed / RIDING_MOUNT_DURATION, 0, 1)
 		blend := riding_mount_blend(player.mount_elapsed)
 		player.position = player.mount_start + (player.position - player.mount_start) * blend
 		player.height =
 			player.mount_start_height +
 			(player.height - player.mount_start_height) * blend +
-			12 * 4 * t * (1 - t)
+			8 * 4 * blend * (1 - blend)
 		start_angle := math.atan2(player.mount_start_facing.x, player.mount_start_facing.y)
 		end_angle := math.atan2(animal.facing_direction.x, animal.facing_direction.y)
 		delta := math.atan2(math.sin(end_angle - start_angle), math.cos(end_angle - start_angle))
