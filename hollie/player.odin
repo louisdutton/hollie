@@ -23,6 +23,7 @@ Player :: struct {
 	movement_lean:      f32,
 	stride_time:        f32,
 	mount_elapsed:      f32,
+	mount_duration:     f32,
 	mount_start:        Vec2,
 	mount_start_height: f32,
 	mount_start_facing: Vec2,
@@ -53,7 +54,7 @@ player_spawn_at :: proc(pos: Vec2, index: input.Player_Index) {
 player_handle_input :: proc(p: ^Player) {
 	if p.is_busy do return
 	if animal := riding_animal_for_player(p.index); animal != nil {
-		if p.mount_elapsed < RIDING_MOUNT_DURATION do return
+		if p.mount_elapsed < p.mount_duration do return
 		if input.is_pressed_for_player(.Interact, p.index) {
 			riding_dismount(p, animal)
 			return
@@ -97,8 +98,8 @@ player_update_movement :: proc() {
 				p.dismount_jumping = false
 			}
 			if animal := riding_animal_for_player(p.index); animal != nil {
-				if p.mount_elapsed < RIDING_MOUNT_DURATION {
-					p.mount_elapsed = min(p.mount_elapsed + dt, RIDING_MOUNT_DURATION)
+				if p.mount_elapsed < p.mount_duration {
+					p.mount_elapsed = min(p.mount_elapsed + dt, p.mount_duration)
 					continue
 				}
 				if p.is_busy {

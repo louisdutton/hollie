@@ -267,7 +267,9 @@ rendering_draw_character :: proc(
 		}
 	}
 	if mount != nil {
-		mount_blend := player != nil ? riding_mount_blend(player.mount_elapsed) : f32(1)
+		progress :=
+			player != nil ? riding_mount_blend(player.mount_elapsed, player.mount_duration) : f32(1)
+		mount_blend := clamp((progress - 0.7) / 0.3, 0, 1)
 		bank = mount.turn_lean * mount_blend
 		bank_axis = {mount.facing_direction.x, 0, mount.facing_direction.y}
 		bank_pivot = geometry_position(mount.position, mount.height)

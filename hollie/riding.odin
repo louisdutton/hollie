@@ -5,12 +5,16 @@ import "graphics"
 import "input"
 import "tilemap"
 
-RIDING_MOUNT_DURATION :: f32(0.32)
+riding_mount_blend :: proc(elapsed, duration: f32) -> f32 {
+	if duration <= 0 do return 1
+	return clamp(elapsed / duration, 0, 1)
+}
 
-riding_mount_blend :: proc(elapsed: f32) -> f32 {
-	t := clamp(elapsed / RIDING_MOUNT_DURATION, 0, 1)
-	// Immediate launch, with most of the easing reserved for settling in.
-	return 1 - (1 - t) * (1 - t) * (1 - t)
+riding_jump_duration :: proc(height_difference: f32) -> f32 {
+	discriminant :=
+		PHYSICS_JUMP_SPEED * PHYSICS_JUMP_SPEED - 2 * PHYSICS_GRAVITY * height_difference
+	if discriminant < 0 do return 0
+	return (PHYSICS_JUMP_SPEED + math.sqrt(discriminant)) / PHYSICS_GRAVITY
 }
 
 riding_head_turn :: proc(turn: f32, facing, steering: Vec2, dt: f32) -> f32 {
@@ -123,13 +127,18 @@ riding_sync_player :: proc(player: ^Player, animal: ^Enemy) {
 	player.vertical_velocity = animal.vertical_velocity
 	player.grounded = false // The animal, rather than the rider, bears weight on the ground.
 	player.facing_direction = animal.facing_direction
-	if player.mount_elapsed < RIDING_MOUNT_DURATION {
-		blend := riding_mount_blend(player.mount_elapsed)
+	if player.mount_elapsed < player.mount_duration {
+		blend := riding_mount_blend(player.mount_elapsed, player.mount_duration)
 		player.position = player.mount_start + (player.position - player.mount_start) * blend
 		player.height =
 			player.mount_start_height +
 			(player.height - player.mount_start_height) * blend +
-			8 * 4 * blend * (1 - blend)
+			0.5 *
+				PHYSICS_GRAVITY *
+				player.mount_duration *
+				player.mount_duration *
+				blend *
+				(1 - blend)
 		start_angle := math.atan2(player.mount_start_facing.x, player.mount_start_facing.y)
 		end_angle := math.atan2(animal.facing_direction.x, animal.facing_direction.y)
 		delta := math.atan2(math.sin(end_angle - start_angle), math.cos(end_angle - start_angle))
@@ -181,7 +190,9 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 		model.seat,
 		model_assets.riding_seat_height,
 	)
-	end := nearest.position + Vec2{offset.x, offset.z} + nearest.velocity * RIDING_MOUNT_DURATION
+	duration := riding_jump_duration(nearest.height + offset.y - player.height)
+	if duration <= 0 do return false
+	end := nearest.position + Vec2{offset.x, offset.z} + nearest.velocity * duration
 	start_bounds := collision_aabb_at(player.position, player.collider, player.height)
 	end_bounds := collision_aabb_at(end, player.collider, nearest.height + offset.y)
 	leap_bounds := AABB {
@@ -192,7 +203,11 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 		},
 		max = {
 			max(start_bounds.max.x, end_bounds.max.x),
-			max(start_bounds.max.y, end_bounds.max.y) + 12,
+			max(
+				end_bounds.max.y,
+				start_bounds.max.y +
+				PHYSICS_JUMP_SPEED * PHYSICS_JUMP_SPEED / (2 * PHYSICS_GRAVITY),
+			),
 			max(start_bounds.max.z, end_bounds.max.z),
 		},
 	}
@@ -200,6 +215,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	defer delete(obstacles)
 	if physics_blocked(leap_bounds, obstacles[:], true) do return false
 	player.mount_elapsed = 0
+	player.mount_duration = duration
 	player.mount_start = player.position
 	player.mount_start_height = player.height
 	player.mount_start_facing = player.facing_direction

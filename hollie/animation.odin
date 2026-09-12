@@ -116,7 +116,10 @@ animation_update_entities :: proc() {
 			e.movement_lean +=
 				(target_lean - e.movement_lean) * (1 - math.exp(-20 * min(delta_time, 0.1)))
 			if riding_animal_for_player(e.index) != nil {
-				animation_set_state(&e.anim_data, .Ride)
+				animation_set_state(
+					&e.anim_data,
+					e.mount_elapsed < e.mount_duration * 0.7 ? .Jump : .Ride,
+				)
 			} else if !e.grounded {
 				animation_set_state(&e.anim_data, .Jump)
 			} else if e.carrying != nil {
