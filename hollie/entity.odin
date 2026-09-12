@@ -42,6 +42,7 @@ entity_destroy_all :: proc() {
 		entity_destroy(&entity)
 	}
 	clear(&entities)
+	clear(&particle_system.particles)
 }
 
 entity_get_player :: proc(index: input.Player_Index) -> ^Player {

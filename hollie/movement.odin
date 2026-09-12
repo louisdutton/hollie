@@ -39,6 +39,7 @@ Transform :: struct {
 	height:            f32,
 	vertical_velocity: f32,
 	grounded:          bool,
+	dust_distance:     f32,
 }
 
 Movement :: struct {
@@ -53,6 +54,8 @@ movement_move :: proc(
 	collider: ^Collider,
 	ground_friction: f32 = 0,
 ) {
+	previous, previous_height, was_grounded :=
+		transform.position, transform.height, transform.grounded
 	obstacles := physics_obstacles(moving_entity)
 	defer delete(obstacles)
 	remaining := min(graphics.get_frame_time(), 0.1)
@@ -73,6 +76,11 @@ movement_move :: proc(
 		room_bounds.y - collider.offset.z,
 		room_bounds.y + room_bounds.height - collider.offset.z - collider.size.z,
 	)
+	#partial switch e in moving_entity^ {
+	case Player: particle_emit_trail(transform, previous, previous_height, was_grounded, false)
+	case Enemy:
+		if e.mounted do particle_emit_trail(transform, previous, previous_height, was_grounded, true)
+	}
 }
 
 movement_update_positions :: proc() {

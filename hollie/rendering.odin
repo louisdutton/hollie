@@ -398,7 +398,9 @@ rendering_draw_particles :: proc() {
 		alpha_factor := particle.lifetime / particle.max_lifetime
 		color := particle.color
 		color.a = u8(f32(color.a) * alpha_factor)
-		graphics.draw_sphere(geometry_position(particle.position, 3), particle.size * 0.35, color)
+		radius := particle.size * 0.35
+		if particle.dust do radius = particle.size * (1 + (1 - alpha_factor)) * math.sqrt(alpha_factor)
+		graphics.draw_sphere(geometry_position(particle.position, particle.height), radius, color)
 	}
 }
 
