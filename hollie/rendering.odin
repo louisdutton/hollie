@@ -323,6 +323,43 @@ rendering_draw_character :: proc(
 		rendering_state.character_flash_location,
 		&flash,
 	)
+	if player != nil && player.carrying != nil {
+		// Sample the same arm pose that was just drawn, then apply the same
+		// world bob and lean so the crate stays supported by the hands.
+		left := graphics.get_animated_model_bounding_box(
+			model_assets.character,
+			graphics.get_model_bone_index(model_assets.character, "arm-left"),
+		)
+		right := graphics.get_animated_model_bounding_box(
+			model_assets.character,
+			graphics.get_model_bone_index(model_assets.character, "arm-right"),
+		)
+		anchor := (left.min + left.max + right.min + right.max) * (0.25 * MODEL_CHARACTER_SCALE)
+		anchor.y =
+			(max(left.max.y, right.max.y) - model_assets.character_bounds.min.y) *
+			MODEL_CHARACTER_SCALE
+		angle := math.to_radians(geometry_facing_angle(facing))
+		horizontal := Vec2 {
+			math.cos(angle) * anchor.x + math.sin(angle) * anchor.z,
+			-math.sin(angle) * anchor.x + math.cos(angle) * anchor.z,
+		}
+		graphics.draw_model(
+			model_assets.crate,
+			geometry_grounded_position(
+				render_position + horizontal,
+				model_assets.crate_bounds,
+				MODEL_CRATE_SCALE,
+				render_height + anchor.y,
+			),
+			{0, 1, 0},
+			geometry_facing_angle(facing),
+			{MODEL_CRATE_SCALE, MODEL_CRATE_SCALE, MODEL_CRATE_SCALE},
+			graphics.WHITE,
+			bank,
+			bank_axis,
+			bank_pivot,
+		)
+	}
 }
 
 rendering_draw_entities :: proc() {
@@ -366,6 +403,7 @@ rendering_draw_entities :: proc() {
 				e.height,
 			)
 		case Holdable:
+			if e.held_by != nil do continue // Drawn with the carrier's animated hands.
 			base_height := e.height
 			if e.held_by != nil {
 				base_height = e.held_by.height + RENDERING_CARRIED_ITEM_HEIGHT
