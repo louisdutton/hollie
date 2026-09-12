@@ -44,24 +44,16 @@ rendering_draw_grass :: proc() {
 			ground := graphics.Colour{255, 255, 255, 0}
 			graphics.draw_triangle_3d(a, b, c, ground)
 			graphics.draw_triangle_3d(a, c, d, ground)
-			// Leave most of the painted surface uninterrupted. Occasional
-			// three-leaf tufts suggest grass without covering it in detail.
-			patch_seed := (y * tilemap.get_tilemap_width() + x) * 251
-			if grass_random(patch_seed + 5) > 0.38 do continue
-			cluster := Vec3 {
-				left + (0.25 + grass_random(patch_seed) * 0.5) * size,
-				0.04,
-				top + (0.25 + grass_random(patch_seed + 1) * 0.5) * size,
-			}
-			for blade in 0 ..< 3 {
-				seed := patch_seed + blade * 7
+			for blade in 0 ..< 36 {
+				seed := (y * tilemap.get_tilemap_width() + x) * 251 + blade * 7
 				root := Vec3 {
-					cluster.x + (f32(blade) - 1) * 1.3,
-					cluster.y,
-					cluster.z - (f32(blade) - 1) * 0.8,
+					left + (f32(blade % 6) + 0.2 + grass_random(seed) * 0.6) * size / 6,
+					0.04,
+					top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
 				}
-				height := 2.6 + grass_random(seed + 2) * 1.8
-				// Present the broad face to the isometric camera.
+				height := 4.2 + grass_random(seed + 2) * 3.4
+				// Overlap the 2.67-unit planting cells and present the broad face
+				// to the isometric camera instead of losing random blades edge-on.
 				angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
 				width :=
 					Vec3{math.cos(angle), 0, math.sin(angle)} *
