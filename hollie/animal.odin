@@ -205,9 +205,9 @@ animal_animated_seat :: proc(enemy: ^Enemy, animal: ^Animal_Model) -> Vec3 {
 
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	animal_apply_pose(enemy, animal)
-	if enemy.ram_ready {
+	if enemy.ram_visual > 0.001 {
 		head := graphics.get_model_bone_index(animal.model, "head")
-		if head >= 0 do graphics.rotate_model_bone_z(animal.model, head, animal.model.currentPose[head].translation, math.to_radians(f32(25)))
+		if head >= 0 do graphics.rotate_model_bone_z(animal.model, head, animal.model.currentPose[head].translation, math.to_radians(f32(25)) * enemy.ram_visual)
 	}
 	if enemy.head_turn != 0 {
 		head := graphics.get_model_bone_index(animal.model, "head")
@@ -230,7 +230,12 @@ rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 		{0, 1, 0},
 		geometry_facing_angle(enemy.facing_direction) + 90, // Kenney animals face local -X.
 		{ANIMAL_MODEL_SCALE, ANIMAL_MODEL_SCALE, ANIMAL_MODEL_SCALE},
-		graphics.WHITE,
+		graphics.Colour {
+			255,
+			u8(255 - 180 * enemy.ram_visual),
+			u8(255 - 195 * enemy.ram_visual),
+			255,
+		},
 		enemy.turn_lean,
 		{enemy.facing_direction.x, 0, enemy.facing_direction.y},
 		geometry_position(enemy.position, enemy.height),
