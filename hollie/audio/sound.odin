@@ -5,8 +5,8 @@ import "core:math/rand"
 import rl "vendor:raylib"
 
 Sound_Kind :: enum {
-	GruntRoll,
-	GruntAttack,
+	Dash,
+	Attack_Swing,
 	AttackHit,
 	EnemyHit,
 	EnemyDeath,
@@ -28,13 +28,8 @@ Sound_Collection :: [Sound_Kind]Sound
 sound_init :: proc() -> Sound_Collection {
 	sounds: Sound_Collection
 
-	sounds[.GruntRoll] = _sound_init(
-		{
-			"audio/fx/voices/grunting/female/meghan-christian/grunting_1_meghan.wav",
-			"audio/fx/voices/grunting/female/meghan-christian/grunting_2_meghan.wav",
-		},
-	)
-	sounds[.GruntAttack] = _sound_init(
+	sounds[.Dash] = _sound_init({"audio/fx/combat/whoosh-short-light.wav"})
+	sounds[.Attack_Swing] = _sound_init(
 		{"audio/fx/combat/whoosh-short-light.wav", "audio/fx/impact/whoosh-arm-swing-01-wide.wav"},
 	)
 	sounds[.AttackHit] = _sound_init(
