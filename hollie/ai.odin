@@ -1,5 +1,6 @@
 package hollie
 
+import "core:math"
 import "core:math/rand"
 import "graphics"
 
@@ -38,6 +39,19 @@ ai_update_movement :: proc() {
 	}
 }
 
+// Check along the route so a probe cannot skip over a narrow shoreline.
+ai_animal_terrain_clear :: proc(animal: ^Enemy, direction: Vec2, distance: f32) -> bool {
+	wants_water := animal.kind == .Turtle
+	started_home := water_at(animal.position) == wants_water
+	for step := f32(4); step <= distance + 4; step += 4 {
+		home := water_at(animal.position + direction * min(step, distance)) == wants_water
+		if started_home && !home do return false
+		if home do started_home = true
+	}
+	// Animals dismounted on unsuitable terrain can move out of it.
+	return true
+}
+
 ai_update_animal :: proc(animal: ^Enemy) {
 	dt := min(graphics.get_frame_time(), 0.1)
 	direction: Vec2
@@ -52,28 +66,40 @@ ai_update_animal :: proc(animal: ^Enemy) {
 		}
 		if animal.wait_timer <= 0 do direction = animal.move_direction
 	}
-	if direction != (Vec2{}) && animal.grounded {
+	speed := math.sqrt(
+		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y,
+	)
+	look_ahead := max(f32(24), speed / 1.5 + 12)
+	if direction != (Vec2{}) && (animal.grounded || animal.swimming) {
 		actor := Entity(animal^)
 		obstacles := physics_obstacles(&actor)
 		defer delete(obstacles)
 		probe := animal.position + animal.facing_direction * 18
-		if physics_blocked(
-			collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
-			obstacles[:],
-			true,
-		) {
+		requested := direction / math.sqrt(direction.x * direction.x + direction.y * direction.y)
+		if !ai_animal_terrain_clear(animal, animal.facing_direction, look_ahead) ||
+		   !ai_animal_terrain_clear(animal, requested, look_ahead) ||
+		   physics_blocked(
+			   collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
+			   obstacles[:],
+			   true,
+		   ) {
 			// Pick a clear side before reaching a wall, rather than pushing at it
 			// until the wandering timer happens to select another heading.
 			right := Vec2{animal.facing_direction.y, -animal.facing_direction.x}
-			direction = -animal.facing_direction
-			sides := [2]Vec2{right, -right}
+			direction = {}
+			sides := [3]Vec2{right, -right, -animal.facing_direction}
 			for side in sides {
 				probe = animal.position + side * 18
-				if !physics_blocked(
-					collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
-					obstacles[:],
-					true,
-				) {
+				if ai_animal_terrain_clear(animal, side, look_ahead) &&
+				   !physics_blocked(
+						   collision_aabb_at(
+							   probe,
+							   animal.collider,
+							   animal.height + PHYSICS_STEP_HEIGHT,
+						   ),
+						   obstacles[:],
+						   true,
+					   ) {
 					direction = side
 					break
 				}
@@ -83,6 +109,13 @@ ai_update_animal :: proc(animal: ^Enemy) {
 		}
 	}
 	animal_update_movement(animal, direction, ANIMAL_WANDER_PROFILE, dt)
+	// Brake before the bank while the normal steering turns the animal away.
+	// This is an AI decision, not a terrain collider or mounted restriction.
+	stopping_distance := speed * speed / (2 * ANIMAL_WANDER_PROFILE.deceleration) + 8
+	if !ai_animal_terrain_clear(animal, animal.facing_direction, stopping_distance) {
+		next_speed := max(speed - ANIMAL_WANDER_PROFILE.deceleration * dt, 0)
+		animal.velocity = animal.facing_direction * next_speed
+	}
 }
 
 @(private)
