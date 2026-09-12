@@ -262,7 +262,7 @@ riding_find_dismount :: proc(
 			animal.collider,
 			player.collider,
 		)
-		if collide_tiles && water_at(position) do continue
+		if collide_tiles && water_depth_at(position) > WATER_SURFACE - WATER_SHALLOW_BED do continue
 		aabb := collision_aabb_at(position, player.collider, height)
 		if aabb.min.x < bounds.x ||
 		   aabb.max.x > bounds.x + bounds.width ||
@@ -286,6 +286,8 @@ riding_find_dismount :: proc(
 }
 
 riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
+	// Paddle into the shallows before leaping ashore.
+	if animal.aquatic && water_depth_at(animal.position) > WATER_SURFACE - WATER_SHALLOW_BED do return false
 	obstacles := physics_obstacles(nil)
 	defer delete(obstacles)
 	append(&obstacles, collision_aabb_at(animal.position, animal.collider, animal.height))

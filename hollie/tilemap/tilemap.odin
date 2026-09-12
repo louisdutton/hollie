@@ -34,6 +34,7 @@ config := TilemapConfig {
 TileType :: enum u16 {
 	Empty = 0,
 	Water = 500,
+	Shallow_Water = 501,
 	Grass_1 = 1,
 	Grass_2,
 	Grass_3,
@@ -252,6 +253,7 @@ get_base_tile :: proc(x, y: int) -> ^TileType {
 		return nil
 	}
 	index := y * tilemap.width + x
+	if index >= len(tilemap.base_tiles) do return nil
 	return &tilemap.base_tiles[index]
 }
 

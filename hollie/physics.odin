@@ -17,7 +17,6 @@ physics_overlap_horizontal :: proc(a, b: AABB) -> bool {
 
 physics_obstacles :: proc(exclude: ^Entity) -> [dynamic]AABB {
 	obstacles := make([dynamic]AABB)
-	water_add_obstacles(exclude, &obstacles)
 	if tm := room_get_current(); tm != nil {
 		for structure in tm.structures {
 			for wall in house_wall_aabbs(structure.position, structure.size) do append(&obstacles, wall)
@@ -70,6 +69,7 @@ physics_move_axis :: proc(
 	obstacles: []AABB,
 	collide_tiles: bool,
 ) {
+	if collide_tiles && !water_can_enter(body, position) do return
 	aabb := collision_aabb_at(position, collider, body.height)
 	if !physics_blocked(aabb, obstacles, collide_tiles) {
 		body.position = position
@@ -121,7 +121,7 @@ physics_step :: proc(
 	next := collision_aabb_at(body.position, collider, next_height)
 	body.grounded = false
 	if body.vertical_velocity <= 0 {
-		floor_height: f32 = 0
+		floor_height := collide_tiles ? water_floor_height(body.position, body.aquatic) : f32(0)
 		for obstacle in obstacles {
 			if physics_overlap_horizontal(next, obstacle) &&
 			   previous.min.y >= obstacle.max.y - PHYSICS_CONTACT_EPSILON &&
@@ -198,6 +198,7 @@ physics_eject :: proc(
 			continue
 		}
 		if physics_blocked(candidate, obstacles, collide_tiles) do continue
+		if collide_tiles && !water_can_enter(body, body.position + Vec2{offset.x, offset.z}) do continue
 		swept := AABB {
 			min = {
 				min(start.min.x, candidate.min.x),

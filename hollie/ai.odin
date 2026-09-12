@@ -57,11 +57,12 @@ ai_update_animal :: proc(animal: ^Enemy) {
 		obstacles := physics_obstacles(&actor)
 		defer delete(obstacles)
 		probe := animal.position + animal.facing_direction * 18
-		if physics_blocked(
-			collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
-			obstacles[:],
-			true,
-		) {
+		if !water_can_enter(&animal.transform, probe) ||
+		   physics_blocked(
+			   collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
+			   obstacles[:],
+			   true,
+		   ) {
 			// Pick a clear side before reaching a wall, rather than pushing at it
 			// until the wandering timer happens to select another heading.
 			right := Vec2{animal.facing_direction.y, -animal.facing_direction.x}
@@ -69,11 +70,16 @@ ai_update_animal :: proc(animal: ^Enemy) {
 			sides := [2]Vec2{right, -right}
 			for side in sides {
 				probe = animal.position + side * 18
-				if !physics_blocked(
-					collision_aabb_at(probe, animal.collider, animal.height + PHYSICS_STEP_HEIGHT),
-					obstacles[:],
-					true,
-				) {
+				if water_can_enter(&animal.transform, probe) &&
+				   !physics_blocked(
+						   collision_aabb_at(
+							   probe,
+							   animal.collider,
+							   animal.height + PHYSICS_STEP_HEIGHT,
+						   ),
+						   obstacles[:],
+						   true,
+					   ) {
 					direction = side
 					break
 				}

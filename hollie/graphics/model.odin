@@ -238,6 +238,10 @@ draw_sphere :: #force_inline proc(position: Vec3, radius: f32, color: Colour) {
 	rl.DrawSphere(position, radius, color)
 }
 
+draw_triangle_3d :: #force_inline proc(a, b, c: Vec3, color: Colour) {
+	rl.DrawTriangle3D(a, b, c, color)
+}
+
 
 begin_mode_3d :: #force_inline proc(camera: Camera3D) {
 	rl.BeginMode3D(camera)

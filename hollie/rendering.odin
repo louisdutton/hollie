@@ -95,16 +95,19 @@ rendering_draw_ground :: proc() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
 			tile := tilemap.get_base_tile(x, y)
 			if tile == nil || tile^ == .Empty do continue
-			tint := tile^ == .Water ? graphics.Colour{45, 137, 177, 255} : graphics.WHITE
+			position := Vec2{(f32(x) + 0.5) * tile_size, (f32(y) + 0.5) * tile_size}
+			bed := water_floor_height(position, false)
+			tint := water_tile(x, y) ? graphics.Colour{163, 151, 111, 255} : graphics.WHITE
 
 			graphics.draw_model(
 				model_assets.floor,
-				{(f32(x) + 0.5) * tile_size, 0, (f32(y) + 0.5) * tile_size},
+				{position.x, bed, position.y},
 				{0, 1, 0},
 				0,
 				{tile_size, 1, tile_size},
 				tint,
 			)
+			if water_tile(x, y) do rendering_draw_water_banks(x, y, bed)
 		}
 	}
 
