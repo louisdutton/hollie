@@ -5,6 +5,20 @@ import "tilemap"
 
 BISON_RAM_SPEED :: f32(100)
 
+bison_update_ram_state :: proc(animal: ^Enemy, dt: f32) {
+	threshold := animal_riding_profile(.Bison).max_speed * 0.98
+	fast :=
+		animal.velocity.x * animal.velocity.x + animal.velocity.y * animal.velocity.y >=
+		threshold * threshold
+	if animal.kind != .Bison || !animal.mounted || !animal.grounded || animal.is_busy || !fast {
+		animal.ram_charge_time = 0
+		animal.ram_ready = false
+		return
+	}
+	animal.ram_charge_time += dt
+	animal.ram_ready = animal.ram_charge_time >= 0.15
+}
+
 // Swept contact time and speed into the struck face, rather than total speed.
 ram_contact :: proc(body, wall: AABB, velocity: Vec2, dt: f32) -> (f32, f32, bool) {
 	if body.max.y <= wall.min.y || body.min.y >= wall.max.y do return 0, 0, false
@@ -28,7 +42,7 @@ ram_contact :: proc(body, wall: AABB, velocity: Vec2, dt: f32) -> (f32, f32, boo
 }
 
 bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[dynamic]AABB) {
-	if animal.kind != .Bison || !animal.mounted || !animal.grounded do return
+	if animal.kind != .Bison || !animal.mounted || !animal.grounded || !animal.ram_ready do return
 	body := collision_aabb_at(animal.position, collider, animal.height)
 	nearest := -1
 	nearest_time := dt + 1
@@ -62,6 +76,8 @@ bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[
 		}
 		particle_crate_landing(&body, gate.collider, impact_speed)
 		animal.velocity *= 0.8
+		animal.ram_ready = false
+		animal.ram_charge_time = 0
 		return
 	}
 }

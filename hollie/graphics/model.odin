@@ -116,6 +116,22 @@ rotate_model_bone_y :: proc(model: Model, bone: int, pivot: Vec3, angle: f32) {
 	rotation[3, 3] = 1
 	rotation[0, 3] = pivot.x - cosine * pivot.x - sine * pivot.z
 	rotation[2, 3] = pivot.z + sine * pivot.x - cosine * pivot.z
+	transform_model_bone(model, bone, rotation)
+}
+
+rotate_model_bone_z :: proc(model: Model, bone: int, pivot: Vec3, angle: f32) {
+	sine, cosine := math.sin(angle), math.cos(angle)
+	rotation: Matrix
+	rotation[0, 0], rotation[0, 1] = cosine, -sine
+	rotation[1, 0], rotation[1, 1] = sine, cosine
+	rotation[2, 2], rotation[3, 3] = 1, 1
+	rotation[0, 3] = pivot.x - cosine * pivot.x + sine * pivot.y
+	rotation[1, 3] = pivot.y - sine * pivot.x - cosine * pivot.y
+	transform_model_bone(model, bone, rotation)
+}
+
+transform_model_bone :: proc(model: Model, bone: int, rotation: Matrix) {
+	if bone < 0 || bone >= int(model.skeleton.boneCount) || model.boneMatrices == nil do return
 	model.boneMatrices[bone] = rotation * model.boneMatrices[bone]
 	// GPU skinning consumes the modified matrix directly. Update the CPU
 	// fallback too; these baked rigid parts have one bone per vertex.

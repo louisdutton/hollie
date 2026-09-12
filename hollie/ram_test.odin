@@ -3,6 +3,30 @@ package hollie
 import "core:testing"
 
 @(test)
+test_bison_full_speed_state_requires_run_up_and_resets :: proc(t: ^testing.T) {
+	animal := Enemy {
+		kind = .Bison,
+		mounted = true,
+		transform = {grounded = true, velocity = {140, 0}},
+	}
+	bison_update_ram_state(&animal, 0.1)
+	testing.expect(t, !animal.ram_ready)
+	bison_update_ram_state(&animal, 0.1)
+	testing.expect(t, animal.ram_ready)
+	animal.velocity = {120, 0}
+	bison_update_ram_state(&animal, 0)
+	testing.expect(t, !animal.ram_ready && animal.ram_charge_time == 0)
+	animal.velocity = {140, 0}
+	animal.grounded = false
+	bison_update_ram_state(&animal, 1)
+	testing.expect(t, !animal.ram_ready)
+	animal.grounded = true
+	animal.kind = .Horse
+	bison_update_ram_state(&animal, 1)
+	testing.expect(t, !animal.ram_ready)
+}
+
+@(test)
 test_ram_detects_swept_head_on_contact :: proc(t: ^testing.T) {
 	body := AABB {
 		min = {0, 0, 0},

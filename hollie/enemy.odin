@@ -13,6 +13,8 @@ Enemy :: struct {
 	kind:            content.Character_Kind,
 	mounted:         bool,
 	coasting:        bool,
+	ram_ready:       bool,
+	ram_charge_time: f32,
 	rider:           input.Player_Index,
 	turn_lean:       f32,
 	head_turn:       f32,

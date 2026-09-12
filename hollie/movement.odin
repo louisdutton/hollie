@@ -91,11 +91,13 @@ movement_move :: proc(
 	for remaining > 0 {
 		dt := min(remaining, PHYSICS_STEP)
 		if animal, ok := &moving_entity^.(Enemy); ok {
+			bison_update_ram_state(animal, dt)
 			bison_try_ram(animal, collider^, dt, &obstacles)
 		}
 		fall_speed := -transform.vertical_velocity
 		airborne := !transform.grounded
 		physics_step(transform, collider^, obstacles[:], dt, true, ground_friction)
+		if animal, ok := &moving_entity^.(Enemy); ok do bison_update_ram_state(animal, 0)
 		if crate, ok := moving_entity^.(Holdable);
 		   ok && crate.held_by == nil && airborne && transform.grounded && fall_speed > 20 {
 			particle_crate_landing(transform, collider^, fall_speed)
@@ -117,7 +119,7 @@ movement_move :: proc(
 	#partial switch e in moving_entity^ {
 	case Player: particle_emit_trail(transform, previous, previous_height, was_grounded, false)
 	case Enemy:
-		if e.mounted || e.coasting do particle_emit_trail(transform, previous, previous_height, was_grounded, true)
+		if e.mounted || e.coasting do particle_emit_trail(transform, previous, previous_height, was_grounded, true, e.ram_ready ? 1.6 : 1)
 	case Holdable:
 		if e.held_by == nil do particle_emit_trail(transform, previous, previous_height, was_grounded, false, 0.65)
 	}

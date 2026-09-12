@@ -205,6 +205,10 @@ animal_animated_seat :: proc(enemy: ^Enemy, animal: ^Animal_Model) -> Vec3 {
 
 rendering_draw_animal :: proc(enemy: ^Enemy, animal: ^Animal_Model) {
 	animal_apply_pose(enemy, animal)
+	if enemy.ram_ready {
+		head := graphics.get_model_bone_index(animal.model, "head")
+		if head >= 0 do graphics.rotate_model_bone_z(animal.model, head, animal.model.currentPose[head].translation, math.to_radians(f32(25)))
+	}
 	if enemy.head_turn != 0 {
 		head := graphics.get_model_bone_index(animal.model, "head")
 		neck := graphics.get_model_bone_index(animal.model, "neck")
