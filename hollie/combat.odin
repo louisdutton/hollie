@@ -60,7 +60,7 @@ combat_update :: proc() {
 
 			attack_offset := a.attack_direction * a.range
 			attack_pos := a.position + attack_offset
-			attacker_aabb := collision_aabb_at(a.position, a.collider)
+			attacker_aabb := collision_entity_aabb(&attacker)
 			attack_aabb := AABB {
 				min = {
 					attack_pos.x - a.attack_width / 2,
@@ -78,7 +78,7 @@ combat_update :: proc() {
 				switch &t in target {
 				case Enemy:
 					if t.is_dying do continue
-					if !aabbs_intersect(attack_aabb, collision_aabb_at(t.position, t.collider)) do continue
+					if !aabbs_intersect(attack_aabb, collision_entity_aabb(&target)) do continue
 
 					t.current -= a.damage
 					a.attack_hit = true

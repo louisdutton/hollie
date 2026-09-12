@@ -46,6 +46,7 @@ get_zoom :: proc() -> f32 {
 Player_Input :: enum {
 	Attack,
 	Accept,
+	Jump,
 }
 
 // Returns true if the provided input was just pressed
@@ -58,6 +59,11 @@ is_pressed_for_player :: proc(input: Player_Input, player_id: Player_Index) -> b
 	if player_id == .Player_1 {
 		// Player 1: H/J keys and gamepad 1
 		switch input {
+		case .Jump:
+			return(
+					is_gamepad_button_pressed(.Player_1, .RIGHT_FACE_DOWN) ||
+					is_key_pressed(settings.jump) \
+				)
 		case .Accept:
 			return is_gamepad_button_pressed(.Player_1, .RIGHT_FACE_RIGHT) || is_key_pressed(.H)
 		case .Attack:
@@ -67,6 +73,11 @@ is_pressed_for_player :: proc(input: Player_Input, player_id: Player_Index) -> b
 	} else if player_id == .Player_2 {
 		// Player 2: L key and gamepad 2
 		switch input {
+		case .Jump:
+			return(
+					is_gamepad_button_pressed(.Player_2, .RIGHT_FACE_DOWN) ||
+					is_key_pressed(.SEMICOLON) \
+				)
 		case .Accept:
 			return is_gamepad_button_pressed(.Player_2, .RIGHT_FACE_RIGHT) || is_key_pressed(.L)
 		case .Attack:

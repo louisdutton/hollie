@@ -40,6 +40,49 @@ get_model_bounding_box :: #force_inline proc(model: Model) -> Bounding_Box {
 	return rl.GetModelBoundingBox(model)
 }
 
+// Include the current pose even when raylib skins vertices on the GPU.
+get_animated_model_bounding_box :: proc(model: Model) -> Bounding_Box {
+	bounds := Bounding_Box {
+		min = {1e9, 1e9, 1e9},
+		max = {-1e9, -1e9, -1e9},
+	}
+	for mesh_index in 0 ..< int(model.meshCount) {
+		mesh := model.meshes[mesh_index]
+		for vertex_index in 0 ..< int(mesh.vertexCount) {
+			index := vertex_index * 3
+			position := [4]f32 {
+				mesh.vertices[index],
+				mesh.vertices[index + 1],
+				mesh.vertices[index + 2],
+				1,
+			}
+			if mesh.animVertices != nil {
+				position = {
+					mesh.animVertices[index],
+					mesh.animVertices[index + 1],
+					mesh.animVertices[index + 2],
+					1,
+				}
+			} else if mesh.boneWeights != nil && model.boneMatrices != nil {
+				skinned: [4]f32
+				for influence in 0 ..< 4 {
+					bone_index := vertex_index * 4 + influence
+					weight := mesh.boneWeights[bone_index]
+					if weight == 0 do continue
+					skinned +=
+						(model.boneMatrices[mesh.boneIndices[bone_index]] * position) * weight
+				}
+				position = skinned
+			}
+			for axis in 0 ..< 3 {
+				bounds.min[axis] = min(bounds.min[axis], position[axis])
+				bounds.max[axis] = max(bounds.max[axis], position[axis])
+			}
+		}
+	}
+	return bounds
+}
+
 load_model_animations :: #force_inline proc(path: string, count: ^c.int) -> [^]Model_Animation {
 	return rl.LoadModelAnimations(cstring(raw_data(path)), count)
 }

@@ -14,7 +14,7 @@ Enemy :: struct {
 
 enemy_create :: proc(position: Vec2, animations: []Animation) -> ^Enemy {
 	enemy := Enemy {
-		transform = {position = position},
+		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 50, facing_direction = {1, 0}},

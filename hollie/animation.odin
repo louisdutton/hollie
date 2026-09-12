@@ -109,7 +109,9 @@ animation_update_entities :: proc() {
 	for &entity in entities {
 		switch &e in entity {
 		case Player:
-			if e.is_attacking {
+			if !e.grounded {
+				animation_set_state(&e.anim_data, .Jump)
+			} else if e.is_attacking {
 				e.facing_direction = e.attack_direction
 				animation_set_state(&e.anim_data, .Attack)
 			} else if e.carrying != nil {

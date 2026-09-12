@@ -9,7 +9,7 @@ Holdable :: struct {
 
 holdable_create :: proc(position: Vec2) -> ^Holdable {
 	holdable := Holdable {
-		transform = {position = position},
+		transform = {position = position, grounded = true},
 		collider = model_crate_collider(true),
 	}
 	append(&entities, holdable)

@@ -51,6 +51,12 @@ when ODIN_DEBUG {
 	debug_draw :: proc() {
 		if tm := room_get_current(); tm != nil {
 			for structure in tm.structures {
+				roof := house_roof_aabb(structure.position, structure.size)
+				graphics.draw_cube_outline(
+					(roof.min + roof.max) / 2,
+					roof.max - roof.min,
+					graphics.ORANGE,
+				)
 				for wall in house_wall_aabbs(structure.position, structure.size) {
 					graphics.draw_cube_outline(
 						(wall.min + wall.max) / 2,

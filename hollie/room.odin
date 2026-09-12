@@ -51,7 +51,7 @@ room_find_door_spawn_position :: proc(door: ^Door) -> Vec2 {
 
 	for candidate in candidates {
 		aabb := collision_aabb_at(candidate, player_collider)
-		if !tilemap.check_collision(aabb) do return candidate
+		if !tilemap.check_collision(aabb) && !collision_check_solid(candidate, player_collider) do return candidate
 	}
 
 	return door_center

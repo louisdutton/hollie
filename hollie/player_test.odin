@@ -8,7 +8,7 @@ test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.
 		collider = {size = {12, 12, 12}, offset = {-6, 0, -6}, solid = true},
 	}
 	player := Player {
-		transform = {position = {40, 50}},
+		transform = {position = {40, 50}, height = 5, vertical_velocity = -10},
 		collider = {size = {16, 16, 16}, offset = {-8, 0, -8}},
 		movement = {facing_direction = {1, 0}},
 		carrying = &crate,
@@ -19,6 +19,9 @@ test_player_drops_carried_item_in_front_of_facing_direction :: proc(t: ^testing.
 	player_drop(&player)
 
 	testing.expect_value(t, crate.position, Vec2{56, 50})
+	testing.expect_value(t, crate.height, f32(5 + RENDERING_CARRIED_ITEM_HEIGHT))
+	testing.expect_value(t, crate.vertical_velocity, f32(-10))
+	testing.expect(t, !crate.grounded)
 	testing.expect(t, crate.held_by == nil)
 	testing.expect(t, holdable_blocks_character(crate))
 	testing.expect(t, player.carrying == nil)

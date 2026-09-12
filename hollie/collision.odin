@@ -48,18 +48,18 @@ collision_entity_aabb :: proc(entity: ^Entity) -> AABB {
 	collider: Collider
 	base_height: f32
 	switch e in entity {
-	case Player: position, collider = e.position, e.collider
-	case Enemy: position, collider = e.position, e.collider
-	case Npc: position, collider = e.position, e.collider
-	case Pressure_Plate: position, collider = e.position, e.collider
-	case Gate: position, collider = e.position, e.collider
+	case Player: position, collider, base_height = e.position, e.collider, e.height
+	case Enemy: position, collider, base_height = e.position, e.collider, e.height
+	case Npc: position, collider, base_height = e.position, e.collider, e.height
+	case Pressure_Plate: position, collider, base_height = e.position, e.collider, e.height
+	case Gate: position, collider, base_height = e.position, e.collider, e.height
 	case Holdable:
-		position, collider = e.position, e.collider
+		position, collider, base_height = e.position, e.collider, e.height
 		if e.held_by != nil {
 			position = e.held_by.position
-			base_height = RENDERING_CARRIED_ITEM_HEIGHT
+			base_height = e.held_by.height + RENDERING_CARRIED_ITEM_HEIGHT
 		}
-	case Door: position, collider = e.position, e.collider
+	case Door: position, collider, base_height = e.position, e.collider, e.height
 	}
 	return collision_aabb_at(position, collider, base_height)
 }
@@ -80,34 +80,15 @@ collision_contains_point :: proc(entity: ^Entity, point: Vec3) -> bool {
 	)
 }
 
-collision_check_solid :: proc(position: Vec2, collider: Collider, exclude: ^Entity = nil) -> bool {
-	aabb := collision_aabb_at(position, collider)
-	if tm := room_get_current(); tm != nil {
-		for structure in tm.structures {
-			for wall in house_wall_aabbs(structure.position, structure.size) {
-				if aabbs_intersect(aabb, wall) do return true
-			}
-		}
-	}
-	for &entity in entities {
-		if exclude != nil && &entity == exclude do continue
-
-		is_solid := false
-		switch e in entity {
-		case Player, Enemy, Npc, Pressure_Plate: is_solid = false
-		case Gate: is_solid = e.collider.solid && !e.open
-		case Holdable: is_solid = holdable_blocks_character(e)
-		case Door: is_solid = false // Doors are triggers, not solid barriers
-		}
-
-		if is_solid {
-			entity_ptr := &entity
-			if aabbs_intersect(collision_entity_aabb(entity_ptr), aabb) {
-				return true
-			}
-		}
-	}
-	return false
+collision_check_solid :: proc(
+	position: Vec2,
+	collider: Collider,
+	exclude: ^Entity = nil,
+	height: f32 = 0,
+) -> bool {
+	obstacles := physics_obstacles(exclude)
+	defer delete(obstacles)
+	return physics_blocked(collision_aabb_at(position, collider, height), obstacles[:], false)
 }
 
 holdable_blocks_character :: proc(holdable: Holdable) -> bool {

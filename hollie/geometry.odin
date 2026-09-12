@@ -33,7 +33,7 @@ geometry_collider_from_bounds :: proc(
 	}
 	return {
 		size = {max_x - min_x, (bounds.max.y - bounds.min.y) * scale, max_z - min_z},
-		offset = {min_x, bounds.min.y * scale, min_z},
+		offset = {min_x, 0, min_z},
 		solid = solid,
 	}
 }

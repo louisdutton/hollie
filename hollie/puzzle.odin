@@ -60,14 +60,60 @@ pressure_plate_has_required_weight :: proc(
 }
 
 pressure_plate_has_crate :: proc(plate: ^Pressure_Plate, holdable: ^Holdable) -> bool {
-	if holdable.held_by != nil do return false
-	plate_entity := Entity(plate^)
 	holdable_entity := Entity(holdable^)
-	return collision_entities_intersect(&plate_entity, &holdable_entity)
+	return pressure_plate_supports(plate, &holdable_entity)
+}
+
+pressure_plate_supports :: proc(plate: ^Pressure_Plate, entity: ^Entity) -> bool {
+	grounded := false
+	switch e in entity^ {
+	case Player: grounded = e.grounded
+	case Enemy: grounded = e.grounded
+	case Holdable: grounded = e.grounded && e.held_by == nil
+	case Npc, Pressure_Plate, Gate, Door: return false
+	}
+	if !grounded do return false
+	plate_bounds := collision_aabb_at(plate.position, plate.collider, plate.height)
+	body_bounds := collision_entity_aabb(entity)
+	return(
+		physics_overlap_horizontal(plate_bounds, body_bounds) &&
+		abs(body_bounds.min.y - plate_bounds.max.y) <= PHYSICS_CONTACT_EPSILON \
+	)
+}
+
+pressure_plate_update_surfaces :: proc() {
+	for &entity in entities {
+		plate, ok := &entity.(Pressure_Plate)
+		if !ok do continue
+		plate.animation_time += graphics.get_frame_time()
+		state := plate.active ? Pressure_Pad_State.On : Pressure_Pad_State.Off
+		clip_index := model_assets.pressure_pad_animation_indices[state]
+		if clip_index < 0 do continue
+		clip := model_assets.pressure_pad_animations[clip_index]
+		graphics.update_model_animation(
+			model_assets.pressure_pad,
+			clip,
+			model_animation_frame(plate.animation_time, clip, .Once_Hold),
+		)
+		bounds := graphics.get_animated_model_bounding_box(model_assets.pressure_pad)
+		new_height :=
+			(bounds.max.y - model_assets.pressure_pad_bounds.min.y) * MODEL_PRESSURE_PAD_SCALE
+		delta := new_height - plate.collider.size.y
+		// Keep resting weight attached while the button depresses or rises.
+		for &body in entities {
+			if !pressure_plate_supports(plate, &body) do continue
+			switch &e in body {
+			case Player: e.height += delta
+			case Enemy: e.height += delta
+			case Holdable: e.height += delta
+			case Npc, Pressure_Plate, Gate, Door: continue
+			}
+		}
+		plate.collider.size.y = new_height
+	}
 }
 
 puzzle_update :: proc() {
-	delta_time := graphics.get_frame_time()
 
 	// Update pressure plate states
 	for &plate_entity in entities {
@@ -78,34 +124,25 @@ puzzle_update :: proc() {
 		plate.activated_by = {}
 		plate.active = false
 
-		// Players and dropped crates each contribute one unit of pressure.
-		for &player_entity in entities {
-			player, ok := &player_entity.(Player)
-			if !ok do continue
-			player_entity_value := Entity(player^)
-			plate_entity_value := Entity(plate^)
-			if collision_entities_intersect(&player_entity_value, &plate_entity_value) {
+		// Players, enemies, and resting crates each contribute one unit of pressure.
+		other_weight := 0
+		for &body in entities {
+			if !pressure_plate_supports(plate, &body) do continue
+			if player, ok := &body.(Player); ok {
 				plate.activated_by += {player.index}
+			} else {
+				other_weight += 1
 			}
-		}
-
-		crate_count := 0
-		for &holdable_entity in entities {
-			holdable, ok := &holdable_entity.(Holdable)
-			if !ok do continue
-			if pressure_plate_has_crate(plate, holdable) do crate_count += 1
 		}
 		plate.active = pressure_plate_has_required_weight(
 			card(plate.activated_by),
-			crate_count,
+			other_weight,
 			plate.requires_both,
 		)
 
 		if plate.active != was_active {
 			plate.animation_time = 0
 			audio.sound_play(&game.sounds, audio.Sound_Kind.PressurePlateToggle)
-		} else {
-			plate.animation_time += delta_time
 		}
 	}
 

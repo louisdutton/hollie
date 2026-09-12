@@ -152,7 +152,7 @@ rendering_draw_house :: proc(position, size: Vec2) {
 		{center.x, wall_height, center.y},
 		{0, 1, 0},
 		0,
-		{size.x + 8, 7, size.y + 8},
+		{size.x + 2 * HOUSE_ROOF_OVERHANG, HOUSE_ROOF_HEIGHT, size.y + 2 * HOUSE_ROOF_OVERHANG},
 		graphics.Colour{120, 150, 105, 255},
 	)
 }
@@ -174,6 +174,7 @@ rendering_draw_character :: proc(
 	position, facing: Vec2,
 	tint: graphics.Colour,
 	flash_amount: f32,
+	base_height: f32 = 0,
 ) {
 	current_state := anim.current_anim
 	playback_modes := MODEL_CHARACTER_PLAYBACK
@@ -212,7 +213,12 @@ rendering_draw_character :: proc(
 	)
 	graphics.draw_model(
 		model_assets.character,
-		geometry_grounded_position(position, model_assets.character_bounds, MODEL_CHARACTER_SCALE),
+		geometry_grounded_position(
+			position,
+			model_assets.character_bounds,
+			MODEL_CHARACTER_SCALE,
+			base_height,
+		),
 		{0, 1, 0},
 		geometry_facing_angle(facing),
 		{MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE, MODEL_CHARACTER_SCALE},
@@ -238,6 +244,7 @@ rendering_draw_entities :: proc() {
 				e.facing_direction,
 				tint,
 				e.hit_flash_timer / 0.2,
+				e.height,
 			)
 		case Enemy:
 			tint := graphics.Colour{196, 92, 88, 255}
@@ -247,6 +254,7 @@ rendering_draw_entities :: proc() {
 				e.facing_direction,
 				tint,
 				e.hit_flash_timer / 0.2,
+				e.height,
 			)
 		case Npc:
 			tint := graphics.Colour{220, 190, 96, 255}
@@ -256,11 +264,12 @@ rendering_draw_entities :: proc() {
 				e.facing_direction,
 				tint,
 				e.hit_flash_timer / 0.2,
+				e.height,
 			)
 		case Holdable:
-			base_height: f32 = 0
+			base_height := e.height
 			if e.held_by != nil {
-				base_height = RENDERING_CARRIED_ITEM_HEIGHT
+				base_height = e.held_by.height + RENDERING_CARRIED_ITEM_HEIGHT
 			}
 			graphics.draw_model(
 				model_assets.crate,
@@ -370,7 +379,12 @@ rendering_draw_labels :: proc(camera_3d: graphics.Camera3D) {
 		if !ok do continue
 		label := player.index == .Player_1 ? "P1" : "P2"
 		color := player.index == .Player_1 ? graphics.BLUE : graphics.GREEN
-		rendering_draw_label(label, geometry_position(player.position, 24), camera_3d, color)
+		rendering_draw_label(
+			label,
+			geometry_position(player.position, player.height + 24),
+			camera_3d,
+			color,
+		)
 	}
 }
 

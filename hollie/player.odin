@@ -3,6 +3,7 @@ package hollie
 import "audio"
 import "core:math"
 import "input"
+import "tilemap"
 
 PLAYER_INTERACT_RANGE :: 24 // distance within which the player can interact with interactable entities
 PLAYER_DROP_FALLBACK_DISTANCE :: 16 // fallback distance for placing a dropped item
@@ -26,7 +27,7 @@ player_create :: proc(
 	animations: []Animation,
 ) -> ^Player {
 	player := Player {
-		transform = {position = position},
+		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
 		health = {current = 100, max = 100, is_dying = false},
 		movement = {move_speed = 80, facing_direction = {1, 0}},
@@ -61,6 +62,7 @@ player_handle_input :: proc(p: ^Player) {
 		}
 	}
 	if input.is_pressed_for_player(.Attack, p.index) do player_attack(p)
+	if input.is_pressed_for_player(.Jump, p.index) do physics_jump(&p.transform)
 }
 
 player_update_input :: proc() {
@@ -95,13 +97,23 @@ player_update_movement :: proc() {
 
 @(private)
 player_drop :: proc(p: ^Player) {
-	p.carrying.held_by = nil
-	p.carrying.position = player_drop_position(
+	position := player_drop_position(
 		p.position,
 		p.facing_direction,
 		p.collider,
 		p.carrying.collider,
 	)
+	height := p.height + RENDERING_CARRIED_ITEM_HEIGHT
+	if collision_check_solid(position, p.carrying.collider, height = height) ||
+	   (room_get_current() != nil &&
+			   tilemap.check_collision(collision_aabb_at(position, p.carrying.collider, height))) {
+		return
+	}
+	p.carrying.height = height
+	p.carrying.vertical_velocity = p.vertical_velocity
+	p.carrying.grounded = false
+	p.carrying.held_by = nil
+	p.carrying.position = position
 	p.carrying = nil
 }
 
@@ -154,7 +166,8 @@ player_carry :: proc(p: ^Player) {
 		holdable, ok := &entity.(Holdable)
 		if !ok do continue
 		if holdable.held_by == nil {
-			if get_distance(holdable.position, p.position) <= PLAYER_INTERACT_RANGE {
+			if get_distance(holdable.position, p.position) <= PLAYER_INTERACT_RANGE &&
+			   abs(holdable.height - p.height) <= PLAYER_INTERACT_RANGE {
 				holdable.held_by = p
 				p.carrying = holdable
 				break

@@ -22,7 +22,7 @@ npc_create :: proc(
 	dialog_messages: []Dialog_Message = {},
 ) -> ^Npc {
 	npc := Npc {
-		transform = {position = position},
+		transform = {position = position, grounded = true},
 		collider = model_character_collider(true),
 		health = {current = 50, max = 50},
 		movement = {move_speed = 30, facing_direction = {1, 0}},

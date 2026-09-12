@@ -11,6 +11,7 @@ Control_Settings :: struct {
 	// Action keys
 	interact:   Key,
 	attack:     Key,
+	jump:       Key,
 	pause:      Key,
 
 	// Utility keys
@@ -28,6 +29,7 @@ settings := Control_Settings {
 	// Default action keys
 	interact   = .E,
 	attack     = .SPACE,
+	jump       = .K,
 	pause      = .P,
 
 	// Default utility keys
@@ -48,6 +50,7 @@ key_bindings := []Control_Binding {
 	{"Move right", &settings.move_right},
 	{"Interact", &settings.interact},
 	{"Attack", &settings.attack},
+	{"Jump", &settings.jump},
 	{"Pause", &settings.pause},
 	{"Reload", &settings.reload},
 }

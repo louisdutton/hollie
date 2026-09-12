@@ -2,6 +2,23 @@ package hollie
 
 HOUSE_WALL_HEIGHT :: f32(44)
 HOUSE_WALL_SCALE :: f32(8)
+HOUSE_ROOF_HEIGHT :: f32(7)
+HOUSE_ROOF_OVERHANG :: f32(4)
+
+house_roof_aabb :: proc(position, size: Vec2) -> AABB {
+	return {
+		min = {
+			position.x - HOUSE_ROOF_OVERHANG,
+			HOUSE_WALL_HEIGHT,
+			position.y - HOUSE_ROOF_OVERHANG,
+		},
+		max = {
+			position.x + size.x + HOUSE_ROOF_OVERHANG,
+			HOUSE_WALL_HEIGHT + HOUSE_ROOF_HEIGHT,
+			position.y + size.y + HOUSE_ROOF_OVERHANG,
+		},
+	}
+}
 
 // Bounds follow the wall and wide-doorway meshes in res/world/props.
 // The doorway's clear opening spans local Z [-0.45, 0.45], up to Y 0.8.

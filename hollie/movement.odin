@@ -1,11 +1,13 @@
 package hollie
 
 import "graphics"
-import "tilemap"
 
 Transform :: struct {
-	position: Vec2,
-	velocity: Vec2,
+	position:          Vec2,
+	velocity:          Vec2,
+	height:            f32,
+	vertical_velocity: f32,
+	grounded:          bool,
 }
 
 Movement :: struct {
@@ -15,40 +17,35 @@ Movement :: struct {
 }
 
 movement_move :: proc(moving_entity: ^Entity, transform: ^Transform, collider: ^Collider) {
-	dt := graphics.get_frame_time()
-	next_pos := transform.position + transform.velocity * dt
-	final_pos := transform.position
-
-	test_pos_x := Vec2{next_pos.x, transform.position.y}
-	test_aabb_x := collision_aabb_at(test_pos_x, collider^)
-	if !collision_check_solid(test_pos_x, collider^, moving_entity) &&
-	   !tilemap.check_collision(test_aabb_x) {
-		final_pos.x = next_pos.x
-	}
-
-	test_pos_y := Vec2{final_pos.x, next_pos.y}
-	test_aabb_y := collision_aabb_at(test_pos_y, collider^)
-	if !collision_check_solid(test_pos_y, collider^, moving_entity) &&
-	   !tilemap.check_collision(test_aabb_y) {
-		final_pos.y = next_pos.y
+	obstacles := physics_obstacles(moving_entity)
+	defer delete(obstacles)
+	remaining := min(graphics.get_frame_time(), 0.1)
+	for remaining > 0 {
+		dt := min(remaining, PHYSICS_STEP)
+		physics_step(transform, collider^, obstacles[:], dt, true)
+		remaining -= dt
 	}
 
 	room_bounds := room_get_collision_bounds()
-	half_width := collider.size.x / 2
-	half_height := collider.size.z / 2
 	transform.position.x = clamp(
-		final_pos.x,
-		room_bounds.x + half_width,
-		room_bounds.x + room_bounds.width - half_width,
+		transform.position.x,
+		room_bounds.x - collider.offset.x,
+		room_bounds.x + room_bounds.width - collider.offset.x - collider.size.x,
 	)
 	transform.position.y = clamp(
-		final_pos.y,
-		room_bounds.y + half_height,
-		room_bounds.y + room_bounds.height - half_height,
+		transform.position.y,
+		room_bounds.y - collider.offset.z,
+		room_bounds.y + room_bounds.height - collider.offset.z - collider.size.z,
 	)
 }
 
 movement_update_positions :: proc() {
+	// Settle crates before characters so their support surfaces are current.
+	for &entity in entities {
+		if crate, ok := &entity.(Holdable); ok && crate.held_by == nil {
+			movement_move(&entity, &crate.transform, &crate.collider)
+		}
+	}
 	for &entity in entities {
 		switch &e in entity {
 		case Player: movement_move(&entity, &e.transform, &e.collider)
