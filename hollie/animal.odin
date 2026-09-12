@@ -13,7 +13,10 @@ ANIMAL_RUN_SPEED :: f32(160)
 animal_riding_profile :: proc(kind: content.Character_Kind) -> Movement_Profile {
 	profile := RIDING_MOVEMENT_PROFILE
 	if kind == .Horse do profile.max_speed = 200
-	if kind == .Bison do profile.max_speed = 140
+	if kind == .Bison {
+		profile.max_speed = 140
+		profile.acceleration = 110
+	}
 	return profile
 }
 ANIMAL_WANDER_PROFILE :: Movement_Profile {
@@ -31,7 +34,10 @@ animal_update_movement :: proc(
 ) {
 	charging := animal.kind == .Bison && animal.mounted && animal.ram_ready
 	movement_profile := profile
-	if charging do movement_profile.max_speed = BISON_CHARGE_SPEED
+	if charging {
+		movement_profile.max_speed = BISON_CHARGE_SPEED
+		movement_profile.acceleration = 75
+	}
 	previous := animal.velocity
 	speed := math.sqrt(previous.x * previous.x + previous.y * previous.y)
 	magnitude := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)
