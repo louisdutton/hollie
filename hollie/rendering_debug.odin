@@ -49,6 +49,17 @@ when ODIN_DEBUG {
 
 when ODIN_DEBUG {
 	debug_draw :: proc() {
+		if tm := room_get_current(); tm != nil {
+			for structure in tm.structures {
+				for wall in house_wall_aabbs(structure.position, structure.size) {
+					graphics.draw_cube_outline(
+						(wall.min + wall.max) / 2,
+						wall.max - wall.min,
+						graphics.ORANGE,
+					)
+				}
+			}
+		}
 		tile_size := f32(tilemap.get_tile_size())
 		for y in 0 ..< tilemap.get_tilemap_height() {
 			for x in 0 ..< tilemap.get_tilemap_width() {

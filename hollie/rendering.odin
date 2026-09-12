@@ -112,8 +112,8 @@ rendering_draw_ground :: proc() {
 
 rendering_draw_house :: proc(position, size: Vec2) {
 	center := position + size / 2
-	wall_height: f32 = 44
-	wall_thickness: f32 = 8
+	wall_height := HOUSE_WALL_HEIGHT
+	wall_thickness := HOUSE_WALL_SCALE
 	// The doorway wall spans 1.5 model units along its local Z axis.
 	graphics.draw_model(
 		model_assets.doorway_wall,

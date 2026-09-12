@@ -82,6 +82,13 @@ collision_contains_point :: proc(entity: ^Entity, point: Vec3) -> bool {
 
 collision_check_solid :: proc(position: Vec2, collider: Collider, exclude: ^Entity = nil) -> bool {
 	aabb := collision_aabb_at(position, collider)
+	if tm := room_get_current(); tm != nil {
+		for structure in tm.structures {
+			for wall in house_wall_aabbs(structure.position, structure.size) {
+				if aabbs_intersect(aabb, wall) do return true
+			}
+		}
+	}
 	for &entity in entities {
 		if exclude != nil && &entity == exclude do continue
 
