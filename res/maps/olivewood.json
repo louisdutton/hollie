@@ -8673,8 +8673,8 @@
     {
       "id": "secret_house",
       "position": {
-        "x": 16,
-        "y": 0
+        "x": 432,
+        "y": 336
       },
       "size": {
         "width": 96,
@@ -8687,8 +8687,8 @@
       "id": "player_1_spawn",
       "type": "player",
       "position": {
-        "x": 128,
-        "y": 176
+        "x": 544,
+        "y": 512
       },
       "properties": {
         "player_index": 1
@@ -8698,8 +8698,8 @@
       "id": "player_2_spawn",
       "type": "player",
       "position": {
-        "x": 144,
-        "y": 176
+        "x": 560,
+        "y": 512
       },
       "properties": {
         "player_index": 2
@@ -8709,8 +8709,8 @@
       "id": "enemy_1",
       "type": "enemy",
       "position": {
-        "x": 144,
-        "y": 128
+        "x": 560,
+        "y": 464
       },
       "properties": {
         "kind": "Goblin"
@@ -8720,8 +8720,8 @@
       "id": "enemy_2",
       "type": "enemy",
       "position": {
-        "x": 192,
-        "y": 192
+        "x": 608,
+        "y": 528
       },
       "properties": {
         "kind": "Goblin"
@@ -8731,8 +8731,8 @@
       "id": "enemy_3",
       "type": "enemy",
       "position": {
-        "x": 176,
-        "y": 96
+        "x": 592,
+        "y": 432
       },
       "properties": {
         "kind": "Goblin"
@@ -8742,8 +8742,8 @@
       "id": "plate_1",
       "type": "pressure_plate",
       "position": {
-        "x": 80,
-        "y": 128
+        "x": 496,
+        "y": 464
       },
       "properties": {
         "requires_both": false,
@@ -8754,8 +8754,8 @@
       "id": "plate_2",
       "type": "pressure_plate",
       "position": {
-        "x": 176,
-        "y": 128
+        "x": 592,
+        "y": 464
       },
       "properties": {
         "requires_both": false,
@@ -8766,8 +8766,8 @@
       "id": "gate_1",
       "type": "gate",
       "position": {
-        "x": 112,
-        "y": 96
+        "x": 528,
+        "y": 432
       },
       "properties": {
         "gate_id": 1,
@@ -8786,16 +8786,16 @@
       "id": "holdable_1",
       "type": "holdable",
       "position": {
-        "x": 144,
-        "y": 192
+        "x": 560,
+        "y": 528
       }
     },
     {
       "id": "to_small_room",
       "type": "door",
       "position": {
-        "x": 48,
-        "y": 80
+        "x": 464,
+        "y": 416
       },
       "properties": {
         "size": {
