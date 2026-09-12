@@ -105,6 +105,47 @@ load_model_animations :: #force_inline proc(path: string, count: ^c.int) -> [^]M
 	return rl.LoadModelAnimations(cstring(raw_data(path)), count)
 }
 
+// Layer a model-space yaw onto a rigid-part bone after sampling its animation.
+rotate_model_bone_y :: proc(model: Model, bone: int, pivot: Vec3, angle: f32) {
+	if bone < 0 || bone >= int(model.skeleton.boneCount) || model.boneMatrices == nil do return
+	sine, cosine := math.sin(angle), math.cos(angle)
+	rotation: Matrix
+	rotation[0, 0], rotation[0, 2] = cosine, sine
+	rotation[1, 1] = 1
+	rotation[2, 0], rotation[2, 2] = -sine, cosine
+	rotation[3, 3] = 1
+	rotation[0, 3] = pivot.x - cosine * pivot.x - sine * pivot.z
+	rotation[2, 3] = pivot.z + sine * pivot.x - cosine * pivot.z
+	model.boneMatrices[bone] = rotation * model.boneMatrices[bone]
+	// GPU skinning consumes the modified matrix directly. Update the CPU
+	// fallback too; these baked rigid parts have one bone per vertex.
+	for mesh_index in 0 ..< int(model.meshCount) {
+		mesh := model.meshes[mesh_index]
+		if mesh.animVertices == nil || mesh.boneIndices == nil || mesh.boneWeights == nil do continue
+		for vertex in 0 ..< int(mesh.vertexCount) {
+			if int(mesh.boneIndices[vertex * 4]) != bone || mesh.boneWeights[vertex * 4] != 1 do continue
+			i := vertex * 3
+			position :=
+				rotation *
+				[4]f32{mesh.animVertices[i], mesh.animVertices[i + 1], mesh.animVertices[i + 2], 1}
+			for axis in 0 ..< 3 do mesh.animVertices[i + axis] = position[axis]
+			if mesh.animNormals != nil {
+				normal :=
+					rotation *
+					[4]f32 {
+							mesh.animNormals[i],
+							mesh.animNormals[i + 1],
+							mesh.animNormals[i + 2],
+							0,
+						}
+				for axis in 0 ..< 3 do mesh.animNormals[i + axis] = normal[axis]
+			}
+		}
+		rl.UpdateMeshBuffer(mesh, 0, mesh.animVertices, mesh.vertexCount * 3 * size_of(f32), 0)
+		if mesh.animNormals != nil do rl.UpdateMeshBuffer(mesh, 2, mesh.animNormals, mesh.vertexCount * 3 * size_of(f32), 0)
+	}
+}
+
 unload_model_animations :: #force_inline proc(animations: [^]Model_Animation, count: c.int) {
 	rl.UnloadModelAnimations(animations, count)
 }

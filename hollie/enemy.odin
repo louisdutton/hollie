@@ -14,6 +14,7 @@ Enemy :: struct {
 	mounted:         bool,
 	rider:           input.Player_Index,
 	turn_lean:       f32,
+	head_turn:       f32,
 	gait_phase:      f32,
 }
 

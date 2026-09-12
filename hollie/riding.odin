@@ -5,6 +5,19 @@ import "graphics"
 import "input"
 import "tilemap"
 
+riding_head_turn :: proc(turn: f32, facing, steering: Vec2, dt: f32) -> f32 {
+	target: f32
+	if steering != (Vec2{}) {
+		target = math.atan2(
+			facing.y * steering.x - facing.x * steering.y,
+			facing.x * steering.x + facing.y * steering.y,
+		)
+		limit := math.to_radians(f32(35))
+		target = clamp(target, -limit, limit)
+	}
+	return turn + (target - turn) * (1 - math.exp(-16 * max(dt, 0)))
+}
+
 // Bank around the travel direction, into lateral acceleration. Angles are radians.
 riding_turn_lean :: proc(lean: f32, previous_velocity, velocity: Vec2, dt: f32) -> f32 {
 	if dt <= 0 do return lean
@@ -142,6 +155,7 @@ riding_try_mount :: proc(player: ^Player) -> bool {
 	if nearest == nil do return false
 	nearest.mounted = true
 	nearest.turn_lean = 0
+	nearest.head_turn = 0
 	nearest.rider = player.index
 	nearest.velocity = {}
 	riding_sync_player(player, nearest)
@@ -223,6 +237,7 @@ riding_dismount :: proc(player: ^Player, animal: ^Enemy) -> bool {
 	player.grounded = false
 	animal.mounted = false
 	animal.turn_lean = 0
+	animal.head_turn = 0
 	animal.velocity = {}
 	return true
 }

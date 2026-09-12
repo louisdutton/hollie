@@ -5,6 +5,16 @@ import "core:testing"
 import "graphics"
 
 @(test)
+test_riding_head_leads_steering_and_returns_to_center :: proc(t: ^testing.T) {
+	turn := riding_head_turn(0, {0, 1}, {1, 0}, 0.1)
+	testing.expect(t, turn > 0 && turn < 0.612)
+	testing.expect(t, abs(turn + riding_head_turn(0, {0, 1}, {-1, 0}, 0.1)) < 0.0001)
+	for frame in 0 ..< 60 do turn = riding_head_turn(turn, {1, 0}, {1, 0}, 1.0 / 60)
+	testing.expect(t, abs(turn) < 0.0001)
+	testing.expect_value(t, riding_head_turn(0, {1, 0}, {}, 0.1), f32(0))
+}
+
+@(test)
 test_riding_turn_lean_tracks_turn_and_settles :: proc(t: ^testing.T) {
 	left := riding_turn_lean(0, {160, 0}, {159, 4}, 1.0 / 60)
 	right := riding_turn_lean(0, {160, 0}, {159, -4}, 1.0 / 60)
