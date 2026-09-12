@@ -38,10 +38,7 @@ enemy_create :: proc(
 		enemy.collider = animal_collider_from_bounds(animal.bounds, enemy.facing_direction)
 	}
 	if len(animations) > 0 do animation_init(&enemy.anim_data, animations)
-	if kind == .Turtle {
-		enemy.aquatic = true
-		enemy.height = water_floor_height(position, true)
-	}
+	enemy.height = water_floor_height(position)
 
 	append(&entities, enemy)
 	return &entities[len(entities) - 1].(Enemy)

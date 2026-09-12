@@ -5,37 +5,32 @@ import "graphics"
 import "tilemap"
 
 WATER_SURFACE :: f32(-1.5)
-WATER_SHALLOW_BED :: f32(-6)
-WATER_DEEP_BED :: f32(-32)
+WATER_BED :: f32(-32)
+WATER_FLOAT_HEIGHT :: WATER_SURFACE - 3
 
 water_tile :: proc(x, y: int) -> bool {
 	tile := tilemap.get_base_tile(x, y)
-	return tile != nil && (tile^ == .Water || tile^ == .Shallow_Water)
+	return tile != nil && tile^ == .Water
 }
 
-water_depth_at :: proc(position: Vec2) -> f32 {
-	size := f32(tilemap.get_tile_size())
-	tile := tilemap.get_base_tile(
-		int(math.floor(position.x / size)),
-		int(math.floor(position.y / size)),
-	)
-	if tile == nil do return 0
-	if tile^ == .Shallow_Water do return WATER_SURFACE - WATER_SHALLOW_BED
-	if tile^ == .Water do return WATER_SURFACE - WATER_DEEP_BED
-	return 0
+water_bed_height :: proc(position: Vec2) -> f32 {
+	return water_at(position) ? WATER_BED : 0
 }
 
-water_floor_height :: proc(position: Vec2, aquatic: bool) -> f32 {
-	depth := water_depth_at(position)
-	if depth == 0 do return 0
-	if aquatic do return WATER_SURFACE - 3
-	return WATER_SURFACE - depth
+water_floor_height :: proc(position: Vec2) -> f32 {
+	return water_at(position) ? WATER_FLOAT_HEIGHT : 0
 }
 
-water_can_enter :: proc(body: ^Transform, position: Vec2) -> bool {
-	depth := water_depth_at(position)
-	if body.aquatic do return depth > 0
-	return depth <= WATER_SURFACE - WATER_SHALLOW_BED
+water_movement_profile :: proc(
+	profile: Movement_Profile,
+	in_water: bool,
+	turtle: bool = false,
+) -> Movement_Profile {
+	result := profile
+	if in_water && !turtle do result.max_speed = min(result.max_speed, 60)
+	if !in_water && turtle do result.max_speed = min(result.max_speed, 50)
+	result.min_speed = min(result.min_speed, result.max_speed)
+	return result
 }
 
 water_at :: proc(position: Vec2) -> bool {
@@ -57,7 +52,7 @@ rendering_draw_water_banks :: proc(x, y: int, bed: f32) {
 	bounds := graphics.get_model_bounding_box(model_assets.cube)
 	for direction in directions {
 		neighbor := Vec2{(f32(x) + 0.5 + direction.x) * size, (f32(y) + 0.5 + direction.y) * size}
-		top := water_floor_height(neighbor, false)
+		top := water_bed_height(neighbor)
 		if top <= bed do continue
 		position := Vec3 {
 			(f32(x) + 0.5 + direction.x * 0.5) * size,
@@ -84,9 +79,7 @@ rendering_draw_water :: proc() {
 			if !water_tile(x, y) do continue
 			left, right := f32(x) * size, f32(x + 1) * size
 			top, bottom := f32(y) * size, f32(y + 1) * size
-			depth := water_depth_at({left + size * 0.5, top + size * 0.5})
-			color :=
-				depth < 10 ? graphics.Colour{55, 163, 180, 115} : graphics.Colour{27, 104, 153, 190}
+			color := graphics.Colour{55, 163, 180, 150}
 			rendering_water_quad(
 				{left, WATER_SURFACE, top},
 				{left, WATER_SURFACE, bottom},
@@ -96,7 +89,7 @@ rendering_draw_water :: proc() {
 			)
 			// Close the outer faces of the water volume; adjacent water cells
 			// share a surface and have no internal transparent walls.
-			bed := WATER_SURFACE - depth
+			bed := WATER_BED
 			if !water_tile(x - 1, y) do rendering_water_quad({left, bed, top}, {left, bed, bottom}, {left, WATER_SURFACE, bottom}, {left, WATER_SURFACE, top}, color)
 			if !water_tile(x + 1, y) do rendering_water_quad({right, bed, bottom}, {right, bed, top}, {right, WATER_SURFACE, top}, {right, WATER_SURFACE, bottom}, color)
 			if !water_tile(x, y - 1) do rendering_water_quad({right, bed, top}, {left, bed, top}, {left, WATER_SURFACE, top}, {right, WATER_SURFACE, top}, color)

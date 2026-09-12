@@ -67,7 +67,6 @@ room_door_spawn_candidates :: proc(door: AABB, player: Collider, interior: bool)
 }
 
 room_spawn_is_clear :: proc(position: Vec2, collider: Collider, occupied: []AABB) -> bool {
-	if water_at(position) do return false
 	aabb := collision_aabb_at(position, collider)
 	bounds := room_get_collision_bounds()
 	if aabb.min.x < bounds.x ||

@@ -141,7 +141,10 @@ player_update_movement :: proc() {
 				p.velocity = movement_accelerate(
 					p.velocity,
 					movement_input,
-					PLAYER_MOVEMENT_PROFILE,
+					water_movement_profile(
+						PLAYER_MOVEMENT_PROFILE,
+						water_at(p.position) && p.grounded,
+					),
 					dt,
 				)
 			}

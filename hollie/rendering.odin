@@ -96,7 +96,7 @@ rendering_draw_ground :: proc() {
 			tile := tilemap.get_base_tile(x, y)
 			if tile == nil || tile^ == .Empty do continue
 			position := Vec2{(f32(x) + 0.5) * tile_size, (f32(y) + 0.5) * tile_size}
-			bed := water_floor_height(position, false)
+			bed := water_bed_height(position)
 			tint := water_tile(x, y) ? graphics.Colour{163, 151, 111, 255} : graphics.WHITE
 
 			graphics.draw_model(

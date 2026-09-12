@@ -39,6 +39,11 @@ animal_update_movement :: proc(
 		movement_profile.max_speed = BISON_CHARGE_SPEED
 		movement_profile.acceleration = 75
 	}
+	movement_profile = water_movement_profile(
+		movement_profile,
+		water_at(animal.position) && animal.grounded,
+		animal.kind == .Turtle,
+	)
 	previous := animal.velocity
 	speed := math.sqrt(previous.x * previous.x + previous.y * previous.y)
 	magnitude := min(math.sqrt(direction.x * direction.x + direction.y * direction.y), 1)

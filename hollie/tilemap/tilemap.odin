@@ -34,7 +34,6 @@ config := TilemapConfig {
 TileType :: enum u16 {
 	Empty = 0,
 	Water = 500,
-	Shallow_Water = 501,
 	Grass_1 = 1,
 	Grass_2,
 	Grass_3,
