@@ -21,6 +21,7 @@ Player :: struct {
 	head_turn:          f32,
 	movement_lean:      f32,
 	stride_time:        f32,
+	dismount_momentum:  Vec2,
 	mount_elapsed:      f32,
 	mount_duration:     f32,
 	mount_start:        Vec2,
@@ -123,12 +124,15 @@ player_update_movement :: proc() {
 			}
 
 			movement_input := camera_relative_movement(input.get_movement_for_player(p.index))
-			p.velocity = movement_accelerate(
-				p.velocity,
-				movement_input,
-				PLAYER_MOVEMENT_PROFILE,
-				dt,
-			)
+			if p.grounded do p.dismount_momentum = {}
+			p.velocity =
+				p.dismount_momentum +
+				movement_accelerate(
+					p.velocity - p.dismount_momentum,
+					movement_input,
+					PLAYER_MOVEMENT_PROFILE,
+					dt,
+				)
 			if p.velocity != (Vec2{}) {
 				p.facing_direction =
 					p.velocity /
