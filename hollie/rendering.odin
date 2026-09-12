@@ -15,8 +15,8 @@ rendering_camera :: proc() -> graphics.Camera3D {
 
 	// Equal offsets on all three axes give an isometric view.
 	return {
-		position = {center.x + distance, distance, center.y + distance},
-		target = {center.x, 0, center.y},
+		position = {center.x + distance, camera_height + distance, center.y + distance},
+		target = {center.x, camera_height, center.y},
 		up = {0, 1, 0},
 		fovy = visible_height,
 		projection = .ORTHOGRAPHIC,

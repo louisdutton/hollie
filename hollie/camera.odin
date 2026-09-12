@@ -14,6 +14,7 @@ ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
 
 // Camera state
 camera_bounds: graphics.Rect
+camera_height: f32
 camera := graphics.Camera2D {
 	zoom = camera_base_zoom,
 }
@@ -51,6 +52,8 @@ camera_follow_target :: proc() {
 	} else {
 		return
 	}
+	height_blend := 1 - math.exp(-8 * min(graphics.get_frame_time(), 0.1))
+	camera_height = math.lerp(camera_height, camera_players_height(player1, player2), height_blend)
 
 	scale := 2 * camera.zoom
 	x_offset := f32(window.get_screen_width()) / scale
@@ -123,6 +126,7 @@ camera_snap_to_target :: proc() {
 	} else {
 		return
 	}
+	camera_height = camera_players_height(player1, player2)
 
 	scale := 2 * camera.zoom
 	x_offset := f32(window.get_screen_width()) / scale
@@ -135,4 +139,11 @@ camera_snap_to_target :: proc() {
 
 	camera.target.x = clamp(target_pos.x - x_offset, min_x, max_x)
 	camera.target.y = clamp(target_pos.y - y_offset, min_y, max_y)
+}
+
+camera_players_height :: proc(first, second: ^Player) -> f32 {
+	if first != nil && second != nil do return (first.height + second.height) / 2
+	if first != nil do return first.height
+	if second != nil do return second.height
+	return 0
 }
