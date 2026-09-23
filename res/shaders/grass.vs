@@ -17,6 +17,7 @@ out float blade;
 out float grass_contact;
 out float meadow_tone;
 out float cloud_light;
+out float wind_highlight;
 
 float hash(vec2 p)
 {
@@ -54,6 +55,10 @@ void main()
     float wind_strength = 0.1 + smoothstep(0.2, 0.8, wind_front) * 0.62
         + gust * 0.1;
     vec2 wind = directional_displacement(wind_direction, wind_strength);
+    float resting_angle = hash(root * 0.173 + vec2(19.1, 7.7)) * 6.2831853;
+    vec2 resting_direction = vec2(cos(resting_angle), sin(resting_angle));
+    float resting_strength = mix(0.12, 0.42, hash(root * 0.137 + vec2(3.1, 29.7)));
+    vec2 resting_bend = directional_displacement(resting_direction, resting_strength);
     vec2 bend = vec2(0.0);
     float contact = 0.0;
     for (int i = 0; i < 2 && blade > 0.0; i++) {
@@ -75,12 +80,12 @@ void main()
             contact = influence;
         }
     }
+    // Resting lean, wind, and interactions share one curvature system.
+    vec2 curvature = resting_bend + wind + bend * 1.15;
     vec3 position = vertexPosition;
     if (blade > 0.0) {
         // Constant-curvature centreline: radius * angle = blade length.
         // Width offsets stay intact and roots remain exactly planted.
-        // Wind and interactions share one directional curvature system.
-        vec2 curvature = wind + bend * 1.15;
         float magnitude = length(curvature);
         float angle = clamp(magnitude, 0.001, 1.35);
         vec2 direction = curvature / max(magnitude, 0.001);
@@ -89,10 +94,12 @@ void main()
         position.xz += direction * radius * (1.0 - cos(arc));
         position.y = 0.04 + radius * sin(arc);
     }
-    // Terrain-aligned normals unify the field. A little shared wind tilt
-    // reveals broad waves without lighting every ribbon as a separate sheet.
-    meadow_normal = normalize(vec3(-wind.x * blade_height * 0.18, 1.0,
-                                    -wind.y * blade_height * 0.18));
+    // Curvature-derived normals make the travelling bend catch the light.
+    meadow_normal = normalize(vec3(-curvature.x * blade_height * 0.32, 1.0,
+                                    -curvature.y * blade_height * 0.32));
+    // A soft band on the leading shoulder of each gust, never on the ground.
+    wind_highlight = smoothstep(0.35, 0.68, wind_front)
+        * (1.0 - smoothstep(0.78, 0.98, wind_front)) * blade;
     grass_contact = contact * blade;
     world_position = position; // Shadows must follow the displaced geometry.
     gl_Position = mvp * vec4(position, 1.0);

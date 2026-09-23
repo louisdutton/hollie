@@ -7,6 +7,7 @@ in float blade;
 in float grass_contact;
 in float meadow_tone;
 in float cloud_light;
+in float wind_highlight;
 uniform vec3 view_position;
 uniform vec3 ambientColor;
 uniform vec3 keyDirection;
@@ -51,11 +52,13 @@ void main()
     float transmission = pow(max(dot(view, -light), 0.0), 3.0);
     vec3 half_vector = normalize(light + view + vec3(0.0, 0.0001, 0.0));
     float highlight = pow(max(dot(normal, half_vector), 0.0), 12.0);
+    float wind_sheen = pow(max(dot(normal, half_vector), 0.0), 6.0) * wind_highlight;
     float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 3.0);
     vec3 linear_albedo = pow(albedo, vec3(2.2));
     vec3 lit = linear_albedo * illumination;
     lit += linear_albedo * keyColor * transmission * upper_leaf * visibility * 0.35;
-    lit += keyColor * (highlight * 0.035 + fresnel * 0.025) * upper_leaf * visibility;
+    lit += keyColor * (highlight * 0.035 + fresnel * 0.025 + wind_sheen * 0.06)
+        * upper_leaf * visibility;
     lit *= 1.0 - grass_contact * 0.08;
     finalColor = vec4(pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
 }
