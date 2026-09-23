@@ -104,7 +104,17 @@ grass_is_enabled :: proc() -> bool {
 }
 
 grass_tile :: proc(x, y: int) -> bool {
-	return tilemap.get_grass_density(x, y) > 0
+	return grass_ground_tile(x, y) || tilemap.get_grass_density(x, y) > 0
+}
+
+grass_ground_tile :: proc(x, y: int) -> bool {
+	tile := tilemap.get_base_tile(x, y)
+	if tile == nil do return false
+	#partial switch tile^ {
+	case .Grass_1, .Grass_2, .Grass_3, .Grass_4, .Grass_5, .Grass_6, .Grass_7, .Grass_8:
+		return true
+	case: return false
+	}
 }
 
 // Stable placement: editing or revisiting a room never reshuffles the meadow.
@@ -170,11 +180,13 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 	density := f32(tilemap.get_grass_density(x, y)) / 255
 	size := f32(tilemap.get_tile_size())
 	left, top := f32(x) * size, f32(y) * size
-	// Alpha encodes blade height; zero marks the continuous ground wash.
-	a, b := Vec3{left, 0.03, top}, Vec3{left, 0.03, top + size}
-	c, d := Vec3{left + size, 0.03, top + size}, Vec3{left + size, 0.03, top}
-	ground := graphics.Colour{255, 255, 255, 0}
-	grass_mesh_append(builder, []Vec3{a, b, c, d}, []u16{0, 1, 2, 0, 2, 3}, ground)
+	if grass_ground_tile(x, y) {
+		// Alpha encodes blade height; zero marks the continuous ground wash.
+		a, b := Vec3{left, 0.03, top}, Vec3{left, 0.03, top + size}
+		c, d := Vec3{left + size, 0.03, top + size}, Vec3{left + size, 0.03, top}
+		ground := graphics.Colour{255, 255, 255, 0}
+		grass_mesh_append(builder, []Vec3{a, b, c, d}, []u16{0, 1, 2, 0, 2, 3}, ground)
+	}
 	for blade in 0 ..< 36 {
 		seed := (y * tilemap.get_tilemap_width() + x) * 251 + blade * 7
 		if grass_random(seed + 5) > density do continue
