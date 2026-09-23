@@ -22,8 +22,8 @@ void main()
 {
     // One low-frequency albedo field for the ground and all leaf roots.
     // Tip brightness comes primarily from illumination, not a yellow gradient.
-    vec3 albedo = mix(vec3(0.34, 0.53, 0.25), vec3(0.41, 0.59, 0.28),
-                      smoothstep(0.1, 0.9, meadow_tone));
+    vec3 albedo = mix(vec3(0.30, 0.49, 0.22), vec3(0.45, 0.62, 0.30),
+                      smoothstep(0.15, 0.85, meadow_tone));
     float upper_leaf = smoothstep(0.2, 0.95, blade_height);
     albedo *= 1.0 + upper_leaf * 0.07;
 
@@ -38,7 +38,7 @@ void main()
             }
         }
     }
-    float visibility = (1.0 - shadow / 9.0) * mix(0.9, 1.0, cloud_light);
+    float visibility = (1.0 - shadow / 9.0) * mix(0.86, 1.0, cloud_light);
     vec3 normal = normalize(meadow_normal);
     vec3 light = -normalize(keyDirection);
     vec3 view = normalize(view_position - world_position);

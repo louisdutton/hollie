@@ -44,15 +44,15 @@ void main()
     // All leaf vertices sample the same field, avoiding rubbery changes in width.
     float height = max(vertexColor.a * 12.0, 0.01);
     blade_height = clamp((vertexPosition.y - 0.04) / height, 0.0, 1.0) * blade;
-    meadow_tone = noise(root * 0.009);
+    meadow_tone = noise(root * 0.012);
     vec2 wind_direction = normalize(vec2(1.0, 0.45));
     cloud_light = smoothstep(0.2, 0.8,
         noise(root * 0.005 + wind_direction * grass_time * 0.012));
-    float gust = noise(root * 0.006 - wind_direction * grass_time * 0.07);
-    float wind_front = 0.5 + 0.5 * sin(dot(root, vec2(0.018, -0.01))
-        - grass_time * 0.9 + (gust - 0.5) * 1.4);
-    float wind_strength = 0.1 + smoothstep(0.3, 0.85, wind_front) * 0.25
-        + (gust - 0.5) * 0.08;
+    float gust = noise(root * 0.01 - wind_direction * grass_time * 0.11);
+    float wind_front = 0.5 + 0.5 * sin(dot(root, vec2(0.028, -0.016))
+        - grass_time * 1.4 + (gust - 0.5) * 1.6);
+    float wind_strength = 0.1 + smoothstep(0.2, 0.8, wind_front) * 0.62
+        + gust * 0.1;
     vec2 wind = directional_displacement(wind_direction, wind_strength);
     vec2 bend = vec2(0.0);
     float contact = 0.0;
