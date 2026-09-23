@@ -248,7 +248,7 @@
   },
   "entities": [
     {
-      "id": "to_olivewood",
+      "id": "to_demo",
       "type": "door",
       "position": {
         "x": 48,
@@ -260,7 +260,7 @@
           "width": 32
         },
         "target_door_id": "from_small_room",
-        "target_room_id": "olivewood"
+        "target_room_id": "demo"
       }
     },
     {
