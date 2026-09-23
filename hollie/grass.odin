@@ -7,7 +7,6 @@ import "tilemap"
 
 GRASS_TRAIL_COUNT :: 64
 GRASS_TRAIL_LIFETIME :: f32(2.6)
-GRASS_BARE_CLEARANCE :: f32(7)
 
 Grass_Imprint :: struct {
 	position, direction:   Vec2,
@@ -135,29 +134,6 @@ grass_clump :: proc(position: Vec2) -> f32 {
 	return (a + (b - a) * f.x) * (1 - f.y) + (c + (d - c) * f.x) * f.y
 }
 
-// Keep the full bent ribbon out of authored bare cells, not only its root.
-grass_root_has_clearance :: proc(root: Vec2) -> bool {
-	size := f32(tilemap.get_tile_size())
-	tile_x, tile_y := int(math.floor(root.x / size)), int(math.floor(root.y / size))
-	for neighbor_y := tile_y - 1; neighbor_y <= tile_y + 1; neighbor_y += 1 {
-		for neighbor_x := tile_x - 1; neighbor_x <= tile_x + 1; neighbor_x += 1 {
-			if tilemap.get_grass_density(neighbor_x, neighbor_y) > 0 do continue
-			cell_min := Vec2{f32(neighbor_x) * size, f32(neighbor_y) * size}
-			cell_max := cell_min + Vec2{size, size}
-			nearest := Vec2 {
-				clamp(root.x, cell_min.x, cell_max.x),
-				clamp(root.y, cell_min.y, cell_max.y),
-			}
-			delta := root - nearest
-			if delta.x * delta.x + delta.y * delta.y <=
-			   GRASS_BARE_CLEARANCE * GRASS_BARE_CLEARANCE {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 grass_upload_players :: proc(shader: graphics.Shader) {
 	// Always upload both slots so leaving a room or removing player two
 	// cannot leave an invisible influence behind.
@@ -219,7 +195,6 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 			0.04,
 			top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
 		}
-		if !grass_root_has_clearance({root.x, root.z}) do continue
 		height := 6.4 + grass_clump({root.x, root.z}) * 2.4 + grass_random(seed + 2) * 0.8
 		// Tall, overlapping ribbons keep the meadow full at the same density.
 		angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
