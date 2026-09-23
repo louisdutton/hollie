@@ -22,8 +22,8 @@ void main()
 {
     // One low-frequency albedo field for the ground and all leaf roots.
     // Tip brightness comes primarily from illumination, not a yellow gradient.
-    vec3 albedo = mix(vec3(0.30, 0.49, 0.22), vec3(0.45, 0.62, 0.30),
-                      smoothstep(0.15, 0.85, meadow_tone));
+    vec3 albedo = mix(vec3(0.32, 0.51, 0.24), vec3(0.42, 0.59, 0.29),
+                      smoothstep(0.0, 1.0, meadow_tone));
     float upper_leaf = smoothstep(0.2, 0.95, blade_height);
     albedo *= 1.0 + upper_leaf * 0.07;
 
