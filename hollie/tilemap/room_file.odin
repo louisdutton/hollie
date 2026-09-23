@@ -23,6 +23,7 @@ Room_File_Layers :: struct {
 	base:       []u16,
 	decoration: []u16,
 	collision:  []u8,
+	grass:      []u8 `json:"grass,omitempty"`,
 }
 
 Room_File_Structure :: struct {
@@ -185,6 +186,7 @@ destroy_room_file :: proc(room: ^Room_File, allocator := context.allocator) {
 	delete(room.layers.base, allocator)
 	delete(room.layers.decoration, allocator)
 	delete(room.layers.collision, allocator)
+	delete(room.layers.grass, allocator)
 	for &structure in room.structures {
 		delete(structure.id, allocator)
 	}
@@ -205,6 +207,7 @@ destroy_room_file_wire :: proc(wire: ^Room_File_Wire, allocator := context.alloc
 	delete(wire.layers.base, allocator)
 	delete(wire.layers.decoration, allocator)
 	delete(wire.layers.collision, allocator)
+	delete(wire.layers.grass, allocator)
 	for &structure in wire.structures {
 		delete(structure.id, allocator)
 	}

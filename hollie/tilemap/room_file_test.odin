@@ -20,6 +20,7 @@ ROOM_FILE_CONTRACT_TEST_JSON5 :: `{
 		base: [1, 2],
 		decoration: [0, 257],
 		collision: [0, 1],
+		grass: [0, 192],
 	},
 	structures: [{
 		id: 'cottage',
@@ -98,6 +99,7 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	testing.expect_value(t, len(room.layers.base), 2)
 	testing.expect_value(t, len(room.layers.decoration), 2)
 	testing.expect_value(t, len(room.layers.collision), 2)
+	testing.expect_value(t, len(room.layers.grass), 2)
 	if len(room.layers.base) == 2 {
 		testing.expect_value(t, room.layers.base[0], u16(1))
 		testing.expect_value(t, room.layers.base[1], u16(2))
@@ -109,6 +111,10 @@ expect_room_file_contract :: proc(t: ^testing.T, room: Room_File) {
 	if len(room.layers.collision) == 2 {
 		testing.expect_value(t, room.layers.collision[0], u8(0))
 		testing.expect_value(t, room.layers.collision[1], u8(1))
+	}
+	if len(room.layers.grass) == 2 {
+		testing.expect_value(t, room.layers.grass[0], u8(0))
+		testing.expect_value(t, room.layers.grass[1], u8(192))
 	}
 	testing.expect_value(t, len(room.structures), 1)
 	if len(room.structures) == 1 {
@@ -279,6 +285,11 @@ test_room_file_runtime_conversion_is_lossless :: proc(t: ^testing.T) {
 	if len(validation_errors) != 0 do return
 	defer destroy_tilemap(&tm)
 	testing.expect_value(t, tm.config.world_tile_size, 16)
+	testing.expect_value(t, len(tm.grass_density), 2)
+	if len(tm.grass_density) == 2 {
+		testing.expect_value(t, tm.grass_density[0], u8(0))
+		testing.expect_value(t, tm.grass_density[1], u8(192))
+	}
 	testing.expect_value(t, len(tm.structures), 1)
 	if len(tm.structures) == 1 {
 		testing.expect_value(t, tm.structures[0].size, Vec2{32, 16})

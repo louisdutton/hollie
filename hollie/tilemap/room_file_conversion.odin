@@ -68,6 +68,8 @@ room_file_to_tilemap_unchecked :: proc(
 	for tile, index in room.layers.collision {
 		tm.collision_tiles[index] = Collision_Type(tile)
 	}
+	tm.grass_density = make([]u8, room.size.width * room.size.height, allocator)
+	copy(tm.grass_density, room.layers.grass)
 	tm.structures = make([]Structure_Data, len(room.structures), allocator)
 	for structure, index in room.structures {
 		tm.structures[index] = {
@@ -166,6 +168,8 @@ tilemap_to_room_file :: proc(
 	for tile, index in tm.collision_tiles {
 		room.layers.collision[index] = u8(tile)
 	}
+	room.layers.grass = make([]u8, len(tm.grass_density), allocator)
+	copy(room.layers.grass, tm.grass_density)
 	room.structures = make([]Room_File_Structure, len(tm.structures), allocator)
 	for structure, index in tm.structures {
 		room.structures[index] = {

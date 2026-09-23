@@ -101,6 +101,16 @@ validate_room_file :: proc(room: ^Room_File, resource_root := "") -> [dynamic]Va
 				),
 			)
 		}
+		if len(room.layers.grass) != 0 && len(room.layers.grass) != expected_tile_count {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf(
+					"grass layer contains %d cells; expected %d",
+					len(room.layers.grass),
+					expected_tile_count,
+				),
+			)
+		}
 		for collision, index in room.layers.collision {
 			if collision > u8(Collision_Type.Solid) {
 				validation_add_owned_error(
@@ -351,6 +361,16 @@ validate_tilemap :: proc(tm: ^Tile_Map, resource_root := "") -> [dynamic]Validat
 				fmt.aprintf(
 					"collision layer contains %d tiles; expected %d",
 					len(tm.collision_tiles),
+					expected_tile_count,
+				),
+			)
+		}
+		if len(tm.grass_density) != expected_tile_count {
+			validation_add_owned_error(
+				&errors,
+				fmt.aprintf(
+					"grass layer contains %d cells; expected %d",
+					len(tm.grass_density),
 					expected_tile_count,
 				),
 			)

@@ -127,6 +127,7 @@ Tile_Map :: struct {
 	base_tiles:       []Tile_Type,
 	deco_tiles:       []Tile_Type,
 	collision_tiles:  []Collision_Type,
+	grass_density:    []u8,
 	structures:       []Structure_Data,
 	entities:         []Entity_Data,
 	tile_size:        int,
@@ -178,6 +179,7 @@ destroy_tilemap :: proc(tm: ^Tile_Map, allocator := context.allocator) {
 	delete(tm.base_tiles, allocator)
 	delete(tm.deco_tiles, allocator)
 	delete(tm.collision_tiles, allocator)
+	delete(tm.grass_density, allocator)
 	for &structure in tm.structures {
 		delete(structure.instance_id, allocator)
 	}
@@ -228,6 +230,9 @@ load_tilemap :: proc(new_tilemap: Tile_Map) {
 	tilemap.collision_tiles = make([]Collision_Type, len(new_tilemap.collision_tiles))
 	copy(tilemap.collision_tiles, new_tilemap.collision_tiles)
 
+	tilemap.grass_density = make([]u8, len(new_tilemap.grass_density))
+	copy(tilemap.grass_density, new_tilemap.grass_density)
+
 	tilemap.structures = make([]Structure_Data, len(new_tilemap.structures))
 	for structure, index in new_tilemap.structures {
 		tilemap.structures[index] = structure
@@ -276,6 +281,13 @@ get_collision_tile :: proc(x, y: int) -> ^Collision_Type {
 		return nil
 	}
 	return &tilemap.collision_tiles[index]
+}
+
+get_grass_density :: proc(x, y: int) -> u8 {
+	if x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height do return 0
+	index := y * tilemap.width + x
+	if index >= len(tilemap.grass_density) do return 0
+	return tilemap.grass_density[index]
 }
 
 get_tile_size :: proc() -> int {

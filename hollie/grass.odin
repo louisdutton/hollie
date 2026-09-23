@@ -94,19 +94,17 @@ grass_upload_trail :: proc(shader: graphics.Shader, chunk_min, chunk_max: Vec2) 
 	)
 }
 
-// Keep this first art study isolated from the existing rooms.
 grass_is_enabled :: proc() -> bool {
-	return gameplay_get_current_room() == "demo"
+	for y in 0 ..< tilemap.get_tilemap_height() {
+		for x in 0 ..< tilemap.get_tilemap_width() {
+			if tilemap.get_grass_density(x, y) > 0 do return true
+		}
+	}
+	return false
 }
 
 grass_tile :: proc(x, y: int) -> bool {
-	tile := tilemap.get_base_tile(x, y)
-	if tile == nil do return false
-	#partial switch tile^ {
-	case .Grass_1, .Grass_2, .Grass_3, .Grass_4, .Grass_5, .Grass_6, .Grass_7, .Grass_8:
-		return true
-	case: return false
-	}
+	return tilemap.get_grass_density(x, y) > 0
 }
 
 // Stable placement: editing or revisiting a room never reshuffles the meadow.
@@ -169,6 +167,7 @@ grass_upload_players :: proc(shader: graphics.Shader) {
 }
 
 grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
+	density := f32(tilemap.get_grass_density(x, y)) / 255
 	size := f32(tilemap.get_tile_size())
 	left, top := f32(x) * size, f32(y) * size
 	// Alpha encodes blade height; zero marks the continuous ground wash.
@@ -178,6 +177,7 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 	grass_mesh_append(builder, []Vec3{a, b, c, d}, []u16{0, 1, 2, 0, 2, 3}, ground)
 	for blade in 0 ..< 36 {
 		seed := (y * tilemap.get_tilemap_width() + x) * 251 + blade * 7
+		if grass_random(seed + 5) > density do continue
 		root := Vec3 {
 			left + (f32(blade % 6) + 0.2 + grass_random(seed) * 0.6) * size / 6,
 			0.04,
