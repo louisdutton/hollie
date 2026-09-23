@@ -9,7 +9,7 @@ The demo retains 36 blades per tile, five indexed vertices per blade, and cached
 
 Rooms author grass blades independently from their floor material through the optional `layers.grass` array. Each cell is an unsigned density from 0 (no blades) to 255 (all 36 deterministic blade placements). Missing layers contain no blades, and intermediate densities retain a stable subset across reloads. Grass floor tiles retain their continuous meadow ground treatment even where the blade density is zero.
 
-Ground and grass share one broad albedo field and the same ambient, key and fill light uniforms as the world. Terrain-aligned normals prevent independently lit ribbon faces. Upper-leaf transmission and soft highlights depend on the light and camera; moving cloud cover attenuates direct light. Shadows sample displaced positions. Noise is evaluated at vertices instead of every fragment.
+Ground and grass share one subtle, broad albedo field and the same ambient, key and fill light uniforms as the world. Terrain-aligned normals prevent independently lit ribbon faces. Upper-leaf transmission and soft highlights depend on the light and camera; broad moving cloud cover gently attenuates direct light. Wind fronts, live player contact, and fading trails all feed the same directional constant-curvature displacement. Shadows sample displaced positions. Noise is evaluated at vertices instead of every fragment.
 
 Player trails retain the existing lifetime and chunk filtering. Room unload and editor entry release cached meshes. No geometry is regenerated each frame.
 

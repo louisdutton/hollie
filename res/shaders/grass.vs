@@ -32,6 +32,11 @@ float noise(vec2 p)
                mix(hash(cell + vec2(0, 1)), hash(cell + vec2(1, 1)), f.x), f.y);
 }
 
+vec2 directional_displacement(vec2 direction, float strength)
+{
+    return direction / max(length(direction), 0.001) * max(strength, 0.0);
+}
+
 void main()
 {
     blade = step(0.01, vertexColor.a);
@@ -39,12 +44,16 @@ void main()
     // All leaf vertices sample the same field, avoiding rubbery changes in width.
     float height = max(vertexColor.a * 12.0, 0.01);
     blade_height = clamp((vertexPosition.y - 0.04) / height, 0.0, 1.0) * blade;
-    meadow_tone = noise(root * 0.022);
-    cloud_light = smoothstep(0.25, 0.75,
-        noise(root * 0.012 + vec2(grass_time * 0.018, grass_time * 0.007)));
-    float gust = noise(root * 0.025 - vec2(grass_time * 0.15, grass_time * 0.06));
-    float ripple = sin(dot(root, vec2(0.075, -0.04)) - grass_time * 1.7);
-    vec2 wind = vec2(1.0, 0.45) * (0.12 + gust * 0.32 + ripple * 0.035);
+    meadow_tone = noise(root * 0.009);
+    vec2 wind_direction = normalize(vec2(1.0, 0.45));
+    cloud_light = smoothstep(0.2, 0.8,
+        noise(root * 0.005 + wind_direction * grass_time * 0.012));
+    float gust = noise(root * 0.006 - wind_direction * grass_time * 0.07);
+    float wind_front = 0.5 + 0.5 * sin(dot(root, vec2(0.018, -0.01))
+        - grass_time * 0.9 + (gust - 0.5) * 1.4);
+    float wind_strength = 0.1 + smoothstep(0.3, 0.85, wind_front) * 0.25
+        + (gust - 0.5) * 0.08;
+    vec2 wind = directional_displacement(wind_direction, wind_strength);
     vec2 bend = vec2(0.0);
     float contact = 0.0;
     for (int i = 0; i < 2 && blade > 0.0; i++) {
@@ -52,7 +61,7 @@ void main()
         if (player.w <= 0.0 || player.z <= 0.0) continue;
         float influence = (1.0 - smoothstep(0.0, player.z, length(root - player.xy))) * player.w;
         if (influence > contact) {
-            bend = grass_motion[i].xy * influence;
+            bend = directional_displacement(grass_motion[i].xy, influence);
             contact = influence;
         }
     }
@@ -62,7 +71,7 @@ void main()
         float influence = (1.0 - smoothstep(imprint.z * 0.4, imprint.z,
             length(root - imprint.xy))) * imprint.w;
         if (influence > contact) {
-            bend = grass_trail_motion[i].xy * influence;
+            bend = directional_displacement(grass_trail_motion[i].xy, influence);
             contact = influence;
         }
     }
@@ -70,6 +79,7 @@ void main()
     if (blade > 0.0) {
         // Constant-curvature centreline: radius * angle = blade length.
         // Width offsets stay intact and roots remain exactly planted.
+        // Wind and interactions share one directional curvature system.
         vec2 curvature = wind + bend * 1.15;
         float magnitude = length(curvature);
         float angle = clamp(magnitude, 0.001, 1.35);
