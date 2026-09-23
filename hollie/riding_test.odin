@@ -1,6 +1,7 @@
 package hollie
 
 import "content"
+import "core:math"
 import "core:testing"
 import "graphics"
 
@@ -21,6 +22,10 @@ test_riding_turn_lean_tracks_turn_and_settles :: proc(t: ^testing.T) {
 	testing.expect(t, left > 0 && left < 0.315)
 	testing.expect(t, abs(left + right) < 0.0001)
 	testing.expect_value(t, riding_turn_lean(0, {20, 0}, {19, 4}, 1.0 / 60), f32(0))
+	lean_limit := math.to_radians(f32(18))
+	reversing := riding_turn_lean(lean_limit, {160, 0}, {159, -4}, 1.0 / 60)
+	testing.expect(t, reversing > 0)
+	testing.expect(t, abs(lean_limit - reversing - RIDING_LEAN_SPEED / 60) < 0.0001)
 	settled := left
 	for frame in 0 ..< 60 do settled = riding_turn_lean(settled, {160, 0}, {160, 0}, 1.0 / 60)
 	testing.expect(t, abs(settled) < 0.0001)

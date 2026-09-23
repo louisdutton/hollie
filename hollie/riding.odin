@@ -5,6 +5,9 @@ import "graphics"
 import "input"
 import "tilemap"
 
+// One radian per second keeps a full bank reversal deliberate without lagging steering.
+RIDING_LEAN_SPEED :: f32(1.0471975512)
+
 riding_mount_blend :: proc(elapsed, duration: f32) -> f32 {
 	if duration <= 0 do return 1
 	return clamp(elapsed / duration, 0, 1)
@@ -44,7 +47,7 @@ riding_turn_lean :: proc(lean: f32, previous_velocity, velocity: Vec2, dt: f32) 
 			speed_weight *
 			math.to_radians(f32(18))
 	}
-	return lean + (target - lean) * (1 - math.exp(-10 * dt))
+	return lean + clamp(target - lean, -RIDING_LEAN_SPEED * dt, RIDING_LEAN_SPEED * dt)
 }
 
 // Store the player index on the animal, avoiding pointers into the entity array.
