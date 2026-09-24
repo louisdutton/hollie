@@ -70,13 +70,12 @@ draw_title_screen :: proc() {
 	ui_begin()
 	defer ui_end()
 
-	graphics.draw_text_ex(title_state.heading_font, "Hollie", {41, 65}, 72, 2, {34, 58, 49, 90})
 	graphics.draw_text_ex(
 		title_state.heading_font,
 		"Hollie",
 		{40, 64},
 		72,
-		2,
+		0,
 		{252, 245, 218, 255},
 	)
 
@@ -118,8 +117,7 @@ title_draw_main_menu :: proc() {
 		selected := index == title_state.focus.index
 		color: graphics.Colour = selected ? {255, 246, 211, 255} : {235, 241, 221, 235}
 		if selected do graphics.draw_circle(43, y + 10, 3, color)
-		graphics.draw_text_ex(game.font, item, {59, y + 2}, 22, 1, {25, 46, 36, 210})
-		graphics.draw_text_ex(game.font, item, {57, y}, 22, 1, color)
+		graphics.draw_text_ex(game.font, item, {57, y}, 22, 0, color)
 	}
 }
 
