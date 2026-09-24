@@ -36,6 +36,22 @@ load_texture :: #force_inline proc(path: string) -> Texture_2D {
 	return rl.LoadTexture(cstring(raw_data(path)))
 }
 
+// LoadTextureFromImage copies pixels to the GPU; the caller retains the slice.
+load_texture_colors :: proc(pixels: []Colour, width, height: int) -> Texture_2D {
+	assert(len(pixels) == width * height)
+	image := rl.Image {
+		data    = raw_data(pixels),
+		width   = i32(width),
+		height  = i32(height),
+		mipmaps = 1,
+		format  = .UNCOMPRESSED_R8G8B8A8,
+	}
+	texture := rl.LoadTextureFromImage(image)
+	rl.SetTextureFilter(texture, .BILINEAR)
+	rl.SetTextureWrap(texture, .CLAMP)
+	return texture
+}
+
 unload_texture :: #force_inline proc(texture: Texture_2D) {
 	rl.UnloadTexture(texture)
 }

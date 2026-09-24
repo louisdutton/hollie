@@ -119,6 +119,7 @@ rendering_init :: proc() {
 	shadow_map_apply_lighting_shaders()
 	rendering_configure_lighting(rendering_state.lighting_shader)
 	rendering_configure_lighting(rendering_state.grass_shader)
+	rendering_configure_lighting(rendering_state.water_shader)
 	rendering_configure_lighting(rendering_state.character_lighting_shader)
 	shadow_map_init()
 }
@@ -128,6 +129,7 @@ rendering_prepare :: proc() {
 }
 
 rendering_fini :: proc() {
+	water_unload_shore()
 	if graphics.shader_is_loaded(rendering_state.grass_shader) do graphics.unload_shader(rendering_state.grass_shader)
 	if graphics.shader_is_loaded(rendering_state.water_shader) do graphics.unload_shader(rendering_state.water_shader)
 	shadow_map_fini()

@@ -82,14 +82,21 @@ rendering_draw_water_banks :: proc(x, y: int, bed: f32) {
 }
 
 rendering_draw_water :: proc() {
+	shore_ready := water_prepare_shore()
 	size := f32(tilemap.get_tile_size())
 	shader := rendering_state.water_shader
-	shaded := graphics.shader_is_loaded(shader) && rendering_state.water_time_location >= 0
+	shaded :=
+		shore_ready &&
+		graphics.shader_is_loaded(shader) &&
+		rendering_state.water_time_location >= 0
 	if shaded {
 		water_upload_wakes(shader)
 		graphics.set_shader_float(shader, rendering_state.water_time_location, &water_time)
 		graphics.set_shader_float(shader, graphics.get_shader_location(shader, "tile_size"), &size)
 		graphics.begin_shader(shader)
+		water_bind_shore(shader)
+		view := rendering_camera()
+		rendering_set_shader_vec3(shader, "view_direction", view.position - view.target)
 	}
 	defer if shaded do graphics.end_shader()
 	for y in 0 ..< tilemap.get_tilemap_height() {
@@ -98,14 +105,6 @@ rendering_draw_water :: proc() {
 			left, right := f32(x) * size, f32(x + 1) * size
 			top, bottom := f32(y) * size, f32(y + 1) * size
 			color := graphics.Colour{55, 163, 180, 150}
-			if shaded {
-				color = {
-					water_tile(x - 1, y) ? 0 : 255,
-					water_tile(x + 1, y) ? 0 : 255,
-					water_tile(x, y - 1) ? 0 : 255,
-					water_tile(x, y + 1) ? 0 : 255,
-				}
-			}
 			// Small surface cells let the vertex shader lift actual wave crests.
 			for row in 0 ..< 4 {
 				for column in 0 ..< 4 {

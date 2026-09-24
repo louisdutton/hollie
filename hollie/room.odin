@@ -317,6 +317,7 @@ room_reload :: proc() {
 }
 
 room_fini :: proc() {
+	water_unload_shore()
 	grass_unload_geometry()
 	grass_reset_trail()
 	if !room_state.is_loaded do return
