@@ -37,6 +37,7 @@ when ODIN_DEBUG {
 }
 
 gameplay_init :: proc() {
+	environment = ENVIRONMENT_DAY
 	if gameplay_state.current_room_id == "" {
 		gameplay_state.current_room_id = INITIAL_ROOM_ID
 	}
@@ -89,6 +90,15 @@ gameplay_update :: proc(frame_dt: f32) {
 
 		if input.is_key_pressed(.R) {
 			room_reload()
+		}
+
+		if !pause_is_active() && !dialog_is_active() && !gameplay_state.is_transitioning {
+			for player in input.Player_Index {
+				if input.is_gamepad_button_pressed(player, .LEFT_FACE_RIGHT) {
+					environment_toggle_period(&environment)
+					break
+				}
+			}
 		}
 	}
 

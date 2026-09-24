@@ -9,7 +9,6 @@ simulation_delta_time :: proc(frame_dt: f32) -> f32 {
 
 // Gameplay phases are ordered: support motion, intent, body motion, puzzles, visuals.
 simulation_update :: proc(dt: f32) {
-	environment_update(&environment, dt)
 	water_time += dt
 	// Moving pads carry their resting bodies before input is evaluated.
 	pressure_plate_update_surfaces(dt)

@@ -19,7 +19,7 @@ uniform vec3 fillColor;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
 uniform int shadowMapResolution;
-#include_environment
+uniform vec3 environment_light_floor;
 out vec4 finalColor;
 
 float hash(vec2 p)
@@ -160,10 +160,10 @@ void main()
                + cos(dot(p, vec2(-0.040, 0.100)) - water_time * 0.93) * vec2(-0.040, 0.100) * 0.14;
     vec3 normal = normalize(vec3(-slope.x * shore_fade, 1.0, -slope.y * shore_fade));
     vec3 light = -normalize(keyDirection);
-    float visibility = light_visibility() * environment_sun_visibility(world_position);
+    float visibility = light_visibility();
     vec3 illumination = ambientColor + keyColor * max(dot(normal, light), 0.0) * visibility
                       + fillColor * max(dot(normal, -normalize(fillDirection)), 0.0);
-    illumination = mix(vec3(1.0), illumination, 0.55);
+    illumination = mix(environment_light_floor, illumination, 0.55);
     color *= mix(0.72, 1.0, surface_weight);
     color = mix(color, vec3(0.90, 0.94, 0.82), foam * 0.95);
     vec3 lit = pow(color, vec3(2.2)) * illumination;

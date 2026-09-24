@@ -16,7 +16,6 @@ uniform vec3 fillColor;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
 uniform int shadowMapResolution;
-#include_environment
 out vec4 finalColor;
 
 void main()
@@ -40,7 +39,7 @@ void main()
             }
         }
     }
-    float visibility = (1.0 - shadow / 9.0) * environment_sun_visibility(world_position);
+    float visibility = 1.0 - shadow / 9.0;
     vec3 normal = normalize(meadow_normal);
     vec3 light = -normalize(keyDirection);
     vec3 view = normalize(view_position - world_position);
@@ -49,7 +48,7 @@ void main()
     vec3 illumination = ambientColor + keyColor * diffuse * visibility + fillColor * fill;
 
     // Broad, restrained transmission when looking toward the sun. This and
-    // the soft grazing highlight disappear under cast or cloud shadows.
+    // the soft grazing highlight disappear under cast shadows.
     float transmission = pow(max(dot(view, -light), 0.0), 3.0);
     vec3 half_vector = normalize(light + view + vec3(0.0, 0.0001, 0.0));
     float highlight = pow(max(dot(normal, half_vector), 0.0), 12.0);
