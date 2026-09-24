@@ -9,7 +9,7 @@ CAMERA_SMOOTH: f32 : 0.1 // interpolation factor used when following the target
 ZOOM_RATE :: 0.6 // zoom adjustment per second at full input
 ZOOM_DEFAULT :: 1.8
 ZOOM_RIDING :: 1.4
-ZOOM_EASE_RATE :: f32(6) // About half a second to settle most of the transition.
+ZOOM_EASE_RATE :: f32(2.5) // About 1.2 seconds to settle 95% of the transition.
 ZOOM_MAX :: 10.0
 ZOOM_MIN :: 1.0
 ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
