@@ -22,12 +22,12 @@ out vec4 finalColor;
 void main()
 {
     // One low-frequency albedo field for the ground and all leaf roots.
-    // Soft sage-to-mint washes complement the water's turquoise palette.
-    vec3 albedo = mix(vec3(0.53, 0.68, 0.48), vec3(0.68, 0.79, 0.60),
+    // Fresh green washes retain colour while complementing the turquoise water.
+    vec3 albedo = mix(vec3(0.38, 0.68, 0.30), vec3(0.56, 0.79, 0.38),
                       smoothstep(0.0, 1.0, meadow_tone));
     float upper_leaf = smoothstep(0.2, 0.95, blade_height);
-    // A restrained warm pastel tip, with roots still matching the ground.
-    albedo = mix(albedo, vec3(0.82, 0.85, 0.66), upper_leaf * 0.18);
+    // A subtle yellow-green tip, with roots still matching the ground.
+    albedo = mix(albedo, vec3(0.70, 0.85, 0.43), upper_leaf * 0.12);
 
     vec4 light_position = lightVP * vec4(world_position, 1.0);
     vec3 uv = light_position.xyz / light_position.w * 0.5 + 0.5;
