@@ -10,8 +10,8 @@ FONT_ATLAS_SIZE :: 64 // source size used to rasterize the font atlas
 @(private)
 default_font: Font
 
-load_font :: #force_inline proc(file_name: string) -> Font {
-	font := rl.LoadFontEx(cstring(raw_data(file_name)), FONT_ATLAS_SIZE, nil, 0)
+load_font :: #force_inline proc(file_name: string, atlas_size: i32 = FONT_ATLAS_SIZE) -> Font {
+	font := rl.LoadFontEx(cstring(raw_data(file_name)), atlas_size, nil, 0)
 	rl.GenTextureMipmaps(&font.texture)
 	rl.SetTextureFilter(font.texture, .TRILINEAR)
 	return font

@@ -4,6 +4,14 @@ import "core:testing"
 import "graphics"
 
 @(test)
+test_title_heading_atlas_matches_display_resolution :: proc(t: ^testing.T) {
+	testing.expect_value(t, title_heading_atlas_size(1), i32(72))
+	testing.expect_value(t, title_heading_atlas_size(2.4), i32(173))
+	testing.expect_value(t, title_heading_atlas_size(4.8), i32(346))
+	testing.expect_value(t, title_heading_atlas_size(0.5), i32(64))
+}
+
+@(test)
 test_title_meadow_uses_shared_grass_geometry_without_a_room :: proc(t: ^testing.T) {
 	builder: Grass_Mesh_Builder
 	defer delete(builder.positions)

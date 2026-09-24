@@ -1,8 +1,11 @@
 #+feature dynamic-literals
 package hollie
 
+import "asset"
+import "core:math"
 import "graphics"
 import "input"
+import "window"
 
 Title_Menu_State :: enum {
 	Main,
@@ -16,8 +19,10 @@ title_main_menu_items := [?]string{"1 player", "2 players", "Options", "Exit gam
 
 @(private = "file")
 title_state := struct {
-	menu_state: Title_Menu_State,
-	focus:      Ui_Focus,
+	menu_state:         Title_Menu_State,
+	focus:              Ui_Focus,
+	heading_font:       graphics.Font,
+	heading_atlas_size: i32,
 } {
 	menu_state = .Main,
 }
@@ -29,6 +34,24 @@ init_title_screen :: proc() {
 
 unload_title_screen :: proc() {
 	title_meadow_fini()
+	if title_state.heading_atlas_size > 0 do graphics.unload_font(title_state.heading_font)
+	title_state.heading_font = {}
+	title_state.heading_atlas_size = 0
+}
+
+title_heading_atlas_size :: proc(scale: f32) -> i32 {
+	return max(64, i32(math.ceil(72 * scale)))
+}
+
+title_prepare_heading_font :: proc() {
+	size := title_heading_atlas_size(window.get_ui_scale())
+	if title_state.heading_atlas_size == size do return
+	if title_state.heading_atlas_size > 0 do graphics.unload_font(title_state.heading_font)
+	path := asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf")
+	defer delete(path)
+	title_state.heading_font = graphics.load_font(path, size)
+	graphics.set_texture_filter(title_state.heading_font.texture, .BILINEAR)
+	title_state.heading_atlas_size = size
 }
 
 update_title_screen :: proc(dt: f32) {
@@ -42,12 +65,20 @@ update_title_screen :: proc(dt: f32) {
 }
 
 draw_title_screen :: proc() {
+	title_prepare_heading_font()
 	title_meadow_draw()
 	ui_begin()
 	defer ui_end()
 
-	graphics.draw_text_ex(game.font, "Hollie", {43, 67}, 72, 2, {34, 58, 49, 110})
-	graphics.draw_text_ex(game.font, "Hollie", {40, 64}, 72, 2, {252, 245, 218, 255})
+	graphics.draw_text_ex(title_state.heading_font, "Hollie", {41, 65}, 72, 2, {34, 58, 49, 90})
+	graphics.draw_text_ex(
+		title_state.heading_font,
+		"Hollie",
+		{40, 64},
+		72,
+		2,
+		{252, 245, 218, 255},
+	)
 
 	switch title_state.menu_state {
 	case .Main: title_draw_main_menu()
