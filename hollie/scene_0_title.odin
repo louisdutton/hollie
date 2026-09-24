@@ -16,6 +16,8 @@ Title_Menu_State :: enum {
 }
 
 title_main_menu_items := [?]string{"1 player", "2 players", "Options", "Exit game"}
+TITLE_HEADING_SIZE :: f32(96)
+TITLE_MENU_TEXT_SIZE :: f32(22)
 
 @(private = "file")
 title_state := struct {
@@ -40,7 +42,7 @@ unload_title_screen :: proc() {
 }
 
 title_heading_atlas_size :: proc(scale: f32) -> i32 {
-	return max(64, i32(math.ceil(72 * scale)))
+	return max(64, i32(math.ceil(TITLE_HEADING_SIZE * scale)))
 }
 
 title_prepare_heading_font :: proc() {
@@ -74,7 +76,7 @@ draw_title_screen :: proc() {
 		title_state.heading_font,
 		"Hollie",
 		{40, 64},
-		72,
+		TITLE_HEADING_SIZE,
 		0,
 		{252, 245, 218, 255},
 	)
@@ -116,8 +118,11 @@ title_draw_main_menu :: proc() {
 		y := f32(184 + index * 36)
 		selected := index == title_state.focus.index
 		color: graphics.Colour = selected ? {255, 246, 211, 255} : {235, 241, 221, 235}
-		if selected do graphics.draw_circle(43, y + 10, 3, color)
-		graphics.draw_text_ex(game.font, item, {57, y}, 22, 0, color)
+		if selected {
+			center := graphics.text_ink_center_y(game.font, item, TITLE_MENU_TEXT_SIZE)
+			graphics.draw_circle(43, y + center, 3, color)
+		}
+		graphics.draw_text_ex(game.font, item, {57, y}, TITLE_MENU_TEXT_SIZE, 0, color)
 	}
 }
 

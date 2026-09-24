@@ -5,9 +5,9 @@ import "graphics"
 
 @(test)
 test_title_heading_atlas_matches_display_resolution :: proc(t: ^testing.T) {
-	testing.expect_value(t, title_heading_atlas_size(1), i32(72))
-	testing.expect_value(t, title_heading_atlas_size(2.4), i32(173))
-	testing.expect_value(t, title_heading_atlas_size(4.8), i32(346))
+	testing.expect_value(t, title_heading_atlas_size(1), i32(96))
+	testing.expect_value(t, title_heading_atlas_size(2.4), i32(231))
+	testing.expect_value(t, title_heading_atlas_size(4.8), i32(461))
 	testing.expect_value(t, title_heading_atlas_size(0.5), i32(64))
 }
 

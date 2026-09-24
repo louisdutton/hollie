@@ -60,3 +60,25 @@ measure_text :: #force_inline proc(text: string, font_size: i32) -> i32 {
 	)
 	return i32(size.x)
 }
+
+// Visible vertical centre of a single-line label, including the font's bearings.
+// Half the font size centres the line box, not necessarily the drawn letters.
+text_ink_center_y :: proc(font: Font, text: string, font_size: f32) -> f32 {
+	if font.baseSize <= 0 do return font_size * 0.5
+	top, bottom: f32
+	found := false
+	for codepoint in text {
+		if codepoint == ' ' do continue
+		index := rl.GetGlyphIndex(font, codepoint)
+		glyph_top := f32(font.glyphs[index].offsetY)
+		glyph_bottom := glyph_top + font.recs[index].height
+		if !found {
+			top, bottom = glyph_top, glyph_bottom
+			found = true
+		} else {
+			top = min(top, glyph_top)
+			bottom = max(bottom, glyph_bottom)
+		}
+	}
+	return found ? (top + bottom) * 0.5 * font_size / f32(font.baseSize) : font_size * 0.5
+}
