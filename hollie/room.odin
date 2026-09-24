@@ -229,6 +229,8 @@ room_init :: proc(tm: ^tilemap.Tile_Map, target_door: string = "") {
 	}
 
 	tilemap.load_tilemap(tm^)
+	shoreline_init()
+	water_prepare_shore()
 	camera_set_bounds(tm.camera_bounds)
 	room_set_collision_bounds(tm.collision_bounds)
 
@@ -332,6 +334,7 @@ room_fini :: proc() {
 	room_state.name_atlas_size = 0
 	water_interaction_fini()
 	water_unload_shore()
+	shoreline_fini()
 	grass_unload_geometry()
 	grass_reset_trail()
 	if !room_state.is_loaded do return

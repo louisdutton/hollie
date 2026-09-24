@@ -43,6 +43,7 @@ water_movement_profile :: proc(
 }
 
 water_at :: proc(position: Vec2) -> bool {
+	if len(shoreline.field.values) > 0 do return shoreline_field_at(&shoreline.field, position) > 0
 	size := f32(tilemap.get_tile_size())
 	return water_tile(int(math.floor(position.x / size)), int(math.floor(position.y / size)))
 }
@@ -50,82 +51,16 @@ water_at :: proc(position: Vec2) -> bool {
 
 water_time: f32
 
-rendering_water_quad :: proc(a, b, c, d: Vec3, color: graphics.Colour) {
-	graphics.draw_triangle_3d(a, b, c, color)
-	graphics.draw_triangle_3d(a, c, d, color)
-}
-
-rendering_draw_water_banks :: proc(x, y: int, bed: f32) {
-	size := f32(tilemap.get_tile_size())
-	directions := [4]Vec2{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
-	bounds := graphics.get_model_bounding_box(model_assets.cube)
-	for direction in directions {
-		neighbor := Vec2{(f32(x) + 0.5 + direction.x) * size, (f32(y) + 0.5 + direction.y) * size}
-		top := water_bed_height(neighbor)
-		if top <= bed do continue
-		position := Vec3 {
-			(f32(x) + 0.5 + direction.x * 0.5) * size,
-			(bed + top) * 0.5,
-			(f32(y) + 0.5 + direction.y * 0.5) * size,
-		}
-		dimensions := direction.x != 0 ? Vec3{0.3, top - bed, size} : Vec3{size, top - bed, 0.3}
-		scale := dimensions / (bounds.max - bounds.min)
-		graphics.draw_model(
-			model_assets.cube,
-			position - (bounds.min + bounds.max) * 0.5 * scale,
-			{0, 1, 0},
-			0,
-			scale,
-			{130, 116, 83, 255},
-		)
-	}
-}
-
 rendering_draw_water :: proc() {
-	shore_ready := water_prepare_shore()
+	if len(shoreline.meshes) == 0 || water_shore.texture.id == 0 do return
 	size := f32(tilemap.get_tile_size())
 	shader := rendering_state.water_shader
-	shaded :=
-		shore_ready &&
-		graphics.shader_is_loaded(shader) &&
-		rendering_state.water_time_location >= 0
-	if shaded {
-		graphics.set_shader_float(shader, rendering_state.water_time_location, &water_time)
-		graphics.set_shader_float(shader, graphics.get_shader_location(shader, "tile_size"), &size)
-		graphics.begin_shader(shader)
-		water_bind_shore(shader)
-		water_bind_interactions(shader)
-		view := rendering_camera()
-		rendering_set_shader_vec3(shader, "view_direction", view.position - view.target)
-	}
-	defer if shaded do graphics.end_shader()
-	for y in 0 ..< tilemap.get_tilemap_height() {
-		for x in 0 ..< tilemap.get_tilemap_width() {
-			if !water_tile(x, y) do continue
-			left, right := f32(x) * size, f32(x + 1) * size
-			top, bottom := f32(y) * size, f32(y + 1) * size
-			color := graphics.Colour{55, 163, 180, 150}
-			// Small surface cells let the vertex shader lift actual wave crests.
-			for row in 0 ..< 4 {
-				for column in 0 ..< 4 {
-					x0, z0 := left + f32(column) * size / 4, top + f32(row) * size / 4
-					x1, z1 := x0 + size / 4, z0 + size / 4
-					rendering_water_quad(
-						{x0, WATER_SURFACE, z0},
-						{x0, WATER_SURFACE, z1},
-						{x1, WATER_SURFACE, z1},
-						{x1, WATER_SURFACE, z0},
-						color,
-					)
-				}
-			}
-			// Close the outer faces of the water volume; adjacent water cells
-			// share a surface and have no internal transparent walls.
-			bed := WATER_BED
-			if !water_tile(x - 1, y) do rendering_water_quad({left, bed, top}, {left, bed, bottom}, {left, WATER_SURFACE, bottom}, {left, WATER_SURFACE, top}, color)
-			if !water_tile(x + 1, y) do rendering_water_quad({right, bed, bottom}, {right, bed, top}, {right, WATER_SURFACE, top}, {right, WATER_SURFACE, bottom}, color)
-			if !water_tile(x, y - 1) do rendering_water_quad({right, bed, top}, {left, bed, top}, {left, WATER_SURFACE, top}, {right, WATER_SURFACE, top}, color)
-			if !water_tile(x, y + 1) do rendering_water_quad({left, bed, bottom}, {right, bed, bottom}, {right, WATER_SURFACE, bottom}, {left, WATER_SURFACE, bottom}, color)
-		}
-	}
+	if !graphics.shader_is_loaded(shader) do return
+	graphics.set_shader_float(shader, rendering_state.water_time_location, &water_time)
+	graphics.set_shader_float(shader, graphics.get_shader_location(shader, "tile_size"), &size)
+	water_bind_shore(shader)
+	water_bind_interactions(shader)
+	view := rendering_camera()
+	rendering_set_shader_vec3(shader, "view_direction", view.position - view.target)
+	shoreline_draw(.Water, shader)
 }

@@ -95,6 +95,7 @@ rendering_draw_ground :: proc() {
 		for x in 0 ..< tilemap.get_tilemap_width() {
 			tile := tilemap.get_base_tile(x, y)
 			if tile == nil || tile^ == .Empty do continue
+			if shore := shoreline_tile(x, y); shore != nil && shore.affected do continue
 			position := Vec2{(f32(x) + 0.5) * tile_size, (f32(y) + 0.5) * tile_size}
 			bed := water_bed_height(position)
 			tint := water_tile(x, y) ? graphics.Colour{163, 151, 111, 255} : graphics.WHITE
@@ -107,10 +108,14 @@ rendering_draw_ground :: proc() {
 				{tile_size, 1, tile_size},
 				tint,
 			)
-			if water_tile(x, y) do rendering_draw_water_banks(x, y, bed)
 		}
 	}
 
+	// Use the floor's current shader so this also participates in the shadow pass.
+	ground_shader := model_assets.floor.materials[0].shader
+	shoreline_draw(.Ground, ground_shader)
+	shoreline_draw(.Bed, ground_shader)
+	shoreline_draw(.Bank, ground_shader)
 	for structure in tm.structures do rendering_draw_house(structure.position, structure.size)
 }
 

@@ -3,84 +3,54 @@ package hollie
 import "core:c"
 import "core:math"
 import "graphics"
-import "tilemap"
 
-WATER_SHORE_SAMPLES :: 4
+WATER_SHORE_SAMPLES :: 8
 
 Water_Shore :: struct {
-	texture:                  graphics.Texture_2D,
-	tiles:                    []bool,
-	width, height, tile_size: int,
+	texture: graphics.Texture_2D,
 }
 
 water_shore: Water_Shore
 
 water_unload_shore :: proc() {
 	if water_shore.texture.id != 0 do graphics.unload_texture(water_shore.texture)
-	delete(water_shore.tiles)
 	water_shore = {}
 }
 
-// Distance in tile units, capped at one tile. Include diagonal land cells so
-// contours stay continuous around corners; outside the room is also a bank.
-water_shore_distance :: proc(tiles: []bool, width, height: int, point: Vec2) -> f32 {
-	cell_x, cell_y := int(math.floor(point.x)), int(math.floor(point.y))
-	distance_squared := f32(1)
-	for y in cell_y - 1 ..= cell_y + 1 {
-		for x in cell_x - 1 ..= cell_x + 1 {
-			if x >= 0 && y >= 0 && x < width && y < height && tiles[y * width + x] do continue
-			dx := max(max(f32(x) - point.x, point.x - f32(x + 1)), 0)
-			dy := max(max(f32(y) - point.y, point.y - f32(y + 1)), 0)
-			distance_squared = min(distance_squared, dx * dx + dy * dy)
+// Distance to the actual generated bank segments, capped at one tile.
+// Tile-local segment ranges keep load-time texture generation bounded.
+water_shore_distance :: proc(cache: ^Shoreline_Cache, point: Vec2) -> f32 {
+	field := &cache.field
+	if shoreline_field_at(field, point) <= 0 do return 0
+	x, y := int(math.floor(point.x / field.size)), int(math.floor(point.y / field.size))
+	distance := field.size
+	for row in max(y - 1, 0) ..= min(y + 1, field.height - 1) {
+		for column in max(x - 1, 0) ..= min(x + 1, field.width - 1) {
+			tile := cache.tiles[row * field.width + column]
+			for segment in cache.segments[tile.segment_start:tile.segment_end] {
+				distance = min(distance, shoreline_segment_distance(point, segment))
+			}
 		}
 	}
-	return math.sqrt(distance_squared)
+	return distance / field.size
 }
 
+// Called only during room_init, after the shoreline mesh has been generated.
 water_prepare_shore :: proc() -> bool {
-	width, height := tilemap.get_tilemap_width(), tilemap.get_tilemap_height()
-	size := tilemap.get_tile_size()
-	if width <= 0 || height <= 0 || size <= 0 do return false
-	changed :=
-		water_shore.width != width || water_shore.height != height || water_shore.tile_size != size
-	if changed {
-		water_unload_shore()
-		water_shore.width, water_shore.height, water_shore.tile_size = width, height, size
-		water_shore.tiles = make([]bool, width * height)
-	}
-	// Compare occupancy rather than hashing: editor changes cannot leave stale data.
-	has_water := false
+	water_unload_shore()
+	field := &shoreline.field
+	if len(field.values) == 0 do return false
+	width, height := field.width * WATER_SHORE_SAMPLES + 1, field.height * WATER_SHORE_SAMPLES + 1
+	pixels := make([]graphics.Colour, width * height)
+	defer delete(pixels)
 	for y in 0 ..< height {
 		for x in 0 ..< width {
-			index := y * width + x
-			wet := water_tile(x, y)
-			changed = changed || water_shore.tiles[index] != wet
-			water_shore.tiles[index] = wet
-			has_water = has_water || wet
+			point := Vec2{f32(x), f32(y)} * (field.size / WATER_SHORE_SAMPLES)
+			value := u8(water_shore_distance(&shoreline, point) * 255 + 0.5)
+			pixels[y * width + x] = {value, value, value, 255}
 		}
 	}
-	if !has_water {
-		if water_shore.texture.id != 0 do graphics.unload_texture(water_shore.texture)
-		water_shore.texture = {}
-		return false
-	}
-	if !changed && water_shore.texture.id != 0 do return true
-	if water_shore.texture.id != 0 do graphics.unload_texture(water_shore.texture)
-	// Samples sit on grid vertices, including both room boundaries. Shader UVs
-	// address their texel centres, making the interpolation agree across tiles.
-	texture_width, texture_height :=
-		width * WATER_SHORE_SAMPLES + 1, height * WATER_SHORE_SAMPLES + 1
-	pixels := make([]graphics.Colour, texture_width * texture_height)
-	defer delete(pixels)
-	for y in 0 ..< texture_height {
-		for x in 0 ..< texture_width {
-			point := Vec2{f32(x), f32(y)} / f32(WATER_SHORE_SAMPLES)
-			distance := water_shore_distance(water_shore.tiles, width, height, point)
-			value := u8(distance * 255 + 0.5)
-			pixels[y * texture_width + x] = {value, value, value, 255}
-		}
-	}
-	water_shore.texture = graphics.load_texture_colors(pixels, texture_width, texture_height)
+	water_shore.texture = graphics.load_texture_colors(pixels, width, height)
 	return water_shore.texture.id != 0
 }
 

@@ -28,14 +28,26 @@ Swimming continues to emit no sphere/dust particles, and buoyancy is unchanged.
 
 ## Shoreline and shading
 
-The existing cached RGBA8 distance-to-bank texture stays in use, including diagonal
-corners and room edges. Four samples per tile are bilinearly interpolated. Tile
-edits refresh it; teardown releases it. It drives shore colour, scalloped contact
-foam, broken approaching bands and wave damping. The shallow tint is artistic;
-the bed remains flat and the bank geometry remains square.
+Once per level load, tile-centre water occupancy is reconstructed as a bilinear
+field sampled eight times per tile. Marching triangles partition that field into
+matching land and water polygons, rounding tile corners without moving tile centres.
+Diagonal saddle ties resolve toward land to avoid connecting diagonal pools.
+The contour is extruded down to the flat bed for bank walls. Interior land retains
+its existing geometry; affected tiles use cached land, grass, bank, bed and water
+meshes. Grass roots in water are omitted. Non-grass generated bankside land uses
+a neutral earth tint rather than the original floor-model texture.
+
+The RGBA8 distance-to-bank texture is generated from those exact contour segments,
+with eight samples per tile. It drives shore colour, scalloped contact foam, broken
+approaching bands and wave damping. Water-contact and bed-height queries use the
+same triangulated field, not square tile boundaries. The shallow tint remains artistic.
+
+Meshes and the foam texture are built only in room initialization and released on
+unload. Drawing never checks occupancy for changes or rebuilds the shoreline. The
+editor's existing exit/reload path regenerates them on the next level load.
 
 World lighting and shadows are retained with a minimum ambient contribution so
-cream foam reads in shade. Ambient swells use the existing 4×4 cells per tile.
+cream foam reads in shade. Ambient swells use the cached subdivided surface.
 Texture unit 11 is reserved for shore distance; shadows use unit 10.
 
 ## References and verification

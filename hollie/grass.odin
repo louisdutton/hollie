@@ -132,6 +132,7 @@ grass_is_enabled :: proc() -> bool {
 }
 
 grass_tile :: proc(x, y: int) -> bool {
+	if shore := shoreline_tile(x, y); shore != nil && shore.affected && shore.grass do return true
 	return grass_ground_tile(x, y) || tilemap.get_grass_density(x, y) > 0
 }
 
@@ -200,6 +201,9 @@ grass_upload_contacts :: proc(shader: graphics.Shader, chunk_min, chunk_max: Vec
 grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 	density := f32(tilemap.get_grass_density(x, y)) / 255
 	size := f32(tilemap.get_tile_size())
+	shore := shoreline_tile(x, y)
+	clipped := shore != nil && shore.affected
+	if clipped do density = shore.density
 	grass_build_patch(
 		builder,
 		x,
@@ -207,7 +211,8 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 		size,
 		tilemap.get_tilemap_width(),
 		density,
-		grass_ground_tile(x, y),
+		grass_ground_tile(x, y) && !clipped,
+		clipped,
 	)
 }
 
@@ -219,6 +224,7 @@ grass_build_patch :: proc(
 	seed_width: int,
 	density: f32,
 	ground: bool,
+	clip_shore: bool = false,
 ) {
 	left, top := f32(x) * size, f32(y) * size
 	if ground {
@@ -237,6 +243,7 @@ grass_build_patch :: proc(
 			top + (f32(blade / 6) + 0.2 + grass_random(seed + 1) * 0.6) * size / 6,
 		}
 		height := 6.4 + grass_clump({root.x, root.z}) * 2.4 + grass_random(seed + 2) * 0.8
+		if clip_shore && water_at({root.x, root.z}) do continue
 		// Tall, overlapping ribbons keep the meadow full at the same density.
 		angle := -math.PI / 4 + (grass_random(seed + 3) - 0.5) * 1.1
 		width := Vec3{math.cos(angle), 0, math.sin(angle)} * (0.85 + grass_random(seed + 4) * 0.3)
