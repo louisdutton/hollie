@@ -21,7 +21,7 @@ simulation_update :: proc(dt: f32) {
 
 	simulation_update_positions(dt)
 	holdable_update_release_contacts(&world)
-	water_update_wakes(dt)
+	water_update_interactions(dt)
 	// Pressure plates must see riders at their post-movement positions.
 	riding_sync_players()
 	puzzle_update()

@@ -129,6 +129,7 @@ rendering_prepare :: proc() {
 }
 
 rendering_fini :: proc() {
+	water_interaction_fini()
 	water_unload_shore()
 	if graphics.shader_is_loaded(rendering_state.grass_shader) do graphics.unload_shader(rendering_state.grass_shader)
 	if graphics.shader_is_loaded(rendering_state.water_shader) do graphics.unload_shader(rendering_state.water_shader)

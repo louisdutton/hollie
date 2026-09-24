@@ -4,8 +4,8 @@ in vec3 world_position;
 in float surface_weight;
 uniform float water_time;
 uniform float tile_size;
-uniform vec4 wakes[48];
-uniform vec4 wake_shapes[48];
+uniform sampler2D interaction_map;
+uniform vec3 interaction_map_info;
 uniform sampler2D shore_map;
 uniform vec3 shore_map_info;
 uniform vec3 view_direction;
@@ -87,27 +87,13 @@ void main()
                + cos(dot(p, vec2(-0.040, 0.100)) - water_time * 0.93) * vec2(-0.040, 0.100) * 0.14;
     // Fine ripples affect the light without requiring denser geometry.
     slope += cos(dot(p, vec2(0.19, 0.11)) - water_time * 1.05) * vec2(0.19, 0.11) * 0.16;
-    float wake_lift = 0.0;
-    vec2 wake_slope = vec2(0.0);
-    for (int i = 0; i < 48; i++) {
-        if (wakes[i].w <= 0.0) continue;
-        vec2 delta = p - wakes[i].xy;
-        vec2 direction = wake_shapes[i].xy;
-        vec2 side = vec2(-direction.y, direction.x);
-        float extent = wake_shapes[i].z;
-        float along = dot(delta, direction);
-        float across = dot(delta, side);
-        float edge = abs(across) - wakes[i].z;
-        float ribbon = exp(-edge * edge * 0.5 - along * along / (extent * extent)) * wakes[i].w;
-        // Match the vertex height field; overlapping strokes never pile up.
-        if (ribbon > wake_lift) {
-            wake_lift = ribbon;
-            wake_slope = ribbon * (-edge * sign(across) * side -
-                                   2.0 * along / (extent * extent) * direction);
-        }
-    }
-    foam = max(foam, wake_lift * mix(0.35, 0.65, detail) * shore_fade);
-    slope += wake_slope * 0.30;
+    // Persistent simulated height/slopes, not a list of drawn wake primitives.
+    vec2 interaction_uv = (p / interaction_map_info.z + 1.0) / interaction_map_info.xy;
+    vec4 interaction = texture(interaction_map, interaction_uv);
+    slope += interaction.gb * 0.65;
+    // Motion reads mainly through normals and reflected light; only disturbed
+    // water carries a little short-lived foam, never a white outline per wave.
+    foam = max(foam, interaction.a * smoothstep(0.25, 0.75, detail) * shore_fade);
     slope *= shore_fade;
     vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
     vec3 light = -normalize(keyDirection);

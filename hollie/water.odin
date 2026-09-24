@@ -90,11 +90,11 @@ rendering_draw_water :: proc() {
 		graphics.shader_is_loaded(shader) &&
 		rendering_state.water_time_location >= 0
 	if shaded {
-		water_upload_wakes(shader)
 		graphics.set_shader_float(shader, rendering_state.water_time_location, &water_time)
 		graphics.set_shader_float(shader, graphics.get_shader_location(shader, "tile_size"), &size)
 		graphics.begin_shader(shader)
 		water_bind_shore(shader)
+		water_bind_interactions(shader)
 		view := rendering_camera()
 		rendering_set_shader_vec3(shader, "view_direction", view.position - view.target)
 	}
@@ -128,89 +128,4 @@ rendering_draw_water :: proc() {
 			if !water_tile(x, y + 1) do rendering_water_quad({left, bed, bottom}, {right, bed, bottom}, {right, WATER_SURFACE, bottom}, {left, WATER_SURFACE, bottom}, color)
 		}
 	}
-}
-
-WATER_WAKE_COUNT :: 48
-WATER_WAKE_LIFETIME :: f32(2.4)
-WATER_WAKE_INTERVAL :: f32(0.10)
-Water_Wake :: struct {
-	position, direction:               Vec2,
-	age, strength, width, half_length: f32,
-}
-water_wakes: [WATER_WAKE_COUNT]Water_Wake
-water_wake_next: int
-
-water_make_wake :: proc(body: Transform, collider: Collider) -> Water_Wake {
-	speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
-	if speed <= 3 do return {}
-	direction := body.velocity / speed
-	width := max(min(collider.size.x, collider.size.z) * 0.35, 2)
-	// Overlap consecutive strokes so motion leaves ribbons rather than beads.
-	half_length := max(speed * WATER_WAKE_INTERVAL, width)
-	center :=
-		body.position +
-		Vec2{collider.offset.x + collider.size.x / 2, collider.offset.z + collider.size.z / 2}
-	return {
-		position = center - direction * (width + half_length * 0.5),
-		direction = direction,
-		strength = clamp(speed / 100, 0, 0.75),
-		width = width,
-		half_length = half_length,
-	}
-}
-
-water_update_wakes :: proc(dt: f32) {
-	for &wake in water_wakes do wake.age += dt
-	for &entity in world.entities {
-		body: ^Transform
-		collider: Collider
-		switch &e in entity {
-		case Player: body, collider = &e.transform, e.collider
-		case Enemy: body, collider = &e.transform, e.collider
-		case Npc: body, collider = &e.transform, e.collider
-		case Holdable:
-			if e.held_by != 0 do continue
-			body, collider = &e.transform, e.collider
-		case Pressure_Plate, Gate, Door: continue
-		}
-		bounds := collision_aabb_at(body.position, collider, body.height)
-		if !water_at(body.position) ||
-		   bounds.min.y > WATER_SURFACE ||
-		   bounds.max.y < WATER_SURFACE {
-			body.wake_timer = 0
-			continue
-		}
-		body.wake_timer -= dt
-		if body.wake_timer > 0 do continue
-		wake := water_make_wake(body^, collider)
-		if wake.strength <= 0 do continue
-		water_wakes[water_wake_next] = wake
-		water_wake_next = (water_wake_next + 1) % WATER_WAKE_COUNT
-		body.wake_timer = WATER_WAKE_INTERVAL
-	}
-}
-
-water_upload_wakes :: proc(shader: graphics.Shader) {
-	packets: [WATER_WAKE_COUNT][4]f32
-	shapes: [WATER_WAKE_COUNT][4]f32
-	for wake, index in water_wakes {
-		if wake.age >= WATER_WAKE_LIFETIME || wake.strength <= 0 do continue
-		packets[index] = {
-			wake.position.x,
-			wake.position.y,
-			wake.width + wake.age * 2,
-			wake.strength * (1 - wake.age / WATER_WAKE_LIFETIME),
-		}
-		shapes[index] = {wake.direction.x, wake.direction.y, wake.half_length + wake.age, 0}
-	}
-	graphics.set_shader_vec4_array(
-		shader,
-		graphics.get_shader_location(shader, "wakes[0]"),
-		packets[:],
-	)
-	graphics.set_shader_vec4_array(
-		shader,
-		graphics.get_shader_location(shader, "wake_shapes[0]"),
-		shapes[:],
-	)
 }

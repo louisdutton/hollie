@@ -2,29 +2,6 @@ package hollie
 
 import "core:testing"
 
-@(test)
-test_water_wakes_follow_motion_and_stop_when_idle :: proc(t: ^testing.T) {
-	collider := Collider {
-		size   = {12, 20, 12},
-		offset = {-6, 0, -6},
-	}
-	body := Transform {
-		position = {40, 50},
-		velocity = {60, 0},
-	}
-	wake := water_make_wake(body, collider)
-	testing.expect_value(t, wake.direction, Vec2{1, 0})
-	testing.expect(t, wake.position.x < body.position.x)
-	testing.expect_value(t, wake.position.y, body.position.y)
-	testing.expect(t, wake.half_length >= 60 * WATER_WAKE_INTERVAL)
-	body.velocity = {0, -60}
-	turn := water_make_wake(body, collider)
-	testing.expect_value(t, turn.direction, Vec2{0, -1})
-	testing.expect(t, turn.position.y > body.position.y)
-	body.velocity = {}
-	body.vertical_velocity = 20
-	testing.expect_value(t, water_make_wake(body, collider).strength, f32(0))
-}
 
 @(test)
 test_swimming_emits_no_dust_trail :: proc(t: ^testing.T) {

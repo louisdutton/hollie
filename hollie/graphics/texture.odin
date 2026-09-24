@@ -56,6 +56,26 @@ unload_texture :: #force_inline proc(texture: Texture_2D) {
 	rl.UnloadTexture(texture)
 }
 
+load_texture_float4 :: proc(pixels: [][4]f32, width, height: int) -> Texture_2D {
+	assert(len(pixels) == width * height)
+	image := rl.Image {
+		data    = raw_data(pixels),
+		width   = i32(width),
+		height  = i32(height),
+		mipmaps = 1,
+		format  = .UNCOMPRESSED_R32G32B32A32,
+	}
+	texture := rl.LoadTextureFromImage(image)
+	rl.SetTextureFilter(texture, .BILINEAR)
+	rl.SetTextureWrap(texture, .CLAMP)
+	return texture
+}
+
+update_texture_float4 :: proc(texture: Texture_2D, pixels: [][4]f32) {
+	assert(len(pixels) == int(texture.width) * int(texture.height))
+	rl.UpdateTexture(texture, raw_data(pixels))
+}
+
 set_texture_filter :: #force_inline proc(texture: Texture_2D, filter: Texture_Filter) {
 	rl.SetTextureFilter(texture, filter)
 }

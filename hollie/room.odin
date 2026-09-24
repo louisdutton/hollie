@@ -317,6 +317,7 @@ room_reload :: proc() {
 }
 
 room_fini :: proc() {
+	water_interaction_fini()
 	water_unload_shore()
 	grass_unload_geometry()
 	grass_reset_trail()
@@ -332,8 +333,6 @@ room_fini :: proc() {
 	tilemap.fini()
 
 	// Clear entities for level unload/reload
-	water_wakes = {}
-	water_wake_next = 0
 	clear(&particle_system.particles)
 	world_clear_entities(&world)
 

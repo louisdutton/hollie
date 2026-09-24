@@ -45,15 +45,17 @@ movement_accelerate :: proc(
 }
 
 Transform :: struct {
-	entity_id:         Entity_Id,
-	position:          Vec2,
-	velocity:          Vec2,
-	height:            f32,
-	vertical_velocity: f32,
-	grounded:          bool,
-	swimming:          bool,
-	wake_timer:        f32,
-	dust_distance:     f32,
+	entity_id:               Entity_Id,
+	position:                Vec2,
+	velocity:                Vec2,
+	height:                  f32,
+	vertical_velocity:       f32,
+	grounded:                bool,
+	swimming:                bool,
+	water_previous_position: Vec2,
+	water_previous_depth:    f32,
+	water_contact_valid:     bool,
+	dust_distance:           f32,
 }
 
 Movement :: struct {
