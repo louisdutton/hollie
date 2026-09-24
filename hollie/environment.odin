@@ -15,7 +15,7 @@ ENVIRONMENT_DAY :: Environment_State {
 	fill_direction = {0.65, -0.35, 0.55},
 	fill_color     = {0.07, 0.09, 0.13},
 	wind_velocity  = {10, 4.5},
-	cloud_scale    = 0.008,
+	cloud_scale    = 0.0025,
 	cloud_coverage = 0.52,
 	cloud_softness = 0.035,
 	cloud_strength = 0.78,
