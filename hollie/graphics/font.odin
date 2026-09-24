@@ -51,6 +51,10 @@ draw_text_ex :: #force_inline proc(
 	rl.DrawTextEx(font, cstring(raw_data(text)), position, font_size, spacing, tint)
 }
 
+measure_text_ex :: #force_inline proc(font: Font, text: string, font_size, spacing: f32) -> Vec2 {
+	return rl.MeasureTextEx(font, cstring(raw_data(text)), font_size, spacing)
+}
+
 measure_text :: #force_inline proc(text: string, font_size: i32) -> i32 {
 	size := rl.MeasureTextEx(
 		default_font,

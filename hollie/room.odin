@@ -2,11 +2,13 @@ package hollie
 
 import "asset"
 import "audio"
+import "core:math"
 import "core:time"
 import "graphics"
 import "input"
 import "tilemap"
 import "tween"
+import "window"
 
 
 Room_State :: struct {
@@ -15,6 +17,14 @@ Room_State :: struct {
 	room_music:              audio.Music,
 	room_name_opacity:       f32,
 	room_name_display_timer: f32,
+	name_font:               graphics.Font,
+	name_atlas_size:         i32,
+}
+
+ROOM_NAME_TEXT_SIZE :: f32(42)
+
+room_name_atlas_size :: proc(scale: f32) -> i32 {
+	return max(64, i32(math.ceil(ROOM_NAME_TEXT_SIZE * scale)))
 }
 
 @(private)
@@ -317,6 +327,9 @@ room_reload :: proc() {
 }
 
 room_fini :: proc() {
+	if room_state.name_atlas_size > 0 do graphics.unload_font(room_state.name_font)
+	room_state.name_font = {}
+	room_state.name_atlas_size = 0
 	water_interaction_fini()
 	water_unload_shore()
 	grass_unload_geometry()
@@ -367,60 +380,21 @@ room_draw_name :: proc() {
 	room_name := room_state.current_tilemap.room_name
 	if room_name == "" do return
 
-	// Match the ornamental location title treatment from the Fantasy UI Borders sample.
-	text_size := 42
-	text_width := ui_measure_text(room_name, text_size)
-
-	x := (int(design_width) - text_width) / 2
-	y := 48
-
-	// Create color with opacity for fade effect
-	alpha := u8(room_state.room_name_opacity * 255)
-	color := graphics.Colour{244, 242, 234, alpha}
-
-	divider_gap: f32 = 14
-	divider_height: f32 = 16
-	max_divider_width: f32 = 96
-	available_width := f32(design_width) - 40
-	divider_width := min(
-		max_divider_width,
-		max((available_width - f32(text_width) - divider_gap * 2) / 2, 0),
-	)
-	divider_y := f32(y) + (f32(text_size) - divider_height) / 2
-
-	content_left := f32(x)
-	content_right := f32(x + text_width)
-	if divider_width >= 24 {
-		content_left -= divider_gap + divider_width
-		content_right += divider_gap + divider_width
+	// Rasterize at the physical display size instead of magnifying the UI atlas.
+	atlas_size := room_name_atlas_size(window.get_ui_scale())
+	if atlas_size != room_state.name_atlas_size {
+		if room_state.name_atlas_size > 0 do graphics.unload_font(room_state.name_font)
+		path := asset.path("font/aoboshi-one/AoboshiOne-Regular.ttf")
+		defer delete(path)
+		room_state.name_font = graphics.load_font(path, atlas_size)
+		graphics.set_texture_filter(room_state.name_font.texture, .BILINEAR)
+		room_state.name_atlas_size = atlas_size
 	}
-	band_padding: f32 = 48
-	band_y := f32(y) - 10
-	band_height := f32(text_size) + 20
-	band_left := max(content_left - band_padding, 0)
-	band_right := min(content_right + band_padding, f32(design_width))
-	band_fade_width := (band_right - band_left) * 0.42
-	ui_draw_horizontally_faded_frame(
-		.Title_Backdrop,
-		{band_left, band_y, band_right - band_left, band_height},
-		band_fade_width,
-		graphics.Colour{42, 56, 63, u8(room_state.room_name_opacity * 255)},
-	)
-
-	if divider_width >= 24 {
-		ui_draw_title_divider(
-			{f32(x) - divider_gap - divider_width, divider_y, divider_width, divider_height},
-			false,
-			color,
-		)
-		ui_draw_title_divider(
-			{f32(x + text_width) + divider_gap, divider_y, divider_width, divider_height},
-			true,
-			color,
-		)
-	}
-
-	graphics.draw_text(room_name, x, y, text_size, color)
+	text_width :=
+		graphics.measure_text_ex(room_state.name_font, room_name, ROOM_NAME_TEXT_SIZE, 0).x
+	x := (f32(design_width) - text_width) * 0.5
+	color := graphics.Colour{244, 242, 234, u8(room_state.room_name_opacity * 255)}
+	graphics.draw_text_ex(room_state.name_font, room_name, {x, 48}, ROOM_NAME_TEXT_SIZE, 0, color)
 }
 
 
