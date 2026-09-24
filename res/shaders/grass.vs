@@ -5,8 +5,9 @@ in vec2 vertexTexCoord; // Shared world-space root for each blade.
 in vec4 vertexColor;
 uniform mat4 mvp;
 uniform float grass_time;
-uniform vec4 grass_players[2];
-uniform vec4 grass_motion[2];
+uniform vec4 grass_contacts[32];
+uniform vec4 grass_motion[32];
+uniform int grass_contact_count;
 uniform vec4 grass_trail[64];
 uniform vec4 grass_trail_motion[64];
 uniform int grass_trail_count;
@@ -61,10 +62,10 @@ void main()
     vec2 resting_bend = directional_displacement(resting_direction, resting_strength);
     vec2 bend = vec2(0.0);
     float contact = 0.0;
-    for (int i = 0; i < 2 && blade > 0.0; i++) {
-        vec4 player = grass_players[i];
-        if (player.w <= 0.0 || player.z <= 0.0) continue;
-        float influence = (1.0 - smoothstep(0.0, player.z, length(root - player.xy))) * player.w;
+    for (int i = 0; i < grass_contact_count && blade > 0.0; i++) {
+        vec4 body = grass_contacts[i];
+        if (body.w <= 0.0 || body.z <= 0.0) continue;
+        float influence = (1.0 - smoothstep(0.0, body.z, length(root - body.xy))) * body.w;
         if (influence > contact) {
             bend = directional_displacement(grass_motion[i].xy, influence);
             contact = influence;

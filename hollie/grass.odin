@@ -6,6 +6,7 @@ import "graphics"
 import "tilemap"
 
 GRASS_TRAIL_COUNT :: 64
+GRASS_CONTACT_COUNT :: 32
 GRASS_TRAIL_LIFETIME :: f32(2.6)
 
 Grass_Imprint :: struct {
@@ -23,6 +24,54 @@ grass_reset_trail :: proc() {
 	grass_trail_timer = 0
 }
 
+// Shared eligibility and footprint for both live bending and recovery trails.
+grass_entity_imprint :: proc(
+	entity: ^Entity,
+	trail: bool,
+) -> (
+	imprint: Grass_Imprint,
+	valid: bool,
+) {
+	body: ^Transform
+	collider: Collider
+	switch &e in entity^ {
+	case Player:
+		if riding_animal_for_player(e.index) != nil do return
+		body, collider = &e.transform, e.collider
+	case Enemy: body, collider = &e.transform, e.collider
+	case Npc: body, collider = &e.transform, e.collider
+	case Holdable:
+		if e.held_by != 0 do return
+		body, collider = &e.transform, e.collider
+	case Pressure_Plate, Gate, Door: return
+	}
+	bottom := body.height + collider.offset.y
+	if bottom >= 8 || bottom + collider.size.y <= 0 || body.swimming do return
+	speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
+	if speed <= 3 do return
+	strength := trail ? clamp(speed / 30, 0, 1) : clamp((speed - 3) / 65, 0, 1)
+	strength = strength * strength * (3 - 2 * strength)
+	imprint = {
+		position  = {
+			body.position.x + collider.offset.x + collider.size.x * 0.5,
+			body.position.y + collider.offset.z + collider.size.z * 0.5,
+		},
+		direction = body.velocity / speed,
+		radius    = max(collider.size.x, collider.size.z) * 0.5 + 3,
+		strength  = strength * clamp(1 - max(bottom, 0) / 8, 0, 1),
+	}
+	return imprint, true
+}
+
+grass_imprint_overlaps_chunk :: proc(imprint: Grass_Imprint, chunk_min, chunk_max: Vec2) -> bool {
+	nearest := Vec2 {
+		clamp(imprint.position.x, chunk_min.x, chunk_max.x),
+		clamp(imprint.position.y, chunk_min.y, chunk_max.y),
+	}
+	delta := imprint.position - nearest
+	return delta.x * delta.x + delta.y * delta.y < imprint.radius * imprint.radius
+}
+
 grass_update_trail :: proc(dt: f32) {
 	if !grass_is_enabled() do return
 	for &imprint in grass_trail do imprint.age += dt
@@ -30,25 +79,9 @@ grass_update_trail :: proc(dt: f32) {
 	if grass_trail_timer > 0 do return
 	grass_trail_timer = 0.1
 	for &entity in world.entities {
-		player, ok := &entity.(Player)
-		if !ok do continue
-		speed := math.sqrt(
-			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
-		)
-		bottom := player.height + player.collider.offset.y
-		if speed <= 3 || bottom >= 8 do continue
-		// Even a walking stride should leave a legible imprint.
-		strength := clamp(speed / 30, 0, 1)
-		strength = strength * strength * (3 - 2 * strength)
-		grass_trail[grass_trail_next] = {
-			position  = {
-				player.position.x + player.collider.offset.x + player.collider.size.x * 0.5,
-				player.position.y + player.collider.offset.z + player.collider.size.z * 0.5,
-			},
-			direction = player.velocity / speed,
-			radius    = max(player.collider.size.x, player.collider.size.z) * 0.5 + 3,
-			strength  = strength * clamp(1 - max(bottom, 0) / 8, 0, 1),
-		}
+		imprint, valid := grass_entity_imprint(&entity, true)
+		if !valid do continue
+		grass_trail[grass_trail_next] = imprint
 		grass_trail_next = (grass_trail_next + 1) % GRASS_TRAIL_COUNT
 	}
 }
@@ -58,12 +91,7 @@ grass_upload_trail :: proc(shader: graphics.Shader, chunk_min, chunk_max: Vec2) 
 	count := 0
 	for imprint in grass_trail {
 		if imprint.strength <= 0 || imprint.age >= GRASS_TRAIL_LIFETIME do continue
-		nearest := Vec2 {
-			clamp(imprint.position.x, chunk_min.x, chunk_max.x),
-			clamp(imprint.position.y, chunk_min.y, chunk_max.y),
-		}
-		delta := imprint.position - nearest
-		if delta.x * delta.x + delta.y * delta.y >= imprint.radius * imprint.radius do continue
+		if !grass_imprint_overlaps_chunk(imprint, chunk_min, chunk_max) do continue
 		remaining := 1 - imprint.age / GRASS_TRAIL_LIFETIME
 		fade := remaining * remaining * (3 - 2 * remaining)
 		positions[count] = {
@@ -134,45 +162,38 @@ grass_clump :: proc(position: Vec2) -> f32 {
 	return (a + (b - a) * f.x) * (1 - f.y) + (c + (d - c) * f.x) * f.y
 }
 
-grass_upload_players :: proc(shader: graphics.Shader) {
-	// Always upload both slots so leaving a room or removing player two
-	// cannot leave an invisible influence behind.
-	players: [2][4]f32
-	motion: [2][4]f32
+grass_upload_contacts :: proc(shader: graphics.Shader, chunk_min, chunk_max: Vec2) {
+	contacts, motion: [GRASS_CONTACT_COUNT][4]f32
 	count := 0
 	for &entity in world.entities {
-		player, ok := &entity.(Player)
-		if !ok do continue
-		if count >= len(players) do break
-		bottom := player.height + player.collider.offset.y
-		speed := math.sqrt(
-			player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y,
-		)
-		strength := clamp((speed - 3) / 65, 0, 1)
-		strength = strength * strength * (3 - 2 * strength)
-		motion[count] = {
-			player.velocity.x / max(speed, 1),
-			player.velocity.y / max(speed, 1),
-			0,
-			0,
-		}
-		players[count] = {
-			player.position.x + player.collider.offset.x + player.collider.size.x * 0.5,
-			player.position.y + player.collider.offset.z + player.collider.size.z * 0.5,
-			max(player.collider.size.x, player.collider.size.z) * 0.5 + 3,
-			clamp(1 - max(bottom, 0) / 8, 0, 1) * strength,
+		imprint, valid := grass_entity_imprint(&entity, false)
+		if !valid || !grass_imprint_overlaps_chunk(imprint, chunk_min, chunk_max) do continue
+		if count >= len(contacts) do break
+		motion[count] = {imprint.direction.x, imprint.direction.y, 0, 0}
+		contacts[count] = {
+			imprint.position.x,
+			imprint.position.y,
+			imprint.radius,
+			imprint.strength,
 		}
 		count += 1
 	}
+	contact_count := c.int(count)
+	graphics.set_shader_int(
+		shader,
+		graphics.get_shader_location(shader, "grass_contact_count"),
+		&contact_count,
+	)
+	if count == 0 do return
 	graphics.set_shader_vec4_array(
 		shader,
-		graphics.get_shader_location(shader, "grass_players[0]"),
-		players[:],
+		graphics.get_shader_location(shader, "grass_contacts[0]"),
+		contacts[:count],
 	)
 	graphics.set_shader_vec4_array(
 		shader,
 		graphics.get_shader_location(shader, "grass_motion[0]"),
-		motion[:],
+		motion[:count],
 	)
 }
 

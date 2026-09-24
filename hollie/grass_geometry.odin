@@ -91,10 +91,10 @@ rendering_draw_grass :: proc() {
 	shader := rendering_state.grass_shader
 	if !graphics.shader_is_loaded(shader) || rendering_state.grass_time_location < 0 do return
 	if !grass_geometry_ready do grass_build_geometry()
-	grass_upload_players(shader)
 	rendering_set_shader_vec3(shader, "view_position", rendering_camera().position)
 	graphics.set_shader_float(shader, rendering_state.grass_time_location, &water_time)
 	for chunk in grass_chunks {
+		grass_upload_contacts(shader, chunk.min, chunk.max)
 		grass_upload_trail(shader, chunk.min, chunk.max)
 		graphics.draw_model(chunk.model, {}, {0, 1, 0}, 0, {1, 1, 1}, graphics.WHITE)
 	}

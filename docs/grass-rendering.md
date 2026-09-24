@@ -13,6 +13,6 @@ Ground and grass share one subtle, broad albedo field and the same ambient, key 
 
 The meadow palette blends fresh green and light yellow-green to complement the stylised turquoise water, retaining saturation without returning to dark olive tones. Upper leaves receive a subtle yellow-green tint; roots retain the shared ground colour. The existing lighting, shadows, and wind sheen remain unchanged.
 
-Player trails retain the existing lifetime and chunk filtering. Room unload and editor entry release cached meshes. No geometry is regenerated each frame.
+Moving players, animals, NPCs, and unheld boxes share collider-sized live bending and recovery trails. Mounted animals supply the footprint instead of their riders; carried, swimming, and vertically separated bodies are excluded. Each chunk accepts up to 32 overlapping live contacts, replacing the two player-only slots. Trails retain the existing 64-imprint budget, lifetime, and chunk filtering. Room unload and editor entry release cached meshes. No geometry is regenerated each frame.
 
 Visual matching and frame-time measurements require an in-game review. Automated Odin checks do not validate runtime GLSL compilation or the visual result.
