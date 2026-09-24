@@ -64,6 +64,8 @@ void main()
     float bank = texture(shore_map, shore_uv).r * tile_size;
     float shore_fade = smoothstep(0.0, tile_size * 0.5, bank);
     float shallows = 1.0 - smoothstep(0.0, tile_size * 0.85, bank);
+    vec2 interaction_uv = (p / interaction_map_info.z + 1.0) / interaction_map_info.xy;
+    vec4 interaction = texture(interaction_map, interaction_uv);
 
     // Broad pigment washes, with a shore tint rather than simulated bed depth.
     vec3 color = mix(vec3(0.12, 0.40, 0.46), vec3(0.24, 0.55, 0.55),
@@ -77,6 +79,16 @@ void main()
     stroke *= smoothstep(0.50, 0.72, noise((p + drift) * vec2(0.095, 0.032)));
     color = mix(color, vec3(0.64, 0.79, 0.70), stroke * 0.40 * shore_fade * surface_weight);
 
+    // At the isometric camera, sub-unit displacement and subtle specular alone
+    // barely read. Give the actual simulated crests/troughs a painterly value
+    // response as well. Continuous signed height preserves the wave shape;
+    // this does not draw another set of rings or trail segments.
+    float wake_height = interaction.r * shore_fade * surface_weight;
+    float crest_tone = max(wake_height, 0.0) / (0.10 + abs(wake_height));
+    float trough_tone = max(-wake_height, 0.0) / (0.10 + abs(wake_height));
+    color *= 1.0 - trough_tone * 0.30;
+    color = mix(color, vec3(0.61, 0.78, 0.70), crest_tone * 0.42);
+
     float contact = 1.0 - smoothstep(0.35, 1.35 + detail * 0.65, bank);
     contact *= mix(0.30, 0.80, smoothstep(0.25, 0.75, detail));
     float shore_wave = sin(bank * 1.4 + detail * 1.8 + water_time * 0.90);
@@ -88,11 +100,9 @@ void main()
     // Fine ripples affect the light without requiring denser geometry.
     slope += cos(dot(p, vec2(0.19, 0.11)) - water_time * 1.05) * vec2(0.19, 0.11) * 0.16;
     // Persistent simulated height/slopes, not a list of drawn wake primitives.
-    vec2 interaction_uv = (p / interaction_map_info.z + 1.0) / interaction_map_info.xy;
-    vec4 interaction = texture(interaction_map, interaction_uv);
-    slope += interaction.gb * 0.65;
-    // Motion reads mainly through normals and reflected light; only disturbed
-    // water carries a little short-lived foam, never a white outline per wave.
+    slope += interaction.gb * 1.5;
+    // Only disturbed water carries a little short-lived foam, never a white
+    // outline per wave. Tonal contrast above also works outside the sun highlight.
     foam = max(foam, interaction.a * smoothstep(0.25, 0.75, detail) * shore_fade);
     slope *= shore_fade;
     vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));

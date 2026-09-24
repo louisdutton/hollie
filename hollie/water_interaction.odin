@@ -47,6 +47,34 @@ water_interaction_prepare :: proc() {
 	}
 }
 
+// Separate contact generation from GPU state so tests cover body motion through
+// to the height/normal data uploaded for shading.
+water_body_disturbance :: proc(
+	body: ^Transform,
+	bounds: Aabb,
+	spacing: f32,
+	in_water: bool,
+) -> Water_Disturbance {
+	center := Vec2{(bounds.min.x + bounds.max.x) * 0.5, (bounds.min.z + bounds.max.z) * 0.5}
+	radius := Vec2 {
+		max((bounds.max.x - bounds.min.x) * 0.65, spacing * 1.5),
+		max((bounds.max.z - bounds.min.z) * 0.65, spacing * 1.5),
+	}
+	depth := f32(0)
+	if in_water && bounds.max.y >= WATER_SURFACE {
+		depth = clamp(WATER_SURFACE - bounds.min.y, 0, min(radius.x, radius.y) * 0.6)
+	}
+	previous, previous_depth := body.water_previous_position, body.water_previous_depth
+	delta := center - previous
+	// Spawn/teleport establishes contact without sweeping across the room.
+	if !body.water_contact_valid || delta.x * delta.x + delta.y * delta.y > 40 * 40 {
+		previous, previous_depth = center, depth
+	}
+	body.water_previous_position, body.water_previous_depth = center, depth
+	body.water_contact_valid = true
+	return {previous, center, radius, previous_depth, depth}
+}
+
 water_update_interactions :: proc(dt: f32) {
 	if dt <= 0 do return
 	water_interaction_prepare()
@@ -74,28 +102,8 @@ water_update_interactions :: proc(dt: f32) {
 		}
 		bounds := collision_aabb_at(body.position, collider, body.height)
 		center := Vec2{(bounds.min.x + bounds.max.x) * 0.5, (bounds.min.z + bounds.max.z) * 0.5}
-		radius := Vec2 {
-			max(collider.size.x * 0.65, water_field.spacing * 1.5),
-			max(collider.size.z * 0.65, water_field.spacing * 1.5),
-		}
-		depth := f32(0)
-		if water_at(center) && bounds.max.y >= WATER_SURFACE {
-			depth = clamp(WATER_SURFACE - bounds.min.y, 0, min(radius.x, radius.y) * 0.6)
-		}
-		previous, previous_depth := body.water_previous_position, body.water_previous_depth
-		delta := center - previous
-		// Spawn/teleport establishes contact without sweeping across the room.
-		if !body.water_contact_valid || delta.x * delta.x + delta.y * delta.y > 40 * 40 {
-			previous, previous_depth = center, depth
-		}
-		if previous_depth > 0 || depth > 0 {
-			append(
-				&water_disturbances,
-				Water_Disturbance{previous, center, radius, previous_depth, depth},
-			)
-		}
-		body.water_previous_position, body.water_previous_depth = center, depth
-		body.water_contact_valid = true
+		source := water_body_disturbance(body, bounds, water_field.spacing, water_at(center))
+		if source.previous_depth > 0 || source.depth > 0 do append(&water_disturbances, source)
 	}
 	water_field_advance(&water_field, water_disturbances[:], dt)
 	water_field_dirty = true

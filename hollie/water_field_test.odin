@@ -2,6 +2,49 @@ package hollie
 
 import "core:testing"
 
+@(test)
+test_swimmer_produces_shading_data_at_room_resolution :: proc(t: ^testing.T) {
+	// Same cell spacing as the 960-world-unit demo room at the 256-cell cap.
+	field := water_field_init(66, 50, 3.75)
+	defer water_field_fini(&field)
+	for y in 1 ..< field.height - 1 {
+		for x in 1 ..< field.width - 1 do field.wet[y * field.width + x] = true
+	}
+	collider := Collider {
+		size   = {16, 22, 16},
+		offset = {-8, 0, -8},
+	}
+	body := Transform {
+		position = {60, 90},
+		height   = WATER_SURFACE - WATER_DRAFT,
+		velocity = {60, 0},
+		swimming = true,
+	}
+	for frame in 0 ..= 120 {
+		body.position.x = 60 + f32(frame)
+		bounds := collision_aabb_at(body.position, collider, body.height)
+		sources := [1]Water_Disturbance{water_body_disturbance(&body, bounds, field.spacing, true)}
+		water_field_advance(&field, sources[:], 1.0 / 60)
+	}
+	water_field_encode(&field)
+	crest, slope := f32(0), f32(0)
+	readable_cells := 0
+	for y in 1 ..< field.height - 1 {
+		for x in 1 ..< field.width - 1 {
+			point := Vec2{f32(x) - 0.5, f32(y) - 0.5} * field.spacing
+			// Measure the trail outside the body silhouette, not its hidden centre.
+			if point.x > body.position.x - 16 || point.x < body.position.x - 60 do continue
+			pixel := field.pixels[y * field.width + x]
+			crest = max(crest, pixel[0])
+			slope = max(slope, max(abs(pixel[1]), abs(pixel[2])))
+			if abs(pixel[0]) > 0.025 do readable_cells += 1
+		}
+	}
+	testing.expect(t, crest > 0.025)
+	testing.expect(t, slope > 0.005)
+	testing.expect(t, readable_cells >= 10)
+}
+
 water_test_pool :: proc() -> Water_Field {
 	field := water_field_init(50, 34, 2)
 	for y in 1 ..< field.height - 1 {

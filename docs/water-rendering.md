@@ -25,8 +25,12 @@ boundary; damping removes energy. Occupancy is refreshed for editor changes.
 An RGBA32F texture carries height, two surface derivatives and short-lived turbulence
 foam. Rendering samples it for displacement and normals, with restrained foam only
 at disturbed locations. Texture unit 12 is reserved for it. Simulation continues
-after bodies stop; lighting reveals the moving surface rather than outlining each
-wave in white. Room/rendering teardown releases arrays and GPU resources.
+after bodies stop. Signed height also drives restrained light crest and dark trough
+tones: normal-only lighting was too subtle at the isometric camera. The tonal
+response is continuous, with a 0.10-world-unit half-response, and vanishes exactly
+at rest. Shading normals exaggerate the simulated slope by 1.5 for readability;
+geometric displacement retains its 0.65 scale. Room/rendering teardown releases
+arrays and GPU resources.
 
 This is a linear small-wave solver, not a full shallow-water or fluid-volume solver.
 It does not simulate breaking waves, spray, advected currents or feedback into
