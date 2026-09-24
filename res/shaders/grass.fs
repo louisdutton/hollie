@@ -16,6 +16,8 @@ uniform vec3 fillColor;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
 uniform int shadowMapResolution;
+uniform vec3 meadow_fog; // Start distance, end distance, strength (zero in gameplay).
+uniform vec3 meadow_fog_color;
 out vec4 finalColor;
 
 void main()
@@ -31,7 +33,7 @@ void main()
     vec4 light_position = lightVP * vec4(world_position, 1.0);
     vec3 uv = light_position.xyz / light_position.w * 0.5 + 0.5;
     float shadow = 0.0;
-    if (all(greaterThanEqual(uv, vec3(0.0))) && all(lessThanEqual(uv, vec3(1.0)))) {
+    if (shadowMapResolution > 0 && all(greaterThanEqual(uv, vec3(0.0))) && all(lessThanEqual(uv, vec3(1.0)))) {
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
                 float depth = texture(shadowMap, uv.xy + vec2(x, y) / float(shadowMapResolution)).r;
@@ -60,5 +62,10 @@ void main()
     lit += keyColor * (highlight * 0.035 + fresnel * 0.025 + wind_sheen * 0.06)
         * upper_leaf * visibility;
     lit *= 1.0 - grass_contact * 0.08;
-    finalColor = vec4(pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
+    vec3 color = pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2));
+    if (meadow_fog.z > 0.0) {
+        float haze = smoothstep(meadow_fog.x, meadow_fog.y, length(world_position - view_position));
+        color = mix(color, meadow_fog_color, haze * meadow_fog.z);
+    }
+    finalColor = vec4(color, 1.0);
 }

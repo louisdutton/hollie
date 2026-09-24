@@ -5,6 +5,7 @@ in vec2 vertexTexCoord; // Shared world-space root for each blade.
 in vec4 vertexColor;
 uniform mat4 mvp;
 uniform float grass_time;
+uniform float meadow_landscape; // Zero for gameplay; title-only rolling terrain.
 uniform vec4 grass_contacts[32];
 uniform vec4 grass_motion[32];
 uniform int grass_contact_count;
@@ -98,6 +99,14 @@ void main()
     // A soft band on the leading shoulder of each gust, never on the ground.
     wind_highlight = smoothstep(0.35, 0.68, wind_front)
         * (1.0 - smoothstep(0.78, 0.98, wind_front)) * blade;
+    // Ground and blades use the same root height, preserving their attachment.
+    if (meadow_landscape > 0.0) {
+        float a = root.x * 0.009 + root.y * 0.004;
+        float b = root.y * 0.010;
+        position.y += (sin(a) * 12.0 + sin(b) * 8.0) * meadow_landscape;
+        vec2 slope = vec2(cos(a) * 0.108, cos(a) * 0.048 + cos(b) * 0.08);
+        meadow_normal = normalize(meadow_normal + vec3(-slope.x, 0.0, -slope.y) * meadow_landscape);
+    }
     grass_contact = contact * blade;
     world_position = position; // Shadows must follow the displaced geometry.
     gl_Position = mvp * vec4(position, 1.0);

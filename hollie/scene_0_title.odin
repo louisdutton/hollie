@@ -2,6 +2,7 @@
 package hollie
 
 import "graphics"
+import "input"
 
 Title_Menu_State :: enum {
 	Main,
@@ -22,12 +23,16 @@ title_state := struct {
 }
 
 init_title_screen :: proc() {
+	title_meadow_init()
 	title_set_menu(.Main)
 }
 
-unload_title_screen :: proc() {}
+unload_title_screen :: proc() {
+	title_meadow_fini()
+}
 
 update_title_screen :: proc(dt: f32) {
+	title_meadow.time += max(dt, 0)
 	navigation := ui_focus_update(
 		&title_state.focus,
 		title_menu_item_count(title_state.menu_state),
@@ -37,13 +42,12 @@ update_title_screen :: proc(dt: f32) {
 }
 
 draw_title_screen :: proc() {
+	title_meadow_draw()
 	ui_begin()
 	defer ui_end()
 
-	graphics.draw_rect_i(0, 0, design_width, design_height, graphics.Colour{20, 29, 35, 255})
-
-	pos := Vec2{20, 10}
-	graphics.draw_text_ex(game.font, "Hollie", pos, 64, 2, graphics.WHITE)
+	graphics.draw_text_ex(game.font, "Hollie", {43, 67}, 72, 2, {34, 58, 49, 110})
+	graphics.draw_text_ex(game.font, "Hollie", {40, 64}, 72, 2, {252, 245, 218, 255})
 
 	switch title_state.menu_state {
 	case .Main: title_draw_main_menu()
@@ -52,7 +56,15 @@ draw_title_screen :: proc() {
 	case .Visual: title_draw_visual_menu()
 	case .Controls: title_draw_controls_menu()
 	}
-	ui_menu_action_bar(title_state.menu_state == .Audio || title_state.menu_state == .Visual)
+	if title_state.menu_state == .Main {
+		x: f32 = 40
+		for action in ([]input.Action{.Menu_Navigate, .Menu_Confirm, .Menu_Back}) {
+			ui_draw_action_hint(action, x, 410, 11, {246, 241, 218, 255})
+			x += ui_action_hint_width(action) + 20
+		}
+	} else {
+		ui_menu_action_bar(title_state.menu_state == .Audio || title_state.menu_state == .Visual)
+	}
 }
 
 title_handle_input :: proc(navigation: Ui_Navigation) {
@@ -70,7 +82,14 @@ title_handle_input :: proc(navigation: Ui_Navigation) {
 }
 
 title_draw_main_menu :: proc() {
-	ui_menu_panel("Main menu", title_main_menu_items[:], title_state.focus)
+	for item, index in title_main_menu_items {
+		y := f32(184 + index * 36)
+		selected := index == title_state.focus.index
+		color: graphics.Colour = selected ? {255, 246, 211, 255} : {235, 241, 221, 235}
+		if selected do graphics.draw_circle(43, y + 10, 3, color)
+		graphics.draw_text_ex(game.font, item, {59, y + 2}, 22, 1, {25, 46, 36, 210})
+		graphics.draw_text_ex(game.font, item, {57, y}, 22, 1, color)
+	}
 }
 
 title_draw_options_menu :: proc() {

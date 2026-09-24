@@ -200,8 +200,28 @@ grass_upload_contacts :: proc(shader: graphics.Shader, chunk_min, chunk_max: Vec
 grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 	density := f32(tilemap.get_grass_density(x, y)) / 255
 	size := f32(tilemap.get_tile_size())
+	grass_build_patch(
+		builder,
+		x,
+		y,
+		size,
+		tilemap.get_tilemap_width(),
+		density,
+		grass_ground_tile(x, y),
+	)
+}
+
+// Shared blade geometry for gameplay tiles and the independently owned title meadow.
+grass_build_patch :: proc(
+	builder: ^Grass_Mesh_Builder,
+	x, y: int,
+	size: f32,
+	seed_width: int,
+	density: f32,
+	ground: bool,
+) {
 	left, top := f32(x) * size, f32(y) * size
-	if grass_ground_tile(x, y) {
+	if ground {
 		// Alpha encodes blade height; zero marks the continuous ground wash.
 		a, b := Vec3{left, 0.03, top}, Vec3{left, 0.03, top + size}
 		c, d := Vec3{left + size, 0.03, top + size}, Vec3{left + size, 0.03, top}
@@ -209,7 +229,7 @@ grass_build_tile :: proc(builder: ^Grass_Mesh_Builder, x, y: int) {
 		grass_mesh_append(builder, []Vec3{a, b, c, d}, []u16{0, 1, 2, 0, 2, 3}, ground)
 	}
 	for blade in 0 ..< 36 {
-		seed := (y * tilemap.get_tilemap_width() + x) * 251 + blade * 7
+		seed := (y * seed_width + x) * 251 + blade * 7
 		if grass_random(seed + 5) > density do continue
 		root := Vec3 {
 			left + (f32(blade % 6) + 0.2 + grass_random(seed) * 0.6) * size / 6,

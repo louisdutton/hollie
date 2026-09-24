@@ -40,12 +40,15 @@ rendering_set_shader_vec3 :: proc(shader: graphics.Shader, name: cstring, value:
 	graphics.set_shader_vec3(shader, location, &uniform_value)
 }
 
-rendering_configure_lighting :: proc(shader: graphics.Shader) {
-	rendering_set_shader_vec3(shader, "ambientColor", environment.ambient)
-	rendering_set_shader_vec3(shader, "keyDirection", environment.sun_direction)
-	rendering_set_shader_vec3(shader, "keyColor", environment.sun_color)
-	rendering_set_shader_vec3(shader, "fillDirection", environment.fill_direction)
-	rendering_set_shader_vec3(shader, "fillColor", environment.fill_color)
+rendering_configure_lighting :: proc(
+	shader: graphics.Shader,
+	lighting: Environment_State = environment,
+) {
+	rendering_set_shader_vec3(shader, "ambientColor", lighting.ambient)
+	rendering_set_shader_vec3(shader, "keyDirection", lighting.sun_direction)
+	rendering_set_shader_vec3(shader, "keyColor", lighting.sun_color)
+	rendering_set_shader_vec3(shader, "fillDirection", lighting.fill_direction)
+	rendering_set_shader_vec3(shader, "fillColor", lighting.fill_color)
 }
 
 rendering_init :: proc() {
