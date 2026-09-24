@@ -132,12 +132,32 @@ rendering_draw_water :: proc() {
 
 WATER_WAKE_COUNT :: 48
 WATER_WAKE_LIFETIME :: f32(2.4)
+WATER_WAKE_INTERVAL :: f32(0.10)
 Water_Wake :: struct {
-	position:              Vec2,
-	age, strength, radius: f32,
+	position, direction:               Vec2,
+	age, strength, width, half_length: f32,
 }
 water_wakes: [WATER_WAKE_COUNT]Water_Wake
 water_wake_next: int
+
+water_make_wake :: proc(body: Transform, collider: Collider) -> Water_Wake {
+	speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
+	if speed <= 3 do return {}
+	direction := body.velocity / speed
+	width := max(min(collider.size.x, collider.size.z) * 0.35, 2)
+	// Overlap consecutive strokes so motion leaves ribbons rather than beads.
+	half_length := max(speed * WATER_WAKE_INTERVAL, width)
+	center :=
+		body.position +
+		Vec2{collider.offset.x + collider.size.x / 2, collider.offset.z + collider.size.z / 2}
+	return {
+		position = center - direction * (width + half_length * 0.5),
+		direction = direction,
+		strength = clamp(speed / 100, 0, 0.75),
+		width = width,
+		half_length = half_length,
+	}
+}
 
 water_update_wakes :: proc(dt: f32) {
 	for &wake in water_wakes do wake.age += dt
@@ -162,32 +182,35 @@ water_update_wakes :: proc(dt: f32) {
 		}
 		body.wake_timer -= dt
 		if body.wake_timer > 0 do continue
-		speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
-		strength := clamp(0.15 + speed / 120 + abs(body.vertical_velocity) / 180, 0.15, 1)
-		water_wakes[water_wake_next] = {
-			position = body.position,
-			strength = strength,
-			radius   = max(min(collider.size.x, collider.size.z) * 0.35, 2),
-		}
+		wake := water_make_wake(body^, collider)
+		if wake.strength <= 0 do continue
+		water_wakes[water_wake_next] = wake
 		water_wake_next = (water_wake_next + 1) % WATER_WAKE_COUNT
-		body.wake_timer = speed > 3 ? 0.16 : 0.8
+		body.wake_timer = WATER_WAKE_INTERVAL
 	}
 }
 
 water_upload_wakes :: proc(shader: graphics.Shader) {
 	packets: [WATER_WAKE_COUNT][4]f32
+	shapes: [WATER_WAKE_COUNT][4]f32
 	for wake, index in water_wakes {
 		if wake.age >= WATER_WAKE_LIFETIME || wake.strength <= 0 do continue
 		packets[index] = {
 			wake.position.x,
 			wake.position.y,
-			wake.radius + wake.age * 12,
+			wake.width + wake.age * 2,
 			wake.strength * (1 - wake.age / WATER_WAKE_LIFETIME),
 		}
+		shapes[index] = {wake.direction.x, wake.direction.y, wake.half_length + wake.age, 0}
 	}
 	graphics.set_shader_vec4_array(
 		shader,
 		graphics.get_shader_location(shader, "wakes[0]"),
 		packets[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "wake_shapes[0]"),
+		shapes[:],
 	)
 }

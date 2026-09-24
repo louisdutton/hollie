@@ -115,8 +115,9 @@ particle_emit_trail :: proc(
 ) {
 	delta := transform.position - previous
 	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
-	if (!was_grounded && !transform.swimming) ||
-	   (!transform.grounded && !transform.swimming) ||
+	if transform.swimming ||
+	   !was_grounded ||
+	   !transform.grounded ||
 	   distance <= 0 ||
 	   distance > 40 {
 		transform.dust_distance = 0
@@ -129,8 +130,6 @@ particle_emit_trail :: proc(
 		transform.velocity.x * transform.velocity.x + transform.velocity.y * transform.velocity.y,
 	)
 	strength := clamp(speed / RIDING_MOVEMENT_PROFILE.max_speed, 0, 1)
-	wading := water_at(transform.position) && transform.height < WATER_SURFACE
-	trail_color := wading ? graphics.Colour{174, 231, 240, 110} : color
 	next := spacing - transform.dust_distance
 	for next <= distance {
 		if len(particle_system.particles) < 512 {
@@ -144,16 +143,15 @@ particle_emit_trail :: proc(
 					direction * (mounted ? -5 : 2) +
 					side * spread,
 					velocity = -direction * (3 + strength * 7) + side * rand.float32_range(-3, 3),
-					height = wading ? WATER_SURFACE + 0.3 : previous_height + (transform.height - previous_height) * next / distance + 0.8,
+					height = previous_height +
+					(transform.height - previous_height) * next / distance +
+					0.8,
 					rise_speed = rand.float32_range(2, 5),
 					dust = true,
 					lifetime = lifetime,
 					max_lifetime = lifetime,
-					size = rand.float32_range(2, 3.4) *
-					(0.6 + strength) *
-					size_scale *
-					(wading ? 0.6 : 1),
-					color = trail_color,
+					size = rand.float32_range(2, 3.4) * (0.6 + strength) * size_scale,
+					color = color,
 				},
 			)
 		}

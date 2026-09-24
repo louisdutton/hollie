@@ -3,6 +3,56 @@ package hollie
 import "core:testing"
 
 @(test)
+test_water_wakes_follow_motion_and_stop_when_idle :: proc(t: ^testing.T) {
+	collider := Collider {
+		size   = {12, 20, 12},
+		offset = {-6, 0, -6},
+	}
+	body := Transform {
+		position = {40, 50},
+		velocity = {60, 0},
+	}
+	wake := water_make_wake(body, collider)
+	testing.expect_value(t, wake.direction, Vec2{1, 0})
+	testing.expect(t, wake.position.x < body.position.x)
+	testing.expect_value(t, wake.position.y, body.position.y)
+	testing.expect(t, wake.half_length >= 60 * WATER_WAKE_INTERVAL)
+	body.velocity = {0, -60}
+	turn := water_make_wake(body, collider)
+	testing.expect_value(t, turn.direction, Vec2{0, -1})
+	testing.expect(t, turn.position.y > body.position.y)
+	body.velocity = {}
+	body.vertical_velocity = 20
+	testing.expect_value(t, water_make_wake(body, collider).strength, f32(0))
+}
+
+@(test)
+test_swimming_emits_no_dust_trail :: proc(t: ^testing.T) {
+	saved := particle_system
+	particle_system = {}
+	defer {
+		delete(particle_system.particles)
+		particle_system = saved
+	}
+	body := Transform {
+		position      = {10, 0},
+		velocity      = {60, 0},
+		grounded      = true,
+		swimming      = true,
+		dust_distance = 4,
+	}
+	particle_emit_trail(&body, {}, 0, true, false)
+	testing.expect_value(t, len(particle_system.particles), 0)
+	testing.expect_value(t, body.dust_distance, f32(0))
+	particle_emit_trail(&body, {}, 0, true, true)
+	testing.expect_value(t, len(particle_system.particles), 0)
+	// Ground movement still produces its normal trail after leaving the water.
+	body.swimming = false
+	particle_emit_trail(&body, {}, 0, true, false)
+	testing.expect(t, len(particle_system.particles) > 0)
+}
+
+@(test)
 test_water_entry_sinks_then_settles_without_ground_contact :: proc(t: ^testing.T) {
 	body := Transform {
 		vertical_velocity = -120,

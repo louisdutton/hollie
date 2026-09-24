@@ -5,6 +5,7 @@ in float surface_weight;
 uniform float water_time;
 uniform float tile_size;
 uniform vec4 wakes[48];
+uniform vec4 wake_shapes[48];
 uniform sampler2D shore_map;
 uniform vec3 shore_map_info;
 uniform vec3 view_direction;
@@ -91,16 +92,22 @@ void main()
     for (int i = 0; i < 48; i++) {
         if (wakes[i].w <= 0.0) continue;
         vec2 delta = p - wakes[i].xy;
-        float radius = length(delta);
-        float ring = radius - wakes[i].z;
-        float envelope = exp(-ring * ring * 0.10) * wakes[i].w;
-        float crest = cos(ring * 1.15);
-        wake_lift += crest * envelope;
-        wake_slope += delta / max(radius, 0.001) * envelope *
-                      (-1.15 * sin(ring * 1.15) - 0.20 * ring * crest);
-        foam += crest_mask(crest, 0.75) * envelope * mix(0.35, 0.65, detail) * shore_fade;
+        vec2 direction = wake_shapes[i].xy;
+        vec2 side = vec2(-direction.y, direction.x);
+        float extent = wake_shapes[i].z;
+        float along = dot(delta, direction);
+        float across = dot(delta, side);
+        float edge = abs(across) - wakes[i].z;
+        float ribbon = exp(-edge * edge * 0.5 - along * along / (extent * extent)) * wakes[i].w;
+        // Match the vertex height field; overlapping strokes never pile up.
+        if (ribbon > wake_lift) {
+            wake_lift = ribbon;
+            wake_slope = ribbon * (-edge * sign(across) * side -
+                                   2.0 * along / (extent * extent) * direction);
+        }
     }
-    if (abs(wake_lift) < 1.0) slope += wake_slope * 0.65;
+    foam = max(foam, wake_lift * mix(0.35, 0.65, detail) * shore_fade);
+    slope += wake_slope * 0.30;
     slope *= shore_fade;
     vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
     vec3 light = -normalize(keyDirection);

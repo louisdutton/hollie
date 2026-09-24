@@ -2,8 +2,12 @@
 
 Water uses broad teal washes, sparse curved strokes, warm broken foam, and small
 ambient waves. Procedural strokes keep the surface editable without a bitmap
-asset. Existing gameplay wakes contribute displacement, normal variation and
-foam. Buoyancy continues to use the fixed gameplay surface height.
+asset. Moving bodies leave overlapping pairs of directional strokes, which
+spread gently outward and fade at their deposited positions. The shader uses
+the strongest stroke rather than accumulating brightness at overlaps. Stationary
+bodies emit no wake, and swimming does not emit dust/sphere particles. Wakes
+contribute displacement, normal variation and foam. Buoyancy continues to use
+the fixed gameplay surface height.
 
 A cached RGBA8 texture stores distance to non-water cells, capped at one tile.
 Four samples per tile plus boundary samples provide a continuous bilinear field,
@@ -29,4 +33,4 @@ Automated tests cover diagonal shore distances, tile-seam continuity, room edges
 and changed occupancy. GPU shader compilation, appearance and performance need
 an in-game review on a graphical machine. Review narrow channels, concave banks,
 swimmers, overlapping wakes, cast shadows, camera zoom, and water edits. Refraction,
-directional wakes, flow maps and cached water meshes remain future work.
+flow maps and cached water meshes remain future work.
