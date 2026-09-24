@@ -1,69 +1,52 @@
-# Painterly water
+# Graphic stylised water
 
-Water uses broad teal washes, sparse curved strokes, warm broken foam, and small
-ambient waves. Procedural strokes keep the surface editable without a bitmap
-asset. Swimming does not emit dust/sphere particles. Buoyancy continues to use
-the fixed gameplay surface height.
+The surface uses clear turquoise colour fields, a lighter shore band, cream foam,
+and broad warped cellular patterns. Two offset pattern layers suggest a darker
+underwater pattern and a sparse light surface pattern. Small ambient swells remain;
+normal/specular lighting is secondary to the graphic shapes.
 
-## Interactive surface
+## Interaction shapes
 
-Moving bodies drive a persistent damped height-field wave equation, rather than
-depositing rendered circles or ribbons. Each body supplies its previous and current
-submerged footprint. Their displaced-volume difference perturbs height; a five-point
-Laplacian accelerates neighbouring cells, so disturbances propagate, overlap, reflect
-at banks and settle. Still bodies add no forcing. Entry/exit changes displacement;
-spawn and teleport establish fresh contact without drawing a path across the room.
-Mounted riders and held objects do not duplicate their carrier's interaction.
+Bodies intersecting the surface receive an irregular foam collar. Moving bodies
+also get a curved front crest, oriented by movement and scaled by speed. Neither
+effect emits expanding rings. Their outlines are warped and broken by the same
+world-space pattern used across the water.
 
-The CPU grid is bounded to 256 cells on the longest room axis, plus a dry border.
-Spacing is at least one world unit and normally one eighth of a tile, increasing
-for large rooms. Updates subdivide frame time into steps no longer than 1/120 s,
-interpolating body motion within each step. At wave speed 22 the worst-case Courant
-number is 0.184, below the 2D stencil limit of 1/sqrt(2). Solid cells use a reflecting
-boundary; damping removes energy. Occupancy is refreshed for editor changes.
+A bounded history of connected, distance-sampled segments records actual movement.
+The shader unions their footprints into a short wake, narrows it with age, and
+dissolves the shared cellular foam pattern into irregular patches. Segment outlines
+are never rendered. The trail remains on the travelled path when a body turns or
+stops. Stopping emits no new segments; contact foam remains while old wake patches
+fade. Leaving water, spawning, teleporting, mounting and being picked up reset
+contact history to prevent streaks across gaps.
 
-An RGBA32F texture carries height, two surface derivatives and short-lived turbulence
-foam. Rendering samples it for displacement and normals, with restrained foam only
-at disturbed locations. Texture unit 12 is reserved for it. Simulation continues
-after bodies stop. Signed height also drives restrained light crest and dark trough
-tones: normal-only lighting was too subtle at the isometric camera. The tonal
-response is continuous, with a 0.10-world-unit half-response, and vanishes exactly
-at rest. Shading normals exaggerate the simulated slope by 1.5 for readability;
-geometric displacement retains its 0.65 scale. Room/rendering teardown releases
-arrays and GPU resources.
+There are at most 16 body contacts and 64 history segments, lasting 1.3 seconds.
+Arrays are uploaded as shader uniforms; there is no water simulation grid or
+per-frame texture upload. Excess history overwrites the oldest slot. Source shapes
+approximate the waterline from collider bounds rather than sampling scene depth.
+Swimming continues to emit no sphere/dust particles, and buoyancy is unchanged.
 
-This is a linear small-wave solver, not a full shallow-water or fluid-volume solver.
-It does not simulate breaking waves, spray, advected currents or feedback into
-buoyancy. The CPU implementation makes dynamics testable headlessly; GPU ping-pong
-textures are a future option if profiling warrants it. Large rooms lose spatial
-detail at the resolution cap. GPU upload cost and in-game appearance need review.
+## Shoreline and shading
 
-A cached RGBA8 texture stores distance to non-water cells, capped at one tile.
-Four samples per tile plus boundary samples provide a continuous bilinear field,
-including diagonal corners and room edges. Texel centres coincide with sample
-positions. Water occupancy and dimensions are compared before drawing so editor
-changes rebuild the texture; room and rendering teardown release it. The field
-controls shore tint, opacity, foam and wave damping. Shore tint is an artistic
-cue, not actual bed depth, and the bank geometry remains square.
+The existing cached RGBA8 distance-to-bank texture stays in use, including diagonal
+corners and room edges. Four samples per tile are bilinearly interpolated. Tile
+edits refresh it; teardown releases it. It drives shore colour, scalloped contact
+foam, broken approaching bands and wave damping. The shallow tint is artistic;
+the bed remains flat and the bank geometry remains square.
 
-The shader uses the world's ambient, key and fill lights and shadow map, with
-an orthographic view direction for restrained highlights. Fine normal ripples
-supplement the existing 4×4 surface cells per tile. Banks and volume bottoms stay
-anchored. Texture unit 11 holds shoreline data across immediate-mode batch
-flushes; the existing shadow map uses unit 10.
+World lighting and shadows are retained with a minimum ambient contribution so
+cream foam reads in shade. Ambient swells use the existing 4×4 cells per tile.
+Texture unit 11 is reserved for shore distance; shadows use unit 10.
 
-References informing the direction:
+## References and verification
 
-- [Spirit Crossing ocean shader](https://hazelstagner.gay/2025/03/21/spirit-crossing-ocean-shader/): deliberate crest shapes, warped layers and sparse shimmer. Our strokes are procedural rather than painted textures.
-- [Cyanilux shoreline breakdown](https://www.cyanilux.com/tutorials/shoreline-shader-breakdown/): shore gradients, broken foam and travelling bands. Our gradient comes from tile occupancy rather than screen depth or authored UVs.
-- [GPU Gems water](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models): separate geometric waves from finer shading detail.
-- [Evan Wallace's WebGL water source](https://github.com/evanw/webgl-water/blob/master/water.js): persistent height/velocity simulation, displaced-volume interaction and normals derived from the resulting height field. Our CPU solver uses explicit world units, bounded timesteps and tile-bank boundaries.
-- [SideFX shallow-water introduction](https://www.sidefx.com/docs/houdini/heightfields/shallowintro.html): height-field methods suit ponds and small waves, with stability and breaking-wave limitations. Our linear solver does not implement Houdini's shallow-water model.
+- [Daniel Ilett's stylised water](https://danielilett.com/2020-04-05-tut5-3-urp-stylised-water/): warped cellular foam, offset light/dark patterns and intersection foam. Here the pattern is procedural GLSL and contacts come from colliders.
+- [Caycee Martindale's water and ripples](https://caycee_martindale.artstation.com/projects/8BNKN6): textured water interaction with controlled travel and dissolve. This implementation uses a body-attached crest and a dissolving movement footprint.
+- [Spirit Crossing ocean shader](https://hazelstagner.gay/2025/03/21/spirit-crossing-ocean-shader/): deliberately shaped surface layers and foam.
+- [Cyanilux shoreline breakdown](https://www.cyanilux.com/tutorials/shoreline-shader-breakdown/): shore gradients and broken foam.
 
-Automated tests cover propagation beyond body footprints, displaced-volume balance,
-decay, land barriers, still bodies, frame-rate consistency, swimming particle
-suppression, diagonal shore distances, tile-seam continuity, room edges and changed
-occupancy. GPU shader compilation, appearance and performance need
-an in-game review on a graphical machine. Review narrow channels, concave banks,
-swimmers, overlapping wakes, cast shadows, camera zoom, and water edits. Refraction,
-flow maps and cached water meshes remain future work.
+Automated checks cover connected travel sampling, turns, stationary contact, exits,
+teleports, swimming particle suppression and shore distances. The removed solver's
+propagation tests no longer describe this effect. GPU shader compilation, visual
+balance and performance still require a graphical review: swim straight, turn,
+stop, cross a bank, ride a turtle, and compare lit/shadowed water at gameplay zoom.

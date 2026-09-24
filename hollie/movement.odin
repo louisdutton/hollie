@@ -53,7 +53,6 @@ Transform :: struct {
 	grounded:                bool,
 	swimming:                bool,
 	water_previous_position: Vec2,
-	water_previous_depth:    f32,
 	water_contact_valid:     bool,
 	dust_distance:           f32,
 }

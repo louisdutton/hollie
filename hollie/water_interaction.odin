@@ -1,85 +1,83 @@
 package hollie
 
-import "core:c"
 import "core:math"
 import "graphics"
-import "tilemap"
 
-WATER_FIELD_MAX_CELLS :: 256
+WATER_FOAM_CONTACTS :: 16
+WATER_FOAM_TRAILS :: 64
+WATER_FOAM_LIFETIME :: f32(1.3)
 
-water_field: Water_Field
-water_field_texture: graphics.Texture_2D
-water_field_dirty: bool
-water_disturbances: [dynamic]Water_Disturbance
+Water_Foam_Contact :: struct {
+	position, radius, direction: Vec2,
+	speed:                       f32,
+}
+
+Water_Foam_Trail :: struct {
+	start, end:            Vec2,
+	radius, strength, age: f32,
+}
+
+Water_Foam_State :: struct {
+	contacts:      [WATER_FOAM_CONTACTS]Water_Foam_Contact,
+	contact_count: int,
+	trails:        [WATER_FOAM_TRAILS]Water_Foam_Trail,
+	next:          int,
+}
+
+water_foam: Water_Foam_State
 
 water_interaction_fini :: proc() {
-	if water_field_texture.id != 0 do graphics.unload_texture(water_field_texture)
-	water_field_texture = {}
-	water_field_fini(&water_field)
-	delete(water_disturbances)
-	water_disturbances = {}
-	water_field_dirty = false
+	water_foam = {}
 }
 
-water_interaction_prepare :: proc() {
-	size := f32(tilemap.get_tile_size())
-	extent := Vec2{f32(tilemap.get_tilemap_width()), f32(tilemap.get_tilemap_height())} * size
-	if extent.x <= 0 || extent.y <= 0 do return
-	spacing := max(max(size / 8, 1), max(extent.x, extent.y) / WATER_FIELD_MAX_CELLS)
-	width, height := int(math.ceil(extent.x / spacing)) + 2, int(math.ceil(extent.y / spacing)) + 2
-	if water_field.width != width ||
-	   water_field.height != height ||
-	   water_field.spacing != spacing {
-		water_interaction_fini()
-		water_field = water_field_init(width, height, spacing)
-		water_field_dirty = true
+// Sample actual travelled distance. Segments form one footprint; the shader
+// dissolves a shared foam pattern through it rather than drawing each segment.
+water_foam_track :: proc(state: ^Water_Foam_State, body: ^Transform, bounds: Aabb, wet: bool) {
+	if !wet || bounds.min.y >= WATER_SURFACE || bounds.max.y <= WATER_SURFACE {
+		body.water_contact_valid = false
+		return
 	}
-	for y in 1 ..< height - 1 {
-		for x in 1 ..< width - 1 {
-			i := y * width + x
-			point := Vec2{f32(x) - 0.5, f32(y) - 0.5} * spacing
-			wet := water_at(point)
-			if water_field.wet[i] == wet do continue
-			water_field.wet[i] = wet
-			water_field.cells[i], water_field.next[i] = {}, {}
-			water_field_dirty = true
-		}
-	}
-}
-
-// Separate contact generation from GPU state so tests cover body motion through
-// to the height/normal data uploaded for shading.
-water_body_disturbance :: proc(
-	body: ^Transform,
-	bounds: Aabb,
-	spacing: f32,
-	in_water: bool,
-) -> Water_Disturbance {
 	center := Vec2{(bounds.min.x + bounds.max.x) * 0.5, (bounds.min.z + bounds.max.z) * 0.5}
 	radius := Vec2 {
-		max((bounds.max.x - bounds.min.x) * 0.65, spacing * 1.5),
-		max((bounds.max.z - bounds.min.z) * 0.65, spacing * 1.5),
+		max((bounds.max.x - bounds.min.x) * 0.5, 3),
+		max((bounds.max.z - bounds.min.z) * 0.5, 3),
 	}
-	depth := f32(0)
-	if in_water && bounds.max.y >= WATER_SURFACE {
-		depth = clamp(WATER_SURFACE - bounds.min.y, 0, min(radius.x, radius.y) * 0.6)
+	speed := math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y)
+	direction := speed > 0.1 ? body.velocity / speed : Vec2{0, 1}
+	if state.contact_count < WATER_FOAM_CONTACTS {
+		state.contacts[state.contact_count] = {center, radius, direction, clamp(speed / 60, 0, 1)}
+		state.contact_count += 1
 	}
-	previous, previous_depth := body.water_previous_position, body.water_previous_depth
-	delta := center - previous
-	// Spawn/teleport establishes contact without sweeping across the room.
-	if !body.water_contact_valid || delta.x * delta.x + delta.y * delta.y > 40 * 40 {
-		previous, previous_depth = center, depth
+	delta := center - body.water_previous_position
+	distance := math.sqrt(delta.x * delta.x + delta.y * delta.y)
+	if !body.water_contact_valid || distance > 40 {
+		body.water_previous_position = center
+		body.water_contact_valid = true
+		return
 	}
-	body.water_previous_position, body.water_previous_depth = center, depth
-	body.water_contact_valid = true
-	return {previous, center, radius, previous_depth, depth}
+	width := clamp(min(radius.x, radius.y), 3, 14)
+	spacing := max(width * 0.4, 2)
+	if distance < spacing do return
+	travel := delta / distance
+	for distance >= spacing {
+		start := body.water_previous_position
+		end := start + travel * spacing
+		state.trails[state.next] = {
+			start    = start,
+			end      = end,
+			radius   = width,
+			strength = clamp(speed / 60, 0.35, 1),
+		}
+		state.next = (state.next + 1) % WATER_FOAM_TRAILS
+		body.water_previous_position = end
+		distance -= spacing
+	}
 }
 
 water_update_interactions :: proc(dt: f32) {
 	if dt <= 0 do return
-	water_interaction_prepare()
-	if water_field.width == 0 do return
-	clear(&water_disturbances)
+	water_foam.contact_count = 0
+	for &trail in water_foam.trails do trail.age = min(trail.age + dt, WATER_FOAM_LIFETIME)
 	for &entity in world.entities {
 		body: ^Transform
 		collider: Collider
@@ -102,39 +100,41 @@ water_update_interactions :: proc(dt: f32) {
 		}
 		bounds := collision_aabb_at(body.position, collider, body.height)
 		center := Vec2{(bounds.min.x + bounds.max.x) * 0.5, (bounds.min.z + bounds.max.z) * 0.5}
-		source := water_body_disturbance(body, bounds, water_field.spacing, water_at(center))
-		if source.previous_depth > 0 || source.depth > 0 do append(&water_disturbances, source)
+		water_foam_track(&water_foam, body, bounds, water_at(center))
 	}
-	water_field_advance(&water_field, water_disturbances[:], dt)
-	water_field_dirty = true
 }
 
 water_bind_interactions :: proc(shader: graphics.Shader) {
-	water_interaction_prepare()
-	if water_field.width == 0 do return
-	if water_field_dirty || water_field_texture.id == 0 {
-		water_field_encode(&water_field)
-		if water_field_texture.id == 0 {
-			water_field_texture = graphics.load_texture_float4(
-				water_field.pixels,
-				water_field.width,
-				water_field.height,
-			)
-		} else {
-			graphics.update_texture_float4(water_field_texture, water_field.pixels)
-		}
-		water_field_dirty = false
+	contacts, headings: [WATER_FOAM_CONTACTS][4]f32
+	for i in 0 ..< water_foam.contact_count {
+		contact := water_foam.contacts[i]
+		contacts[i] = {contact.position.x, contact.position.y, contact.radius.x, contact.radius.y}
+		headings[i] = {contact.direction.x, contact.direction.y, contact.speed, 1}
 	}
-	texture_slot := c.int(12)
-	graphics.enable_shader(shader.id)
-	graphics.active_texture_slot(texture_slot)
-	graphics.enable_texture(water_field_texture.id)
-	location := graphics.get_shader_location(shader, "interaction_map")
-	graphics.set_uniform(location, &texture_slot, graphics.SHADER_UNIFORM_INT, 1)
-	graphics.active_texture_slot(0)
-	rendering_set_shader_vec3(
+	starts, ends: [WATER_FOAM_TRAILS][4]f32
+	for trail, i in water_foam.trails {
+		if trail.strength <= 0 || trail.age >= WATER_FOAM_LIFETIME do continue
+		starts[i] = {trail.start.x, trail.start.y, trail.radius, trail.age / WATER_FOAM_LIFETIME}
+		ends[i] = {trail.end.x, trail.end.y, trail.strength, 1}
+	}
+	graphics.set_shader_vec4_array(
 		shader,
-		"interaction_map_info",
-		{f32(water_field.width), f32(water_field.height), water_field.spacing},
+		graphics.get_shader_location(shader, "foam_contacts[0]"),
+		contacts[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "foam_headings[0]"),
+		headings[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "foam_starts[0]"),
+		starts[:],
+	)
+	graphics.set_shader_vec4_array(
+		shader,
+		graphics.get_shader_location(shader, "foam_ends[0]"),
+		ends[:],
 	)
 }

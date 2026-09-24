@@ -4,10 +4,12 @@ in vec3 world_position;
 in float surface_weight;
 uniform float water_time;
 uniform float tile_size;
-uniform sampler2D interaction_map;
-uniform vec3 interaction_map_info;
 uniform sampler2D shore_map;
 uniform vec3 shore_map_info;
+uniform vec4 foam_contacts[16]; // centre.xy, waterline radii.zw
+uniform vec4 foam_headings[16]; // direction.xy, speed.z, active.w
+uniform vec4 foam_starts[64];   // start.xy, width.z, age.w
+uniform vec4 foam_ends[64];     // end.xy, strength.z, active.w
 uniform vec3 view_direction;
 uniform vec3 ambientColor;
 uniform vec3 keyDirection;
@@ -33,10 +35,37 @@ float noise(vec2 p)
                mix(hash(cell + vec2(0, 1)), hash(cell + vec2(1, 1)), u.x), u.y);
 }
 
-float crest_mask(float wave, float threshold)
+float cutout(float value, float threshold)
 {
-    float width = max(fwidth(wave), 0.025);
-    return smoothstep(threshold - width, threshold + width, wave);
+    float aa = max(fwidth(value), 0.015);
+    return smoothstep(threshold - aa, threshold + aa, value);
+}
+
+// Warped cellular borders give foam scallops, curved branches and open holes.
+// The same continuous world-space pattern breaks up shores, bodies and wakes.
+float foam_cells(vec2 p)
+{
+    p += vec2(sin(p.y * 1.7 + water_time * 0.24),
+              cos(p.x * 1.3 - water_time * 0.19)) * 0.32;
+    vec2 base = floor(p);
+    vec2 local = fract(p);
+    float nearest = 10.0;
+    float second = 10.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 cell = vec2(x, y);
+            vec2 jitter = vec2(hash(base + cell), hash(base + cell + vec2(37.2, 19.8)));
+            vec2 delta = cell + 0.2 + jitter * 0.6 - local;
+            float d = length(delta);
+            if (d < nearest) {
+                second = nearest;
+                nearest = d;
+            } else {
+                second = min(second, d);
+            }
+        }
+    }
+    return 1.0 - smoothstep(0.055, 0.17, second - nearest);
 }
 
 float light_visibility()
@@ -57,72 +86,89 @@ float light_visibility()
 void main()
 {
     vec2 p = world_position.xz;
-    vec2 drift = vec2(water_time * 0.55, -water_time * 0.32);
-    float wash = noise((p + drift) * 0.022);
-    float detail = noise((p - drift * 1.3) * 0.080);
+    vec2 drift = vec2(water_time * 0.60, -water_time * 0.35);
+    float wash = noise((p + drift) * 0.020);
+    float detail = noise((p - drift) * 0.14);
+    vec2 warp = vec2(noise(p * 0.11 + drift * 0.08),
+                     noise(p * 0.11 + vec2(17.3, 8.2) - drift * 0.06)) - 0.5;
     vec2 shore_uv = (p / tile_size * shore_map_info.z + 0.5) / shore_map_info.xy;
     float bank = texture(shore_map, shore_uv).r * tile_size;
-    float shore_fade = smoothstep(0.0, tile_size * 0.5, bank);
-    float shallows = 1.0 - smoothstep(0.0, tile_size * 0.85, bank);
-    vec2 interaction_uv = (p / interaction_map_info.z + 1.0) / interaction_map_info.xy;
-    vec4 interaction = texture(interaction_map, interaction_uv);
+    float shore_fade = smoothstep(0.0, tile_size * 0.4, bank);
+    float shallows = 1.0 - smoothstep(0.0, tile_size * 0.9, bank);
 
-    // Broad pigment washes, with a shore tint rather than simulated bed depth.
-    vec3 color = mix(vec3(0.12, 0.40, 0.46), vec3(0.24, 0.55, 0.55),
-                     smoothstep(0.24, 0.78, wash));
-    color = mix(color, vec3(0.38, 0.65, 0.59), shallows * 0.65);
-    color += (detail - 0.5) * vec3(0.025, 0.035, 0.025);
+    vec3 color = mix(vec3(0.10, 0.47, 0.56), vec3(0.19, 0.56, 0.61),
+                     smoothstep(0.25, 0.75, wash));
+    color = mix(color, vec3(0.37, 0.71, 0.66), shallows * 0.8);
 
-    // Long curved strokes break into islands; leave plenty of quiet surface.
-    float wave = sin(p.y * 0.27 + p.x * 0.055 + (detail - 0.5) * 3.0 - water_time * 0.75);
-    float stroke = crest_mask(wave, 0.94);
-    stroke *= smoothstep(0.50, 0.72, noise((p + drift) * vec2(0.095, 0.032)));
-    color = mix(color, vec3(0.64, 0.79, 0.70), stroke * 0.40 * shore_fade * surface_weight);
+    float pattern = foam_cells((p + drift) * 0.043);
+    float dark_pattern = foam_cells((p + drift + vec2(4.0, -3.0)) * 0.043);
+    float quiet = smoothstep(0.42, 0.72, wash);
+    color = mix(color, color * vec3(0.77, 0.86, 0.90),
+                dark_pattern * quiet * 0.42 * surface_weight);
+    float surface_foam = cutout(pattern * quiet, 0.68) * 0.40 * shore_fade;
 
-    // At the isometric camera, sub-unit displacement and subtle specular alone
-    // barely read. Give the actual simulated crests/troughs a painterly value
-    // response as well. Continuous signed height preserves the wave shape;
-    // this does not draw another set of rings or trail segments.
-    float wake_height = interaction.r * shore_fade * surface_weight;
-    float crest_tone = max(wake_height, 0.0) / (0.10 + abs(wake_height));
-    float trough_tone = max(-wake_height, 0.0) / (0.10 + abs(wake_height));
-    color *= 1.0 - trough_tone * 0.30;
-    color = mix(color, vec3(0.61, 0.78, 0.70), crest_tone * 0.42);
+    // A broad scalloped contact strip with irregular holes and broken bands.
+    float shore_contact = 1.0 - smoothstep(0.7, 2.5, bank + warp.x * 1.8);
+    float shore_band = sin(bank * 0.95 + detail * 2.0 + water_time * 0.8);
+    float shore_foam = cutout(shore_contact * mix(0.7, 1.0, detail), 0.48);
+    shore_foam = max(shore_foam, cutout(shore_band, 0.93) *
+                    smoothstep(2.0, 3.0, bank) * (1.0 - smoothstep(4.0, 8.0, bank)) *
+                    cutout(detail, 0.44) * 0.7);
 
-    float contact = 1.0 - smoothstep(0.35, 1.35 + detail * 0.65, bank);
-    contact *= mix(0.30, 0.80, smoothstep(0.25, 0.75, detail));
-    float shore_wave = sin(bank * 1.4 + detail * 1.8 + water_time * 0.90);
-    float foam = contact + crest_mask(shore_wave, 0.92) *
-                 smoothstep(0.8, 2.0, bank) * (1.0 - smoothstep(2.0, 7.0, bank)) * 0.28;
+    float body_foam = 0.0;
+    for (int i = 0; i < 16; i++) {
+        if (foam_headings[i].w == 0.0) continue;
+        vec2 delta = p - foam_contacts[i].xy;
+        vec2 radius = foam_contacts[i].zw + 1.2;
+        vec2 local = (delta + warp * 2.0) / radius;
+        float r = length(local);
+        float rim = 1.0 - smoothstep(0.08, 0.27, abs(r - 1.06));
+        float facing = dot(delta / max(length(delta), 0.001), foam_headings[i].xy);
+        float bow = 1.0 - smoothstep(0.06, 0.19, abs(r - 1.40 - warp.y * 0.12));
+        bow *= smoothstep(0.05, 0.65, facing) * foam_headings[i].z;
+        float breakup = mix(0.42, 1.0, detail);
+        body_foam = max(body_foam, max(rim * breakup, bow * mix(0.70, 1.0, detail)));
+    }
+    body_foam = cutout(body_foam, 0.50);
 
+    // Union connected footprints before applying the pattern: no visible
+    // per-segment outlines, paired rails, or repeating circles.
+    float trail_coverage = 0.0;
+    for (int i = 0; i < 64; i++) {
+        if (foam_ends[i].w == 0.0) continue;
+        vec2 a = foam_starts[i].xy;
+        vec2 segment = foam_ends[i].xy - a;
+        float age = foam_starts[i].w;
+        vec2 q = p + warp * (2.0 + age * 3.0);
+        float t = clamp(dot(q - a, segment) / max(dot(segment, segment), 0.001), 0.0, 1.0);
+        float distance = length(q - (a + segment * t));
+        float width = foam_starts[i].z * mix(1.1, 0.45, age);
+        float coverage = 1.0 - smoothstep(width * 0.2, width, distance);
+        coverage *= pow(1.0 - age, 0.65) * mix(0.8, 1.0, foam_ends[i].z);
+        trail_coverage = max(trail_coverage, coverage);
+    }
+    float wake_pattern = foam_cells((p - drift * 0.3) * 0.095);
+    float trail_foam = cutout(trail_coverage * (0.15 + wake_pattern * 0.85) *
+                             mix(0.7, 1.0, detail), 0.44);
+    float foam = max(max(surface_foam, shore_foam), max(body_foam, trail_foam));
+    foam *= surface_weight;
+
+    // Broad graphic colour and foam remain readable in shadow. Lighting gives
+    // context, with restrained sheen instead of making the effect depend on it.
     vec2 slope = cos(dot(p, vec2(0.065, 0.045)) - water_time * 0.70) * vec2(0.065, 0.045) * 0.24
                + cos(dot(p, vec2(-0.040, 0.100)) - water_time * 0.93) * vec2(-0.040, 0.100) * 0.14;
-    // Fine ripples affect the light without requiring denser geometry.
-    slope += cos(dot(p, vec2(0.19, 0.11)) - water_time * 1.05) * vec2(0.19, 0.11) * 0.16;
-    // Persistent simulated height/slopes, not a list of drawn wake primitives.
-    slope += interaction.gb * 1.5;
-    // Only disturbed water carries a little short-lived foam, never a white
-    // outline per wave. Tonal contrast above also works outside the sun highlight.
-    foam = max(foam, interaction.a * smoothstep(0.25, 0.75, detail) * shore_fade);
-    slope *= shore_fade;
-    vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
+    vec3 normal = normalize(vec3(-slope.x * shore_fade, 1.0, -slope.y * shore_fade));
     vec3 light = -normalize(keyDirection);
-    // Orthographic rays are parallel, including at the corners of the screen.
-    vec3 view = normalize(view_direction);
-    vec3 half_vector = normalize(light + view);
     float visibility = light_visibility();
-    float diffuse = max(dot(normal, light), 0.0);
-    float fill = max(dot(normal, -normalize(fillDirection)), 0.0);
-    vec3 illumination = ambientColor + keyColor * diffuse * visibility + fillColor * fill;
-
-    foam = clamp(foam, 0.0, 1.0) * surface_weight;
+    vec3 illumination = ambientColor + keyColor * max(dot(normal, light), 0.0) * visibility
+                      + fillColor * max(dot(normal, -normalize(fillDirection)), 0.0);
+    illumination = mix(vec3(1.0), illumination, 0.55);
     color *= mix(0.72, 1.0, surface_weight);
-    color = mix(color, vec3(0.86, 0.89, 0.76), foam * 0.85);
-    vec3 lit = pow(max(color, vec3(0.0)), vec3(2.2)) * illumination;
-    float highlight = smoothstep(0.20, 0.55, pow(max(dot(normal, half_vector), 0.0), 4.0));
-    lit += keyColor * highlight * 0.07 * visibility * surface_weight * (1.0 - foam);
-    float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 3.0);
-    lit += vec3(0.18, 0.28, 0.32) * fresnel * 0.10 * surface_weight;
-    float opacity = mix(0.72, mix(0.70, 0.48, shallows), surface_weight);
-    finalColor = vec4(pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2)), mix(opacity, 0.88, foam));
+    color = mix(color, vec3(0.90, 0.94, 0.82), foam * 0.95);
+    vec3 lit = pow(color, vec3(2.2)) * illumination;
+    vec3 half_vector = normalize(light + normalize(view_direction));
+    float highlight = pow(max(dot(normal, half_vector), 0.0), 6.0);
+    lit += keyColor * highlight * 0.035 * visibility * surface_weight * (1.0 - foam);
+    float opacity = mix(0.76, mix(0.82, 0.60, shallows), surface_weight);
+    finalColor = vec4(pow(max(lit, vec3(0.0)), vec3(1.0 / 2.2)), mix(opacity, 0.96, foam));
 }
