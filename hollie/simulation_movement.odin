@@ -35,17 +35,14 @@ simulation_move_body :: proc(
 		if animal, ok := &moving_entity^.(Enemy); ok {
 			was_ready := animal.ram_ready
 			bison_update_ram_state(animal, step_dt)
-			if animal.ram_ready && !was_ready do particle_crate_landing(&animal.transform, animal.collider, 180)
+			if animal.ram_ready && !was_ready do particle_impact_dust(&animal.transform, animal.collider, 180)
 			bison_try_ram(animal, collider^, step_dt, &obstacles)
 		}
 		fall_speed := -transform.vertical_velocity
 		airborne := !transform.grounded
 		physics_step(transform, collider^, obstacles[:], step_dt, true, ground_friction)
 		if animal, ok := &moving_entity^.(Enemy); ok do bison_update_ram_state(animal, 0)
-		if crate, ok := moving_entity^.(Holdable);
-		   ok && crate.held_by == 0 && airborne && transform.grounded && fall_speed > 20 {
-			particle_crate_landing(transform, collider^, fall_speed)
-		}
+		particle_emit_landing(transform, collider^, !airborne, fall_speed)
 		remaining -= step_dt
 	}
 

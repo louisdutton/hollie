@@ -160,7 +160,19 @@ particle_emit_trail :: proc(
 	transform.dust_distance = math.mod(transform.dust_distance + distance, spacing)
 }
 
-particle_crate_landing :: proc(body: ^Transform, collider: Collider, impact_speed: f32) {
+// Shared physics landing event: one burst on contact, never while swimming
+// or on subsequent grounded substeps. Riders and carried bodies skip physics.
+particle_emit_landing :: proc(
+	body: ^Transform,
+	collider: Collider,
+	was_grounded: bool,
+	impact_speed: f32,
+) {
+	if was_grounded || !body.grounded || body.swimming || impact_speed <= 20 do return
+	particle_impact_dust(body, collider, impact_speed)
+}
+
+particle_impact_dust :: proc(body: ^Transform, collider: Collider, impact_speed: f32) {
 	strength := clamp(impact_speed / 180, 0.2, 1)
 	center :=
 		body.position +

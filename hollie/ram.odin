@@ -79,7 +79,7 @@ bison_try_ram :: proc(animal: ^Enemy, collider: Collider, dt: f32, obstacles: ^[
 			position = gate.position,
 			height   = gate.height,
 		}
-		particle_crate_landing(&body, gate.collider, impact_speed)
+		particle_impact_dust(&body, gate.collider, impact_speed)
 		return
 	}
 }
