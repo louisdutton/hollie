@@ -11,6 +11,8 @@ Rooms author grass blades independently from their floor material through the op
 
 Ground and grass share one subtle, broad albedo field and the same ambient, key and fill light uniforms as the world. Stable per-blade resting lean overlaps neighbouring silhouettes without adding geometry. Curvature-derived normals and a restrained upper-leaf sheen reveal travelling wind fronts under the shared key light. Broad moving cloud cover gently attenuates direct light. Resting lean, wind, live player contact, and fading trails all feed the same directional constant-curvature displacement. Shadows sample displaced positions. Noise is evaluated at vertices instead of every fragment.
 
+The meadow palette blends light, desaturated sage and mint to complement the stylised turquoise water. Upper leaves receive a subtle warm pastel tint; roots retain the shared ground colour. The existing lighting, shadows, and wind sheen remain unchanged.
+
 Player trails retain the existing lifetime and chunk filtering. Room unload and editor entry release cached meshes. No geometry is regenerated each frame.
 
 Visual matching and frame-time measurements require an in-game review. Automated Odin checks do not validate runtime GLSL compilation or the visual result.
