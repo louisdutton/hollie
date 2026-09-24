@@ -22,8 +22,8 @@ out vec4 finalColor;
 void main()
 {
     // One low-frequency albedo field for the ground and all leaf roots.
-    // Fresh green washes retain colour while complementing the turquoise water.
-    vec3 albedo = mix(vec3(0.38, 0.68, 0.30), vec3(0.56, 0.79, 0.38),
+    // Muted darker greens blend into fresh light greens beside the turquoise water.
+    vec3 albedo = mix(vec3(0.44, 0.65, 0.38), vec3(0.56, 0.79, 0.38),
                       smoothstep(0.0, 1.0, meadow_tone));
     float upper_leaf = smoothstep(0.2, 0.95, blade_height);
     // A subtle yellow-green tip, with roots still matching the ground.
