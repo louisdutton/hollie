@@ -27,6 +27,7 @@ test_swimming_emits_no_dust_trail :: proc(t: ^testing.T) {
 	body.swimming = false
 	particle_emit_trail(&body, {}, 0, true, false)
 	testing.expect(t, len(particle_system.particles) > 0)
+	check_landing_dust_requires_a_dry_impact_transition(t)
 }
 
 @(test)

@@ -2,8 +2,9 @@ package hollie
 
 import "core:testing"
 
-@(test)
-test_landing_dust_requires_a_dry_impact_transition :: proc(t: ^testing.T) {
+// Called by the dust-trail test so global particle state is not shared by
+// concurrently running tests.
+check_landing_dust_requires_a_dry_impact_transition :: proc(t: ^testing.T) {
 	saved_particles := particle_system
 	particle_system = {}
 	defer {
