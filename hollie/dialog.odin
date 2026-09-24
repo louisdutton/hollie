@@ -42,12 +42,6 @@ dialog_start :: proc(npc: ^Npc) {
 
 	if dialog_state.is_active {
 		dialog_set_all_busy(true)
-		tween.to(
-			&camera_base_zoom,
-			ZOOM_DIALOG,
-			.Quadratic_Out,
-			time.Duration(0.5 * f64(time.Second)),
-		)
 		_dialog_start_current_message()
 	}
 }
@@ -83,12 +77,6 @@ dialog_advance :: proc() {
 	if dialog_state.current_page >= len(dialog_state.messages) {
 		dialog_state.is_active = false
 		dialog_set_all_busy(false)
-		tween.to(
-			&camera_base_zoom,
-			ZOOM_DEFAULT,
-			.Quadratic_Out,
-			time.Duration(0.5 * f64(time.Second)),
-		)
 		if len(dialog_state.current_runes) > 0 {
 			delete(dialog_state.current_runes)
 			dialog_state.current_runes = {}

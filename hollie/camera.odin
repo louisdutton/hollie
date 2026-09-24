@@ -8,6 +8,8 @@ import "window"
 CAMERA_SMOOTH: f32 : 0.1 // interpolation factor used when following the target
 ZOOM_RATE :: 0.6 // zoom adjustment per second at full input
 ZOOM_DEFAULT :: 1.8
+ZOOM_RIDING :: 1.4
+ZOOM_EASE_RATE :: f32(6) // About half a second to settle most of the transition.
 ZOOM_MAX :: 10.0
 ZOOM_MIN :: 1.0
 ZOOM_DIALOG :: 3.0 // zoom level used during dialogue
@@ -24,8 +26,51 @@ camera := graphics.Camera_2D {
 // this is an internal value that should not be controlled directly by user input
 screen_scale: f32 = 1.0
 
-// this is the user-controlled zoom value
+// Current eased zoom, before display scaling.
 camera_base_zoom: f32 = ZOOM_DEFAULT
+
+Camera_Zoom_Mode :: enum {
+	On_Foot,
+	Riding,
+	Dialog,
+}
+Camera_Zoom_State :: struct {
+	mode:   Camera_Zoom_Mode,
+	target: f32,
+}
+camera_zoom_state := Camera_Zoom_State {
+	target = ZOOM_DEFAULT,
+}
+
+camera_zoom_mode :: proc() -> Camera_Zoom_Mode {
+	if dialog_is_active() do return .Dialog
+	for &entity in world.entities {
+		if player, ok := &entity.(Player); ok && riding_animal_for_player(player.index) != nil do return .Riding
+	}
+	return .On_Foot
+}
+
+camera_zoom_step :: proc(
+	state: ^Camera_Zoom_State,
+	current: f32,
+	mode: Camera_Zoom_Mode,
+	override_input, dt: f32,
+) -> f32 {
+	if state.mode != mode {
+		state.mode = mode
+		switch mode {
+		case .On_Foot: state.target = ZOOM_DEFAULT
+		case .Riding: state.target = ZOOM_RIDING
+		case .Dialog: state.target = ZOOM_DIALOG
+		}
+	}
+	state.target = clamp(
+		state.target + clamp(override_input, -1, 1) * ZOOM_RATE * max(dt, 0),
+		ZOOM_MIN,
+		ZOOM_MAX,
+	)
+	return math.lerp(current, state.target, 1 - math.exp(-ZOOM_EASE_RATE * max(dt, 0)))
+}
 
 camera_relative_movement :: proc(direction: Vec2) -> Vec2 {
 	view := rendering_camera()
@@ -96,6 +141,9 @@ camera_follow_target :: proc(dt: f32) {
 }
 
 camera_init :: proc() {
+	camera_zoom_state = {
+		target = ZOOM_DEFAULT,
+	}
 	screen_scale = window.get_ui_scale()
 	camera_update(0)
 }
@@ -110,16 +158,21 @@ camera_update_zoom :: proc(dt: f32) {
 		screen_scale = window.get_ui_scale()
 	}
 
-	zoom_input := input.get_zoom()
-	if graphics.is_key_down(.MINUS) {
-		zoom_input -= 1
-	} else if graphics.is_key_down(.EQUAL) {
-		zoom_input += 1
+	zoom_input: f32
+	when ODIN_DEBUG {
+		zoom_input = input.get_zoom()
+		if graphics.is_key_down(.MINUS) {
+			zoom_input -= 1
+		} else if graphics.is_key_down(.EQUAL) {
+			zoom_input += 1
+		}
 	}
-	camera_base_zoom = clamp(
-		camera_base_zoom + clamp(zoom_input, -1, 1) * ZOOM_RATE * dt,
-		ZOOM_MIN,
-		ZOOM_MAX,
+	camera_base_zoom = camera_zoom_step(
+		&camera_zoom_state,
+		camera_base_zoom,
+		camera_zoom_mode(),
+		zoom_input,
+		dt,
 	)
 
 	camera.zoom = camera_base_zoom * screen_scale
