@@ -6,7 +6,6 @@ in float blade_height;
 in float blade;
 in float grass_contact;
 in float meadow_tone;
-in float cloud_light;
 in float wind_highlight;
 uniform vec3 view_position;
 uniform vec3 ambientColor;
@@ -17,6 +16,7 @@ uniform vec3 fillColor;
 uniform mat4 lightVP;
 uniform sampler2D shadowMap;
 uniform int shadowMapResolution;
+#include_environment
 out vec4 finalColor;
 
 void main()
@@ -40,7 +40,7 @@ void main()
             }
         }
     }
-    float visibility = (1.0 - shadow / 9.0) * mix(0.86, 1.0, cloud_light);
+    float visibility = (1.0 - shadow / 9.0) * environment_sun_visibility(world_position);
     vec3 normal = normalize(meadow_normal);
     vec3 light = -normalize(keyDirection);
     vec3 view = normalize(view_position - world_position);

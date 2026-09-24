@@ -9,7 +9,6 @@ RENDERING_CARRIED_ITEM_HEIGHT :: f32(20)
 RENDERING_CHARACTER_BLEND_DURATION :: f32(0.12) // seconds used to blend between character animations
 RENDERING_LABEL_TEXT_SIZE :: 12
 RENDERING_BACKGROUND_COLOR :: graphics.Colour{54, 54, 60, 255}
-RENDERING_LIGHT_DIRECTION :: graphics.Vec3{-0.5, -0.7, 0.5}
 
 Rendering_State :: struct {
 	grass_shader:              graphics.Shader,
@@ -42,11 +41,11 @@ rendering_set_shader_vec3 :: proc(shader: graphics.Shader, name: cstring, value:
 }
 
 rendering_configure_lighting :: proc(shader: graphics.Shader) {
-	rendering_set_shader_vec3(shader, "ambientColor", {0.22, 0.23, 0.32})
-	rendering_set_shader_vec3(shader, "keyDirection", RENDERING_LIGHT_DIRECTION)
-	rendering_set_shader_vec3(shader, "keyColor", {0.6, 0.56, 0.52})
-	rendering_set_shader_vec3(shader, "fillDirection", {0.65, -0.35, 0.55})
-	rendering_set_shader_vec3(shader, "fillColor", {0.07, 0.09, 0.13})
+	rendering_set_shader_vec3(shader, "ambientColor", environment.ambient)
+	rendering_set_shader_vec3(shader, "keyDirection", environment.sun_direction)
+	rendering_set_shader_vec3(shader, "keyColor", environment.sun_color)
+	rendering_set_shader_vec3(shader, "fillDirection", environment.fill_direction)
+	rendering_set_shader_vec3(shader, "fillColor", environment.fill_color)
 }
 
 rendering_init :: proc() {
@@ -54,7 +53,7 @@ rendering_init :: proc() {
 	defer delete(grass_vertex_path)
 	grass_fragment_path := asset.path("shaders/grass.fs")
 	defer delete(grass_fragment_path)
-	rendering_state.grass_shader = graphics.load_shader(
+	rendering_state.grass_shader = rendering_load_environment_shader(
 		cstring(raw_data(grass_vertex_path)),
 		cstring(raw_data(grass_fragment_path)),
 	)
@@ -66,7 +65,7 @@ rendering_init :: proc() {
 	defer delete(water_vertex_path)
 	water_fragment_path := asset.path("shaders/water.fs")
 	defer delete(water_fragment_path)
-	rendering_state.water_shader = graphics.load_shader(
+	rendering_state.water_shader = rendering_load_environment_shader(
 		cstring(raw_data(water_vertex_path)),
 		cstring(raw_data(water_fragment_path)),
 	)
@@ -86,11 +85,11 @@ rendering_init :: proc() {
 	defer delete(skinned_vertex_shader_path)
 	fragment_shader_path := asset.path("shaders/world_lighting.fs")
 	defer delete(fragment_shader_path)
-	rendering_state.lighting_shader = graphics.load_shader(
+	rendering_state.lighting_shader = rendering_load_environment_shader(
 		cstring(raw_data(vertex_shader_path)),
 		cstring(raw_data(fragment_shader_path)),
 	)
-	rendering_state.character_lighting_shader = graphics.load_shader(
+	rendering_state.character_lighting_shader = rendering_load_environment_shader(
 		cstring(raw_data(skinned_vertex_shader_path)),
 		cstring(raw_data(fragment_shader_path)),
 	)
@@ -125,6 +124,7 @@ rendering_init :: proc() {
 }
 
 rendering_prepare :: proc() {
+	rendering_update_environment()
 	shadow_map_render(rendering_camera())
 }
 

@@ -17,7 +17,6 @@ out float blade_height;
 out float blade;
 out float grass_contact;
 out float meadow_tone;
-out float cloud_light;
 out float wind_highlight;
 
 float hash(vec2 p)
@@ -48,8 +47,6 @@ void main()
     blade_height = clamp((vertexPosition.y - 0.04) / height, 0.0, 1.0) * blade;
     meadow_tone = noise(root * 0.012);
     vec2 wind_direction = normalize(vec2(1.0, 0.45));
-    cloud_light = smoothstep(0.2, 0.8,
-        noise(root * 0.005 + wind_direction * grass_time * 0.012));
     float gust = noise(root * 0.01 - wind_direction * grass_time * 0.11);
     float wind_front = 0.5 + 0.5 * sin(dot(root, vec2(0.028, -0.016))
         - grass_time * 1.4 + (gust - 0.5) * 1.6);

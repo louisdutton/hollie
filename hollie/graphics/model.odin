@@ -267,6 +267,10 @@ load_shader :: #force_inline proc(vertex_path, fragment_path: cstring) -> Shader
 	return rl.LoadShader(vertex_path, fragment_path)
 }
 
+load_shader_from_memory :: #force_inline proc(vertex_source, fragment_source: cstring) -> Shader {
+	return rl.LoadShaderFromMemory(vertex_source, fragment_source)
+}
+
 unload_shader :: #force_inline proc(shader: Shader) {
 	rl.UnloadShader(shader)
 }

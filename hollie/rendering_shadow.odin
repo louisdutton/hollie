@@ -89,7 +89,7 @@ shadow_map_fini :: proc() {
 }
 
 shadow_map_camera :: proc(camera_3d: graphics.Camera_3D) -> graphics.Camera_3D {
-	direction := RENDERING_LIGHT_DIRECTION
+	direction := environment.sun_direction
 	length := math.sqrt(
 		direction.x * direction.x + direction.y * direction.y + direction.z * direction.z,
 	)
