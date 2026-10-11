@@ -74,6 +74,69 @@ user-space tools and libraries. The GPU probe fails explicitly when unavailable;
 the software probe remains a separate fallback. These captures are smoke tests,
 not repeatable performance benchmarks.
 
+## Agent control and replay
+
+For an explicitly requested control test, run:
+
+```sh
+devenv tasks run --show-output hollie:automation-probe
+```
+
+This runs saved keyboard and two-player analog gamepad scenarios on the GPU.
+They reset the demo room with a fixed random seed, advance exactly 30 frames,
+and compare observations and captured pixels after replay. They also check that
+waiting leaves the simulation frozen and invalid commands leave it unchanged.
+Each printed artifact directory contains screenshots, logs, and a `scenario.json`
+command/response transcript. The scenarios live in `tools/scenarios/`; store
+reusable interactions there rather than rediscovering inputs on every iteration.
+These tests establish repeatability for those scenarios on this environment;
+they do not establish determinism across GPUs or all gameplay paths.
+
+To interact with a paused game, start a session:
+
+```sh
+devenv tasks run --show-output hollie:automation-session
+```
+
+Wait for `Paused control session: /tmp/.../control`, then use that exact directory
+in one-off commands from another terminal:
+
+```sh
+devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"reset","room":"demo","players":1,"seed":42,"capture":"start.png"}'
+devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"step","frames":30,"keys":["S"],"capture":"moved.png"}'
+devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"observe"}'
+devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"stop"}'
+```
+
+Responses include frame count, room, player positions and velocities, enemy
+movement state, errors, and the absolute path of any requested PNG. Screenshots
+come directly from the completed game back buffer before swapping, avoiding
+delayed desktop captures. Sessions clean up on exit or after five minutes.
+Close the session, edit code, and launch again to rebuild; saved scenarios can
+be replayed through the Python client's `run_scenario` function.
+
+The control interface is compiled into debug builds only and enabled only when
+`HOLLIE_CONTROL_DIR` names an existing directory. One controller submits sequential
+commands through atomic `request.json` writes and waits for the matching
+`response.json`; the Python client assigns increasing IDs and enforces a timeout.
+The game stays responsive and renders while waiting, but simulation time advances
+only through `step`, at 1/60 second per frame, for 1–600 frames per command.
+`reset` defaults to room `demo`, one player, seed 42.
+
+Each step supplies the complete held input snapshot: omitted keys or gamepads
+are released. Holding a key across consecutive steps preserves its state;
+`pressed` fires only on a rising edge and remains visible to every input reader
+for that simulation frame. Gamepads use raylib button names and axis order
+`LEFT_X`, `LEFT_Y`, `RIGHT_X`, `RIGHT_Y`, `LEFT_TRIGGER`, `RIGHT_TRIGGER`, with
+values from -1 to 1. For example:
+
+```json
+{"op":"step","frames":30,"gamepads":[{"player":"Player_1","axes":[0,1],"buttons":["RIGHT_FACE_DOWN"]}]}
+```
+
+All tools are supplied by devenv. Agents still need explicit authorization to
+launch these sessions under `AGENTS.md`.
+
 ## Automated verification
 
 The commit hook runs `hollie:verify` for changes to code, resources, asset tools,

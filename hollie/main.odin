@@ -39,11 +39,18 @@ game: Game_State = {
 }
 
 main :: proc() {
+	when ODIN_DEBUG {
+		automation_init()
+		defer automation_fini()
+	}
 	init()
 	defer fini()
 
 	for game.state != .Exiting {
 		run_frame(update, draw)
+		when ODIN_DEBUG {
+			automation_after_draw()
+		}
 	}
 }
 
@@ -94,6 +101,12 @@ fini :: proc() {
 }
 
 update :: proc() {
+	when ODIN_DEBUG {
+		if automation.enabled {
+			automation_update()
+			return
+		}
+	}
 	if update_app_suspension() do return
 
 	if input.is_key_pressed(.BACKSPACE) {
@@ -144,5 +157,11 @@ draw :: proc() {
 	case .Gameplay: gameplay_draw()
 	}
 
+	when ODIN_DEBUG {
+		if automation.enabled {
+			automation_capture()
+			return
+		}
+	}
 	graphics.draw_fps(10, 10)
 }

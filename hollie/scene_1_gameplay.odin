@@ -36,8 +36,9 @@ when ODIN_DEBUG {
 	gameplay_debug_ui_visible := false
 }
 
-gameplay_init :: proc() {
+gameplay_init :: proc(initial_room: string = "") {
 	environment = ENVIRONMENT_DAY
+	if initial_room != "" do gameplay_state.current_room_id = initial_room
 	if gameplay_state.current_room_id == "" {
 		gameplay_state.current_room_id = INITIAL_ROOM_ID
 	}

@@ -40,6 +40,24 @@ in {
   };
 
   tasks = {
+    "hollie:automation-session".exec = ''
+      export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
+      export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [pkgs.mesa pkgs.libglvnd pkgs.sdl3]}
+      export __GLX_VENDOR_LIBRARY_NAME=mesa
+      export __EGL_VENDOR_LIBRARY_FILENAMES=${pkgs.mesa}/share/glvnd/egl_vendor.d/50_mesa.json
+      export VGL_EGLLIB=${pkgs.libglvnd}/lib/libEGL.so.1
+      python3 tools/render_probe.py --gpu --serve
+    '';
+    "hollie:automation-probe".exec = ''
+      set -e
+      export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
+      export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [pkgs.mesa pkgs.libglvnd pkgs.sdl3]}
+      export __GLX_VENDOR_LIBRARY_NAME=mesa
+      export __EGL_VENDOR_LIBRARY_FILENAMES=${pkgs.mesa}/share/glvnd/egl_vendor.d/50_mesa.json
+      export VGL_EGLLIB=${pkgs.libglvnd}/lib/libEGL.so.1
+      python3 tools/render_probe.py --gpu --scenario tools/scenarios/movement.json
+      python3 tools/render_probe.py --gpu --scenario tools/scenarios/gamepad.json
+    '';
     "hollie:render-probe-gpu".exec = ''
       export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
       export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [pkgs.mesa pkgs.libglvnd pkgs.sdl3]}

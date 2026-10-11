@@ -5,8 +5,12 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import tempfile
 import time
+
+sys.dont_write_bytecode = True
+from game_control import Control_Client, run_scenario
 
 
 def main():
@@ -16,12 +20,25 @@ def main():
         "--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE", "egl0"),
         help="VirtualGL EGL device ID or DRI card path (default: egl0)",
     )
+    control_mode = parser.add_mutually_exclusive_group()
+    control_mode.add_argument("--scenario", type=Path, help="Run a saved control scenario")
+    control_mode.add_argument("--serve", action="store_true", help="Launch a paused game for external commands")
+    parser.add_argument("--session-timeout", type=int, default=300, help="Maximum --serve duration in seconds")
     args = parser.parse_args()
+    if args.session_timeout < 1:
+        parser.error("--session-timeout must be positive")
     repo = Path(__file__).resolve().parent.parent
     output = Path(tempfile.mkdtemp(prefix="hollie-render-probe-"))
     print(f"Probe artifacts: {output}", flush=True)
     env = os.environ.copy()
     env["RES_ROOT"] = str(repo / "res")
+    # Never inherit a control session into a normal rendering smoke test.
+    env.pop("HOLLIE_CONTROL_DIR", None)
+    controlled = args.scenario is not None or args.serve
+    if controlled:
+        control_directory = output / "control"
+        control_directory.mkdir()
+        env["HOLLIE_CONTROL_DIR"] = str(control_directory)
     render_command = []
     if args.gpu:
         env.pop("LIBGL_ALWAYS_SOFTWARE", None)
@@ -128,6 +145,25 @@ def main():
             run(["xdotool", "getwindowgeometry", "--shell", window]) + "\n"
         )
         run(["xdotool", "windowactivate", "--sync", window])
+        if controlled:
+            client = Control_Client(control_directory, game)
+            client.wait_for_response(0)
+            if args.scenario is not None:
+                run_scenario(client, args.scenario, output)
+                response = client.send({"op": "stop"})
+                if response["error"]:
+                    raise RuntimeError(response["error"])
+            else:
+                print(f"Paused control session: {control_directory}", flush=True)
+                deadline = time.monotonic() + args.session_timeout
+                while game.poll() is None and time.monotonic() < deadline:
+                    time.sleep(0.1)
+                if game.poll() is None:
+                    raise TimeoutError("Control session reached --session-timeout")
+            game.wait(timeout=5)
+            if game.returncode != 0:
+                raise RuntimeError(f"Game exited {game.returncode}")
+            return
         for scene in ("title", "gameplay"):
             if scene == "gameplay":
                 press("Return")

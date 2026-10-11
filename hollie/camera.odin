@@ -161,9 +161,9 @@ camera_update_zoom :: proc(dt: f32) {
 	zoom_input: f32
 	when ODIN_DEBUG {
 		zoom_input = input.get_zoom()
-		if graphics.is_key_down(.MINUS) {
+		if input.is_key_down(.MINUS) {
 			zoom_input -= 1
-		} else if graphics.is_key_down(.EQUAL) {
+		} else if input.is_key_down(.EQUAL) {
 			zoom_input += 1
 		}
 	}

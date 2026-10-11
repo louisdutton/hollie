@@ -7,12 +7,26 @@ Key :: rl.KeyboardKey
 
 // Input state functions
 is_key_pressed :: proc(key: Key) -> bool {
+	when ODIN_DEBUG || ODIN_TEST {
+		if automation_enabled {
+			pressed := automation_current.keys[int(key)] && !automation_previous.keys[int(key)]
+			if pressed do note_device_input(.Keyboard)
+			return pressed
+		}
+	}
 	pressed := rl.IsKeyPressed(key)
 	if pressed do note_device_input(.Keyboard)
 	return pressed
 }
 
 is_key_down :: proc(key: Key) -> bool {
+	when ODIN_DEBUG || ODIN_TEST {
+		if automation_enabled {
+			down := automation_current.keys[int(key)]
+			if down do note_device_input(.Keyboard)
+			return down
+		}
+	}
 	down := rl.IsKeyDown(key)
 	if down do note_device_input(.Keyboard)
 	return down

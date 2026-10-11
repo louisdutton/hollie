@@ -56,3 +56,19 @@ is_window_focused :: #force_inline proc() -> bool {
 is_key_down :: #force_inline proc(key: Key) -> bool {
 	return rl.IsKeyDown(key)
 }
+
+when ODIN_DEBUG {
+	foreign import render_lib "system:raylib"
+	foreign render_lib {
+		@(link_name = "rlDrawRenderBatchActive")
+		flush_render_batch :: proc() ---
+	}
+
+	// Capture the completed back buffer before swapping, including queued UI.
+	capture_screenshot :: proc(path: cstring) -> bool {
+		flush_render_batch()
+		image := rl.LoadImageFromScreen()
+		defer rl.UnloadImage(image)
+		return rl.ExportImage(image, path)
+	}
+}
