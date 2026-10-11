@@ -1,6 +1,13 @@
 {pkgs, ...}: {
   packages = [
     pkgs.python3
+    # Private-display rendering probes; no host desktop tools are required.
+    pkgs.xorg.xorgserver
+    pkgs.xorg.xprop
+    pkgs.xdotool
+    pkgs.openbox
+    pkgs.mesa-demos
+    pkgs.imagemagick
     # Let SDL filter duplicate physical and Steam Input virtual gamepads.
     (pkgs.raylib.override {platform = "SDL";})
   ];
@@ -19,6 +26,13 @@
   };
 
   tasks = {
+    "hollie:render-probe".exec = ''
+      export LIBGL_ALWAYS_SOFTWARE=1
+      export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
+      export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [pkgs.mesa pkgs.libglvnd]}
+      export __GLX_VENDOR_LIBRARY_NAME=mesa
+      python3 tools/render_probe.py
+    '';
     "hollie:run".exec = "odin run hollie -debug";
     "hollie:check".exec = "odin check hollie -debug";
     "hollie:test".exec = "odin test hollie -all-packages -out:/tmp/hollie-tests";

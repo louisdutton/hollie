@@ -30,6 +30,24 @@ devenv tasks run hollie:run
 F1 toggles the debug map editor; Ctrl+S saves. The full editor action bindings
 live in [input/actions.odin](hollie/input/actions.odin).
 
+For an explicitly requested rendering smoke test, run:
+
+```sh
+devenv tasks run --show-output hollie:render-probe
+```
+
+This builds the debug game and launches it on a private 1280×720 Xvfb display
+with Openbox and Mesa software OpenGL, using tools provided by devenv. It focuses
+the game, captures the title screen, presses Enter to start one-player gameplay,
+captures that view, and presses Backspace to exit. Each stage has a timeout;
+the game, window manager, and display are cleaned up on failure too.
+
+The printed temporary directory retains screenshots, the executable, and logs
+for inspection. Inspect both images and `game.log` before declaring the probe
+successful: screenshots alone do not assert the current scene or shader correctness.
+This is a visual smoke test, not a deterministic replay or a GPU performance test.
+Agents need explicit authorization to run it under the current `AGENTS.md` rules.
+
 ## Automated verification
 
 The commit hook runs `hollie:verify` for changes to code, resources, asset tools,
