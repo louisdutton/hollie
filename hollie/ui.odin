@@ -91,7 +91,7 @@ ui_anchored_rect :: proc(
 	switch anchor {
 	case .Top_Left: return {margin, margin, width, height}
 	case .Top_Right:
-		return{f32(window.get_design_width()) - width - margin, margin, width, height}
+		return {f32(window.get_design_width()) - width - margin, margin, width, height}
 	}
 	return {}
 }
