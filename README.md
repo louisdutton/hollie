@@ -48,6 +48,32 @@ successful: screenshots alone do not assert the current scene or shader correctn
 This is a visual smoke test, not a deterministic replay or a GPU performance test.
 Agents need explicit authorization to run it under the current `AGENTS.md` rules.
 
+On a Linux machine with an accessible AMD GPU and Mesa drivers, use the hardware
+variant of the same probe:
+
+```sh
+devenv tasks run --show-output hollie:render-probe-gpu
+```
+
+VirtualGL uses EGL to render on the GPU and copies frames to the private Xvfb
+display. The probe checks the renderer and fails if it identifies a software
+renderer. Both probes use the same 1280×720 display and input sequence.
+`devenv.nix` pins VirtualGL 3.1.5 for its
+[SDL resize fix](https://github.com/VirtualGL/virtualgl/releases/tag/3.1.5),
+and supplies Mesa, SDL3, and the EGL loader paths for the GPU process.
+
+The default GPU is `egl0`; EGL numbering depends on the machine. To select another
+device, set `HOLLIE_GPU_DEVICE` to an EGL device ID or a DRI card path:
+
+```sh
+HOLLIE_GPU_DEVICE=egl1 devenv tasks run --show-output hollie:render-probe-gpu
+```
+
+The GPU needs an installed kernel driver and device access; devenv provides the
+user-space tools and libraries. The GPU probe fails explicitly when unavailable;
+the software probe remains a separate fallback. These captures are smoke tests,
+not repeatable performance benchmarks.
+
 ## Automated verification
 
 The commit hook runs `hollie:verify` for changes to code, resources, asset tools,

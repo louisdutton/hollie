@@ -1,4 +1,17 @@
-{pkgs, ...}: {
+{pkgs, ...}: let
+  # 3.1.5 fixes SDL resize detection; nixpkgs still supplies 3.0.2.
+  virtualgl_lib = pkgs.virtualglLib.overrideAttrs (_: {
+    version = "3.1.5";
+    src = pkgs.fetchurl {
+      url = "https://github.com/VirtualGL/virtualgl/releases/download/3.1.5/VirtualGL-3.1.5.tar.gz";
+      sha256 = "8a3249c4fa8eea928362ca97b8fe16e5b356e3a18cd16d87e3efa72a870750b6";
+    };
+  });
+  virtualgl = pkgs.virtualgl.override {
+    virtualglLib = virtualgl_lib;
+    usei686VirtualglLib = false;
+  };
+in {
   packages = [
     pkgs.python3
     # Private-display rendering probes; no host desktop tools are required.
@@ -8,6 +21,7 @@
     pkgs.openbox
     pkgs.mesa-demos
     pkgs.imagemagick
+    virtualgl
     # Let SDL filter duplicate physical and Steam Input virtual gamepads.
     (pkgs.raylib.override {platform = "SDL";})
   ];
@@ -26,6 +40,14 @@
   };
 
   tasks = {
+    "hollie:render-probe-gpu".exec = ''
+      export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
+      export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [pkgs.mesa pkgs.libglvnd pkgs.sdl3]}
+      export __GLX_VENDOR_LIBRARY_NAME=mesa
+      export __EGL_VENDOR_LIBRARY_FILENAMES=${pkgs.mesa}/share/glvnd/egl_vendor.d/50_mesa.json
+      export VGL_EGLLIB=${pkgs.libglvnd}/lib/libEGL.so.1
+      python3 tools/render_probe.py --gpu
+    '';
     "hollie:render-probe".exec = ''
       export LIBGL_ALWAYS_SOFTWARE=1
       export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
