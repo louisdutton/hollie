@@ -164,7 +164,8 @@ dialog_draw :: proc() {
 
 	if dialog_state.text_complete {
 		label := dialog_state.current_page >= len(dialog_state.messages) - 1 ? "Close" : "Continue"
-		prompt := ui_control_prompt_view(.H, .RIGHT_FACE_RIGHT)
+		binding := input.action_binding(.Game_Interact)
+		prompt := ui_control_prompt_view(binding.key, binding.gamepad_button)
 		hint_width := ui_prompt_label_width(prompt, label, 12)
 		hint_x := panel_bounds.x + panel_bounds.width - PADDING_X - hint_width
 		hint_y := panel_bounds.y + panel_bounds.height - 28

@@ -27,6 +27,7 @@ UI_KEY_PROMPT_PATHS :: [Ui_Key_Prompt]string {
 	.E                 = UI_INPUT_ASSET_ROOT + "keyboard-e.png",
 	.G                 = UI_INPUT_ASSET_ROOT + "keyboard-g.png",
 	.H                 = UI_INPUT_ASSET_ROOT + "keyboard-h.png",
+	.J                 = UI_INPUT_ASSET_ROOT + "keyboard-j.png",
 	.P                 = UI_INPUT_ASSET_ROOT + "keyboard-p.png",
 	.R                 = UI_INPUT_ASSET_ROOT + "keyboard-r.png",
 	.S                 = UI_INPUT_ASSET_ROOT + "keyboard-s.png",
@@ -105,6 +106,7 @@ Ui_Key_Prompt :: enum {
 	E,
 	G,
 	H,
+	J,
 	P,
 	R,
 	S,
@@ -375,6 +377,7 @@ ui_key_prompt_for_key :: proc(key: input.Key) -> (Ui_Key_Prompt, bool) {
 	case .E: return .E, true
 	case .G: return .G, true
 	case .H: return .H, true
+	case .J: return .J, true
 	case .P: return .P, true
 	case .R: return .R, true
 	case .S: return .S, true
