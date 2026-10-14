@@ -138,12 +138,22 @@ struct Bone_Anchor {
     bone: Entity,
     point: Vec3,
 }
+#[derive(Clone, Copy)]
+struct Bone_Bounds {
+    bone: Entity,
+    bounds: Aabb,
+}
+#[derive(Resource, Default)]
+pub(crate) struct Scene_Stats {
+    pub grass_vertices: usize,
+}
 #[derive(Component)]
 struct Skeleton {
     actor: u64,
     root: Entity,
     seat: Option<Bone_Anchor>,
-    arms: [Option<Bone_Anchor>; 2],
+    arms: [Option<Bone_Bounds>; 2],
+    head: Option<Bone_Bounds>,
 }
 #[derive(Resource, Default)]
 struct Render_State {
@@ -165,6 +175,7 @@ impl Plugin for Rendering_Plugin {
         app.add_plugins(MaterialPlugin::<Painted_Material>::default())
             .add_plugins(MaterialPlugin::<Meadow_Material>::default())
             .init_resource::<Render_State>()
+            .init_resource::<Scene_Stats>()
             .add_systems(Startup, setup)
             .add_systems(
                 PostUpdate,
@@ -189,7 +200,10 @@ impl Plugin for Rendering_Plugin {
 }
 fn game_camera_projection() -> Projection {
     Projection::Orthographic(OrthographicProjection {
-        scale: 0.55,
+        scale: 1. / 1.8,
+        scaling_mode: bevy::camera::ScalingMode::FixedVertical {
+            viewport_height: 450.,
+        },
         near: 0.1,
         far: 10000.,
         ..OrthographicProjection::default_3d()
@@ -201,7 +215,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         ImageType::Extension("png"),
         CompressedImageFormats::NONE,
         true,
-        ImageSampler::default(),
+        ImageSampler::linear(),
         RenderAssetUsages::default(),
     )
     .expect("reference background PNG");
@@ -217,6 +231,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             Camera3d::default(),
             IsDefaultUiCamera,
             bevy::render::view::DebandDither::Disabled,
+            Msaa::Off,
             game_camera_projection(),
             Transform::from_xyz(800., 600., 900.).looking_at(Vec3::new(480., 0., 384.), Vec3::Y),
             DistanceFog {
@@ -314,6 +329,7 @@ fn rebuild_room(
     game: Res<Game_World>,
     mode: Res<State<Mode>>,
     mut state: ResMut<Render_State>,
+    mut stats: ResMut<Scene_Stats>,
     visuals: Query<Entity, With<Room_Visual>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<Painted_Material>>,
@@ -456,7 +472,8 @@ fn rebuild_room(
         }
     }
     let grass_mesh = meadow_mesh(&game.room);
-    if grass_mesh.count_vertices() > 0 {
+    stats.grass_vertices = grass_mesh.count_vertices();
+    if stats.grass_vertices > 0 {
         let material = meadows.add(Meadow_Material {
             base: StandardMaterial {
                 cull_mode: None,
@@ -805,7 +822,7 @@ fn model_ready(
             });
         }
     }
-    let anchor = |name: &str, top: bool| -> Option<Bone_Anchor> {
+    let bone_bounds = |name: &str| -> Option<Bone_Bounds> {
         let bone = named.get(name)?.0;
         let mut minimum = Vec3::splat(f32::INFINITY);
         let mut maximum = Vec3::splat(f32::NEG_INFINITY);
@@ -848,16 +865,33 @@ fn model_ready(
         if !minimum.is_finite() {
             return None;
         }
-        let mut point = (minimum + maximum) * 0.5;
-        point.y = if top { maximum.y } else { minimum.y };
-        Some(Bone_Anchor { bone, point })
+        Some(Bone_Bounds {
+            bone,
+            bounds: Aabb {
+                min: minimum,
+                max: maximum,
+            },
+        })
     };
     let animal = named.contains_key("neck") || named.contains_key("leg-front-left");
+    let seat = bone_bounds("torso").map(|b| {
+        let mut point = (b.bounds.min + b.bounds.max) * 0.5;
+        point.y = if animal {
+            b.bounds.max.y
+        } else {
+            b.bounds.min.y
+        };
+        Bone_Anchor {
+            bone: b.bone,
+            point,
+        }
+    });
     commands.entity(event.entity).insert(Skeleton {
         actor: actor.0,
         root: event.entity,
-        seat: anchor("torso", animal),
-        arms: [anchor("arm-left", true), anchor("arm-right", true)],
+        seat,
+        arms: [bone_bounds("arm-left"), bone_bounds("arm-right")],
+        head: bone_bounds("head"),
     });
     let mut clips = HashMap::new();
     let mut durations = HashMap::new();
@@ -1004,10 +1038,10 @@ fn animate_models(
             "die"
         } else if actor.mounted.is_some() && actor.player().is_some() {
             "ride"
-        } else if airborne {
-            if animal { "jump" } else { "static" }
         } else if actor.carrying.is_some() {
             "walk-holding-both"
+        } else if airborne {
+            if animal { "jump" } else { "static" }
         } else {
             "gait"
         };
@@ -1152,6 +1186,22 @@ fn bone_in_root(
     }
     None
 }
+fn transformed_bounds(matrix: Mat4, bounds: Aabb) -> Aabb {
+    let mut result = Aabb {
+        min: Vec3::splat(f32::INFINITY),
+        max: Vec3::splat(f32::NEG_INFINITY),
+    };
+    for x in [bounds.min.x, bounds.max.x] {
+        for y in [bounds.min.y, bounds.max.y] {
+            for z in [bounds.min.z, bounds.max.z] {
+                let point = matrix.transform_point3(Vec3::new(x, y, z));
+                result.min = result.min.min(point);
+                result.max = result.max.max(point);
+            }
+        }
+    }
+    result
+}
 fn attach_carried_and_riders(
     mut game: ResMut<Game_World>,
     skeletons: Query<&Skeleton>,
@@ -1201,24 +1251,45 @@ fn attach_carried_and_riders(
             .and_then(|id| game.actors.iter().find(|a| a.id == id))
         {
             if let (Some(rig), Some(root)) = (rigs.get(&carrier.id), roots.get(&carrier.id)) {
+                let posed_bounds = |b: Bone_Bounds| {
+                    bone_in_root(b.bone, rig.root, &bones)
+                        .map(|matrix| transformed_bounds(matrix, b.bounds))
+                };
                 let hands: Vec<_> = rig
                     .arms
                     .iter()
-                    .filter_map(|anchor| anchor.and_then(|a| point(rig, a)))
+                    .filter_map(|bounds| bounds.and_then(posed_bounds))
                     .collect();
                 if hands.len() == 2 {
-                    let mut anchor = (hands[0] + hands[1]) * 0.5;
-                    anchor.y = hands[0].y.max(hands[1].y);
-                    transform.translation = root.transform_point(anchor);
-                    held_points.push((actor.id, transform.translation));
+                    let mut anchor =
+                        (hands[0].min + hands[0].max + hands[1].min + hands[1].max) * 0.25;
+                    anchor.y = hands[0].max.y.max(hands[1].max.y);
+                    let mut position = root.transform_point(anchor);
+                    if let Some(head) = rig.head.and_then(posed_bounds) {
+                        let head = transformed_bounds(root.to_matrix(), head);
+                        let tilt =
+                            (root.rotation * Vec3::X).y.abs() + (root.rotation * Vec3::Z).y.abs();
+                        position.y = position.y.max(head.max.y + 6. * tilt + 0.5);
+                    }
+                    transform.translation = position;
                     transform.rotation = root.rotation;
+                    held_points.push((
+                        actor.id,
+                        position,
+                        Vec3::new(
+                            carrier.body.position.x,
+                            carrier.body.height,
+                            carrier.body.position.y,
+                        ),
+                    ));
                 }
             }
         }
     }
-    for (id, point) in held_points {
+    for (id, point, origin) in held_points {
         if let Some(actor) = game.actors.iter_mut().find(|a| a.id == id) {
             actor.held_anchor = Some(point);
+            actor.held_origin = Some(origin);
         }
     }
 }
@@ -1239,7 +1310,7 @@ fn player_center(game: &Game_World) -> Vec3 {
 }
 fn bounded_camera_target(mut target: Vec3, room: &Room, viewport: Vec2, zoom: f32) -> Vec3 {
     let bounds = &room.camera_bounds;
-    let half = viewport * zoom * 0.5;
+    let half = Vec2::new(450. * viewport.x / viewport.y, 450.) * zoom * 0.5;
     let clamp_axis = |value: f32, start: f32, size: f32, half: f32| {
         if size > half * 2. {
             value.clamp(start + half, start + size - half)
@@ -1277,22 +1348,26 @@ fn follow_camera(
             target,
             &game.room,
             viewport,
-            if state.zoom > 0. { state.zoom } else { 0.55 },
+            if state.zoom > 0. {
+                state.zoom
+            } else {
+                1. / 1.8
+            },
         );
     }
     state.camera_target = state.camera_target.lerp(target, 1. - (-6. * dt).exp());
     let zoom = if *mode.get() == Mode::Editor {
         editor.zoom
     } else if game.dialog.is_some() {
-        0.33
+        1. / 3.
     } else if game
         .actors
         .iter()
         .any(|a| a.player().is_some() && a.mounted.is_some())
     {
-        0.72
+        1. / 1.4
     } else {
-        0.55
+        1. / 1.8
     };
     if state.zoom == 0. {
         state.zoom = zoom;
@@ -1468,13 +1543,12 @@ mod tests {
     use super::*;
     #[test]
     fn upper_ground_in_the_view_is_inside_the_depth_range() {
-        use bevy::camera::CameraProjection;
         let mut projection = game_camera_projection();
         projection.update(1280., 720.);
         let target = Vec3::new(480., 0., 440.);
         let camera =
             Transform::from_translation(target + Vec3::splat(500.)).looking_at(target, Vec3::Y);
-        let point = target - Vec3::new(200., 0., 200.);
+        let point = target - Vec3::new(140., 0., 140.);
         let clip =
             projection.get_clip_from_view() * camera.to_matrix().inverse() * point.extend(1.);
         let ndc = clip.truncate() / clip.w;
@@ -1497,6 +1571,33 @@ mod tests {
             );
             assert!(room.camera_bounds.contains(Vec2::new(target.x, target.z)));
         }
+    }
+    #[test]
+    fn camera_keeps_world_coverage_when_pixel_resolution_doubles() {
+        let mut projection = game_camera_projection();
+        projection.update(1280., 720.);
+        let before = projection.get_clip_from_view();
+        projection.update(2560., 1440.);
+        assert_eq!(before, projection.get_clip_from_view());
+        let Projection::Orthographic(projection) = projection else {
+            unreachable!()
+        };
+        assert!((projection.area.height() - 250.).abs() < 0.001);
+    }
+    #[test]
+    fn raised_arm_uses_the_top_after_rotation() {
+        let bounds = Aabb {
+            min: Vec3::new(-0.1, -0.4, -0.1),
+            max: Vec3::new(0.1, 0.1, 0.1),
+        };
+        let matrix = Mat4::from_rotation_translation(
+            Quat::from_rotation_z(std::f32::consts::PI),
+            Vec3::Y * 0.4,
+        );
+        let posed = transformed_bounds(matrix, bounds);
+        assert!((posed.max.y - 0.8).abs() < 0.001);
+        let old_anchor = matrix.transform_point3(Vec3::Y * bounds.max.y);
+        assert!(posed.max.y > old_anchor.y + 0.4);
     }
     #[test]
     fn shoreline_partitions_triangle_without_gaps() {

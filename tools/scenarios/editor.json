@@ -10,7 +10,7 @@
         ]
       },
       "save_as": "started",
-      "capture": "olivewood.png"
+      "capture": "first-entry.png"
     },
     {
       "command": {
@@ -206,7 +206,7 @@
       "path": [
         "room"
       ],
-      "value": "olivewood"
+      "value": "demo"
     }
   ]
 }

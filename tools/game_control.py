@@ -89,6 +89,21 @@ def run_scenario(client, path, output):
                     left, right = left[key], right[key]
                 if left != right:
                     raise AssertionError(f"Field differs: {check['path']}")
+            elif kind == "difference_field":
+                left, right = first, second
+                for key in check["path"]:
+                    left = left[key]
+                for key in check["second_path"]:
+                    right = right[key]
+                difference = left - right
+                if abs(difference - check["value"]) > check.get("tolerance", 0.001):
+                    raise AssertionError(f"Unexpected field difference: {difference!r}")
+            elif kind == "range_field":
+                value = first
+                for key in check["path"]:
+                    value = value[key]
+                if not check["minimum"] <= value <= check["maximum"]:
+                    raise AssertionError(f"Field outside expected range: {value!r}")
             elif kind == "equal_state":
                 if first != second:
                     raise AssertionError(f"State differs: {check['first']} vs {check['second']}")

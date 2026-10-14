@@ -6,6 +6,7 @@ use rand_chacha::ChaCha8Rng;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
+pub const INITIAL_ROOM: &str = "demo";
 pub const STEP: f32 = 1. / 60.;
 pub const GRAVITY: f32 = 800.;
 pub const JUMP_SPEED: f32 = 220.;
@@ -84,6 +85,7 @@ pub struct Actor {
     pub carrying: Option<u64>,
     pub held_by: Option<u64>,
     pub held_anchor: Option<Vec3>,
+    pub held_origin: Option<Vec3>,
     pub release_player: Option<u64>,
     pub active: bool,
     pub open: bool,
@@ -207,7 +209,7 @@ pub struct Game_World {
 impl Game_World {
     pub fn new(registry: Room_Registry) -> Result<Self> {
         let room = registry
-            .get("demo")
+            .get(INITIAL_ROOM)
             .or_else(|_| {
                 registry
                     .rooms
@@ -295,6 +297,7 @@ impl Game_World {
                 carrying: None,
                 held_by: None,
                 held_anchor: None,
+                held_origin: None,
                 release_player: None,
                 active: false,
                 open: false,
@@ -346,6 +349,7 @@ impl Game_World {
                 carrying: None,
                 held_by: None,
                 held_anchor: None,
+                held_origin: None,
                 release_player: None,
                 active: false,
                 open: false,
@@ -529,7 +533,16 @@ impl Game_World {
             if let Some(index) = self.actors.iter().position(|a| a.id == item) {
                 let mut body = self.actors[index].body.clone();
                 // Release from the last evaluated hand pose, as in the original renderer.
-                let anchor = self.actors[index].held_anchor.unwrap_or(Vec3::new(
+                let carrier_origin = Vec3::new(
+                    self.actors[player].body.position.x,
+                    self.actors[player].body.height,
+                    self.actors[player].body.position.y,
+                );
+                let cached = self.actors[index].held_anchor.map(|anchor| {
+                    anchor + carrier_origin
+                        - self.actors[index].held_origin.unwrap_or(carrier_origin)
+                });
+                let anchor = cached.unwrap_or(Vec3::new(
                     self.actors[player].body.position.x + self.actors[player].facing.x * 8.,
                     self.actors[player].body.height + 28.,
                     self.actors[player].body.position.y + self.actors[player].facing.y * 8.,
@@ -539,11 +552,12 @@ impl Game_World {
                 if !self.blocked(body.bounds(), &self.obstacles(index)) {
                     body.velocity =
                         self.actors[player].body.velocity + self.actors[player].facing * 45.;
-                    body.vertical_velocity = 15.;
+                    body.vertical_velocity = self.actors[player].body.vertical_velocity + 15.;
                     body.grounded = false;
                     self.actors[index].body = body;
                     self.actors[index].held_by = None;
                     self.actors[index].held_anchor = None;
+                    self.actors[index].held_origin = None;
                     self.actors[index].release_player = Some(self.actors[player].id);
                     self.actors[player].carrying = None;
                 }
@@ -639,6 +653,12 @@ impl Game_World {
     fn update_motion(&mut self, inputs: [Player_Input; 2], dt: f32) {
         for i in 0..self.actors.len() {
             if let Some(player) = self.actors[i].player() {
+                if inputs[player].jump
+                    && self.actors[i].mounted.is_none()
+                    && self.actors[i].carrying.is_some()
+                {
+                    self.actors[i].body.jump(JUMP_SPEED);
+                }
                 if inputs[player].interact && self.actors[i].mount_time >= 0.4 {
                     self.interact(i);
                 } else if inputs[player].interact && self.actors[i].mounted.is_none() {
@@ -795,6 +815,7 @@ impl Game_World {
                     self.actors[i].body.position = player.body.position;
                     self.actors[i].body.height = player.body.height + 28.;
                     self.actors[i].body.velocity = player.body.velocity;
+                    self.actors[i].body.vertical_velocity = player.body.vertical_velocity;
                     self.actors[i].body.grounded = false;
                 } else {
                     self.actors[i].held_by = None;
@@ -1162,7 +1183,7 @@ impl Game_World {
         Ok(())
     }
     pub fn observation(&self) -> Value {
-        let body = |a: &Actor| json!({"ram_ready":a.ram_ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
+        let body = |a: &Actor| json!({"ram_ready":a.ram_ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"vertical_velocity":a.body.vertical_velocity,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
         json!({"visual":{"water_contacts":self.surfaces.water.len(),"wakes":self.surfaces.wakes.len(),"grass_contacts":self.surfaces.grass.len(),"grass_trails":self.surfaces.grass_trails.len()},"frame":self.frame,"seed":self.seed,"scene":"Gameplay","room":self.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
     }
 }
@@ -1404,6 +1425,90 @@ mod interaction_tests {
         }
         assert!(!game.actors[player].body.grounded);
         assert!(game.actors[player].body.height > game.actors[animal].body.height);
+    }
+    fn carrying_game() -> (Game_World, usize, usize) {
+        let mut game = game();
+        game.reset("demo", 1, 42).unwrap();
+        let player = game
+            .actors
+            .iter()
+            .position(|a| a.player() == Some(0))
+            .unwrap();
+        let item = game
+            .actors
+            .iter()
+            .position(|a| matches!(a.properties, Entity_Properties::Holdable(_)))
+            .unwrap();
+        game.actors[player].body.position = Vec2::new(146., 204.);
+        game.actors[player].carrying = Some(game.actors[item].id);
+        game.actors[item].held_by = Some(game.actors[player].id);
+        (game, player, item)
+    }
+    #[test]
+    fn release_adds_impulse_to_rising_and_falling_carrier_momentum() {
+        for vertical in [140., -100.] {
+            let (mut game, player, item) = carrying_game();
+            game.actors[player].body.height = 40.;
+            game.actors[player].body.grounded = false;
+            game.actors[player].body.vertical_velocity = vertical;
+            game.actors[player].body.velocity = Vec2::new(30., -50.);
+            game.actors[player].facing = -Vec2::Y;
+            game.interact(player);
+            assert!(game.actors[item].held_by.is_none());
+            assert_eq!(game.actors[item].body.velocity, Vec2::new(30., -95.));
+            assert_eq!(game.actors[item].body.vertical_velocity, vertical + 15.);
+        }
+    }
+    #[test]
+    fn simultaneous_jump_and_throw_inherits_the_jump() {
+        let (mut game, player, item) = carrying_game();
+        game.step(
+            [
+                Player_Input {
+                    jump: true,
+                    interact: true,
+                    ..default()
+                },
+                default(),
+            ],
+            STEP,
+        )
+        .unwrap();
+        assert!(game.actors[item].held_by.is_none());
+        assert!(
+            (game.actors[player].body.vertical_velocity - (JUMP_SPEED - GRAVITY * STEP)).abs()
+                < 0.001
+        );
+        assert!(
+            (game.actors[item].body.vertical_velocity
+                - game.actors[player].body.vertical_velocity
+                - 15.)
+                .abs()
+                < 0.001
+        );
+    }
+    #[test]
+    fn release_translates_the_last_pose_with_the_carrier() {
+        let (mut game, player, item) = carrying_game();
+        let old = Vec3::new(480., 0., 440.);
+        let offset = Vec3::new(0., 35., 4.);
+        game.actors[item].held_anchor = Some(old + offset);
+        game.actors[item].held_origin = Some(old);
+        game.actors[player].body.position += Vec2::new(8., 10.);
+        game.actors[player].body.height = 20.;
+        let current = Vec3::new(
+            game.actors[player].body.position.x,
+            20.,
+            game.actors[player].body.position.y,
+        );
+        game.interact(player);
+        assert!(game.actors[item].held_by.is_none());
+        let released = Vec3::new(
+            game.actors[item].body.position.x,
+            game.actors[item].body.height,
+            game.actors[item].body.position.y,
+        );
+        assert_eq!(released, current + offset);
     }
     #[test]
     fn failed_spawn_does_not_publish_partial_reset() {

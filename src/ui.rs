@@ -38,7 +38,46 @@ pub struct Ui_Plugin;
 impl Plugin for Ui_Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu_State>()
-            .add_systems(Update, (menu_input, button_input, draw_ui).chain());
+            .add_systems(Startup, setup_transition_fade)
+            .add_systems(
+                Update,
+                (menu_input, button_input, draw_ui, update_transition_fade).chain(),
+            );
+    }
+}
+#[derive(Component)]
+pub(crate) struct Transition_Fade;
+fn setup_transition_fade(mut commands: Commands) {
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            width: percent(100),
+            height: percent(100),
+            ..default()
+        },
+        GlobalZIndex(100),
+        BackgroundColor(Color::NONE),
+        Pickable::IGNORE,
+        Transition_Fade,
+    ));
+}
+fn update_transition_fade(
+    game: Res<Game_World>,
+    mut fades: Query<&mut BackgroundColor, With<Transition_Fade>>,
+) {
+    let opacity = game
+        .transition
+        .as_ref()
+        .map_or(0., |transition| {
+            if transition.elapsed < 0.3 {
+                transition.elapsed / 0.3
+            } else {
+                1. - (transition.elapsed - 0.3) / 0.3
+            }
+        })
+        .clamp(0., 1.);
+    for mut color in &mut fades {
+        color.0 = Color::srgba(0., 0., 0., opacity);
     }
 }
 fn items(
@@ -109,11 +148,7 @@ fn activate(
             if *mode == Mode::Title {
                 match index {
                     0 | 1 => {
-                        let id = if game.registry.rooms.contains_key("olivewood") {
-                            "olivewood"
-                        } else {
-                            "demo"
-                        };
+                        let id = crate::simulation::INITIAL_ROOM;
                         if let Err(error) = game.reset(id, index + 1, 42) {
                             error!("{error}");
                             return;
@@ -502,22 +537,46 @@ fn draw_ui(
                 },
                 BackgroundColor(Color::srgba(0.07, 0.14, 0.13, 0.8)),
             ));
-            if let Some(transition) = &game.transition {
-                let opacity = if transition.elapsed < 0.3 {
-                    transition.elapsed / 0.3
-                } else {
-                    1. - (transition.elapsed - 0.3) / 0.3
-                };
-                parent.spawn((
-                    Node {
-                        position_type: PositionType::Absolute,
-                        width: percent(100),
-                        height: percent(100),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0., 0., 0., opacity.clamp(0., 1.))),
-                ));
-            }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn fade_updates_and_clears_without_a_menu_rebuild() {
+        let game = Game_World::new(
+            crate::content::Room_Registry::load(std::path::Path::new("res")).unwrap(),
+        )
+        .unwrap();
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .insert_resource(game)
+            .add_systems(Update, update_transition_fade);
+        let fade = app
+            .world_mut()
+            .spawn((BackgroundColor(Color::NONE), Transition_Fade))
+            .id();
+        for (elapsed, expected) in [(0.15, 0.5), (0.3, 1.), (0.45, 0.5)] {
+            app.world_mut().resource_mut::<Game_World>().transition =
+                Some(crate::simulation::Transition {
+                    room: "demo".into(),
+                    door: String::new(),
+                    loaded: true,
+                    elapsed,
+                });
+            app.update();
+            assert!(
+                (app.world().get::<BackgroundColor>(fade).unwrap().0.alpha() - expected).abs()
+                    < 0.001
+            );
+        }
+        app.world_mut().resource_mut::<Game_World>().transition = None;
+        app.update();
+        assert_eq!(
+            app.world().get::<BackgroundColor>(fade).unwrap().0.alpha(),
+            0.
+        );
+    }
 }

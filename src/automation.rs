@@ -403,9 +403,16 @@ fn poll(
     controller.last_id = command.id;
     controller.pending = Some(pending);
 }
-fn observation(game: &Game_World, mode: &Mode, editor: &crate::editor::Editor_State) -> Value {
+fn observation(
+    game: &Game_World,
+    mode: &Mode,
+    editor: &crate::editor::Editor_State,
+    fade_alpha: f32,
+    grass_vertices: usize,
+) -> Value {
     let mut state = game.observation();
     state["scene"] = json!(format!("{mode:?}"));
+    state["render"] = json!({"fade_alpha":fade_alpha,"grass_vertices":grass_vertices});
     if *mode == Mode::Editor {
         state["editor"] = json!({"dirty":editor.dirty,"cursor":[editor.cursor.x,editor.cursor.y],"base":game.room.layers.base});
     }
@@ -436,6 +443,8 @@ fn respond(
     server: Res<AssetServer>,
     models: Query<&crate::rendering::Model>,
     target: Option<Res<crate::rendering::Offscreen_Target>>,
+    fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
+    stats: Res<crate::rendering::Scene_Stats>,
 ) {
     let Some(directory) = controller.directory.clone() else {
         return;
@@ -469,7 +478,13 @@ fn respond(
             &directory,
             pending.id,
             &pending.error,
-            observation(&game, mode.get(), &editor),
+            observation(
+                &game,
+                mode.get(),
+                &editor,
+                fade.single().map_or(0., |c| c.0.alpha()),
+                stats.grass_vertices,
+            ),
             "",
         ) {
             error!("{error}");
@@ -488,6 +503,8 @@ fn respond(
                   game: Res<Game_World>,
                   mode: Res<State<Mode>>,
                   editor: Res<crate::editor::Editor_State>,
+                  fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
+                  stats: Res<crate::rendering::Scene_Stats>,
                   mut exit: MessageWriter<AppExit>| {
                 let Some(pending) = controller.pending.take() else {
                     return;
@@ -507,7 +524,13 @@ fn respond(
                     &directory,
                     pending.id,
                     &error,
-                    observation(&game, mode.get(), &editor),
+                    observation(
+                        &game,
+                        mode.get(),
+                        &editor,
+                        fade.single().map_or(0., |c| c.0.alpha()),
+                        stats.grass_vertices,
+                    ),
                     path.to_str().unwrap_or(""),
                 ) {
                     error!("{error}");

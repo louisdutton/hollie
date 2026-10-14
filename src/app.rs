@@ -38,7 +38,7 @@ impl Default for Preferences {
             master: 1.,
             music: 0.65,
             effects: 0.8,
-            fullscreen: false,
+            fullscreen: true,
         }
     }
 }
@@ -111,6 +111,11 @@ pub fn run() {
             file_path: root,
             ..default()
         })
+        .set(bevy::image::ImagePlugin::default_nearest())
+        .set(bevy::gltf::GltfPlugin {
+            default_sampler: bevy::image::ImageSamplerDescriptor::nearest(),
+            ..default()
+        })
         .set(RenderPlugin {
             render_creation: RenderCreation::Automatic(Box::new(settings)),
             synchronous_pipeline_compilation: offscreen,
@@ -123,6 +128,9 @@ pub fn run() {
                 Some(Window {
                     title: "hollie".into(),
                     resolution: (1280, 720).into(),
+                    mode: bevy::window::WindowMode::BorderlessFullscreen(
+                        bevy::window::MonitorSelection::Current,
+                    ),
                     ..default()
                 })
             },

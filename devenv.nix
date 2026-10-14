@@ -102,6 +102,14 @@ in {
       after = ["hollie:build-debug"];
       exec = gpu_env + probe_command + " --gpu --serve";
     };
+    "hollie:automation-session-native" = {
+      after = ["hollie:build-debug"];
+      exec = ''
+        export WGPU_BACKEND=vulkan
+        export WGPU_FORCE_FALLBACK_ADAPTER=true
+        ${probe_command} --windowed --serve
+      '';
+    };
     "hollie:automation-probe" = {
       after = ["hollie:build-debug"];
       exec =
@@ -111,11 +119,19 @@ in {
           ${probe_command} --gpu --scenario tools/scenarios/movement.json
           ${probe_command} --gpu --scenario tools/scenarios/gamepad.json
           ${probe_command} --gpu --scenario tools/scenarios/editor.json
+          ${probe_command} --gpu --scenario tools/scenarios/rooms.json
           ${probe_command} --gpu --scenario tools/scenarios/surfaces.json
           ${probe_command} --gpu --scenario tools/scenarios/riding.json
           ${probe_command} --gpu --scenario tools/scenarios/carrying.json
+          ${probe_command} --gpu --scenario tools/scenarios/throwing.json
           ${probe_command} --gpu --scenario tools/scenarios/bison.json
         '';
+    };
+    "hollie:automation-probe-native" = {
+      after = ["hollie:build-debug"];
+      exec = ''
+        ${probe_command} --windowed --scenario tools/scenarios/rooms.json
+      '';
     };
     "hollie:render-probe-gpu" = {
       after = ["hollie:build-debug"];
