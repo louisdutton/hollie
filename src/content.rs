@@ -148,6 +148,8 @@ pub struct Room {
     pub name: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub music_path: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub ambience_path: String,
     #[serde(default)]
     pub interior: bool,
     pub size: Size,
@@ -361,13 +363,15 @@ impl Room_Registry {
         for path in paths {
             if path.extension().is_some_and(|e| e == "json") {
                 let room = Room::load(&path)?;
-                if !room.music_path.is_empty() {
-                    ensure!(
-                        root.join(&room.music_path).is_file(),
-                        "missing music {}",
-                        room.music_path
-                    );
+                for (kind, path) in [
+                    ("music", &room.music_path),
+                    ("ambience", &room.ambience_path),
+                ] {
+                    if !path.is_empty() {
+                        ensure!(root.join(path).is_file(), "missing {kind} {path}");
+                    }
                 }
+
                 ensure!(
                     registry
                         .rooms

@@ -43,6 +43,10 @@ def main():
     env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
                HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
                WGPU_FORCE_FALLBACK_ADAPTER="false" if args.gpu else "true")
+    # Exercise decoding and playback without sending probe audio to host speakers.
+    alsa_config = output / "asound.conf"
+    alsa_config.write_text("pcm.!default { type null }\n")
+    env["ALSA_CONFIG_PATH"] = str(alsa_config)
     env.pop("WAYLAND_DISPLAY", None)
     env["WINIT_UNIX_BACKEND"] = "x11"
     if args.gpu_device:

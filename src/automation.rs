@@ -424,6 +424,20 @@ fn poll(
     controller.last_id = command.id;
     controller.pending = Some(pending);
 }
+fn audio_snapshot(
+    audio: &Query<(
+        &AudioPlayer,
+        &crate::rendering::Audio_Layer,
+        Option<&AudioSink>,
+    )>,
+    server: &AssetServer,
+) -> Value {
+    let mut layers = serde_json::Map::new();
+    for (player, layer, sink) in audio.iter() {
+        layers.insert(format!("{layer:?}"), json!({"path":server.get_path(player.0.id()).map(|p|p.path().to_string_lossy().into_owned()), "playing":sink.is_some_and(|s| !s.empty())}));
+    }
+    Value::Object(layers)
+}
 fn observation(
     game: &Game_World,
     mode: &Mode,
@@ -431,9 +445,11 @@ fn observation(
     fade_alpha: f32,
     grass_vertices: usize,
     debug: &crate::debug::Debug_State,
+    audio: Value,
 ) -> Value {
     let mut state = game.observation();
     state["scene"] = json!(format!("{mode:?}"));
+    state["audio"] = audio;
     state["debug"] = json!({"enabled":debug.enabled,"colliders":debug.collider_count});
     state["render"] = json!({"fade_alpha":fade_alpha,"grass_vertices":grass_vertices});
     if *mode == Mode::Editor {
@@ -469,6 +485,11 @@ fn respond(
     fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
     stats: Res<crate::rendering::Scene_Stats>,
     debug: Res<crate::debug::Debug_State>,
+    audio: Query<(
+        &AudioPlayer,
+        &crate::rendering::Audio_Layer,
+        Option<&AudioSink>,
+    )>,
 ) {
     let Some(directory) = controller.directory.clone() else {
         return;
@@ -509,6 +530,7 @@ fn respond(
                 fade.single().map_or(0., |c| c.0.alpha()),
                 stats.grass_vertices,
                 &debug,
+                audio_snapshot(&audio, &server),
             ),
             "",
         ) {
@@ -531,6 +553,12 @@ fn respond(
                   fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
                   stats: Res<crate::rendering::Scene_Stats>,
                   debug: Res<crate::debug::Debug_State>,
+                  server: Res<AssetServer>,
+                  audio: Query<(
+                &AudioPlayer,
+                &crate::rendering::Audio_Layer,
+                Option<&AudioSink>,
+            )>,
                   mut exit: MessageWriter<AppExit>| {
                 let Some(pending) = controller.pending.take() else {
                     return;
@@ -557,6 +585,7 @@ fn respond(
                         fade.single().map_or(0., |c| c.0.alpha()),
                         stats.grass_vertices,
                         &debug,
+                        audio_snapshot(&audio, &server),
                     ),
                     path.to_str().unwrap_or(""),
                 ) {

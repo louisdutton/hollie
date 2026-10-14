@@ -1,7 +1,8 @@
 {
   "id": "demo",
   "name": "Demo",
-  "music_path": "audio/music/ambient.ogg",
+  "music_path": "audio/A-Legend-Ian-Aisling-stream-preview.mp3",
+  "ambience_path": "audio/Wind-Ambience-Distant-City-stream-preview.mp3",
   "size": {
     "width": 60,
     "height": 48

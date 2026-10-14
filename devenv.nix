@@ -116,6 +116,7 @@ in {
         "set -e\n"
         + gpu_env
         + ''
+          ${probe_command} --gpu --scenario tools/scenarios/audio.json
           ${probe_command} --gpu --scenario tools/scenarios/movement.json
           ${probe_command} --gpu --scenario tools/scenarios/gamepad.json
           ${probe_command} --gpu --scenario tools/scenarios/editor.json

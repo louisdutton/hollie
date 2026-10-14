@@ -161,10 +161,27 @@ struct Render_State {
     camera_target: Vec3,
     zoom: f32,
     music: String,
+    ambience: String,
     last_effect: (u64, u32),
 }
-#[derive(Component)]
-struct Music;
+#[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Audio_Layer {
+    Music,
+    Ambience,
+}
+impl Audio_Layer {
+    fn volume(self, preferences: &crate::app::Preferences) -> bevy::audio::Volume {
+        bevy::audio::Volume::Linear(
+            preferences.master
+                * match self {
+                    Self::Music => preferences.music,
+                    Self::Ambience => preferences.effects,
+                },
+        )
+    }
+}
+const TITLE_MUSIC: &str = "audio/A-Feather-Falls-Ian-Aisling-stream-preview.mp3";
+const TITLE_AMBIENCE: &str = "audio/Birdsong-River-Flow-Early-Morning-Woodland-stream-preview.mp3";
 #[derive(Resource)]
 pub struct Title_Background(pub Handle<Image>);
 #[derive(Resource)]
@@ -1528,36 +1545,83 @@ fn play_music(
     mode: Res<State<Mode>>,
     mut state: ResMut<Render_State>,
     server: Res<AssetServer>,
-    music: Query<Entity, With<Music>>,
+    players: Query<(Entity, &Audio_Layer)>,
     preferences: Res<crate::app::Preferences>,
-    mut sinks: Query<&mut AudioSink, With<Music>>,
+    mut sinks: Query<(&Audio_Layer, &mut AudioSink)>,
 ) {
-    let path = if *mode.get() == Mode::Title || game.room.music_path.is_empty() {
-        "audio/music/ambient.ogg"
+    let (music, ambience) = if *mode.get() == Mode::Title {
+        (TITLE_MUSIC, TITLE_AMBIENCE)
     } else {
-        &game.room.music_path
+        (
+            if game.room.music_path.is_empty() {
+                "audio/music/ambient.ogg"
+            } else {
+                &game.room.music_path
+            },
+            game.room.ambience_path.as_str(),
+        )
     };
-    if state.music != path {
-        for entity in &music {
-            commands.entity(entity).despawn();
+    for (layer, path) in [
+        (Audio_Layer::Music, music),
+        (Audio_Layer::Ambience, ambience),
+    ] {
+        let current = match layer {
+            Audio_Layer::Music => &mut state.music,
+            Audio_Layer::Ambience => &mut state.ambience,
+        };
+        if current.as_str() != path {
+            for (entity, existing) in &players {
+                if *existing == layer {
+                    commands.entity(entity).despawn();
+                }
+            }
+            if !path.is_empty() {
+                commands.spawn((
+                    AudioPlayer::new(server.load(path.to_string())),
+                    PlaybackSettings {
+                        volume: layer.volume(&preferences),
+                        ..PlaybackSettings::LOOP
+                    },
+                    layer,
+                ));
+            }
+            *current = path.into();
         }
-        commands.spawn((
-            AudioPlayer::new(server.load(path.to_string())),
-            PlaybackSettings::LOOP,
-            Music,
-        ));
-        state.music = path.into();
     }
-    for mut sink in &mut sinks {
-        sink.set_volume(bevy::audio::Volume::Linear(
-            preferences.master * preferences.music,
-        ));
+    for (layer, mut sink) in &mut sinks {
+        sink.set_volume(layer.volume(&preferences));
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn soundtrack_mp3_assets_decode_with_the_enabled_audio_features() {
+        use bevy::audio::Decodable;
+        for path in [
+            TITLE_MUSIC,
+            TITLE_AMBIENCE,
+            "audio/A-Legend-Ian-Aisling-stream-preview.mp3",
+            "audio/Wind-Ambience-Distant-City-stream-preview.mp3",
+        ] {
+            let source = AudioSource {
+                bytes: std::fs::read(std::path::Path::new("res").join(path))
+                    .unwrap()
+                    .into(),
+            };
+            let samples: Vec<_> = source.decoder().take(960_000).collect();
+            assert!(!samples.is_empty(), "empty audio: {path}");
+            assert!(
+                samples.iter().all(|v| v.is_finite()),
+                "invalid audio: {path}"
+            );
+            assert!(
+                samples.iter().any(|v| v.abs() > 0.0001),
+                "silent audio: {path}"
+            );
+        }
+    }
     #[test]
     fn upper_ground_in_the_view_is_inside_the_depth_range() {
         let mut projection = game_camera_projection();
