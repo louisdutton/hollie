@@ -1,6 +1,6 @@
 # Development
 
-- Do not launch the game on the host desktop. For explicitly requested gameplay or rendering tests, use the private-display devenv tasks below; they provide their own graphical environment.
+- Do not launch the game on the host desktop. Use the private-display devenv tasks below for gameplay and rendering tests; they provide their own graphical environment. These tests do not require a separate user request.
 - Use `devenv shell` only for one-off commands.
 - Do not run routine checks manually. Rely on automated checks unless explicitly asked.
 - This project does not use CI; keep verification in the automated local commit hook and do not add CI workflows.
@@ -11,11 +11,11 @@
 
 All rendering and control tools are supplied by `devenv.nix`. Do not install
 host tools or connect to the user's desktop. These tasks build the debug game
-and launch it on an isolated Xvfb display, with VirtualGL/EGL hardware rendering.
+and launch it on an isolated Xvfb display, with Bevy/WGPU Vulkan rendering.
 Automation is opt-in via `HOLLIE_CONTROL_DIR` and absent from release builds;
 input injection is also available to unit tests.
 
-For an explicitly requested replay test:
+For a replay test:
 
 ```sh
 devenv tasks run --show-output hollie:automation-probe
@@ -29,14 +29,14 @@ screenshots, build/runtime logs, and a `scenario.json` command/response transcri
 Inspect relevant screenshots and logs as well as the assertions; these scenarios
 do not prove all gameplay paths or cross-machine determinism.
 
-For an explicitly requested interactive gameplay test:
+For an interactive gameplay test:
 
 ```sh
 devenv tasks run --show-output hollie:automation-session
 ```
 
 Alternatively, `devenv --profile automation up` supervises the same private-display
-session. It still requires an explicit gameplay-test request.
+session.
 
 Keep that task running and wait for `Paused control session: /tmp/.../control`.
 Use the actual printed directory in separate one-off commands:
@@ -54,8 +54,8 @@ devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"stop"}'
   the complete held input snapshot; omitted keys and gamepads are released.
   Holding an input across consecutive steps preserves it. A `pressed` edge is
   visible to all readers for the first simulation frame after a new press.
-- Keyboard keys use raylib enum names, such as `S`, `SPACE`, or `ENTER`.
-  Gamepads specify `Player_1` or `Player_2`, raylib button names, and axes in order
+- The control protocol retains legacy key names, such as `S`, `SPACE`, or `ENTER`.
+  Gamepads specify `Player_1` or `Player_2`, legacy button names, and axes in order
   `LEFT_X`, `LEFT_Y`, `RIGHT_X`, `RIGHT_Y`, `LEFT_TRIGGER`, `RIGHT_TRIGGER`, with
   values from -1 to 1. For example:
   `{"op":"step","frames":30,"gamepads":[{"player":"Player_1","axes":[0,1],"buttons":["RIGHT_FACE_DOWN"]}]}`.
@@ -63,8 +63,8 @@ devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"stop"}'
   room, player positions/velocities, enemy movement state, and an `error` field.
   Check errors before interpreting the result.
 - Optional `capture` takes a plain PNG filename. The response gives its absolute
-  path; inspect that image. Capture reads the game back buffer before swapping,
-  so it corresponds to the acknowledged state.
+  path; inspect that image. Bevy captures the rendered frame asynchronously;
+  simulation stays frozen until the capture finishes and the response is published.
 - `stop` closes the game. The launcher cleans up the game, window manager, and
   display on exit/failure, and limits interactive sessions to five minutes.
 
@@ -82,11 +82,11 @@ record of useful interactions. Keep routine checks in the automated commit hook.
 Review and commit generated assets with their sources when explicitly baking
 assets; do not regenerate assets as part of routine verification.
 
-The default GPU is `egl0`; set `HOLLIE_GPU_DEVICE=egl1` (or a DRI card path) before
-the task to select another device. Hardware tasks fail if the GPU is unavailable
-or software rendering is detected. For an explicitly requested rendering smoke
-test, `hollie:render-probe-gpu` uses hardware and `hollie:render-probe` uses Mesa
-software rendering. Those smoke probes do not provide deterministic replay.
+Set `HOLLIE_GPU_DEVICE` to a WGPU adapter-name substring before the task to select
+a particular GPU. Hardware tasks fail if the GPU is unavailable
+or software rendering is detected. For a rendering smoke
+test, `hollie:render-probe-gpu` uses hardware and `hollie:render-probe` requests a
+software Vulkan adapter. Those smoke probes do not provide deterministic replay.
 See [README.md](README.md#agent-control-and-replay) for further context.
 
 ## Casing

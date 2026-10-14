@@ -6,3 +6,6 @@
 devenv.local.nix
 devenv.local.yaml
 result
+
+target/
+__pycache__/

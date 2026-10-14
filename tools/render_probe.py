@@ -1,10 +1,11 @@
-"""Explicit, bounded native rendering probe; run via hollie:render-probe."""
+"""Explicit, bounded Bevy rendering/control session on a private Xvfb display."""
 
 import argparse
+import json
 import os
 from pathlib import Path
-import signal
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -16,44 +17,37 @@ from game_control import Control_Client, run_scenario
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--executable", type=Path, help="Use a debug executable built by devenv")
-    parser.add_argument("--gpu", action="store_true", help="Render via VirtualGL/EGL")
-    parser.add_argument(
-        "--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE", "egl0"),
-        help="VirtualGL EGL device ID or DRI card path (default: egl0)",
-    )
-    control_mode = parser.add_mutually_exclusive_group()
-    control_mode.add_argument("--scenario", type=Path, help="Run a saved control scenario")
-    control_mode.add_argument("--serve", action="store_true", help="Launch a paused game for external commands")
-    parser.add_argument("--session-timeout", type=int, default=300, help="Maximum --serve duration in seconds")
+    parser.add_argument("--executable", type=Path, required=True)
+    parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--windowed", action="store_true", help="Exercise the native window on the private display")
+    parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"), help="WGPU adapter name substring")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--scenario", type=Path)
+    mode.add_argument("--serve", action="store_true")
+    parser.add_argument("--session-timeout", type=int, default=300)
     args = parser.parse_args()
     if args.session_timeout < 1:
         parser.error("--session-timeout must be positive")
     repo = Path(__file__).resolve().parent.parent
     output = Path(tempfile.mkdtemp(prefix="hollie-render-probe-"))
     print(f"Probe artifacts: {output}", flush=True)
+    control = output / "control"
+    control.mkdir()
+    shutil.copy2(args.executable, output / "hollie")
+    (output / "build-source.txt").write_text(str(args.executable.resolve()) + "\n")
     env = os.environ.copy()
-    env["RES_ROOT"] = str(repo / "res")
-    # Never inherit a control session into a normal rendering smoke test.
-    env.pop("HOLLIE_CONTROL_DIR", None)
-    controlled = args.scenario is not None or args.serve
-    if controlled:
-        control_directory = output / "control"
-        control_directory.mkdir()
-        env["HOLLIE_CONTROL_DIR"] = str(control_directory)
-    render_command = []
-    if args.gpu:
-        env.pop("LIBGL_ALWAYS_SOFTWARE", None)
-        env["VGL_VERBOSE"] = "1"
-        render_command = ["vglrun", "-d", args.gpu_device, "-c", "proxy"]
-    (output / "backend.txt").write_text(
-        f"VirtualGL/EGL: {args.gpu_device}\n" if args.gpu else "Mesa software\n"
-    )
-    processes = []
-    logs = []
+    env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
+               HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
+               WGPU_FORCE_FALLBACK_ADAPTER="false" if args.gpu else "true")
+    env.pop("WAYLAND_DISPLAY", None)
+    env["WINIT_UNIX_BACKEND"] = "x11"
+    if args.gpu_device:
+        env["WGPU_ADAPTER_NAME"] = args.gpu_device
+    elif not args.gpu:
+        env.pop("WGPU_ADAPTER_NAME", None)
+    processes, logs = [], []
 
     def terminate(signum, frame):
-        # Devenv supervision sends SIGTERM; unwind through the cleanup below.
         raise SystemExit(128 + signum)
 
     previous_sigterm = signal.signal(signal.SIGTERM, terminate)
@@ -61,21 +55,13 @@ def main():
     def start(name, command):
         log = (output / f"{name}.log").open("w")
         logs.append(log)
-        process = subprocess.Popen(
-            command, cwd=repo, env=env, stdout=log,
-            stderr=subprocess.STDOUT, start_new_session=True,
-        )
+        process = subprocess.Popen(command, cwd=repo, env=env, stdout=log,
+                                   stderr=subprocess.STDOUT, start_new_session=True)
         processes.append(process)
         return process
 
-    def run(command, timeout=10):
-        return subprocess.run(
-            command, cwd=repo, env=env, check=True,
-            capture_output=True, text=True, timeout=timeout,
-        ).stdout.strip()
-
-    def wait_until(predicate, process, description):
-        deadline = time.monotonic() + 10
+    def wait_until(predicate, process, description, timeout=30):
+        deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             if process.poll() is not None:
                 raise RuntimeError(f"{description}: process exited {process.returncode}")
@@ -83,24 +69,10 @@ def main():
             if result:
                 return result
             time.sleep(0.1)
-        raise RuntimeError(f"Timed out waiting for {description}")
-
-    def find_window():
-        result = subprocess.run(
-            ["xdotool", "search", "--onlyvisible", "--all", "--pid", str(game.pid),
-             "--name", "^hollie$"],
-            env=env, capture_output=True, text=True, timeout=2,
-        )
-        return result.stdout.splitlines()[0] if result.stdout.strip() else None
-
-    def press(key):
-        # SDL can miss down/up events delivered within one slow software frame.
-        run(["xdotool", "keydown", "--clearmodifiers", key])
-        time.sleep(0.25)
-        run(["xdotool", "keyup", key])
+        raise TimeoutError(f"Timed out waiting for {description}")
 
     try:
-        # Xvfb chooses an unused display; never connect to the user's desktop.
+        # Let Xvfb allocate an unused display; never inherit the host display.
         display_file = output / "display"
         with display_file.open("w") as display:
             log = (output / "xvfb.log").open("w")
@@ -109,90 +81,59 @@ def main():
                 ["Xvfb", "-displayfd", str(display.fileno()), "-screen", "0",
                  "1280x720x24", "-nolisten", "tcp", "-noreset"],
                 stdout=log, stderr=subprocess.STDOUT,
-                pass_fds=(display.fileno(),), start_new_session=True,
-            )
+                pass_fds=(display.fileno(),), start_new_session=True)
             processes.append(xvfb)
-            display_number = wait_until(
-                lambda: display_file.read_text().strip(), xvfb, "virtual display",
-            )
-        env["DISPLAY"] = f":{display_number}"
-        gl_probe = subprocess.run(
-            render_command + ["glxinfo", "-B"], cwd=repo, env=env,
-            capture_output=True, text=True, timeout=10,
-        )
-        gl_info = gl_probe.stdout + gl_probe.stderr
-        (output / "opengl.txt").write_text(gl_info + "\n")
-        print(gl_info, flush=True)
-        gl_probe.check_returncode()
-        if "OpenGL renderer string:" not in gl_info:
-            raise RuntimeError("OpenGL context unavailable; see opengl.txt")
-        renderer = next(
-            line for line in gl_info.splitlines()
-            if line.startswith("OpenGL renderer string:")
-        )
-        if args.gpu and any(
-            name in renderer.lower()
-            for name in ("llvmpipe", "softpipe", "swrast", "software rasterizer")
-        ):
-            raise RuntimeError(f"GPU probe fell back to software: {renderer}")
+            number = wait_until(lambda: display_file.read_text().strip(), xvfb, "virtual display")
+        env["DISPLAY"] = f":{number}"
         wm = start("openbox", ["openbox", "--sm-disable"])
-        wait_until(
-            lambda: "_NET_SUPPORTING_WM_CHECK(WINDOW)" in run(
-                ["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"]
-            ), wm, "window manager",
-        )
-        if args.executable is None:
-            build = subprocess.run(
-                ["odin", "build", "hollie", "-debug", f"-out:{output / 'hollie'}"],
-                cwd=repo, env=env, capture_output=True, text=True, timeout=180,
-            )
-            (output / "build.log").write_text(build.stdout + build.stderr)
-            build.check_returncode()
+
+        def wm_ready():
+            result = subprocess.run(["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"],
+                                    env=env, capture_output=True, text=True, timeout=2)
+            return "_NET_SUPPORTING_WM_CHECK(WINDOW)" in result.stdout
+
+        wait_until(wm_ready, wm, "window manager")
+        game = start("game", [str(output / "hollie")])
+        report = output / "renderer.json"
+        wait_until(report.is_file, game, "Bevy renderer")
+        renderer = json.loads(report.read_text())
+        print(json.dumps(renderer), flush=True)
+        software = renderer["device_type"] == "Cpu" or any(
+            name in renderer["name"].lower() for name in ("llvmpipe", "lavapipe", "software"))
+        if args.gpu and software:
+            raise RuntimeError(f"GPU session selected a software adapter: {renderer}")
+        if not args.gpu and not software:
+            raise RuntimeError(f"Software session selected a hardware adapter: {renderer}")
+        client = Control_Client(control, game)
+        ready = client.wait_for_response(0)
+        if ready["error"]:
+            raise RuntimeError(ready["error"])
+        if args.scenario:
+            run_scenario(client, args.scenario, output)
+        elif args.serve:
+            print(f"Paused control session: {control}", flush=True)
+            deadline = time.monotonic() + args.session_timeout
+            while game.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.1)
+            if game.poll() is None:
+                raise TimeoutError("Control session reached --session-timeout")
         else:
-            shutil.copy2(args.executable, output / "hollie")
-            build_log = args.executable.parent / "build.log"
-            if build_log.exists():
-                shutil.copy2(build_log, output / "build.log")
-            (output / "build-source.txt").write_text(str(args.executable.resolve()) + "\n")
-        game = start("game", render_command + [str(output / "hollie")])
-        window = wait_until(find_window, game, "game window")
-        (output / "window.txt").write_text(
-            run(["xdotool", "getwindowgeometry", "--shell", window]) + "\n"
-        )
-        run(["xdotool", "windowactivate", "--sync", window])
-        if controlled:
-            client = Control_Client(control_directory, game)
-            client.wait_for_response(0)
-            if args.scenario is not None:
-                run_scenario(client, args.scenario, output)
-                response = client.send({"op": "stop"})
+            for command in ({"op": "observe", "capture": "title.png"},
+                            {"op": "reset", "room": "demo", "players": 1,
+                             "seed": 42, "capture": "gameplay.png"}):
+                response = client.send(command)
                 if response["error"]:
                     raise RuntimeError(response["error"])
-            else:
-                print(f"Paused control session: {control_directory}", flush=True)
-                deadline = time.monotonic() + args.session_timeout
-                while game.poll() is None and time.monotonic() < deadline:
-                    time.sleep(0.1)
-                if game.poll() is None:
-                    raise TimeoutError("Control session reached --session-timeout")
-            game.wait(timeout=5)
-            if game.returncode != 0:
-                raise RuntimeError(f"Game exited {game.returncode}")
-            return
-        for scene in ("title", "gameplay"):
-            if scene == "gameplay":
-                press("Return")
-            time.sleep(3)
-            if game.poll() is not None:
-                raise RuntimeError(f"Game exited before {scene} capture")
-            run(["magick", "import", "-window", window, str(output / f"{scene}.png")])
-        press("BackSpace")
-        game.wait(timeout=5)
+                shutil.copy2(response["capture"], output / command["capture"])
+            print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
+        if game.poll() is None:
+            response = client.send({"op": "stop"})
+            if response["error"]:
+                raise RuntimeError(response["error"])
+        game.wait(timeout=10)
         if game.returncode != 0:
-            raise RuntimeError(f"Game exited {game.returncode}")
-        print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
+            raise RuntimeError(f"Game exited {game.returncode}; inspect game.log")
     finally:
-        # Ignore repeated supervisor signals while terminating child groups.
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         for process in reversed(processes):
             if process.poll() is None:

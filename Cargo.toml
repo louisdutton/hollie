@@ -1,0 +1,26 @@
+[package]
+name = "hollie"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+default-run = "hollie"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["3d", "ui", "audio", "wav"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+json5 = "0.4"
+rand = "0.9"
+rand_chacha = "0.9"
+anyhow = "1"
+tempfile = "3"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

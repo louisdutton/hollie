@@ -69,9 +69,21 @@ def run_scenario(client, path, output):
                 shutil.copyfile(response["capture"], output / name)
         for check in scenario["assertions"]:
             first = saved[check["first"]]
-            second = saved[check["second"]]
+            second = saved.get(check.get("second"))
             kind = check["kind"]
-            if kind == "equal_state":
+            if kind == "field":
+                value = first
+                for key in check["path"]:
+                    value = value[key]
+                if value != check["value"]:
+                    raise AssertionError(f"Unexpected {check['path']}: {value!r}")
+            elif kind == "equal_field":
+                left, right = first, second
+                for key in check["path"]:
+                    left, right = left[key], right[key]
+                if left != right:
+                    raise AssertionError(f"Field differs: {check['path']}")
+            elif kind == "equal_state":
                 if first != second:
                     raise AssertionError(f"State differs: {check['first']} vs {check['second']}")
             elif kind == "player_moved":
