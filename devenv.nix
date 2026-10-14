@@ -119,6 +119,7 @@ in {
           ${probe_command} --gpu --scenario tools/scenarios/movement.json
           ${probe_command} --gpu --scenario tools/scenarios/gamepad.json
           ${probe_command} --gpu --scenario tools/scenarios/editor.json
+          ${probe_command} --gpu --scenario tools/scenarios/debug.json
           ${probe_command} --gpu --scenario tools/scenarios/rooms.json
           ${probe_command} --gpu --scenario tools/scenarios/surfaces.json
           ${probe_command} --gpu --scenario tools/scenarios/riding.json

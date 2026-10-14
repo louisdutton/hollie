@@ -44,6 +44,7 @@ struct Command {
 #[derive(Resource, Default)]
 pub(crate) struct Controller {
     pub(crate) stepping: bool,
+    pub(crate) debug_toggle: bool,
     directory: Option<PathBuf>,
     last_id: u64,
     pending: Option<Pending>,
@@ -57,6 +58,7 @@ struct Pending {
     capture: String,
     remaining: u32,
     inputs: [Player_Input; 2],
+    debug_toggle: bool,
     keys: Vec<KeyCode>,
     settle: u32,
     screenshot: bool,
@@ -100,6 +102,7 @@ fn valid_key(key: &str) -> bool {
                 | "SEMICOLON"
                 | "TAB"
                 | "F1"
+                | "F3"
                 | "G"
                 | "DELETE"
                 | "LEFT_CONTROL"
@@ -150,6 +153,7 @@ fn native_key(key: &str) -> KeyCode {
         "SEMICOLON" => KeyCode::Semicolon,
         "TAB" => KeyCode::Tab,
         "F1" => KeyCode::F1,
+        "F3" => KeyCode::F3,
         "DELETE" => KeyCode::Delete,
         "LEFT_CONTROL" => KeyCode::ControlLeft,
         "RIGHT_CONTROL" => KeyCode::ControlRight,
@@ -266,6 +270,7 @@ fn execute(
         capture: command.capture.clone(),
         remaining: 0,
         inputs: default(),
+        debug_toggle: false,
         keys: Vec::new(),
         settle: 12,
         screenshot: false,
@@ -292,6 +297,11 @@ fn execute(
             );
             validate_inputs(command)?;
             pending.inputs = input_snapshot(command, controller);
+            pending.debug_toggle = command.gamepads.iter().any(|pad| {
+                pad.player == "Player_1"
+                    && pad.buttons.iter().any(|b| b == "RIGHT_THUMB")
+                    && !controller.previous_buttons[0].contains("RIGHT_THUMB")
+            });
             pending.remaining = frames;
             pending.keys = command.keys.iter().map(|key| native_key(key)).collect();
             for pad in &command.gamepads {
@@ -329,13 +339,22 @@ fn poll(
     mut next: ResMut<NextState<Mode>>,
     mode: Res<State<Mode>>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
+    mut debug: ResMut<crate::debug::Debug_State>,
 ) {
     let Some(directory) = controller.directory.clone() else {
         return;
     };
     controller.stepping = controller.pending.as_ref().is_some_and(|p| p.remaining > 0);
+    controller.debug_toggle = false;
+    // Publish the controller edge separately from keyboard F3.
+    let toggle = controller
+        .pending
+        .as_ref()
+        .is_some_and(|p| p.remaining > 0 && p.debug_toggle);
+    controller.debug_toggle = toggle;
     if let Some(pending) = &mut controller.pending {
         if pending.remaining > 0 {
+            pending.debug_toggle = false;
             let released: Vec<_> = keys
                 .get_pressed()
                 .filter(|key| !pending.keys.contains(key))
@@ -391,6 +410,7 @@ fn poll(
             capture: String::new(),
             remaining: 0,
             inputs: default(),
+            debug_toggle: false,
             keys: Vec::new(),
             settle: 0,
             screenshot: false,
@@ -399,6 +419,7 @@ fn poll(
     };
     if command.op == "reset" && pending.error.is_empty() {
         keys.reset_all();
+        debug.enabled = false;
     }
     controller.last_id = command.id;
     controller.pending = Some(pending);
@@ -409,9 +430,11 @@ fn observation(
     editor: &crate::editor::Editor_State,
     fade_alpha: f32,
     grass_vertices: usize,
+    debug: &crate::debug::Debug_State,
 ) -> Value {
     let mut state = game.observation();
     state["scene"] = json!(format!("{mode:?}"));
+    state["debug"] = json!({"enabled":debug.enabled,"colliders":debug.collider_count});
     state["render"] = json!({"fade_alpha":fade_alpha,"grass_vertices":grass_vertices});
     if *mode == Mode::Editor {
         state["editor"] = json!({"dirty":editor.dirty,"cursor":[editor.cursor.x,editor.cursor.y],"base":game.room.layers.base});
@@ -445,6 +468,7 @@ fn respond(
     target: Option<Res<crate::rendering::Offscreen_Target>>,
     fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
     stats: Res<crate::rendering::Scene_Stats>,
+    debug: Res<crate::debug::Debug_State>,
 ) {
     let Some(directory) = controller.directory.clone() else {
         return;
@@ -484,6 +508,7 @@ fn respond(
                 &editor,
                 fade.single().map_or(0., |c| c.0.alpha()),
                 stats.grass_vertices,
+                &debug,
             ),
             "",
         ) {
@@ -505,6 +530,7 @@ fn respond(
                   editor: Res<crate::editor::Editor_State>,
                   fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
                   stats: Res<crate::rendering::Scene_Stats>,
+                  debug: Res<crate::debug::Debug_State>,
                   mut exit: MessageWriter<AppExit>| {
                 let Some(pending) = controller.pending.take() else {
                     return;
@@ -530,6 +556,7 @@ fn respond(
                         &editor,
                         fade.single().map_or(0., |c| c.0.alpha()),
                         stats.grass_vertices,
+                        &debug,
                     ),
                     path.to_str().unwrap_or(""),
                 ) {

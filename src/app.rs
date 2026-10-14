@@ -57,8 +57,11 @@ impl Plugin for Hollie_Plugin {
             .add_systems(FixedUpdate, simulate.run_if(in_state(Mode::Gameplay)))
             .add_plugins((Rendering_Plugin, Ui_Plugin, Editor_Plugin));
         #[cfg(debug_assertions)]
-        app.add_plugins(crate::automation::Automation_Plugin)
-            .add_systems(Startup, report_renderer);
+        app.add_plugins((
+            crate::debug::Debug_Plugin,
+            crate::automation::Automation_Plugin,
+        ))
+        .add_systems(Startup, report_renderer);
     }
 }
 #[cfg(debug_assertions)]
