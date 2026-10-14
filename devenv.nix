@@ -142,6 +142,15 @@ in {
           ${probe_command} --windowed --display-size 2560x1080
         '';
     };
+    "hollie:render-probe-4k" = {
+      after = ["hollie:build-debug"];
+      exec =
+        "set -e\n"
+        + ''
+          ${probe_command} --windowed --display-size 3840x2160
+          WINIT_X11_SCALE_FACTOR=2 ${probe_command} --windowed --display-size 3840x2160
+        '';
+    };
     "hollie:render-probe-gpu" = {
       after = ["hollie:build-debug"];
       exec = gpu_env + probe_command + " --gpu";
