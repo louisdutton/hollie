@@ -71,7 +71,13 @@ def run_scenario(client, path, output):
             first = saved[check["first"]]
             second = saved.get(check.get("second"))
             kind = check["kind"]
-            if kind == "field":
+            if kind == "positive_field":
+                value = first
+                for key in check["path"]:
+                    value = value[key]
+                if value <= 0:
+                    raise AssertionError(f"Expected positive {check['path']}: {value!r}")
+            elif kind == "field":
                 value = first
                 for key in check["path"]:
                     value = value[key]

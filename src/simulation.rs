@@ -83,6 +83,7 @@ pub struct Actor {
     pub mounted: Option<u64>,
     pub carrying: Option<u64>,
     pub held_by: Option<u64>,
+    pub held_anchor: Option<Vec3>,
     pub release_player: Option<u64>,
     pub active: bool,
     pub open: bool,
@@ -96,6 +97,7 @@ pub struct Actor {
     pub death_timer: f32,
     pub mount_time: f32,
     pub mount_start: Vec3,
+    pub pose: crate::visuals::Motion_Pose,
 }
 impl Actor {
     pub fn player(&self) -> Option<usize> {
@@ -199,6 +201,7 @@ pub struct Game_World {
     pub dialog: Option<usize>,
     pub dialog_characters: f32,
     pub effects: Vec<(Vec3, bool)>,
+    pub surfaces: crate::visuals::Surface_State,
     rng: ChaCha8Rng,
 }
 impl Game_World {
@@ -229,6 +232,7 @@ impl Game_World {
             dialog: None,
             dialog_characters: 0.,
             effects: Vec::new(),
+            surfaces: default(),
             rng: ChaCha8Rng::seed_from_u64(42),
         })
     }
@@ -290,6 +294,7 @@ impl Game_World {
                 mounted: None,
                 carrying: None,
                 held_by: None,
+                held_anchor: None,
                 release_player: None,
                 active: false,
                 open: false,
@@ -303,9 +308,11 @@ impl Game_World {
                 death_timer: 0.,
                 mount_time: 0.,
                 mount_start: Vec3::ZERO,
+                pose: default(),
             });
         }
         let door=actors.iter().find(|a|matches!(&a.properties,Entity_Properties::Door(d) if a.source_id==target || d.target_door_id==target)).or_else(||actors.iter().find(|a|matches!(a.properties,Entity_Properties::Door(_)))).cloned();
+        self.surfaces = default();
         self.room = room;
         self.actors = actors;
         self.dialog = None;
@@ -338,6 +345,7 @@ impl Game_World {
                 mounted: None,
                 carrying: None,
                 held_by: None,
+                held_anchor: None,
                 release_player: None,
                 active: false,
                 open: false,
@@ -351,6 +359,7 @@ impl Game_World {
                 death_timer: 0.,
                 mount_time: 0.,
                 mount_start: Vec3::ZERO,
+                pose: default(),
             });
         }
         self.generation += 1;
@@ -519,8 +528,14 @@ impl Game_World {
         if let Some(item) = self.actors[player].carrying {
             if let Some(index) = self.actors.iter().position(|a| a.id == item) {
                 let mut body = self.actors[index].body.clone();
-                body.position = self.actors[player].body.position + self.actors[player].facing * 8.;
-                body.height = self.actors[player].body.height + 28.;
+                // Release from the last evaluated hand pose, as in the original renderer.
+                let anchor = self.actors[index].held_anchor.unwrap_or(Vec3::new(
+                    self.actors[player].body.position.x + self.actors[player].facing.x * 8.,
+                    self.actors[player].body.height + 28.,
+                    self.actors[player].body.position.y + self.actors[player].facing.y * 8.,
+                ));
+                body.position = Vec2::new(anchor.x, anchor.z);
+                body.height = anchor.y;
                 if !self.blocked(body.bounds(), &self.obstacles(index)) {
                     body.velocity =
                         self.actors[player].body.velocity + self.actors[player].facing * 45.;
@@ -528,6 +543,7 @@ impl Game_World {
                     body.grounded = false;
                     self.actors[index].body = body;
                     self.actors[index].held_by = None;
+                    self.actors[index].held_anchor = None;
                     self.actors[index].release_player = Some(self.actors[player].id);
                     self.actors[player].carrying = None;
                 }
@@ -1107,13 +1123,47 @@ impl Game_World {
                 a.death_timer += dt;
             }
         }
+        let steering_by_actor: std::collections::HashMap<_, _> = self
+            .actors
+            .iter()
+            .filter_map(|actor| {
+                actor.player().map(|p| {
+                    (
+                        actor.mounted.unwrap_or(actor.id),
+                        camera_relative(inputs[p].movement),
+                    )
+                })
+            })
+            .collect();
+        for actor in &mut self.actors {
+            let animal = crate::visuals::animal_axis(actor.kind()) != 0.;
+            let bison = actor.kind() == Some(Character_Kind::Bison);
+            let steering = steering_by_actor
+                .get(&actor.id)
+                .copied()
+                .unwrap_or(actor.move_direction);
+            actor.pose.advance(
+                crate::visuals::Pose_Input {
+                    velocity: actor.body.velocity,
+                    facing: actor.facing,
+                    steering,
+                    grounded: actor.body.grounded,
+                    swimming: actor.body.swimming,
+                    animal,
+                    bison,
+                    ram: actor.ram_ready,
+                },
+                dt,
+            );
+        }
+        self.surfaces.advance(&self.actors, &self.room, dt);
         self.actors
             .retain(|a| a.player().is_some() || a.health > 0 || a.death_timer < 26. / 60.);
         Ok(())
     }
     pub fn observation(&self) -> Value {
-        let body = |a: &Actor| json!({"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
-        json!({"frame":self.frame,"seed":self.seed,"scene":"Gameplay","room":self.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
+        let body = |a: &Actor| json!({"ram_ready":a.ram_ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
+        json!({"visual":{"water_contacts":self.surfaces.water.len(),"wakes":self.surfaces.wakes.len(),"grass_contacts":self.surfaces.grass.len(),"grass_trails":self.surfaces.grass_trails.len()},"frame":self.frame,"seed":self.seed,"scene":"Gameplay","room":self.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
     }
 }
 pub const DIALOG: [&str; 3] = [

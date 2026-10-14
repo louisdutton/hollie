@@ -1,0 +1,27 @@
+import bevy_pbr::render::{
+    forward_io::{VertexOutput,FragmentOutput},
+    pbr_fragment::pbr_input_from_standard_material,
+    pbr_functions::{apply_pbr_lighting,main_pass_post_lighting_processing},
+};
+fn hash(p: vec2<f32>) -> f32 {return fract(sin(dot(p,vec2<f32>(127.1,311.7)))*43758.5453);}
+fn noise(p: vec2<f32>) -> f32 {
+    let c=floor(p);let f=fract(p);let u=f*f*(3.0-2.0*f);
+    return mix(mix(hash(c),hash(c+vec2<f32>(1.0,0.0)),u.x),mix(hash(c+vec2<f32>(0.0,1.0)),hash(c+vec2<f32>(1.0,1.0)),u.x),u.y);
+}
+@fragment
+fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutput {
+    var pbr=pbr_input_from_standard_material(in,front);
+    let tone=noise(in.uv*0.012);
+    let upper=smoothstep(0.2,0.95,in.color.r);
+    var albedo=mix(vec3<f32>(0.44,0.65,0.38),vec3<f32>(0.56,0.79,0.38),tone);
+    albedo=mix(albedo,vec3<f32>(0.70,0.85,0.43),upper*0.12);
+    albedo*=1.0-in.color.g*0.08;
+    pbr.material.base_color=vec4<f32>(pow(albedo,vec3<f32>(2.2)),1.0);
+    pbr.N=normalize(in.world_normal);
+    // Curved normals and a restrained shoulder sheen reveal travelling gusts.
+    pbr.material.perceptual_roughness=0.85-upper*in.color.b*0.12;
+    var out: FragmentOutput;
+    out.color=apply_pbr_lighting(pbr);
+    out.color=main_pass_post_lighting_processing(pbr,out.color);
+    return out;
+}

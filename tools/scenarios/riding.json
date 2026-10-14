@@ -1,0 +1,496 @@
+{
+  "name": "mount, stride blend, turn banking, airborne pose and dismount replay",
+  "steps": [
+    {
+      "command": {
+        "op": "reset"
+      },
+      "save_as": "initial"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.18208926018230742,
+              0.9832820049844601
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.23249326674782425,
+              0.9725980058158279
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.30301130803444143,
+              0.9529869606680128
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.37738556927457045,
+              0.9260562251306926
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.4551681480000427,
+              0.8904055014689717
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.5356304623927123,
+              0.8444524899347324
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.6306703530275175,
+              0.7760508397084217
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 12,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.8510623972104095,
+              0.5250645637009519
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9828640627350969,
+              0.18433185884121994
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      },
+      "save_as": "mounted",
+      "capture": "mounted.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 60,
+        "keys": [
+          "S",
+          "D"
+        ]
+      },
+      "save_as": "riding",
+      "capture": "riding.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 45,
+        "keys": [
+          "S",
+          "A"
+        ]
+      },
+      "save_as": "turning",
+      "capture": "turning.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "H"
+        ]
+      },
+      "save_as": "jump",
+      "capture": "jump.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 18
+      },
+      "save_as": "airborne",
+      "capture": "airborne.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120
+      },
+      "save_as": "landed",
+      "capture": "landed.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      },
+      "save_as": "dismount",
+      "capture": "dismount.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 80
+      },
+      "save_as": "settled"
+    },
+    {
+      "command": {
+        "op": "observe"
+      },
+      "save_as": "idle",
+      "wait_seconds": 0.5
+    },
+    {
+      "command": {
+        "op": "reset"
+      },
+      "save_as": "reset"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.18208926018230742,
+              0.9832820049844601
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.23249326674782425,
+              0.9725980058158279
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.30301130803444143,
+              0.9529869606680128
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.37738556927457045,
+              0.9260562251306926
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.4551681480000427,
+              0.8904055014689717
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.5356304623927123,
+              0.8444524899347324
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.6306703530275175,
+              0.7760508397084217
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 12,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.8510623972104095,
+              0.5250645637009519
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9828640627350969,
+              0.18433185884121994
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 60,
+        "keys": [
+          "S",
+          "D"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 45,
+        "keys": [
+          "S",
+          "A"
+        ]
+      },
+      "save_as": "replayed",
+      "capture": "replayed.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "H"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 18
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 80
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "kind": "field",
+      "first": "mounted",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 8
+    },
+    {
+      "kind": "field",
+      "first": "dismount",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 0
+    },
+    {
+      "kind": "equal_state",
+      "first": "settled",
+      "second": "idle"
+    },
+    {
+      "kind": "equal_state",
+      "first": "initial",
+      "second": "reset"
+    },
+    {
+      "kind": "equal_state",
+      "first": "turning",
+      "second": "replayed"
+    }
+  ],
+  "image_assertions": [
+    {
+      "first": "turning.png",
+      "second": "replayed.png"
+    }
+  ]
+}

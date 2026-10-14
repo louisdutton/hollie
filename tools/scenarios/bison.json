@@ -1,0 +1,238 @@
+{
+  "name": "bison charge, head lowering, heavy gait and rider banking replay",
+  "steps": [
+    {
+      "command": {
+        "op": "reset"
+      },
+      "save_as": "initial"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 90,
+        "keys": [
+          "S",
+          "D"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 6,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9956848363229206,
+              -0.09279928187544782
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9820934215753893,
+              -0.18839456281523817
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      },
+      "save_as": "mounted",
+      "capture": "bison-mounted.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120,
+        "keys": [
+          "S",
+          "D"
+        ]
+      },
+      "save_as": "charge",
+      "capture": "bison-charge.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 25,
+        "keys": [
+          "S",
+          "A"
+        ]
+      },
+      "save_as": "bank",
+      "capture": "bison-bank.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 80
+      },
+      "save_as": "rest",
+      "capture": "bison-rest.png"
+    },
+    {
+      "command": {
+        "op": "reset"
+      },
+      "save_as": "reset"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 90,
+        "keys": [
+          "S",
+          "D"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 6,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9956848363229206,
+              -0.09279928187544782
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9820934215753893,
+              -0.18839456281523817
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120,
+        "keys": [
+          "S",
+          "D"
+        ]
+      },
+      "save_as": "replayed",
+      "capture": "bison-replayed.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 25,
+        "keys": [
+          "S",
+          "A"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 80
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "kind": "field",
+      "first": "mounted",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 9
+    },
+    {
+      "kind": "equal_state",
+      "first": "initial",
+      "second": "reset"
+    },
+    {
+      "kind": "equal_state",
+      "first": "charge",
+      "second": "replayed"
+    },
+    {
+      "kind": "field",
+      "first": "charge",
+      "path": [
+        "enemies",
+        2,
+        "body",
+        "ram_ready"
+      ],
+      "value": true
+    },
+    {
+      "kind": "positive_field",
+      "first": "charge",
+      "path": [
+        "enemies",
+        2,
+        "body",
+        "ram"
+      ]
+    }
+  ],
+  "image_assertions": [
+    {
+      "first": "bison-charge.png",
+      "second": "bison-replayed.png"
+    }
+  ]
+}

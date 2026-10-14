@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -131,6 +132,9 @@ def main():
             if response["error"]:
                 raise RuntimeError(response["error"])
         game.wait(timeout=10)
+        runtime_log = (output / "game.log").read_text()
+        if re.search(r"ERROR (?:bevy_render|bevy_asset)|panicked at", runtime_log):
+            raise RuntimeError(f"Rendering or asset errors; inspect {output / 'game.log'}")
         if game.returncode != 0:
             raise RuntimeError(f"Game exited {game.returncode}; inspect game.log")
     finally:

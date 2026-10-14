@@ -111,6 +111,10 @@ in {
           ${probe_command} --gpu --scenario tools/scenarios/movement.json
           ${probe_command} --gpu --scenario tools/scenarios/gamepad.json
           ${probe_command} --gpu --scenario tools/scenarios/editor.json
+          ${probe_command} --gpu --scenario tools/scenarios/surfaces.json
+          ${probe_command} --gpu --scenario tools/scenarios/riding.json
+          ${probe_command} --gpu --scenario tools/scenarios/carrying.json
+          ${probe_command} --gpu --scenario tools/scenarios/bison.json
         '';
     };
     "hollie:render-probe-gpu" = {
