@@ -1,6 +1,6 @@
 use crate::{
     app::Mode,
-    simulation::{Game_World, Player_Input, STEP},
+    simulation::{Game_Access, Game_State, Game_View, Game_World, Player_Input, STEP},
 };
 use anyhow::{Result, ensure};
 use bevy::{
@@ -78,12 +78,7 @@ impl Plugin for Automation_Plugin {
             directory,
             ..default()
         })
-        .add_systems(
-            Update,
-            poll.before(crate::rendering::sync_actors)
-                .before(crate::ui::menu_input)
-                .before(crate::editor::edit),
-        )
+        .add_systems(Update, poll.in_set(crate::app::Game_Systems::Automation))
         .add_systems(Last, respond);
     }
 }
@@ -110,6 +105,11 @@ fn valid_key(key: &str) -> bool {
                 | "MINUS"
                 | "EQUAL"
         )
+}
+impl Controller {
+    pub(crate) fn enabled(&self) -> bool {
+        self.directory.is_some()
+    }
 }
 pub(crate) fn waiting(controller: &Controller) -> bool {
     controller.directory.is_some() && !controller.stepping
@@ -257,7 +257,7 @@ fn input_snapshot(command: &Command, controller: &Controller) -> [Player_Input; 
 fn execute(
     command: &Command,
     controller: &mut Controller,
-    game: &mut Game_World,
+    game: &mut Game_World<impl std::ops::DerefMut<Target = Game_State>>,
     next: &mut NextState<Mode>,
 ) -> Result<Pending> {
     ensure!(
@@ -335,7 +335,7 @@ fn execute(
 }
 fn poll(
     mut controller: ResMut<Controller>,
-    mut game: ResMut<Game_World>,
+    mut game: Game_Access,
     mut next: ResMut<NextState<Mode>>,
     mode: Res<State<Mode>>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
@@ -402,7 +402,9 @@ fn poll(
     if command.id <= controller.last_id {
         return;
     }
-    let pending = match execute(&command, &mut controller, &mut game, &mut next) {
+    let pending = match game
+        .with_simulation(|simulation| execute(&command, &mut controller, simulation, &mut next))
+    {
         Ok(p) => p,
         Err(error) => Pending {
             id: command.id,
@@ -439,7 +441,7 @@ fn audio_snapshot(
     Value::Object(layers)
 }
 fn observation(
-    game: &Game_World,
+    game: &Game_View,
     mode: &Mode,
     editor: &crate::editor::Editor_State,
     fade_alpha: f32,
@@ -475,7 +477,7 @@ fn write_response(
 fn respond(
     mut commands: Commands,
     mut controller: ResMut<Controller>,
-    game: Res<Game_World>,
+    game: Game_View,
     mut exit: MessageWriter<AppExit>,
     mode: Res<State<Mode>>,
     editor: Res<crate::editor::Editor_State>,
@@ -547,7 +549,7 @@ fn respond(
         commands.spawn(screenshot).observe(
             move |event: On<ScreenshotCaptured>,
                   mut controller: ResMut<Controller>,
-                  game: Res<Game_World>,
+                  game: Game_View,
                   mode: Res<State<Mode>>,
                   editor: Res<crate::editor::Editor_State>,
                   fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,

@@ -3,7 +3,7 @@ use crate::{
     editor::Editor_State,
     input::Controls,
     rendering::Title_Background,
-    simulation::{DIALOG, Game_World},
+    simulation::{DIALOG, Game_Access, Game_State},
 };
 use bevy::{
     picking::hover::Hovered,
@@ -41,14 +41,14 @@ impl Plugin for Ui_Plugin {
             .add_systems(Startup, setup_transition_fade)
             .add_systems(
                 Update,
-                (
-                    menu_input,
-                    button_input,
-                    apply_window_preferences,
-                    draw_ui,
-                    update_transition_fade,
-                )
-                    .chain(),
+                (menu_input, button_input)
+                    .chain()
+                    .in_set(crate::app::Game_Systems::Actions),
+            )
+            .add_systems(
+                Update,
+                (apply_window_preferences, draw_ui, update_transition_fade)
+                    .in_set(crate::app::Game_Systems::Presentation),
             );
     }
 }
@@ -69,7 +69,7 @@ fn setup_transition_fade(mut commands: Commands) {
     ));
 }
 fn update_transition_fade(
-    game: Res<Game_World>,
+    game: Res<Game_State>,
     mut fades: Query<&mut BackgroundColor, With<Transition_Fade>>,
 ) {
     let opacity = game
@@ -146,7 +146,7 @@ fn activate(
     menu: &mut Menu_State,
     mode: &Mode,
     next: &mut NextState<Mode>,
-    game: &mut Game_World,
+    game: &mut Game_Access,
     preferences: &mut Preferences,
     exit: &mut MessageWriter<AppExit>,
 ) {
@@ -208,21 +208,43 @@ fn activate(
     menu.selection = 0;
     menu.rebuild = true;
 }
-pub(crate) fn menu_input(
+#[derive(bevy::ecs::system::SystemParam)]
+struct Menu_Actions<'w, 's> {
+    next: ResMut<'w, NextState<Mode>>,
+    game: Game_Access<'w, 's>,
+    preferences: ResMut<'w, Preferences>,
+    exit: MessageWriter<'w, AppExit>,
+}
+#[derive(bevy::ecs::system::SystemParam)]
+struct Menu_Controls<'w, 's> {
+    keys: Res<'w, ButtonInput<KeyCode>>,
+    pads: Query<'w, 's, &'static Gamepad>,
+    windows: Query<'w, 's, &'static Window>,
+    controls: ResMut<'w, Controls>,
+    bindings: ResMut<'w, crate::input::Key_Bindings>,
+}
+fn menu_input(
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
-    keys: Res<ButtonInput<KeyCode>>,
-    pads: Query<&Gamepad>,
-    windows: Query<&Window>,
     mode: Res<State<Mode>>,
-    mut next: ResMut<NextState<Mode>>,
     mut menu: ResMut<Menu_State>,
-    mut game: ResMut<Game_World>,
-    mut preferences: ResMut<Preferences>,
-    mut exit: MessageWriter<AppExit>,
     time: Res<Time>,
-    mut controls: ResMut<Controls>,
-    mut bindings: ResMut<crate::input::Key_Bindings>,
+    actions: Menu_Actions,
+    input: Menu_Controls,
 ) {
+    let Menu_Actions {
+        mut next,
+        mut game,
+        mut preferences,
+        mut exit,
+    } = actions;
+    let Menu_Controls {
+        keys,
+        pads,
+        windows,
+        mut controls,
+        mut bindings,
+    } = input;
+
     #[cfg(debug_assertions)]
     if crate::automation::waiting(&controller) {
         return;
@@ -452,11 +474,15 @@ fn button_activate(
     options: Query<&Menu_Option>,
     mut menu: ResMut<Menu_State>,
     mode: Res<State<Mode>>,
-    mut next: ResMut<NextState<Mode>>,
-    mut game: ResMut<Game_World>,
-    mut preferences: ResMut<Preferences>,
-    mut exit: MessageWriter<AppExit>,
+    actions: Menu_Actions,
 ) {
+    let Menu_Actions {
+        mut next,
+        mut game,
+        mut preferences,
+        mut exit,
+    } = actions;
+
     if let Ok(option) = options.get(event.entity) {
         activate(
             option.0,
@@ -469,18 +495,32 @@ fn button_activate(
         );
     }
 }
+#[derive(bevy::ecs::system::SystemParam)]
+struct Ui_Context<'w> {
+    bindings: Res<'w, crate::input::Key_Bindings>,
+    mode: Res<'w, State<Mode>>,
+    game: Res<'w, Game_State>,
+    preferences: Res<'w, Preferences>,
+    editor: Res<'w, Editor_State>,
+    background: Res<'w, Title_Background>,
+    server: Res<'w, AssetServer>,
+}
 fn draw_ui(
-    bindings: Res<crate::input::Key_Bindings>,
     mut commands: Commands,
     root: Query<Entity, With<Ui_Root>>,
-    mode: Res<State<Mode>>,
-    game: Res<Game_World>,
-    preferences: Res<Preferences>,
-    editor: Res<Editor_State>,
-    background: Res<Title_Background>,
-    server: Res<AssetServer>,
     mut menu: ResMut<Menu_State>,
+    context: Ui_Context,
 ) {
+    let Ui_Context {
+        bindings,
+        mode,
+        game,
+        preferences,
+        editor,
+        background,
+        server,
+    } = context;
+
     let status = if menu.rebinding.is_some() {
         "Press a new key, or Escape to cancel".to_string()
     } else if *mode.get() == Mode::Editor {
@@ -501,7 +541,7 @@ fn draw_ui(
         mode.get(),
         menu.menu,
         menu.selection,
-        format!("{status}|{:?}", bindings.player_one),
+        format_args!("{status}|{:?}", bindings.player_one),
         [preferences.master, preferences.music, preferences.effects],
         preferences.fullscreen
     );
@@ -658,20 +698,20 @@ mod tests {
     }
     #[test]
     fn fade_updates_and_clears_without_a_menu_rebuild() {
-        let game = Game_World::new(
+        let game = crate::simulation::Game_World::new(
             crate::content::Room_Registry::load(std::path::Path::new("res")).unwrap(),
         )
         .unwrap();
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
-            .insert_resource(game)
+            .insert_resource(*game.state)
             .add_systems(Update, update_transition_fade);
         let fade = app
             .world_mut()
             .spawn((BackgroundColor(Color::NONE), Transition_Fade))
             .id();
         for (elapsed, expected) in [(0.15, 0.5), (0.3, 1.), (0.45, 0.5)] {
-            app.world_mut().resource_mut::<Game_World>().transition =
+            app.world_mut().resource_mut::<Game_State>().transition =
                 Some(crate::simulation::Transition {
                     room: "demo".into(),
                     door: String::new(),
@@ -684,7 +724,7 @@ mod tests {
                     < 0.001
             );
         }
-        app.world_mut().resource_mut::<Game_World>().transition = None;
+        app.world_mut().resource_mut::<Game_State>().transition = None;
         app.update();
         assert_eq!(
             app.world().get::<BackgroundColor>(fade).unwrap().0.alpha(),

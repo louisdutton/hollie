@@ -245,13 +245,13 @@ mod tests {
         );
         g.actors[i].body.position = p;
         g.actors[i].body.height = -8.;
-        g.surfaces.advance(&g.actors, &g.room, STEP);
+        g.state.surfaces.advance(&g.actors, &g.state.room, STEP);
         g.actors[i].body.position.x += 6.;
         g.actors[i].body.velocity = Vec2::X * 50.;
-        g.surfaces.advance(&g.actors, &g.room, STEP);
+        g.state.surfaces.advance(&g.actors, &g.state.room, STEP);
         assert!(!g.surfaces.water.is_empty());
         assert!(!g.surfaces.wakes.is_empty());
-        g.surfaces.advance(&[], &g.room, 2.);
+        g.state.surfaces.advance(&[], &g.state.room, 2.);
         assert!(g.surfaces.wakes.is_empty());
         assert!(g.surfaces.water.is_empty());
         g.reset("demo", 1, 42).unwrap();

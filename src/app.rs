@@ -1,10 +1,6 @@
 use crate::{
-    content::Room_Registry,
-    editor::Editor_Plugin,
-    input::{Controls, Key_Bindings, collect_input},
-    rendering::Rendering_Plugin,
-    simulation::{Game_World, STEP},
-    ui::Ui_Plugin,
+    editor::Editor_Plugin, input::Input_Plugin, rendering::Rendering_Plugin,
+    simulation::Simulation_Plugin, ui::Ui_Plugin,
 };
 use bevy::{
     asset::AssetPlugin,
@@ -15,7 +11,6 @@ use bevy::{
     },
     window::WindowPlugin,
 };
-use std::path::Path;
 
 #[derive(States, Default, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
@@ -24,6 +19,14 @@ pub enum Mode {
     Gameplay,
     Paused,
     Editor,
+}
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Game_Systems {
+    Automation,
+    Actions,
+    Room,
+    Actors,
+    Presentation,
 }
 #[derive(Resource)]
 pub struct Preferences {
@@ -45,17 +48,26 @@ impl Default for Preferences {
 pub struct Hollie_Plugin;
 impl Plugin for Hollie_Plugin {
     fn build(&self, app: &mut App) {
-        let root = std::env::var("RES_ROOT").unwrap_or_else(|_| "res".into());
-        let registry = Room_Registry::load(Path::new(&root)).expect("room content must validate");
-        app.insert_resource(Game_World::new(registry).expect("initial room"))
-            .insert_resource(Time::<Fixed>::from_seconds(STEP as f64))
-            .init_resource::<Controls>()
-            .init_resource::<Key_Bindings>()
-            .init_resource::<Preferences>()
-            .init_state::<Mode>()
-            .add_systems(PreUpdate, collect_input.after(bevy::input::InputSystems))
-            .add_systems(FixedUpdate, simulate.run_if(in_state(Mode::Gameplay)))
-            .add_plugins((Rendering_Plugin, Ui_Plugin, Editor_Plugin));
+        app.configure_sets(
+            Update,
+            (
+                Game_Systems::Automation,
+                Game_Systems::Actions,
+                Game_Systems::Room,
+                Game_Systems::Actors,
+                Game_Systems::Presentation,
+            )
+                .chain(),
+        )
+        .init_resource::<Preferences>()
+        .init_state::<Mode>()
+        .add_plugins((
+            Input_Plugin,
+            Simulation_Plugin,
+            Rendering_Plugin,
+            Ui_Plugin,
+            Editor_Plugin,
+        ));
         #[cfg(debug_assertions)]
         app.add_plugins((
             crate::debug::Debug_Plugin,
@@ -77,27 +89,6 @@ fn report_renderer(adapter: Option<Res<bevy::render::renderer::RenderAdapterInfo
         std::fs::rename(temp, path).expect("publish renderer report");
     }
 }
-fn simulate(mut game: ResMut<Game_World>, mut controls: ResMut<Controls>, window: Query<&Window>) {
-    #[cfg(debug_assertions)]
-    if std::env::var_os("HOLLIE_CONTROL_DIR").is_some() {
-        return;
-    }
-    if window.iter().any(|w| !w.focused) {
-        controls.players.iter_mut().for_each(|p| {
-            p.jump = false;
-            p.interact = false;
-        });
-        return;
-    }
-    if let Err(error) = game.step(controls.players, STEP) {
-        error!("Simulation error: {error}");
-    }
-    // Edges survive until one simulation tick, not every FixedUpdate in a slow frame.
-    for p in &mut controls.players {
-        p.jump = false;
-        p.interact = false;
-    }
-}
 pub fn run() {
     let root = std::env::var("RES_ROOT").unwrap_or_else(|_| "res".into());
     let settings = WgpuSettings {
@@ -116,7 +107,10 @@ pub fn run() {
         })
         .set(RenderPlugin {
             render_creation: RenderCreation::Automatic(Box::new(settings)),
-            synchronous_pipeline_compilation: offscreen,
+            // Asset readiness alone does not imply that asynchronous render pipelines
+            // can draw the scene. Controlled captures must include those pipelines.
+            synchronous_pipeline_compilation: cfg!(debug_assertions)
+                && std::env::var_os("HOLLIE_CONTROL_DIR").is_some(),
             ..default()
         })
         .set(WindowPlugin {
@@ -156,7 +150,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bevy::asset::AssetApp;
+    use bevy::{asset::AssetApp, ecs::system::RunSystemOnce};
     struct Headless_Shader_Assets;
     impl Plugin for Headless_Shader_Assets {
         fn build(&self, app: &mut App) {
@@ -188,8 +182,9 @@ mod tests {
         app.cleanup();
         app.update();
         app.world_mut()
-            .resource_mut::<Game_World>()
-            .reset("demo", 2, 42)
+            .run_system_once(|mut game: crate::simulation::Game_Access| {
+                game.reset("demo", 2, 42).unwrap()
+            })
             .unwrap();
         app.world_mut()
             .resource_mut::<NextState<Mode>>()
@@ -201,8 +196,16 @@ mod tests {
             .resource_mut::<NextState<Mode>>()
             .set(Mode::Paused);
         app.update();
-        let frame = app.world().resource::<Game_World>().frame;
+        let frame = app
+            .world()
+            .resource::<crate::simulation::Game_State>()
+            .frame;
         app.update();
-        assert_eq!(app.world().resource::<Game_World>().frame, frame);
+        assert_eq!(
+            app.world()
+                .resource::<crate::simulation::Game_State>()
+                .frame,
+            frame
+        );
     }
 }

@@ -86,3 +86,12 @@ pub fn collect_input(
     }
     controls.players = inputs;
 }
+
+pub struct Input_Plugin;
+impl Plugin for Input_Plugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Controls>()
+            .init_resource::<Key_Bindings>()
+            .add_systems(PreUpdate, collect_input.after(bevy::input::InputSystems));
+    }
+}

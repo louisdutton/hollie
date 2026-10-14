@@ -1,7 +1,7 @@
 use crate::{
     app::Mode,
     content::Entity_Properties,
-    simulation::{Aabb, Game_World},
+    simulation::{Aabb, Game_View},
 };
 use bevy::{
     gizmos::{
@@ -35,7 +35,7 @@ impl Plugin for Debug_Plugin {
                 Update,
                 (toggle_debug, draw_colliders)
                     .chain()
-                    .after(crate::ui::menu_input),
+                    .in_set(crate::app::Game_Systems::Presentation),
             )
             .add_systems(
                 PostUpdate,
@@ -68,7 +68,7 @@ fn toggle_debug(
     }
 }
 fn draw_colliders(
-    game: Res<Game_World>,
+    game: Game_View,
     mode: Res<State<Mode>>,
     mut debug: ResMut<Debug_State>,
     mut gizmos: Gizmos<Collider_Gizmos>,
@@ -124,16 +124,36 @@ fn draw_colliders(
         outline(actor.body.bounds(), color);
     }
 }
+#[derive(bevy::ecs::system::SystemParam)]
+struct Debug_View<'w, 's> {
+    cameras: Query<'w, 's, (&'static Camera, &'static GlobalTransform), With<Camera3d>>,
+    windows: Query<'w, 's, &'static Window>,
+    labels: Query<
+        'w,
+        's,
+        (
+            Entity,
+            &'static Debug_Label,
+            &'static mut Node,
+            &'static mut Visibility,
+            &'static mut Text,
+        ),
+    >,
+}
 fn draw_labels(
     mut commands: Commands,
-    game: Res<Game_World>,
+    game: Game_View,
     mode: Res<State<Mode>>,
     debug: Res<Debug_State>,
-    cameras: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
-    windows: Query<&Window>,
-    mut labels: Query<(Entity, &Debug_Label, &mut Node, &mut Visibility, &mut Text)>,
+    view: Debug_View,
     mut last: Local<Option<(u64, bool)>>,
 ) {
+    let Debug_View {
+        cameras,
+        windows,
+        mut labels,
+    } = view;
+
     let show = debug.enabled && matches!(mode.get(), Mode::Gameplay | Mode::Paused);
     let key = (game.generation, show);
     if *last != Some(key) {

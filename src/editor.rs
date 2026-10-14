@@ -1,4 +1,8 @@
-use crate::{app::Mode, content::*, simulation::Game_World};
+use crate::{
+    app::Mode,
+    content::*,
+    simulation::{Game_Access, Game_State},
+};
 use bevy::{prelude::*, window::PrimaryWindow};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Layer {
@@ -27,7 +31,7 @@ pub struct Editor_State {
     repeat: f32,
 }
 impl Editor_State {
-    pub fn status(&self, game: &Game_World) -> String {
+    pub fn status(&self, game: &Game_State) -> String {
         format!(
             "Editor · {}{}\n{:?} · brush {} · ({}, {})\nTab layer · Left/Right brush · click paint · right click erase\nE properties · Up/Down field · Left/Right value · G grid\nCtrl+S save · Ctrl+Z undo · F1 exit\n{}",
             game.room.name,
@@ -53,7 +57,12 @@ impl Plugin for Editor_Plugin {
         app.init_resource::<Editor_State>()
             .add_systems(OnEnter(Mode::Editor), enter_editor)
             .add_systems(OnExit(Mode::Editor), exit_editor)
-            .add_systems(Update, (edit, draw_grid).run_if(in_state(Mode::Editor)));
+            .add_systems(
+                Update,
+                (edit, draw_grid)
+                    .in_set(crate::app::Game_Systems::Actions)
+                    .run_if(in_state(Mode::Editor)),
+            );
     }
 }
 fn enter_editor(mut editor: ResMut<Editor_State>) {
@@ -65,7 +74,7 @@ fn enter_editor(mut editor: ResMut<Editor_State>) {
     editor.zoom = 0.55;
     editor.last_mouse = None;
 }
-fn exit_editor(mut game: ResMut<Game_World>, mut editor: ResMut<Editor_State>) {
+fn exit_editor(mut game: Game_Access, mut editor: ResMut<Editor_State>) {
     let path = game.registry.get(&game.room.id).unwrap().path.clone();
     match Room::load(&path) {
         Ok(room) => {
@@ -79,17 +88,29 @@ const DECORATIONS: &[u16] = &[
     257, 258, 259, 260, 289, 290, 291, 292, 321, 322, 323, 324, 353, 354, 355, 356, 385, 386, 387,
     388, 0,
 ];
-pub(crate) fn edit(
+#[derive(bevy::ecs::system::SystemParam)]
+struct Editor_Controls<'w, 's> {
+    keys: Res<'w, ButtonInput<KeyCode>>,
+    mouse: Res<'w, ButtonInput<MouseButton>>,
+    window: Query<'w, 's, &'static Window, With<PrimaryWindow>>,
+    cameras: Query<'w, 's, (&'static Camera, &'static GlobalTransform), With<Camera3d>>,
+    pads: Query<'w, 's, &'static Gamepad>,
+}
+fn edit(
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    window: Query<&Window, With<PrimaryWindow>>,
-    cameras: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
-    pads: Query<&Gamepad>,
     time: Res<Time>,
     mut editor: ResMut<Editor_State>,
-    mut game: ResMut<Game_World>,
+    mut game: ResMut<Game_State>,
+    input: Editor_Controls,
 ) {
+    let Editor_Controls {
+        keys,
+        mouse,
+        window,
+        cameras,
+        pads,
+    } = input;
+
     #[cfg(debug_assertions)]
     if crate::automation::waiting(&controller) {
         return;
@@ -415,7 +436,7 @@ fn edit_properties(
             e.kind = kinds[(i as i32 + delta).rem_euclid(kinds.len() as i32) as usize];
         }
         Entity_Properties::Pressure_Plate(p) => {
-            if field % 2 == 0 {
+            if field.is_multiple_of(2) {
                 p.trigger_id = (p.trigger_id as i32 + delta).max(1) as u32;
             } else {
                 p.requires_both = !p.requires_both;
@@ -479,7 +500,7 @@ fn edit_properties(
         _ => {}
     }
 }
-fn draw_grid(game: Res<Game_World>, editor: Res<Editor_State>, mut gizmos: Gizmos) {
+fn draw_grid(game: Res<Game_State>, editor: Res<Editor_State>, mut gizmos: Gizmos) {
     let t = game.room.grid.tile_size as f32;
     let p = Vec3::new(
         editor.cursor.x as f32 * t + t / 2.,
