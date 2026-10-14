@@ -119,6 +119,14 @@ def run_scenario(client, path, output):
             else:
                 raise ValueError(f"Unknown assertion: {kind}")
         for check in scenario.get("image_assertions", []):
+            if check.get("kind") == "dimensions":
+                size = subprocess.check_output(
+                    ["magick", "identify", "-format", "%wx%h", str(output / check["image"])],
+                    text=True, timeout=10).strip()
+                expected = f"{check['width']}x{check['height']}"
+                if size != expected:
+                    raise AssertionError(f"{check['image']} rendered at {size}, expected {expected}")
+                continue
             result = subprocess.run(
                 ["magick", "compare", "-metric", "AE", str(output / check["first"]),
                  str(output / check["second"]), str(output / "replay-diff.png")],

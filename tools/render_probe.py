@@ -1,4 +1,4 @@
-"""Explicit, bounded Bevy rendering/control session on a private Xvfb display."""
+"""Bounded Bevy rendering/control session on a private display or compositor."""
 
 import argparse
 import json
@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--gamescope", action="store_true")
     parser.add_argument("--windowed", action="store_true", help="Exercise the native window on the private display")
     parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"), help="WGPU adapter name substring")
     mode = parser.add_mutually_exclusive_group()
@@ -30,6 +31,8 @@ def main():
     args = parser.parse_args()
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
         parser.error("--display-size must be WIDTHxHEIGHT")
+    if args.gamescope and not (args.gpu and args.windowed):
+        parser.error("--gamescope requires --gpu --windowed")
     if args.session_timeout < 1:
         parser.error("--session-timeout must be positive")
     repo = Path(__file__).resolve().parent.parent
@@ -47,8 +50,8 @@ def main():
     alsa_config = output / "asound.conf"
     alsa_config.write_text("pcm.!default { type null }\n")
     env["ALSA_CONFIG_PATH"] = str(alsa_config)
-    env.pop("WAYLAND_DISPLAY", None)
-    env["WINIT_UNIX_BACKEND"] = "x11"
+    for key in ("DISPLAY", "WAYLAND_DISPLAY", "WAYLAND_SOCKET", "GAMESCOPE_WAYLAND_DISPLAY", "ENABLE_GAMESCOPE_WSI", "STEAM_GAME_DISPLAY_0"):
+        env.pop(key, None)
     if args.gpu_device:
         env["WGPU_ADAPTER_NAME"] = args.gpu_device
     elif not args.gpu:
@@ -80,28 +83,37 @@ def main():
         raise TimeoutError(f"Timed out waiting for {description}")
 
     try:
-        # Let Xvfb allocate an unused display; never inherit the host display.
-        display_file = output / "display"
-        with display_file.open("w") as display:
-            log = (output / "xvfb.log").open("w")
-            logs.append(log)
-            xvfb = subprocess.Popen(
-                ["Xvfb", "-displayfd", str(display.fileno()), "-screen", "0",
-                 f"{args.display_size}x24", "-nolisten", "tcp", "-noreset"],
-                stdout=log, stderr=subprocess.STDOUT,
-                pass_fds=(display.fileno(),), start_new_session=True)
-            processes.append(xvfb)
-            number = wait_until(lambda: display_file.read_text().strip(), xvfb, "virtual display")
-        env["DISPLAY"] = f":{number}"
-        wm = start("openbox", ["openbox", "--sm-disable"])
+        if args.gamescope:
+            runtime = output / "runtime"
+            runtime.mkdir(mode=0o700)
+            env["XDG_RUNTIME_DIR"] = str(runtime)
+            env["ENABLE_GAMESCOPE_WSI"] = "1"
+            width, height = args.display_size.split("x")
+            game = start("game", ["gamescope", "--backend", "headless", "--expose-wayland",
+                "-w", width, "-h", height, "-W", width, "-H", height, "-r", "60", "--", str(output / "hollie")])
+        else:
+            # Let Xvfb allocate an unused display; never inherit the host display.
+            display_file = output / "display"
+            with display_file.open("w") as display:
+                log = (output / "xvfb.log").open("w")
+                logs.append(log)
+                xvfb = subprocess.Popen(
+                    ["Xvfb", "-displayfd", str(display.fileno()), "-screen", "0",
+                     f"{args.display_size}x24", "-nolisten", "tcp", "-noreset"],
+                    stdout=log, stderr=subprocess.STDOUT,
+                    pass_fds=(display.fileno(),), start_new_session=True)
+                processes.append(xvfb)
+                number = wait_until(lambda: display_file.read_text().strip(), xvfb, "virtual display")
+            env["DISPLAY"] = f":{number}"
+            wm = start("openbox", ["openbox", "--sm-disable"])
 
-        def wm_ready():
-            result = subprocess.run(["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"],
-                                    env=env, capture_output=True, text=True, timeout=2)
-            return "_NET_SUPPORTING_WM_CHECK(WINDOW)" in result.stdout
+            def wm_ready():
+                result = subprocess.run(["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"],
+                                        env=env, capture_output=True, text=True, timeout=2)
+                return "_NET_SUPPORTING_WM_CHECK(WINDOW)" in result.stdout
 
-        wait_until(wm_ready, wm, "window manager")
-        game = start("game", [str(output / "hollie")])
+            wait_until(wm_ready, wm, "window manager")
+            game = start("game", [str(output / "hollie")])
         report = output / "renderer.json"
         wait_until(report.is_file, game, "Bevy renderer")
         renderer = json.loads(report.read_text())
@@ -134,9 +146,16 @@ def main():
                     raise RuntimeError(response["error"])
                 shutil.copy2(response["capture"], output / command["capture"])
             print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
-        if args.windowed and not args.serve:
+        if args.gamescope and not args.serve and not args.scenario:
+            for filename in ("title.png", "gameplay.png"):
+                size = subprocess.check_output(["magick", "identify", "-format", "%wx%h", str(output / filename)],
+                    env=env, text=True, timeout=10).strip()
+                print(f"Gamescope render extent: {filename}: {size} (display {args.display_size})", flush=True)
+                if size != args.display_size:
+                    raise AssertionError(f"Gamescope rendered {size}, expected {args.display_size}")
+        if args.windowed and not args.gamescope and not args.serve:
             subprocess.run(["magick", "import", "-window", "root", str(output / "display.png")],
-                           env=env, check=True, timeout=10)
+                           env=env, check=True, timeout=30)
             if not args.scenario:
                 for filename in ("title.png", "gameplay.png", "display.png"):
                     size = subprocess.check_output(

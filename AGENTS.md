@@ -11,7 +11,8 @@
 
 All rendering and control tools are supplied by `devenv.nix`. Do not install
 host tools or connect to the user's desktop. These tasks build the debug game
-and launch it on an isolated Xvfb display, with Bevy/WGPU Vulkan rendering.
+and launch it on an isolated Xvfb display or headless Gamescope compositor, with Bevy/WGPU Vulkan rendering.
+Fullscreen and resolution changes must also be verified through headless Gamescope: the user runs Gamescope with native Wayland clients, and Xvfb/offscreen captures do not exercise its surface size negotiation.
 Automation is opt-in via `HOLLIE_CONTROL_DIR` and absent from release builds;
 input injection is also available to unit tests.
 

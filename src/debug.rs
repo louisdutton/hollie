@@ -130,13 +130,14 @@ fn draw_labels(
     mode: Res<State<Mode>>,
     debug: Res<Debug_State>,
     cameras: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
-    mut labels: Query<(Entity, &Debug_Label, &mut Node, &mut Visibility)>,
+    windows: Query<&Window>,
+    mut labels: Query<(Entity, &Debug_Label, &mut Node, &mut Visibility, &mut Text)>,
     mut last: Local<Option<(u64, bool)>>,
 ) {
     let show = debug.enabled && matches!(mode.get(), Mode::Gameplay | Mode::Paused);
     let key = (game.generation, show);
     if *last != Some(key) {
-        for (entity, _, _, _) in &mut labels {
+        for (entity, _, _, _, _) in &mut labels {
             commands.entity(entity).despawn();
         }
         if show {
@@ -183,8 +184,27 @@ fn draw_labels(
     let Ok((camera, transform)) = cameras.single() else {
         return;
     };
-    for (_, label, mut node, mut visibility) in &mut labels {
+    for (_, label, mut node, mut visibility, mut text) in &mut labels {
         let Some(id) = label.0 else {
+            let size = camera.physical_viewport_size().unwrap_or_default();
+            let window = windows
+                .single()
+                .map(|w| {
+                    format!(
+                        "{}x{} | scale {:.2}",
+                        w.physical_width(),
+                        w.physical_height(),
+                        w.scale_factor()
+                    )
+                })
+                .unwrap_or_else(|_| "offscreen".into());
+            let message = format!(
+                "Debug colliders (R3 / F3) | render {}x{} | window {window}",
+                size.x, size.y
+            );
+            if text.0 != message {
+                text.0 = message;
+            }
             continue;
         };
         let point = game.actors.iter().find(|a| a.id == id).and_then(|actor| {

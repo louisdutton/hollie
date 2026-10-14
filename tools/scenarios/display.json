@@ -1,0 +1,125 @@
+{
+  "name": "Gamescope native 4K render and fullscreen windowed round-trip",
+  "steps": [
+    {
+      "command": {
+        "op": "reset"
+      },
+      "capture": "native-4k.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "F3"
+        ]
+      },
+      "capture": "dimensions.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "P"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "DOWN"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "ENTER"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "DOWN"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "ENTER"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "ENTER"
+        ]
+      },
+      "capture": "windowed.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "ENTER"
+        ]
+      },
+      "capture": "fullscreen-restored.png"
+    }
+  ],
+  "assertions": [],
+  "image_assertions": [
+    {
+      "kind": "dimensions",
+      "image": "native-4k.png",
+      "width": 3840,
+      "height": 2160
+    },
+    {
+      "kind": "dimensions",
+      "image": "dimensions.png",
+      "width": 3840,
+      "height": 2160
+    },
+    {
+      "kind": "dimensions",
+      "image": "windowed.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "kind": "dimensions",
+      "image": "fullscreen-restored.png",
+      "width": 3840,
+      "height": 2160
+    }
+  ]
+}

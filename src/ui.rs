@@ -41,7 +41,14 @@ impl Plugin for Ui_Plugin {
             .add_systems(Startup, setup_transition_fade)
             .add_systems(
                 Update,
-                (menu_input, button_input, draw_ui, update_transition_fade).chain(),
+                (
+                    menu_input,
+                    button_input,
+                    apply_window_preferences,
+                    draw_ui,
+                    update_transition_fade,
+                )
+                    .chain(),
             );
     }
 }
@@ -365,24 +372,81 @@ pub(crate) fn menu_input(
 fn button_input(
     buttons: Query<(&Hovered, &Menu_Option), Changed<Hovered>>,
     mut menu: ResMut<Menu_State>,
-    preferences: Res<Preferences>,
-    mut windows: Query<&mut Window>,
 ) {
     for (hovered, option) in &buttons {
         if hovered.0 {
             menu.selection = option.0;
         }
     }
-    if preferences.is_changed() {
-        for mut window in &mut windows {
-            window.mode = if preferences.fullscreen {
-                WindowMode::BorderlessFullscreen(MonitorSelection::Current)
-            } else {
-                WindowMode::Windowed
+}
+#[derive(Default)]
+struct Window_Layout {
+    windowed_size: Vec2,
+    fullscreen: bool,
+}
+fn apply_window_preferences(
+    preferences: Res<Preferences>,
+    mut windows: Query<(
+        Entity,
+        &mut Window,
+        Option<&bevy::window::OnMonitor>,
+        Option<&bevy::window::RawHandleWrapper>,
+    )>,
+    monitors: Query<(
+        Entity,
+        &bevy::window::Monitor,
+        Has<bevy::window::PrimaryMonitor>,
+    )>,
+    mut layouts: Local<std::collections::HashMap<Entity, Window_Layout>>,
+) {
+    for (entity, mut window, on_monitor, native) in &mut windows {
+        let layout = layouts.entry(entity).or_insert_with(|| Window_Layout {
+            windowed_size: window.size(),
+            fullscreen: false,
+        });
+        if preferences.fullscreen {
+            let monitor = on_monitor
+                .and_then(|m| monitors.get(m.0).ok())
+                .or_else(|| monitors.iter().find(|(_, _, primary)| *primary))
+                .or_else(|| monitors.iter().next());
+            let Some((monitor_entity, monitor, _)) = monitor else {
+                continue;
             };
+            let size = monitor.physical_size();
+            if size.x == 0 || size.y == 0 {
+                continue;
+            }
+            if !layout.fullscreen {
+                layout.windowed_size = window.size();
+            }
+            // Gamescope's Wayland fullscreen request does not resize the client surface.
+            // Set native pixels before window creation, then wait for the real handle.
+            if native.is_none() {
+                window
+                    .resolution
+                    .set_scale_factor(monitor.scale_factor as f32);
+            }
+            if window.physical_size() != size {
+                window.resolution.set_physical_resolution(size.x, size.y);
+            }
+            if native.is_some() {
+                let mode =
+                    WindowMode::BorderlessFullscreen(MonitorSelection::Entity(monitor_entity));
+                if window.mode != mode {
+                    window.mode = mode;
+                }
+            }
+            layout.fullscreen = true;
+        } else if layout.fullscreen {
+            window.mode = WindowMode::Windowed;
+            window
+                .resolution
+                .set(layout.windowed_size.x, layout.windowed_size.y);
+            layout.fullscreen = false;
         }
     }
 }
+
 fn button_activate(
     event: On<Activate>,
     options: Query<&Menu_Option>,
@@ -544,6 +608,54 @@ fn draw_ui(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fullscreen_waits_for_monitor_then_uses_physical_pixels_and_restores_windowed_size() {
+        for scale in [1., 2.] {
+            let mut app = App::new();
+            app.add_plugins(MinimalPlugins)
+                .init_resource::<Preferences>()
+                .add_systems(Update, apply_window_preferences);
+            let entity = app
+                .world_mut()
+                .spawn(Window {
+                    resolution: (1280, 720).into(),
+                    ..default()
+                })
+                .id();
+            app.update();
+            assert_eq!(
+                app.world().get::<Window>(entity).unwrap().physical_size(),
+                UVec2::new(1280, 720)
+            );
+            app.world_mut().spawn((
+                bevy::window::Monitor {
+                    name: Some("4K".into()),
+                    physical_width: 3840,
+                    physical_height: 2160,
+                    physical_position: IVec2::ZERO,
+                    refresh_rate_millihertz: Some(60_000),
+                    scale_factor: scale,
+                    video_modes: Vec::new(),
+                },
+                bevy::window::PrimaryMonitor,
+            ));
+            app.update();
+            let window = app.world().get::<Window>(entity).unwrap();
+            assert_eq!(window.physical_size(), UVec2::new(3840, 2160));
+            assert_eq!(
+                window.mode,
+                WindowMode::Windowed,
+                "fullscreen requested before a native window exists"
+            );
+            assert_eq!(window.width(), 3840. / scale as f32);
+            app.world_mut().resource_mut::<Preferences>().fullscreen = false;
+            app.update();
+            assert_eq!(
+                app.world().get::<Window>(entity).unwrap().size(),
+                Vec2::new(1280., 720.)
+            );
+        }
+    }
     #[test]
     fn fade_updates_and_clears_without_a_menu_rebuild() {
         let game = Game_World::new(

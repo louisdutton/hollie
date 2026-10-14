@@ -11,7 +11,7 @@
     export WGPU_FORCE_FALLBACK_ADAPTER=false
   '';
 in {
-  packages = [pkgs.python3 pkgs.pkg-config pkgs.xorg.xorgserver pkgs.xorg.xprop pkgs.xdotool pkgs.openbox pkgs.imagemagick pkgs.mesa] ++ runtime_libraries;
+  packages = [pkgs.gamescope pkgs.xwayland pkgs.python3 pkgs.pkg-config pkgs.xorg.xorgserver pkgs.xorg.xprop pkgs.xdotool pkgs.openbox pkgs.imagemagick pkgs.mesa] ++ runtime_libraries;
   languages = {
     nix.enable = true;
     rust.enable = true;
@@ -128,6 +128,7 @@ in {
           ${probe_command} --gpu --scenario tools/scenarios/carrying.json
           ${probe_command} --gpu --scenario tools/scenarios/throwing.json
           ${probe_command} --gpu --scenario tools/scenarios/bison.json
+          ${probe_command} --gpu --windowed --gamescope --display-size 3840x2160 --scenario tools/scenarios/display.json
         '';
     };
     "hollie:automation-probe-native" = {
@@ -153,6 +154,14 @@ in {
           ${probe_command} --windowed --display-size 3840x2160
           WINIT_X11_SCALE_FACTOR=2 ${probe_command} --windowed --display-size 3840x2160
         '';
+    };
+    "hollie:automation-session-gamescope" = {
+      after = ["hollie:build-debug"];
+      exec = gpu_env + probe_command + " --gpu --windowed --gamescope --display-size 3840x2160 --serve";
+    };
+    "hollie:render-probe-gamescope" = {
+      after = ["hollie:build-debug"];
+      exec = gpu_env + probe_command + " --gpu --windowed --gamescope --display-size 3840x2160";
     };
     "hollie:render-probe-gpu" = {
       after = ["hollie:build-debug"];
