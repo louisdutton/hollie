@@ -1,0 +1,936 @@
+{
+  "name": "dismount from evaluated saddle with stationary, moving and airborne momentum",
+  "steps": [
+    {
+      "command": {
+        "op": "reset"
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.18208926018230742,
+              0.9832820049844601
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.23249326674782425,
+              0.9725980058158279
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.30301130803444143,
+              0.9529869606680128
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.37738556927457045,
+              0.9260562251306926
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.4551681480000427,
+              0.8904055014689717
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.5356304623927123,
+              0.8444524899347324
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.6306703530275175,
+              0.7760508397084217
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 12,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.8510623972104095,
+              0.5250645637009519
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9828640627350969,
+              0.18433185884121994
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      }
+    },
+    {
+      "command": {
+        "op": "observe"
+      },
+      "save_as": "standing_mounted",
+      "capture": "standing-mounted.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      },
+      "save_as": "standing_release",
+      "capture": "standing-release.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 6
+      },
+      "save_as": "standing_flight",
+      "capture": "standing-flight.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120
+      },
+      "save_as": "standing_settled"
+    },
+    {
+      "command": {
+        "op": "reset"
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.18208926018230742,
+              0.9832820049844601
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.23249326674782425,
+              0.9725980058158279
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.30301130803444143,
+              0.9529869606680128
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.37738556927457045,
+              0.9260562251306926
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.4551681480000427,
+              0.8904055014689717
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.5356304623927123,
+              0.8444524899347324
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.6306703530275175,
+              0.7760508397084217
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 12,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.8510623972104095,
+              0.5250645637009519
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9828640627350969,
+              0.18433185884121994
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 60,
+        "keys": [
+          "S",
+          "D"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "observe"
+      },
+      "save_as": "moving_mounted",
+      "capture": "moving-mounted.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      },
+      "save_as": "moving_release",
+      "capture": "moving-release.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 6
+      },
+      "save_as": "moving_flight",
+      "capture": "moving-flight.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120
+      },
+      "save_as": "moving_settled"
+    },
+    {
+      "command": {
+        "op": "reset"
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.18208926018230742,
+              0.9832820049844601
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.23249326674782425,
+              0.9725980058158279
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.30301130803444143,
+              0.9529869606680128
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.37738556927457045,
+              0.9260562251306926
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.4551681480000427,
+              0.8904055014689717
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.5356304623927123,
+              0.8444524899347324
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 20,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.6306703530275175,
+              0.7760508397084217
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 12,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.8510623972104095,
+              0.5250645637009519
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "gamepads": [
+          {
+            "player": "Player_1",
+            "axes": [
+              0.9828640627350969,
+              0.18433185884121994
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 30
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 60,
+        "keys": [
+          "S",
+          "D"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 4,
+        "keys": [
+          "H"
+        ]
+      }
+    },
+    {
+      "command": {
+        "op": "observe"
+      },
+      "save_as": "airborne_mounted",
+      "capture": "airborne-mounted.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 1,
+        "keys": [
+          "J"
+        ]
+      },
+      "save_as": "airborne_release",
+      "capture": "airborne-release.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 6
+      },
+      "save_as": "airborne_flight",
+      "capture": "airborne-flight.png"
+    },
+    {
+      "command": {
+        "op": "step",
+        "frames": 120
+      },
+      "save_as": "airborne_settled"
+    }
+  ],
+  "assertions": [
+    {
+      "kind": "difference_field",
+      "first": "standing_release",
+      "second": "standing_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "x"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "x"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "standing_release",
+      "second": "standing_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "y"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "z"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "standing_release",
+      "second": "standing_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "height"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "y"
+      ],
+      "value": 0,
+      "tolerance": 7
+    },
+    {
+      "kind": "field",
+      "first": "standing_release",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 0
+    },
+    {
+      "kind": "field",
+      "first": "standing_flight",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": true
+    },
+    {
+      "kind": "equal_field",
+      "first": "standing_release",
+      "second": "standing_flight",
+      "path": [
+        "players",
+        0,
+        "body",
+        "velocity"
+      ]
+    },
+    {
+      "kind": "range_field",
+      "first": "standing_release",
+      "path": [
+        "players",
+        0,
+        "body",
+        "vertical_velocity"
+      ],
+      "minimum": 200,
+      "maximum": 500
+    },
+    {
+      "kind": "field",
+      "first": "standing_settled",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": false
+    },
+    {
+      "kind": "difference_field",
+      "first": "moving_release",
+      "second": "moving_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "x"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "x"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "moving_release",
+      "second": "moving_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "y"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "z"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "moving_release",
+      "second": "moving_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "height"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "y"
+      ],
+      "value": 0,
+      "tolerance": 7
+    },
+    {
+      "kind": "field",
+      "first": "moving_release",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 0
+    },
+    {
+      "kind": "field",
+      "first": "moving_flight",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": true
+    },
+    {
+      "kind": "equal_field",
+      "first": "moving_release",
+      "second": "moving_flight",
+      "path": [
+        "players",
+        0,
+        "body",
+        "velocity"
+      ]
+    },
+    {
+      "kind": "range_field",
+      "first": "moving_release",
+      "path": [
+        "players",
+        0,
+        "body",
+        "vertical_velocity"
+      ],
+      "minimum": 200,
+      "maximum": 500
+    },
+    {
+      "kind": "field",
+      "first": "moving_settled",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": false
+    },
+    {
+      "kind": "difference_field",
+      "first": "airborne_release",
+      "second": "airborne_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "x"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "x"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "airborne_release",
+      "second": "airborne_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "position",
+        "y"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "z"
+      ],
+      "value": 0,
+      "tolerance": 4
+    },
+    {
+      "kind": "difference_field",
+      "first": "airborne_release",
+      "second": "airborne_mounted",
+      "path": [
+        "players",
+        0,
+        "body",
+        "height"
+      ],
+      "second_path": [
+        "players",
+        0,
+        "riding_anchor",
+        "y"
+      ],
+      "value": 0,
+      "tolerance": 7
+    },
+    {
+      "kind": "field",
+      "first": "airborne_release",
+      "path": [
+        "players",
+        0,
+        "mounted"
+      ],
+      "value": 0
+    },
+    {
+      "kind": "field",
+      "first": "airborne_flight",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": true
+    },
+    {
+      "kind": "equal_field",
+      "first": "airborne_release",
+      "second": "airborne_flight",
+      "path": [
+        "players",
+        0,
+        "body",
+        "velocity"
+      ]
+    },
+    {
+      "kind": "range_field",
+      "first": "airborne_release",
+      "path": [
+        "players",
+        0,
+        "body",
+        "vertical_velocity"
+      ],
+      "minimum": 200,
+      "maximum": 500
+    },
+    {
+      "kind": "field",
+      "first": "airborne_settled",
+      "path": [
+        "players",
+        0,
+        "dismount_air_control"
+      ],
+      "value": false
+    }
+  ]
+}

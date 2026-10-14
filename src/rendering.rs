@@ -1206,15 +1206,16 @@ fn attach_carried_and_riders(
     mut game: ResMut<Game_World>,
     skeletons: Query<&Skeleton>,
     bones: Query<(&Transform, Option<&ChildOf>), Without<Actor_Visual>>,
-    mut actors: Query<(&Actor_Visual, &mut Transform)>,
+    mut actors: Query<(&Actor_Visual, &mut Transform, Option<&Model_Foot>)>,
 ) {
+    let mut riding_points = Vec::new();
     let mut held_points = Vec::new();
-    let roots: HashMap<_, _> = actors.iter().map(|(v, t)| (v.0, *t)).collect();
+    let roots: HashMap<_, _> = actors.iter().map(|(v, t, _)| (v.0, *t)).collect();
     let rigs: HashMap<_, _> = skeletons.iter().map(|s| (s.actor, s)).collect();
     let point = |rig: &Skeleton, anchor: Bone_Anchor| {
         bone_in_root(anchor.bone, rig.root, &bones).map(|m| m.transform_point3(anchor.point))
     };
-    for (reference, mut transform) in &mut actors {
+    for (reference, mut transform, foot) in &mut actors {
         let Some(actor) = game.actors.iter().find(|a| a.id == reference.0) else {
             continue;
         };
@@ -1243,6 +1244,16 @@ fn attach_carried_and_riders(
                     let target = mount_root.transform_point(saddle) - rotation * (seat * 32.);
                     transform.translation = transform.translation.lerp(target, progress);
                     transform.rotation = transform.rotation.slerp(rotation, progress);
+                    let anchor = transform.transform_point(Vec3::Y * foot.map_or(0., |f| f.0));
+                    riding_points.push((
+                        actor.id,
+                        anchor,
+                        Vec3::new(
+                            mount.body.position.x,
+                            mount.body.height,
+                            mount.body.position.y,
+                        ),
+                    ));
                 }
             }
         }
@@ -1284,6 +1295,12 @@ fn attach_carried_and_riders(
                     ));
                 }
             }
+        }
+    }
+    for (id, point, origin) in riding_points {
+        if let Some(actor) = game.actors.iter_mut().find(|a| a.id == id) {
+            actor.riding_anchor = Some(point);
+            actor.riding_origin = Some(origin);
         }
     }
     for (id, point, origin) in held_points {

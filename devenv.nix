@@ -122,6 +122,7 @@ in {
           ${probe_command} --gpu --scenario tools/scenarios/rooms.json
           ${probe_command} --gpu --scenario tools/scenarios/surfaces.json
           ${probe_command} --gpu --scenario tools/scenarios/riding.json
+          ${probe_command} --gpu --scenario tools/scenarios/dismount.json
           ${probe_command} --gpu --scenario tools/scenarios/carrying.json
           ${probe_command} --gpu --scenario tools/scenarios/throwing.json
           ${probe_command} --gpu --scenario tools/scenarios/bison.json

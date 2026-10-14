@@ -99,6 +99,9 @@ pub struct Actor {
     pub death_timer: f32,
     pub mount_time: f32,
     pub mount_start: Vec3,
+    pub riding_anchor: Option<Vec3>,
+    pub riding_origin: Option<Vec3>,
+    pub dismount_air_control: bool,
     pub pose: crate::visuals::Motion_Pose,
 }
 impl Actor {
@@ -175,6 +178,18 @@ pub fn accelerate(velocity: Vec2, direction: Vec2, profile: Movement_Profile, dt
         profile.acceleration
     };
     velocity + delta / distance * (rate * dt.max(0.)).min(distance)
+}
+fn steer_air(velocity: Vec2, direction: Vec2, dt: f32) -> Vec2 {
+    let speed = velocity.length();
+    if speed == 0. || direction == Vec2::ZERO {
+        return velocity;
+    }
+    let angle = velocity.x.atan2(velocity.y);
+    let target = direction.x.atan2(direction.y);
+    let delta = (target - angle).sin().atan2((target - angle).cos());
+    let turn = PLAYER_PROFILE.acceleration / speed * direction.length().min(1.) * dt.max(0.);
+    let angle = angle + delta.clamp(-turn, turn);
+    Vec2::new(angle.sin(), angle.cos()) * speed
 }
 pub fn camera_relative(direction: Vec2) -> Vec2 {
     Vec2::new(direction.x + direction.y, direction.y - direction.x)
@@ -309,6 +324,9 @@ impl Game_World {
                 coasting: false,
                 health: 100,
                 death_timer: 0.,
+                riding_anchor: None,
+                riding_origin: None,
+                dismount_air_control: false,
                 mount_time: 0.,
                 mount_start: Vec3::ZERO,
                 pose: default(),
@@ -361,6 +379,9 @@ impl Game_World {
                 coasting: false,
                 health: 100,
                 death_timer: 0.,
+                riding_anchor: None,
+                riding_origin: None,
+                dismount_air_control: false,
                 mount_time: 0.,
                 mount_start: Vec3::ZERO,
                 pose: default(),
@@ -505,27 +526,114 @@ impl Game_World {
     fn blocked(&self, b: Aabb, obstacles: &[Aabb]) -> bool {
         self.tile_blocked(b) || obstacles.iter().any(|o| b.intersects(*o))
     }
+    fn dismount_direction(&self, player: usize, animal: usize) -> Option<Vec2> {
+        let rider = &self.actors[player].body;
+        let mount = &self.actors[animal];
+        let forward = if mount.facing.length_squared() > 0. {
+            mount.facing.normalize()
+        } else {
+            Vec2::Y
+        };
+        let right = Vec2::new(forward.y, -forward.x);
+        let height = if mount.body.grounded || mount.body.swimming {
+            mount.body.height
+        } else {
+            rider.height
+        };
+        let mut start = rider.clone();
+        start.position = mount.body.position;
+        start.height = height;
+        let start_bounds = start.bounds();
+        let animal_bounds = mount.body.bounds();
+        let obstacles = self.obstacles(player);
+        let room = self.room.collision_bounds;
+        for direction in [
+            right,
+            -right,
+            -forward,
+            forward,
+            right - forward,
+            -right - forward,
+            right + forward,
+            -right + forward,
+        ] {
+            let direction = direction.normalize();
+            let mut distance = f32::INFINITY;
+            for (axis, component) in [(0, direction.x), (2, direction.y)] {
+                if component > 0. {
+                    distance = distance.min(
+                        (mount.body.offset[axis] + mount.body.size[axis] - rider.offset[axis])
+                            / component,
+                    );
+                } else if component < 0. {
+                    distance = distance.min(
+                        (mount.body.offset[axis] - rider.offset[axis] - rider.size[axis])
+                            / component,
+                    );
+                }
+            }
+            let mut destination = start.clone();
+            destination.position += direction * (distance + 1.);
+            let bounds = destination.bounds();
+            if bounds.min.x < room.x
+                || bounds.max.x > room.x + room.width
+                || bounds.min.z < room.y
+                || bounds.max.z > room.y + room.height
+                || bounds.intersects(animal_bounds)
+                || self.blocked(bounds, &obstacles)
+            {
+                continue;
+            }
+            let swept = Aabb {
+                min: start_bounds.min.min(bounds.min),
+                max: start_bounds.max.max(bounds.max),
+            };
+            if !self.blocked(swept, &obstacles) {
+                return Some(direction);
+            }
+        }
+        None
+    }
     fn interact(&mut self, player: usize) {
         if let Some(mount) = self.actors[player].mounted {
             if let Some(animal) = self.actors.iter().position(|a| a.id == mount) {
-                let mut body = self.actors[player].body.clone();
-                let direction = self.actors[animal].facing;
-                let right = Vec2::new(direction.y, -direction.x);
-                let obstacles = self.obstacles(player);
-                for side in [right, -right, -direction, direction] {
-                    body.position = self.actors[animal].body.position + side * 30.;
-                    body.height = self.actors[animal].body.height + 12.;
-                    if !self.blocked(body.bounds(), &obstacles) {
-                        body.velocity = self.actors[animal].body.velocity;
-                        body.vertical_velocity = 160.;
-                        body.grounded = false;
-                        self.actors[player].body = body;
-                        self.actors[player].mounted = None;
-                        self.actors[animal].mounted = None;
-                        self.actors[animal].coasting = true;
-                        break;
-                    }
+                let Some(direction) = self.dismount_direction(player, animal) else {
+                    return;
+                };
+                let mount = &self.actors[animal];
+                let origin = Vec3::new(
+                    mount.body.position.x,
+                    mount.body.height,
+                    mount.body.position.y,
+                );
+                let rider = &self.actors[player];
+                let anchor = rider
+                    .riding_anchor
+                    .map(|p| p + origin - rider.riding_origin.unwrap_or(origin))
+                    .unwrap_or(Vec3::new(
+                        rider.body.position.x,
+                        rider.body.height,
+                        rider.body.position.y,
+                    ));
+                let mut body = rider.body.clone();
+                body.position = Vec2::new(anchor.x, anchor.z);
+                // The collision box top is not the saddle height of the animated model.
+                body.height = anchor.y;
+                if self.blocked(body.bounds(), &self.obstacles(player)) {
+                    return;
                 }
+                body.velocity = (mount.body.velocity + direction * 70.)
+                    .clamp_length_max(mount.body.velocity.length().max(70.));
+                body.vertical_velocity = JUMP_SPEED + mount.body.vertical_velocity.max(0.);
+                body.grounded = false;
+                body.swimming = false;
+                self.actors[player].body = body;
+                self.actors[player].mounted = None;
+                self.actors[player].riding_anchor = None;
+                self.actors[player].riding_origin = None;
+                self.actors[player].dismount_air_control = true;
+                self.actors[animal].mounted = None;
+                self.actors[animal].coasting = true;
             }
             return;
         }
@@ -598,6 +706,9 @@ impl Game_World {
             if self.actors[player].body.grounded || self.actors[player].body.swimming {
                 self.actors[player].mounted = Some(self.actors[animal].id);
                 self.actors[animal].mounted = Some(self.actors[player].id);
+                self.actors[player].riding_anchor = None;
+                self.actors[player].riding_origin = None;
+                self.actors[player].dismount_air_control = false;
                 self.actors[player].mount_time = 0.;
                 self.actors[player].mount_start =
                     Vec3::new(pos.x, self.actors[player].body.height, pos.y);
@@ -653,6 +764,9 @@ impl Game_World {
     fn update_motion(&mut self, inputs: [Player_Input; 2], dt: f32) {
         for i in 0..self.actors.len() {
             if let Some(player) = self.actors[i].player() {
+                if self.actors[i].body.grounded || self.actors[i].body.swimming {
+                    self.actors[i].dismount_air_control = false;
+                }
                 if inputs[player].jump
                     && self.actors[i].mounted.is_none()
                     && self.actors[i].carrying.is_some()
@@ -701,8 +815,11 @@ impl Game_World {
                     if self.actors[i].body.swimming {
                         profile.max_speed = 60.;
                     }
-                    self.actors[i].body.velocity =
-                        accelerate(self.actors[i].body.velocity, direction, profile, dt);
+                    self.actors[i].body.velocity = if self.actors[i].dismount_air_control {
+                        steer_air(self.actors[i].body.velocity, direction, dt)
+                    } else {
+                        accelerate(self.actors[i].body.velocity, direction, profile, dt)
+                    };
                     if self.actors[i].body.velocity.length_squared() > 0.01 {
                         self.actors[i].facing = self.actors[i].body.velocity.normalize();
                     }
@@ -806,6 +923,7 @@ impl Game_World {
                     self.actors[i].body.position = Vec2::new(p.x, p.z);
                     self.actors[i].body.height = p.y;
                     self.actors[i].body.velocity = animal.body.velocity;
+                    self.actors[i].body.vertical_velocity = animal.body.vertical_velocity;
                     self.actors[i].body.grounded = false;
                     self.actors[i].facing = animal.facing;
                 }
@@ -1184,7 +1302,7 @@ impl Game_World {
     }
     pub fn observation(&self) -> Value {
         let body = |a: &Actor| json!({"ram_ready":a.ram_ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"vertical_velocity":a.body.vertical_velocity,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
-        json!({"visual":{"water_contacts":self.surfaces.water.len(),"wakes":self.surfaces.wakes.len(),"grass_contacts":self.surfaces.grass.len(),"grass_trails":self.surfaces.grass_trails.len()},"frame":self.frame,"seed":self.seed,"scene":"Gameplay","room":self.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
+        json!({"visual":{"water_contacts":self.surfaces.water.len(),"wakes":self.surfaces.wakes.len(),"grass_contacts":self.surfaces.grass.len(),"grass_trails":self.surfaces.grass_trails.len()},"frame":self.frame,"seed":self.seed,"scene":"Gameplay","room":self.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"riding_anchor":a.riding_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z})),"dismount_air_control":a.dismount_air_control,"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
     }
 }
 pub const DIALOG: [&str; 3] = [
@@ -1509,6 +1627,94 @@ mod interaction_tests {
             game.actors[item].body.position.y,
         );
         assert_eq!(released, current + offset);
+    }
+    fn mounted_game() -> (Game_World, usize, usize) {
+        let mut game = game();
+        game.reset("demo", 1, 42).unwrap();
+        let player = game
+            .actors
+            .iter()
+            .position(|a| a.player() == Some(0))
+            .unwrap();
+        let animal = game
+            .actors
+            .iter()
+            .position(|a| a.kind() == Some(Character_Kind::Horse))
+            .unwrap();
+        let origin = Vec3::new(680., 0., 464.);
+        game.actors[animal].body.position = Vec2::new(origin.x, origin.z);
+        game.actors[animal].facing = Vec2::Y;
+        game.actors[animal].mounted = Some(game.actors[player].id);
+        game.actors[player].mounted = Some(game.actors[animal].id);
+        game.actors[player].mount_time = 0.4;
+        game.actors[player].body.position = game.actors[animal].body.position;
+        game.actors[player].body.height = 14.;
+        game.actors[player].body.grounded = false;
+        game.actors[player].riding_anchor = Some(origin + Vec3::new(1., 14., 2.));
+        game.actors[player].riding_origin = Some(origin);
+        (game, player, animal)
+    }
+    #[test]
+    fn dismount_releases_from_the_animated_saddle_without_teleporting() {
+        let (mut game, player, animal) = mounted_game();
+        game.actors[animal].body.position += Vec2::new(2., 1.);
+        game.interact(player);
+        assert!(game.actors[player].mounted.is_none());
+        assert_eq!(game.actors[player].body.position, Vec2::new(683., 467.));
+        assert_eq!(game.actors[player].body.height, 14.);
+        assert_eq!(game.actors[player].body.velocity, Vec2::X * 70.);
+        assert_eq!(game.actors[player].body.vertical_velocity, JUMP_SPEED);
+        assert!(game.actors[animal].coasting);
+    }
+    #[test]
+    fn airborne_dismount_preserves_mount_momentum_and_caps_sideways_boost() {
+        let (mut game, player, animal) = mounted_game();
+        game.actors[animal].body.height = 40.;
+        game.actors[animal].body.grounded = false;
+        game.actors[animal].body.velocity = Vec2::Y * 100.;
+        game.actors[animal].body.vertical_velocity = 80.;
+        game.actors[player].body.height = 54.;
+        game.interact(player);
+        assert!(game.actors[player].mounted.is_none());
+        assert_eq!(game.actors[player].body.height, 54.);
+        assert_eq!(game.actors[player].body.vertical_velocity, JUMP_SPEED + 80.);
+        assert!((game.actors[player].body.velocity.length() - 100.).abs() < 0.001);
+        assert!(
+            game.actors[player].body.velocity.x > 0. && game.actors[player].body.velocity.y > 0.
+        );
+    }
+    #[test]
+    fn blocked_dismount_keeps_the_rider_attached() {
+        let (mut game, player, _) = mounted_game();
+        game.room.layers.collision.fill(1);
+        let before = game.observation();
+        game.interact(player);
+        assert_eq!(game.observation(), before);
+    }
+    #[test]
+    fn dismount_flight_keeps_speed_and_steers_until_landing() {
+        let (mut game, player, _) = mounted_game();
+        game.interact(player);
+        for _ in 0..6 {
+            game.step(default(), STEP).unwrap();
+        }
+        assert!((game.actors[player].body.velocity.length() - 70.).abs() < 0.001);
+        let before = game.actors[player].body.velocity;
+        game.update_motion(
+            [
+                Player_Input {
+                    movement: Vec2::new(-1., 1.).normalize(),
+                    ..default()
+                },
+                default(),
+            ],
+            STEP,
+        );
+        assert!((game.actors[player].body.velocity.length() - 70.).abs() < 0.001);
+        assert_ne!(game.actors[player].body.velocity, before);
+        game.actors[player].body.grounded = true;
+        game.update_motion(default(), STEP);
+        assert!(!game.actors[player].dismount_air_control);
     }
     #[test]
     fn failed_spawn_does_not_publish_partial_reset() {
