@@ -3,6 +3,7 @@
 - Do not launch the game on the host desktop. For explicitly requested gameplay or rendering tests, use the private-display devenv tasks below; they provide their own graphical environment.
 - Use `devenv shell` only for one-off commands.
 - Do not run routine checks manually. Rely on automated checks unless explicitly asked.
+- This project does not use CI; keep verification in the automated local commit hook and do not add CI workflows.
 - Commit changes in small, complete, meaningful units. Each commit must leave the application working; do not split a coherent change across commits or create arbitrary checkpoint commits.
 
 ## Game control and iteration
@@ -32,6 +33,11 @@ For an explicitly requested interactive gameplay test:
 ```sh
 devenv tasks run --show-output hollie:automation-session
 ```
+
+Alternatively, `devenv --profile automation up` supervises the same private-display
+session. It still requires an explicit gameplay-test request. The profile disables
+automatic restarts; stopping supervision also cleans up the private display.
+No game processes are registered in the default environment.
 
 Keep that task running and wait for `Paused control session: /tmp/.../control`.
 Use the actual printed directory in separate one-off commands:
@@ -73,6 +79,12 @@ Save reusable command sequences and assertions in `tools/scenarios/` using the
 existing scenario format; register new regression scenarios in the
 `hollie:automation-probe` task. Do not rely on temporary transcripts as the only
 record of useful interactions. Keep routine checks in the automated commit hook.
+
+Probe tasks depend on `hollie:build-debug`, which caches a content-checked build
+under `.devenv/state/build-debug`. Verification remains unconditional. Use the
+`assets` profile for explicit Blender baking tasks; review and commit generated
+assets with their sources. `devenv build outputs.hollie` builds the release package
+without launching it.
 
 The default GPU is `egl0`; set `HOLLIE_GPU_DEVICE=egl1` (or a DRI card path) before
 the task to select another device. Hardware tasks fail if the GPU is unavailable

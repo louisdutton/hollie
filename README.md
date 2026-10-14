@@ -21,6 +21,22 @@ Follow [AGENTS.md](AGENTS.md). Use `devenv shell` for one-off commands. Agents
 must not launch the game or run routine checks manually; rely on the automated
 commit hook unless a check is explicitly requested.
 
+This project does not use CI. Verification runs through the local commit hook.
+
+Build a release package without launching the game:
+
+```sh
+devenv build outputs.hollie
+```
+
+The reported Nix store directory contains `bin/hollie` and resources, and references
+its pinned runtime libraries. The launcher sets the resource path so it works from any working
+directory. This is a native Nix package; distribution to machines without Nix
+requires a separate packaging step.
+
+The optional `assets` profile supplies Blender pinned by `devenv.lock` and explicit
+asset baking tasks. See [Asset tooling](tools/README.md).
+
 On a machine with a graphical environment, developers can launch the debug game:
 
 ```sh
@@ -83,7 +99,13 @@ devenv tasks run --show-output hollie:automation-probe
 ```
 
 This runs saved keyboard and two-player analog gamepad scenarios on the GPU.
-They reset the demo room with a fixed random seed, advance exactly 30 frames,
+Rendering and replay tasks share `hollie:build-debug`. Its cached executable lives
+under `.devenv/state/build-debug`; source names/content, environment configuration,
+and compiler/raylib store paths invalidate the cache. A missing, modified, or
+non-executable binary also triggers rebuilding. Each probe copies the executable
+and build log into its own artifact directory. Runtime resources are read fresh.
+
+The scenarios reset the demo room with a fixed random seed, advance exactly 30 frames,
 and compare observations and captured pixels after replay. They also check that
 waiting leaves the simulation frozen and invalid commands leave it unchanged.
 Each printed artifact directory contains screenshots, logs, and a `scenario.json`
@@ -97,6 +119,19 @@ To interact with a paused game, start a session:
 ```sh
 devenv tasks run --show-output hollie:automation-session
 ```
+
+For devenv process supervision of the same session, explicitly select the
+`automation` profile:
+
+```sh
+devenv --profile automation up
+```
+
+The process manager provides session logs and stops the launcher on shutdown;
+the launcher cleans up the game, Openbox, and Xvfb. Automatic restarts are disabled
+so a failed session or its five-minute timeout remains visible. The default
+environment registers no processes. Agents need the same explicit gameplay-test
+authorization for this command as for the task above.
 
 Wait for `Paused control session: /tmp/.../control`, then use that exact directory
 in one-off commands from another terminal:
@@ -143,15 +178,23 @@ The commit hook runs `hollie:verify` for changes to code, resources, asset tools
 environment configuration, and formatting configuration. It:
 
 1. Formats Odin and Nix sources.
-2. Checks the debug game and builds the release executable without launching it.
+2. Checks the debug game, verifies a fresh debug build and its cache status, and
+   builds the release package without launching either executable.
 3. Runs the Odin tests across all packages.
 4. Validates the room files and their referenced content.
-5. Compiles the Python asset-tool sources for syntax errors without importing
-   Blender or generating assets.
+5. Compiles the Python asset-tool sources for syntax errors and runs debug-cache
+   regression tests without importing Blender or generating assets.
+6. Evaluates the combined asset and automation profiles without starting processes
+   or baking assets.
+
+`hollie:verify` aggregates shared tasks. Formatting finishes before the checks;
+independent checks then run concurrently. Verification tasks do not use task
+status caching. Nix can reuse an already built release package with identical
+sources and dependencies.
 
 If formatting changes files, review and stage those changes before retrying the
-commit. Build artifacts used by verification live in a temporary directory that
-is removed on exit.
+commit. Test and content-validator executables use separate temporary directories
+removed on exit; the release package stays in the Nix store.
 
 The headless checks do not exercise GPU rendering, audio playback, controller
 hardware, or Blender asset generation. Changes to those systems also need a

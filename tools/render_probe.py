@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,7 @@ from game_control import Control_Client, run_scenario
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--executable", type=Path, help="Use a debug executable built by devenv")
     parser.add_argument("--gpu", action="store_true", help="Render via VirtualGL/EGL")
     parser.add_argument(
         "--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE", "egl0"),
@@ -49,6 +51,12 @@ def main():
     )
     processes = []
     logs = []
+
+    def terminate(signum, frame):
+        # Devenv supervision sends SIGTERM; unwind through the cleanup below.
+        raise SystemExit(128 + signum)
+
+    previous_sigterm = signal.signal(signal.SIGTERM, terminate)
 
     def start(name, command):
         log = (output / f"{name}.log").open("w")
@@ -133,12 +141,19 @@ def main():
                 ["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"]
             ), wm, "window manager",
         )
-        build = subprocess.run(
-            ["odin", "build", "hollie", "-debug", f"-out:{output / 'hollie'}"],
-            cwd=repo, env=env, capture_output=True, text=True, timeout=180,
-        )
-        (output / "build.log").write_text(build.stdout + build.stderr)
-        build.check_returncode()
+        if args.executable is None:
+            build = subprocess.run(
+                ["odin", "build", "hollie", "-debug", f"-out:{output / 'hollie'}"],
+                cwd=repo, env=env, capture_output=True, text=True, timeout=180,
+            )
+            (output / "build.log").write_text(build.stdout + build.stderr)
+            build.check_returncode()
+        else:
+            shutil.copy2(args.executable, output / "hollie")
+            build_log = args.executable.parent / "build.log"
+            if build_log.exists():
+                shutil.copy2(build_log, output / "build.log")
+            (output / "build-source.txt").write_text(str(args.executable.resolve()) + "\n")
         game = start("game", render_command + [str(output / "hollie")])
         window = wait_until(find_window, game, "game window")
         (output / "window.txt").write_text(
@@ -177,6 +192,8 @@ def main():
             raise RuntimeError(f"Game exited {game.returncode}")
         print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
     finally:
+        # Ignore repeated supervisor signals while terminating child groups.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         for process in reversed(processes):
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)
@@ -187,6 +204,7 @@ def main():
                     process.wait(timeout=3)
         for log in logs:
             log.close()
+        signal.signal(signal.SIGTERM, previous_sigterm)
 
 
 if __name__ == "__main__":
