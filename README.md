@@ -5,216 +5,38 @@ puzzles, and an in-game map editor.
 
 ## Development
 
-Install Nix and devenv, then initialise the environment and commit hook with a
-one-off command from the repository root:
+Install Nix and devenv, then initialise the environment and local commit hook:
 
 ```sh
 devenv shell -- true
 ```
 
-`devenv.lock` pins the environment inputs. `devenv.nix` selects Odin, raylib with
-its SDL backend, Python for asset-tool syntax checks, and the formatters.
-`RES_ROOT` defaults to `./res`; run commands from the repository root or set it
-explicitly.
+Follow [AGENTS.md](AGENTS.md). This project does not use CI; verification runs
+through the local commit hook. If formatting changes files, review and stage
+those changes before retrying the commit.
 
-Follow [AGENTS.md](AGENTS.md). Use `devenv shell` for one-off commands. Agents
-must not launch the game or run routine checks manually; rely on the automated
-commit hook unless a check is explicitly requested.
-
-This project does not use CI. Verification runs through the local commit hook.
-
-Build a release package without launching the game:
-
-```sh
-devenv build outputs.hollie
-```
-
-The reported Nix store directory contains `bin/hollie` and resources, and references
-its pinned runtime libraries. The launcher sets the resource path so it works from any working
-directory. This is a native Nix package; distribution to machines without Nix
-requires a separate packaging step.
-
-The optional `assets` profile supplies Blender pinned by `devenv.lock` and explicit
-asset baking tasks. See [Asset tooling](tools/README.md).
-
-On a machine with a graphical environment, developers can launch the debug game:
-
-```sh
-devenv tasks run hollie:run
-```
-
-F1 toggles the debug map editor; Ctrl+S saves. The full editor action bindings
-live in [input/actions.odin](hollie/input/actions.odin).
-
-For an explicitly requested rendering smoke test, run:
-
-```sh
-devenv tasks run --show-output hollie:render-probe
-```
-
-This builds the debug game and launches it on a private 1280×720 Xvfb display
-with Openbox and Mesa software OpenGL, using tools provided by devenv. It focuses
-the game, captures the title screen, presses Enter to start one-player gameplay,
-captures that view, and presses Backspace to exit. Each stage has a timeout;
-the game, window manager, and display are cleaned up on failure too.
-
-The printed temporary directory retains screenshots, the executable, and logs
-for inspection. Inspect both images and `game.log` before declaring the probe
-successful: screenshots alone do not assert the current scene or shader correctness.
-This is a visual smoke test, not a deterministic replay or a GPU performance test.
-Agents need explicit authorization to run it under the current `AGENTS.md` rules.
-
-On a Linux machine with an accessible AMD GPU and Mesa drivers, use the hardware
-variant of the same probe:
-
-```sh
-devenv tasks run --show-output hollie:render-probe-gpu
-```
-
-VirtualGL uses EGL to render on the GPU and copies frames to the private Xvfb
-display. The probe checks the renderer and fails if it identifies a software
-renderer. Both probes use the same 1280×720 display and input sequence.
-`devenv.nix` pins VirtualGL 3.1.5 for its
-[SDL resize fix](https://github.com/VirtualGL/virtualgl/releases/tag/3.1.5),
-and supplies Mesa, SDL3, and the EGL loader paths for the GPU process.
-
-The default GPU is `egl0`; EGL numbering depends on the machine. To select another
-device, set `HOLLIE_GPU_DEVICE` to an EGL device ID or a DRI card path:
-
-```sh
-HOLLIE_GPU_DEVICE=egl1 devenv tasks run --show-output hollie:render-probe-gpu
-```
-
-The GPU needs an installed kernel driver and device access; devenv provides the
-user-space tools and libraries. The GPU probe fails explicitly when unavailable;
-the software probe remains a separate fallback. These captures are smoke tests,
-not repeatable performance benchmarks.
+See [devenv.nix](devenv.nix) for tasks, optional profiles, and release packaging.
+The release output is a native Nix package; distributing it to machines without
+Nix requires a separate packaging step.
 
 ## Agent control and replay
 
-For an explicitly requested control test, run:
+Agents need an explicit request to run gameplay or rendering tests. Use the
+private-display workflow in [AGENTS.md](AGENTS.md), and save useful regression
+interactions in `tools/scenarios/` rather than relying on temporary transcripts.
 
-```sh
-devenv tasks run --show-output hollie:automation-probe
-```
+Inspect screenshots and runtime logs as well as assertions. Smoke captures do
+not establish shader correctness, deterministic replay, or GPU performance.
+Seeded replay establishes repeatability for the tested scenarios in the current
+environment, not across GPUs or all gameplay paths.
 
-This runs saved keyboard and two-player analog gamepad scenarios on the GPU.
-Rendering and replay tasks share `hollie:build-debug`. Its cached executable lives
-under `.devenv/state/build-debug`; source names/content, environment configuration,
-and compiler/raylib store paths invalidate the cache. A missing, modified, or
-non-executable binary also triggers rebuilding. Each probe copies the executable
-and build log into its own artifact directory. Runtime resources are read fresh.
+Hardware rendering requires an installed kernel driver and GPU device access;
+devenv supplies the user-space tools and libraries. EGL device numbering depends
+on the machine. Use the software probe separately when hardware is unavailable.
 
-The scenarios reset the demo room with a fixed random seed, advance exactly 30 frames,
-and compare observations and captured pixels after replay. They also check that
-waiting leaves the simulation frozen and invalid commands leave it unchanged.
-Each printed artifact directory contains screenshots, logs, and a `scenario.json`
-command/response transcript. The scenarios live in `tools/scenarios/`; store
-reusable interactions there rather than rediscovering inputs on every iteration.
-These tests establish repeatability for those scenarios on this environment;
-they do not establish determinism across GPUs or all gameplay paths.
+Headless verification does not exercise GPU rendering, audio playback, controller
+hardware, or Blender asset generation. Changes to those systems also need review
+in the corresponding runtime environment.
 
-To interact with a paused game, start a session:
-
-```sh
-devenv tasks run --show-output hollie:automation-session
-```
-
-For devenv process supervision of the same session, explicitly select the
-`automation` profile:
-
-```sh
-devenv --profile automation up
-```
-
-The process manager provides session logs and stops the launcher on shutdown;
-the launcher cleans up the game, Openbox, and Xvfb. Automatic restarts are disabled
-so a failed session or its five-minute timeout remains visible. The default
-environment registers no processes. Agents need the same explicit gameplay-test
-authorization for this command as for the task above.
-
-Wait for `Paused control session: /tmp/.../control`, then use that exact directory
-in one-off commands from another terminal:
-
-```sh
-devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"reset","room":"demo","players":1,"seed":42,"capture":"start.png"}'
-devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"step","frames":30,"keys":["S"],"capture":"moved.png"}'
-devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"observe"}'
-devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"stop"}'
-```
-
-Responses include frame count, room, player positions and velocities, enemy
-movement state, errors, and the absolute path of any requested PNG. Screenshots
-come directly from the completed game back buffer before swapping, avoiding
-delayed desktop captures. Sessions clean up on exit or after five minutes.
-Close the session, edit code, and launch again to rebuild; saved scenarios can
-be replayed through the Python client's `run_scenario` function.
-
-The control interface is compiled into debug builds only and enabled only when
-`HOLLIE_CONTROL_DIR` names an existing directory. One controller submits sequential
-commands through atomic `request.json` writes and waits for the matching
-`response.json`; the Python client assigns increasing IDs and enforces a timeout.
-The game stays responsive and renders while waiting, but simulation time advances
-only through `step`, at 1/60 second per frame, for 1–600 frames per command.
-`reset` defaults to room `demo`, one player, seed 42.
-
-Each step supplies the complete held input snapshot: omitted keys or gamepads
-are released. Holding a key across consecutive steps preserves its state;
-`pressed` fires only on a rising edge and remains visible to every input reader
-for that simulation frame. Gamepads use raylib button names and axis order
-`LEFT_X`, `LEFT_Y`, `RIGHT_X`, `RIGHT_Y`, `LEFT_TRIGGER`, `RIGHT_TRIGGER`, with
-values from -1 to 1. For example:
-
-```json
-{"op":"step","frames":30,"gamepads":[{"player":"Player_1","axes":[0,1],"buttons":["RIGHT_FACE_DOWN"]}]}
-```
-
-All tools are supplied by devenv. Agents still need explicit authorization to
-launch these sessions under `AGENTS.md`.
-
-## Automated verification
-
-The commit hook runs `hollie:verify` for changes to code, resources, asset tools,
-environment configuration, and formatting configuration. It:
-
-1. Formats Odin and Nix sources.
-2. Checks the debug game, verifies a fresh debug build and its cache status, and
-   builds the release package without launching either executable.
-3. Runs the Odin tests across all packages.
-4. Validates the room files and their referenced content.
-5. Compiles the Python asset-tool sources for syntax errors and runs debug-cache
-   regression tests without importing Blender or generating assets.
-6. Evaluates the combined asset and automation profiles without starting processes
-   or baking assets.
-
-`hollie:verify` aggregates shared tasks. Formatting finishes before the checks;
-independent checks then run concurrently. Verification tasks do not use task
-status caching. Nix can reuse an already built release package with identical
-sources and dependencies.
-
-If formatting changes files, review and stage those changes before retrying the
-commit. Test and content-validator executables use separate temporary directories
-removed on exit; the release package stays in the Nix store.
-
-The headless checks do not exercise GPU rendering, audio playback, controller
-hardware, or Blender asset generation. Changes to those systems also need a
-review on a machine with the corresponding runtime environment.
-
-## Code map
-
-| Location | Responsibility |
-| --- | --- |
-| `hollie/main.odin`, `scene*.odin` | Application lifecycle, scene selection, pause and transitions |
-| `hollie/entity.odin` | World storage, stable entity IDs, relationship cleanup |
-| `hollie/simulation*.odin` | Ordered simulation phases and coordination of physics, abilities, and effects |
-| `hollie/movement.odin`, `physics.odin`, `collision.odin` | Steering, body integration, collision queries and resolution |
-| `hollie/player.odin`, `ai.odin`, `riding.odin`, `ram.odin`, `puzzle.odin` | Gameplay rules |
-| `hollie/rendering*.odin`, `graphics/` | World rendering and raylib graphics integration |
-| `hollie/tilemap/`, `content/`, `content_validate/` | Room format, content contracts, validation, atomic persistence |
-| `hollie/editor*.odin`, `ui*.odin`, `input/` | Map editing, interface layout and controls |
-| `hollie/audio/`, `window/`, `tween/`, `asset/`, `spatial/` | Supporting packages |
-| `res/`, `tools/` | Source/runtime assets and Blender generators |
-
-[Maintenance conventions](docs/maintenance.md) describe ownership, time,
-coordinates, and system dependencies. [Asset tooling](tools/README.md) describes
-how generated models relate to their source files.
+[Maintenance conventions](docs/maintenance.md) cover project ownership and
+conventions. [Asset tooling](tools/README.md) covers generated-asset maintenance.
