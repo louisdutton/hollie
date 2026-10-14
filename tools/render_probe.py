@@ -25,8 +25,11 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--scenario", type=Path)
     mode.add_argument("--serve", action="store_true")
+    parser.add_argument("--display-size", default="1280x720")
     parser.add_argument("--session-timeout", type=int, default=300)
     args = parser.parse_args()
+    if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
+        parser.error("--display-size must be WIDTHxHEIGHT")
     if args.session_timeout < 1:
         parser.error("--session-timeout must be positive")
     repo = Path(__file__).resolve().parent.parent
@@ -80,7 +83,7 @@ def main():
             logs.append(log)
             xvfb = subprocess.Popen(
                 ["Xvfb", "-displayfd", str(display.fileno()), "-screen", "0",
-                 "1280x720x24", "-nolisten", "tcp", "-noreset"],
+                 f"{args.display_size}x24", "-nolisten", "tcp", "-noreset"],
                 stdout=log, stderr=subprocess.STDOUT,
                 pass_fds=(display.fileno(),), start_new_session=True)
             processes.append(xvfb)
@@ -127,6 +130,25 @@ def main():
                     raise RuntimeError(response["error"])
                 shutil.copy2(response["capture"], output / command["capture"])
             print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
+        if args.windowed and not args.serve:
+            subprocess.run(["magick", "import", "-window", "root", str(output / "display.png")],
+                           env=env, check=True, timeout=10)
+            if not args.scenario:
+                for filename in ("title.png", "gameplay.png", "display.png"):
+                    size = subprocess.check_output(
+                        ["magick", "identify", "-format", "%wx%h", str(output / filename)],
+                        env=env, text=True, timeout=10).strip()
+                    if size != args.display_size:
+                        raise AssertionError(f"{filename} rendered at {size}, expected native {args.display_size}")
+                # The game clear colour is blue; black side strips indicate pillarboxing.
+                for side in ("West", "East"):
+                    brightness = float(subprocess.check_output(
+                        ["magick", str(output / "display.png"), "-gravity", side,
+                         "-crop", "8x0+0+0", "+repage", "-format", "%[fx:mean]", "info:"],
+                        env=env, text=True, timeout=10))
+                    if brightness < 0.01:
+                        raise AssertionError(f"Black {side} border on the private display")
+                print(f"Native fullscreen verified: {args.display_size}, no black side bars", flush=True)
         if game.poll() is None:
             response = client.send({"op": "stop"})
             if response["error"]:

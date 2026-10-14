@@ -231,7 +231,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             Camera3d::default(),
             IsDefaultUiCamera,
             bevy::render::view::DebandDither::Disabled,
-            Msaa::Off,
+            Msaa::Sample4,
             game_camera_projection(),
             Transform::from_xyz(800., 600., 900.).looking_at(Vec3::new(480., 0., 384.), Vec3::Y),
             DistanceFog {

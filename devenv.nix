@@ -133,6 +133,15 @@ in {
         ${probe_command} --windowed --scenario tools/scenarios/rooms.json
       '';
     };
+    "hollie:render-probe-wide" = {
+      after = ["hollie:build-debug"];
+      exec =
+        "set -e\n"
+        + ''
+          ${probe_command} --windowed --display-size 1920x1080
+          ${probe_command} --windowed --display-size 2560x1080
+        '';
+    };
     "hollie:render-probe-gpu" = {
       after = ["hollie:build-debug"];
       exec = gpu_env + probe_command + " --gpu";
