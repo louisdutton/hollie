@@ -339,6 +339,54 @@ mod tests {
         assert_eq!(observe(&mut app)["players"][0]["body"]["height"], 0.);
     }
     #[test]
+    fn failed_spawn_keeps_live_entities_components_and_relationships() {
+        let mut app = app();
+        reset(&mut app);
+        let (player, item) = app
+            .world_mut()
+            .run_system_once(|actors: Query<(Entity, &Actor_Identity)>| {
+                (
+                    actors
+                        .iter()
+                        .find(|(_, identity)| identity.player() == Some(0))
+                        .unwrap()
+                        .0,
+                    actors
+                        .iter()
+                        .find(|(_, identity)| {
+                            matches!(identity.properties, Entity_Properties::Holdable(_))
+                        })
+                        .unwrap()
+                        .0,
+                )
+            })
+            .unwrap();
+        app.world_mut().entity_mut(item).insert(Carried_By(player));
+        let before = observe(&mut app);
+        let generation = app.world().resource::<Game_State>().generation;
+        app.world_mut()
+            .run_system_once(|mut game: Game_Access| {
+                game.registry
+                    .rooms
+                    .get_mut("demo")
+                    .unwrap()
+                    .room
+                    .layers
+                    .collision
+                    .fill(1);
+                assert!(game.reset("demo", 1, 777).is_err());
+            })
+            .unwrap();
+        assert_eq!(observe(&mut app), before);
+        assert_eq!(app.world().resource::<Game_State>().generation, generation);
+        assert!(app.world().get::<Body>(player).is_some());
+        assert_eq!(app.world().get::<Carried_By>(item).unwrap().0, player);
+        assert_eq!(
+            app.world().get::<Carried_Items>(player).unwrap().item(),
+            item
+        );
+    }
+    #[test]
     fn ecs_ticks_match_the_solver_after_entity_allocation_changes() {
         let mut app = app();
         let mut expected =

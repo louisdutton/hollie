@@ -41,7 +41,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         let next = self.state.registry.get(room)?.room.clone();
         let mut pending = Game_World {
             state: Box::new((*self.state).clone()),
-            actors: self.actors.clone(),
+            actors: Vec::new(),
         };
         pending.seed = seed;
         pending.rng = ChaCha8Rng::seed_from_u64(seed);
@@ -51,7 +51,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         pending.night = false;
         pending.effects.clear();
         pending.transition = None;
-        pending.load_room(next, "")?;
+        pending.load_room_inner(next, "")?;
         *self.state = *pending.state;
         self.actors = pending.actors;
         Ok(())
@@ -59,7 +59,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
     pub fn load_room(&mut self, room: Room, target: &str) -> Result<()> {
         let mut pending = Game_World {
             state: Box::new((*self.state).clone()),
-            actors: self.actors.clone(),
+            actors: Vec::new(),
         };
         pending.load_room_inner(room, target)?;
         *self.state = *pending.state;
@@ -102,7 +102,18 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
                 Body::new(entity.position.vector(), size, centered),
             ));
         }
-        let door=actors.iter().find(|a|matches!(&a.properties,Entity_Properties::Door(d) if a.source_id==target || d.target_door_id==target)).or_else(||actors.iter().find(|a|matches!(a.properties,Entity_Properties::Door(_)))).cloned();
+        let door = actors
+            .iter()
+            .position(|actor| {
+                matches!(&actor.properties, Entity_Properties::Door(properties)
+                if actor.source_id == target || properties.target_door_id == target)
+            })
+            .or_else(|| {
+                actors
+                    .iter()
+                    .position(|actor| matches!(actor.properties, Entity_Properties::Door(_)))
+            });
+
         self.state.surfaces = default();
         self.state.room = room;
         self.actors = actors;
@@ -119,8 +130,8 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
                     self.state.room.collision_bounds.y + 32.,
                 )
             });
-            let position = if let Some(d) = &door {
-                self.door_spawn(d, index)?
+            let position = if let Some(door) = door {
+                self.door_spawn(&self.actors[door], index)?
             } else {
                 fallback
             };
