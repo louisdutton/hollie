@@ -4,7 +4,6 @@ from html import escape
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -21,6 +20,7 @@ from game_session import Session_Options, private_session
 class Hollie:
     def __init__(self, directory=None, output=None):
         self.output = Path(output) if output else None
+        self.captures = self.output
         self.output_root = self.output
         self.client = Control_Client(directory) if directory else None
         self.context = None
@@ -37,6 +37,7 @@ class Hollie:
         self.trace = []
         self.output_root = Path(BuiltIn().get_variable_value("${OUTPUT DIR}"))
         self.output = Path(tempfile.mkdtemp(prefix="session-", dir=self.output_root))
+        self.captures = self.output / "control"
         options = Session_Options(Path(executable), gamescope=backend == "gamescope",
             display_size=display_size, render_size=render_size,
             gpu_device=os.environ.get("HOLLIE_GPU_DEVICE"))
@@ -61,8 +62,8 @@ class Hollie:
                     self.session = None
                     self.client = None
 
-    def artifact_link(self, filename):
-        return str((self.output / filename).relative_to(self.output_root))
+    def artifact_link(self, path):
+        return str(path.relative_to(self.output_root))
 
     def send(self, command, capture="", expected_error=""):
         if capture:
@@ -78,8 +79,7 @@ class Hollie:
             if response["error"] != expected_error:
                 raise AssertionError(f"Command {command!r}: {response!r}")
             if capture:
-                shutil.copyfile(response["capture"], self.output / capture)
-                logger.info(f'<a href="{escape(self.artifact_link(capture), quote=True)}">{escape(capture)}</a>', html=True)
+                logger.info(f'<a href="{escape(self.artifact_link(Path(response["capture"])), quote=True)}">{escape(capture)}</a>', html=True)
             return response["state"]
         except Exception as error:
             entry["error"] = str(error)
@@ -119,18 +119,18 @@ class Hollie:
     @keyword
     def images_should_match(self, first, second):
         diff = f"diff-{Path(first).stem}-{Path(second).stem}.png"
-        result = subprocess.run(["magick", "compare", "-metric", "AE", str(self.output / first),
-                                 str(self.output / second), str(self.output / diff)],
+        result = subprocess.run(["magick", "compare", "-metric", "AE", str(self.captures / first),
+                                 str(self.captures / second), str(self.output / diff)],
                                 capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
-            logger.info(f'<a href="{escape(self.artifact_link(diff), quote=True)}">Pixel difference</a>', html=True)
+            logger.info(f'<a href="{escape(self.artifact_link(self.output / diff), quote=True)}">Pixel difference</a>', html=True)
             raise AssertionError(f"{first} vs {second}: pixels differ (AE={result.stderr.strip()}); inspect {diff}")
         (self.output / diff).unlink(missing_ok=True)
 
     @keyword
     def image_dimensions_should_be(self, image, width: int, height: int):
         actual = subprocess.check_output(["magick", "identify", "-format", "%wx%h",
-                                          str(self.output / image)], text=True, timeout=10).strip()
+                                          str(self.captures / image)], text=True, timeout=10).strip()
         if actual != f"{width}x{height}":
             raise AssertionError(f"{image}: {actual}, expected {width}x{height}")
 
