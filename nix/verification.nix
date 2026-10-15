@@ -24,7 +24,11 @@
     };
     "hollie:check-tools" = {
       after = ["hollie:format"];
-      exec = ''python3 -c 'import pathlib; [compile(p.read_text(), str(p), "exec") for p in pathlib.Path("tools").glob("*.py")]' '';
+      exec = ''
+        set -e
+        python3 -c 'import pathlib; [compile(p.read_text(), str(p), "exec") for p in pathlib.Path("tools").glob("*.py")]'
+        python3 -m robot --dryrun --pythonpath tools --variable CONTROL_SOURCE:unused --variable ARTIFACT_DIR:unused --output NONE --log NONE --report NONE tools/robot
+      '';
     };
     "hollie:check-profiles" = {
       after = ["hollie:format"];

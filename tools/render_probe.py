@@ -26,9 +26,13 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--scenario", type=Path)
     mode.add_argument("--serve", action="store_true")
+    parser.add_argument("--pilot-runner", choices=["json", "robot"], help="Opt-in comparison using --scenario as the baseline")
     parser.add_argument("--display-size", default="1280x720")
     parser.add_argument("--session-timeout", type=int, default=300)
     args = parser.parse_args()
+    if args.pilot_runner and not args.scenario:
+        parser.error("--pilot-runner requires --scenario")
+    launched = time.perf_counter()
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
         parser.error("--display-size must be WIDTHxHEIGHT")
     if args.gamescope and not (args.gpu and args.windowed):
@@ -129,7 +133,13 @@ def main():
         if ready["error"]:
             raise RuntimeError(ready["error"])
         if args.scenario:
-            run_scenario(client, args.scenario, output)
+            if args.pilot_runner:
+                from pilot_support import run_pilot
+                startup = time.perf_counter() - launched
+                run_pilot(args.pilot_runner, control, args.scenario, output, game)
+                (output / "session-timings.json").write_text(json.dumps({"startup_seconds": startup}) + "\n")
+            else:
+                run_scenario(client, args.scenario, output)
         elif args.serve:
             print(f"Paused control session: {control}", flush=True)
             deadline = time.monotonic() + args.session_timeout
