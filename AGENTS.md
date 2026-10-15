@@ -23,7 +23,18 @@ Inspect relevant screenshots and runtime logs alongside assertions in the printe
 artifact directory. Passing journeys do not prove all gameplay paths or
 cross-machine determinism; smoke captures do not prove deterministic replay.
 
-For an interactive session:
+For an ad hoc automated check, put a temporary `.robot` file under `/tmp`,
+import `tools/robot/game.resource` by absolute path, and use `Start Journey` /
+`Finish Journey` as test setup / teardown. Build with `hollie:build-debug`, then
+run it from the project root with a fresh artifact directory, for example:
+
+```sh
+devenv shell -- robot --pythonpath tools --outputdir /tmp/hollie-check-results /tmp/hollie-check.robot
+```
+
+This uses the same fast GPU sessions without adding to suite discovery. Keep
+one-off checks temporary; commit a journey only when it adds lasting regression
+coverage. For exploratory commands and observations, use an interactive session:
 
 ```sh
 devenv shell -- hollie-session
@@ -48,8 +59,8 @@ Interactive sessions are paced for observation; automated offscreen journeys
 use fixed ticks without real-time pacing. Send `stop` when finished.
 
 Reproduce issues with observations/captures, stop the session, edit, then rebuild
-and replay the same inputs and seed. Save reusable interactions and assertions
-as Robot journeys, rather than relying on temporary transcripts. Keep backend
+and replay the same inputs and seed. Save lasting regression coverage as Robot
+journeys, rather than relying on temporary transcripts. Keep backend
 requirements beside tests and share setup/routes through Robot resources.
 Use native Robot assertions.
 
