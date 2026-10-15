@@ -10,7 +10,7 @@
 
 ## Game control and iteration
 
-Run the replay suite on private displays:
+Run the replay suite offscreen and through a private compositor:
 
 ```sh
 devenv tasks run --show-output hollie:automation-probe
@@ -58,8 +58,8 @@ Each journey must start a fresh private game process with sequential commands.
 Do not add an implicit gameplay reset: title audio and first-entry checks need
 a fresh title-screen start.
 
-Let Pabot schedule independent journeys with bounded parallelism and separate
-displays, control directories, and artifacts. Tune concurrency using measured
+Let Pabot schedule independent journeys with bounded parallelism and isolated
+sessions, control directories, and artifacts. Tune concurrency using measured
 durations and CPU, RAM, and GPU usage. Keep build dependencies and caching in
 devenv; execute the shared built binary directly to avoid duplicate build
 orchestration and large per-journey snapshots. When changing replay execution,
@@ -67,10 +67,10 @@ preserve simulation and animation updates and verify matching observed state
 and captured pixels using the same inputs and seed.
 
 Verify fullscreen and resolution changes through headless Gamescope: the user
-runs Gamescope with native Wayland clients, and Xvfb/offscreen captures do not
-exercise surface size negotiation. All sessions require GPU rendering; Xvfb only
-provides an isolated window for offscreen GPU rendering. Use Gamescope for native
-GPU presentation. `HOLLIE_GPU_DEVICE` selects an adapter by name substring;
+runs Gamescope with native Wayland clients, and offscreen captures do not exercise
+surface size negotiation. Offscreen sessions create no display or window manager;
+native presentation uses a private Gamescope compositor. All sessions require GPU
+rendering. `HOLLIE_GPU_DEVICE` selects an adapter by name substring;
 sessions must fail if it is unavailable or software rendering is detected.
 
 ## Casing

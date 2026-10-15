@@ -29,7 +29,7 @@ class Hollie:
 
     @keyword
     def start_private_game(self, executable, backend="offscreen",
-                           display_size="1280x720", render_size="640x360", display_scale=None):
+                           display_size="1280x720", render_size="640x360"):
         if self.context is not None:
             raise RuntimeError("A private game is already running in this journey")
         if backend not in ("offscreen", "gamescope"):
@@ -39,7 +39,7 @@ class Hollie:
         self.output = Path(tempfile.mkdtemp(prefix="session-", dir=self.output_root))
         options = Session_Options(Path(executable), gamescope=backend == "gamescope",
             display_size=display_size, render_size=render_size,
-            gpu_device=os.environ.get("HOLLIE_GPU_DEVICE"), display_scale=display_scale)
+            gpu_device=os.environ.get("HOLLIE_GPU_DEVICE"))
         context = private_session(options, self.output)
         self.session = context.__enter__()
         self.context = context

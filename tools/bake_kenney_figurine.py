@@ -1,4 +1,4 @@
-"""Bake Kenney's rigid-node figurine clips into a raylib-compatible skin.
+"""Bake Kenney's rigid-node figurine clips into a skin with carry and ride poses.
 
 Run with Blender in background mode:
     blender -b --python tools/bake_kenney_figurine.py -- \
@@ -103,8 +103,7 @@ def main(part_names=PART_NAMES, animated_node_names=ANIMATED_NODE_NAMES, add_car
     source_path, output_path = arguments()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Preserve the source duration but bake transforms at raylib's 60 Hz GLTF
-    # sampling rate, avoiding a second interpolation from a coarse 24 Hz bake.
+    # Preserve the existing baked clips' duration and 60 Hz sampling.
     bpy.context.scene.render.fps = 60
 
     bpy.ops.object.select_all(action="SELECT")

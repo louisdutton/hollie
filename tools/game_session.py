@@ -26,7 +26,6 @@ class Session_Options:
     render_size: str = "640x360"
     realtime: bool = False
     session_timeout: int = 300
-    display_scale: str | None = None
 
 
 @dataclass
@@ -34,7 +33,6 @@ class Game_Session:
     client: Control_Client
     game: subprocess.Popen
     output: Path
-    env: dict
 
 
 @contextmanager
@@ -58,8 +56,6 @@ def private_session(args, output=None):
         build = {"executable": str(executable)}
     (output / "build-info.json").write_text(json.dumps(build, indent=2) + "\n")
     env = os.environ.copy()
-    if args.display_scale is not None:
-        env["WINIT_X11_SCALE_FACTOR"] = str(args.display_scale)
     env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.gamescope else "1",
                HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime else "0",
                HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
@@ -110,27 +106,6 @@ def private_session(args, output=None):
             game = start("game", ["gamescope", "--backend", "headless", "--expose-wayland",
                 "-w", width, "-h", height, "-W", width, "-H", height, "-r", "60", "--", str(executable)])
         else:
-            # Let Xvfb allocate an unused display; never inherit the host display.
-            display_file = output / "display"
-            with display_file.open("w") as display:
-                log = (output / "xvfb.log").open("w")
-                logs.append(log)
-                xvfb = subprocess.Popen(
-                    ["Xvfb", "-displayfd", str(display.fileno()), "-screen", "0",
-                     f"{args.display_size}x24", "-nolisten", "tcp", "-noreset"],
-                    stdout=log, stderr=subprocess.STDOUT,
-                    pass_fds=(display.fileno(),), start_new_session=True)
-                processes.append(xvfb)
-                number = wait_until(lambda: display_file.read_text().strip(), xvfb, "virtual display")
-            env["DISPLAY"] = f":{number}"
-            wm = start("openbox", ["openbox", "--sm-disable"])
-
-            def wm_ready():
-                result = subprocess.run(["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"],
-                                        env=env, capture_output=True, text=True, timeout=2)
-                return "_NET_SUPPORTING_WM_CHECK(WINDOW)" in result.stdout
-
-            wait_until(wm_ready, wm, "window manager")
             game = start("game", [str(executable)])
         report = output / "renderer.json"
         wait_until(report.is_file, game, "Bevy renderer")
@@ -144,7 +119,7 @@ def private_session(args, output=None):
         ready = client.wait_for_response(0)
         if ready["error"]:
             raise RuntimeError(ready["error"])
-        yield Game_Session(client, game, output, env)
+        yield Game_Session(client, game, output)
         if game.poll() is None:
             response = client.send({"op": "stop"})
             if response["error"]:
@@ -177,7 +152,6 @@ def main():
     parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"))
     parser.add_argument("--display-size", default="1280x720")
     parser.add_argument("--render-size", default="640x360")
-    parser.add_argument("--display-scale")
     parser.add_argument("--session-timeout", type=int, default=300)
     options = Session_Options(**vars(parser.parse_args()), realtime=True)
     with private_session(options) as session:

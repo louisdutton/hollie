@@ -1,4 +1,4 @@
-"""Bake Kenney's rigid-node pressure-pad clips into a raylib-compatible skin.
+"""Bake Kenney's rigid-node pressure-pad clips into a skeletal animation rig.
 
 Run with Blender in background mode:
     blender -b --python tools/bake_kenney_pressure_pad.py -- \

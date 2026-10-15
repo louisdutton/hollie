@@ -9,9 +9,6 @@ in {
     gamescope
     xwayland
     (python3.withPackages (python: [python.robotframework (python.callPackage ./pabot.nix {})]))
-    xorg.xorgserver
-    xorg.xprop
-    openbox
     imagemagick
     mesa
   ];

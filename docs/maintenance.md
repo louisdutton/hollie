@@ -16,6 +16,3 @@ results across GPUs or Bevy versions. Retain useful interactions as Robot journe
 
 Editor exit discards unsaved changes. Review and commit generated assets together
 with their source or generator changes, and keep source assets and licenses.
-
-Hardware private-display probes render to a Bevy image target: Xvfb cannot present the
-hardware Vulkan swapchain. Captures use Bevy’s texture readback on the selected GPU.
