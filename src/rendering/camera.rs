@@ -71,7 +71,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         }
         .build(),
         Sun,
-        bevy::camera::visibility::RenderLayers::from_layers(&[0, 1]),
+        bevy::camera::visibility::RenderLayers::default(),
     ));
 }
 pub(super) fn player_center(game: &Game_View) -> Vec3 {
@@ -129,16 +129,16 @@ pub(super) fn follow_camera(
     if *mode.get() == Mode::Title {
         for (_, mut transform, mut projection, mut fog, mut layers) in &mut cameras {
             *transform =
-                Transform::from_xyz(0., 29., 100.).looking_at(Vec3::new(5., 14., -220.), Vec3::Y);
+                Transform::from_xyz(0., 48., 220.).looking_at(Vec3::new(32., 42., -170.), Vec3::Y);
             *projection = Projection::Perspective(PerspectiveProjection {
-                fov: 48_f32.to_radians(),
+                fov: 53_f32.to_radians(),
                 far: 5000.,
                 ..default()
             });
             fog.color = title::SKY;
             fog.falloff = FogFalloff::Linear {
-                start: 240.,
-                end: 850.,
+                start: 350.,
+                end: 1300.,
             };
             *layers = bevy::camera::visibility::RenderLayers::layer(1);
         }

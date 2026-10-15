@@ -3,25 +3,11 @@ use super::*;
 fn update_materials(
     game: Game_View,
     mode: Res<State<Mode>>,
-    time: Res<Time>,
-    mut title: ResMut<title::Title_Scene>,
-    #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
+    title: Res<title::Title_Scene>,
     mut materials: ResMut<Assets<Painted_Material>>,
     mut meadows: ResMut<Assets<Meadow_Material>>,
     actor_materials: Query<(&Actor_Material, &MeshMaterial3d<Painted_Material>)>,
 ) {
-    if *mode.get() == Mode::Title {
-        let dt = time.delta_secs();
-        #[cfg(debug_assertions)]
-        let dt = if crate::automation::waiting(&controller) {
-            0.
-        } else if controller.stepping {
-            STEP
-        } else {
-            dt
-        };
-        title.elapsed += dt;
-    }
     for (_, m) in materials.iter_mut() {
         m.extension.parameters.w = game.elapsed;
     }
@@ -108,7 +94,18 @@ fn update_lighting(
         };
         light.illuminance = if night { 1300. } else { 6500. };
     }
-    ambient.brightness = if night { 85. } else { 650. };
+    ambient.color = if *mode.get() == Mode::Title {
+        Color::srgb(0.50, 0.72, 0.78)
+    } else {
+        Color::srgb(0.72, 0.82, 0.94)
+    };
+    ambient.brightness = if *mode.get() == Mode::Title {
+        700.
+    } else if night {
+        85.
+    } else {
+        650.
+    };
 }
 fn animate_effects(
     game: Res<Game_State>,

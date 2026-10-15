@@ -483,6 +483,8 @@ struct Presentation_Observation<'w, 's> {
     scale: Res<'w, UiScale>,
     title: Res<'w, crate::rendering::Title_Scene>,
     area: Query<'w, 's, (&'static Text, &'static TextColor), With<crate::ui::Area_Title>>,
+    cameras: Query<'w, 's, Has<bevy::light::VolumetricFog>, With<crate::rendering::Main_Camera>>,
+    volumetric_lights: Query<'w, 's, (), With<bevy::light::VolumetricLight>>,
 }
 impl Presentation_Observation<'_, '_> {
     fn snapshot(&self) -> Value {
@@ -491,6 +493,7 @@ impl Presentation_Observation<'_, '_> {
             "ui_scale": self.scale.0,
             "title_elapsed": self.title.elapsed,
             "title_grass_vertices": self.title.grass_vertices,
+            "volumetric_lighting": self.cameras.iter().any(|enabled| enabled) && !self.volumetric_lights.is_empty(),
             "area_title": area.map(|(text, color)| json!({"text": text.0, "alpha": color.0.alpha()})),
         })
     }
