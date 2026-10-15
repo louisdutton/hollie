@@ -12,6 +12,8 @@ and an RX 9070 XT using RADV/Vulkan. The game used the debug profile with
 application optimization level 1 and dependency optimization level 3, built
 from `ac9a44c3be41f9e0c64230aff8c355fe817e87f7`. Its SHA-256 was
 `0288245c35d39a3a5d7e79267037ab925ed46654401209fccd89f7b2659ae22a`.
+These are the original paced 720p measurements; the accelerated profile is
+measured separately below.
 
 Each journey/runner combination received one excluded warm-up, three measured
 fresh-display runs, and seven measured recorded-response runs after another
@@ -92,3 +94,50 @@ The implementation follows Robot's
 it is not a runtime dependency and its editor integration was not exercised by
 this benchmark. Conditional tick waits and the remaining journeys are outside
 this pilot.
+
+## Accelerated automation
+
+A subsequent comparison on the same machine, with the same optimization levels,
+isolated the offscreen runner's artificial 60 Hz limit from render resolution.
+All three profiles used the JSON riding journey and the same rebuilt executable
+(SHA-256 `50620e8471cb95389d696a14d4bdc987e1122c8f8a519ba413d882c02d7ac71d`).
+Each profile received one excluded warm-up and three measured runs, with profile
+order rotated. Timings include the unchanged 0.5-second frozen-state check,
+39 commands, 1,024 fixed simulation ticks, eight captures and all validations.
+
+| Profile | Runner seconds, median (min–max) | Command seconds, median | Whole process seconds, median |
+| --- | --- | --- | --- |
+| Paced 1280×720 | 27.858 (27.769–27.873) | 26.893 | 29.300 |
+| Uncapped 1280×720 | 6.322 (6.310–6.352) | 5.350 | 7.223 |
+| Uncapped 640×360 | 5.970 (5.934–5.999) | 5.309 | 6.822 |
+
+Removing the cap supplied most of the improvement. Reducing resolution mostly
+saved capture processing/storage costs on this hardware; it did not substantially
+reduce command latency. Across all four capped/uncapped 720p pairs, every response
+state and captured pixel matched (32 image comparisons, AE=0). All four reduced
+resolution pairs retained identical states/commands and produced the expected
+640×360 extents. Reduced captures were visually inspected for discernibility;
+pixels at different resolutions are deliberately not compared for equality.
+Raw results and artifacts are retained at
+`/tmp/hollie-robot-benchmark-cn4rlqdz/results.json`.
+
+The acceleration keeps one fixed simulation tick per app update so UI transitions,
+input edges, presentation systems and impact messages retain their ordering.
+It changes wall-clock pacing, rather than increasing the timestep or bypassing
+gameplay. Existing asset-readiness and capture settling remain intact. Interactive
+paused sessions retain pacing to avoid spinning the renderer while awaiting a
+controller. Native resolution checks continue to use the real Gamescope surface.
+
+Controlled native sessions also disable physical controller discovery: controllers
+used by the host game can otherwise interfere with injected menu navigation.
+An initial native run exposed this isolation gap; its failure artifacts remain at
+`/tmp/hollie-render-probe-1vw4qb62`. The application used for the timing comparison
+already includes that isolation fix.
+
+The accelerated Robot pilot was then rerun completely: 24 live runs and 48
+recorded-response runs passed, including all native 4K transitions. The 12 live
+JSON/Robot pairs matched command traces and response states, and all 60 paired
+captures matched with AE=0. All six deliberate failure checks also passed.
+Those results are retained at `/tmp/hollie-robot-benchmark-kmihkdea/results.json`.
+The complete existing 13-scenario replay suite also passed all 133 assertions
+with the new defaults, completing in 57.2 seconds on this machine.

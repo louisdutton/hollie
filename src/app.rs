@@ -99,6 +99,7 @@ pub fn run() {
     };
     let offscreen =
         cfg!(debug_assertions) && std::env::var("HOLLIE_OFFSCREEN").is_ok_and(|v| v == "1");
+    let controlled = cfg!(debug_assertions) && std::env::var_os("HOLLIE_CONTROL_DIR").is_some();
     let mut plugins = DefaultPlugins
         .build()
         .set(AssetPlugin {
@@ -109,8 +110,7 @@ pub fn run() {
             render_creation: RenderCreation::Automatic(Box::new(settings)),
             // Asset readiness alone does not imply that asynchronous render pipelines
             // can draw the scene. Controlled captures must include those pipelines.
-            synchronous_pipeline_compilation: cfg!(debug_assertions)
-                && std::env::var_os("HOLLIE_CONTROL_DIR").is_some(),
+            synchronous_pipeline_compilation: controlled,
             ..default()
         })
         .set(WindowPlugin {
@@ -133,16 +133,23 @@ pub fn run() {
             ..default()
         });
     if offscreen {
-        plugins = plugins
-            .disable::<bevy::winit::WinitPlugin>()
-            .disable::<bevy::gilrs::GilrsPlugin>();
+        plugins = plugins.disable::<bevy::winit::WinitPlugin>();
+    }
+    if offscreen || controlled {
+        // Private native sessions must not consume controllers used by the host game.
+        plugins = plugins.disable::<bevy::gilrs::GilrsPlugin>();
     }
     let mut app = App::new();
     app.add_plugins(plugins).add_plugins(Hollie_Plugin);
     if offscreen {
-        app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_loop(
-            std::time::Duration::from_secs_f64(1. / 60.),
-        ));
+        let realtime = !controlled
+            || std::env::var("HOLLIE_AUTOMATION_REALTIME").is_ok_and(|value| value == "1");
+        app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_loop(if realtime {
+            std::time::Duration::from_secs_f64(1. / 60.)
+        } else {
+            // Simulation still consumes STEP per command tick; wall time is unrelated.
+            std::time::Duration::ZERO
+        }));
     }
     app.run();
 }

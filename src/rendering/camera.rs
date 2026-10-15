@@ -48,9 +48,13 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         ))
         .id();
     if cfg!(debug_assertions) && std::env::var("HOLLIE_OFFSCREEN").is_ok_and(|v| v == "1") {
+        let size = std::env::var("HOLLIE_CAPTURE_SIZE").unwrap_or_else(|_| "1280x720".into());
+        let (width, height) = size
+            .split_once('x')
+            .expect("capture size must be WIDTHxHEIGHT");
         let mut target = Image::new_target_texture(
-            1280,
-            720,
+            width.parse().expect("capture width must be positive"),
+            height.parse().expect("capture height must be positive"),
             bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
             None,
         );

@@ -28,6 +28,8 @@ def main():
     mode.add_argument("--serve", action="store_true")
     parser.add_argument("--pilot-runner", choices=["json", "robot"], help="Opt-in comparison using --scenario as the baseline")
     parser.add_argument("--display-size", default="1280x720")
+    parser.add_argument("--render-size", default="640x360", help="Offscreen capture extent; native window tests retain their own size")
+    parser.add_argument("--realtime", action="store_true", help="Pace offscreen updates at 60 Hz for comparison")
     parser.add_argument("--session-timeout", type=int, default=300)
     args = parser.parse_args()
     if args.pilot_runner and not args.scenario:
@@ -35,6 +37,9 @@ def main():
     launched = time.perf_counter()
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
         parser.error("--display-size must be WIDTHxHEIGHT")
+    if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.render_size) or any(
+            int(size) > 8192 for size in args.render_size.split("x")):
+        parser.error("--render-size must be WIDTHxHEIGHT with dimensions between 1 and 8192")
     if args.gamescope and not (args.gpu and args.windowed):
         parser.error("--gamescope requires --gpu --windowed")
     if args.session_timeout < 1:
@@ -48,8 +53,11 @@ def main():
     (output / "build-source.txt").write_text(str(args.executable.resolve()) + "\n")
     env = os.environ.copy()
     env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
+               HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime or args.serve else "0",
                HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
                WGPU_FORCE_FALLBACK_ADAPTER="false" if args.gpu else "true")
+    (output / "session-settings.json").write_text(json.dumps({"render_size": args.render_size if not args.windowed else "native",
+        "realtime": args.realtime or args.serve or args.windowed, "display_size": args.display_size}) + "\n")
     # Exercise decoding and playback without sending probe audio to host speakers.
     alsa_config = output / "asound.conf"
     alsa_config.write_text("pcm.!default { type null }\n")

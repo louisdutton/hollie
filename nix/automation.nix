@@ -23,6 +23,10 @@ in {
       after = ["hollie:build-debug"];
       exec = ''python3 tools/benchmark_pilot.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie"'';
     };
+    "hollie:automation-speed-probe" = {
+      after = ["hollie:build-debug"];
+      exec = ''python3 tools/benchmark_pilot.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie" --speed-comparison'';
+    };
     "hollie:automation-session" = probe_task "--gpu --serve";
     "hollie:automation-session-native" = probe_task "--windowed --serve";
     "hollie:automation-session-gamescope" = probe_task "--gpu --windowed --gamescope --display-size 3840x2160 --serve";

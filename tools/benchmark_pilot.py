@@ -82,12 +82,42 @@ def verify_failures(source, scenario, output):
     return results
 
 
+def compare_speed(run, args, repo, result):
+    scenario = repo / "tools/scenarios/riding.json"
+    profiles = ["realtime-720p", "uncapped-720p", "uncapped-360p"]
+    for iteration in range(args.warmups + args.runs):
+        pair = {}
+        order = profiles[iteration % 3:] + profiles[:iteration % 3]
+        for profile in order:
+            command = [sys.executable, "tools/render_probe.py", "--executable", str(args.executable.resolve()),
+                       "--gpu", "--scenario", str(scenario), "--pilot-runner", "json",
+                       "--render-size", "640x360" if profile == "uncapped-360p" else "1280x720"]
+            if profile == "realtime-720p":
+                command.append("--realtime")
+            pair[profile] = run(command, f"speed-{iteration}-{profile}", True)
+            result["runs"][-1].update(mode="speed", scenario="riding", runner=profile,
+                                       warmup=iteration < args.warmups)
+        proof = compare(pair[profiles[0]], pair[profiles[1]], scenario)
+        result["equivalence"].append({"comparison": "uncapping", "iteration": iteration, **proof})
+        proof = compare(pair[profiles[1]], pair[profiles[2]], scenario, check_pixels=False)
+        for command in read(pair[profiles[2]], "commands.json"):
+            if "capture" in command["command"]:
+                image = pair[profiles[2]] / command["command"]["capture"]
+                size = subprocess.check_output(["magick", "identify", "-format", "%wx%h", str(image)],
+                                               text=True, timeout=10).strip()
+                if size != "640x360":
+                    raise AssertionError(f"Incorrect reduced capture extent: {image}: {size}")
+        result["equivalence"].append({"comparison": "resolution", "iteration": iteration, **proof})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--replay-runs", type=int, default=7)
+    parser.add_argument("--render-size", default="640x360")
+    parser.add_argument("--speed-comparison", action="store_true", help="Compare riding at 60 Hz, uncapped 720p, and uncapped 360p")
     args = parser.parse_args()
     if args.runs < 1 or args.warmups < 1 or args.replay_runs < 1:
         parser.error("Runs and warmups must be positive")
@@ -134,7 +164,9 @@ def main():
         return directory
 
     try:
-        for name in ("movement", "riding", "display"):
+        if args.speed_comparison:
+            compare_speed(run, args, repo, result)
+        for name in (() if args.speed_comparison else ("movement", "riding", "display")):
             scenario = repo / "tools" / "scenarios" / f"{name}.json"
             source = None
             for iteration in range(args.warmups + args.runs):
@@ -145,6 +177,8 @@ def main():
                                "--scenario", str(scenario), "--pilot-runner", runner]
                     if name == "display":
                         command += ["--windowed", "--gamescope", "--display-size", "3840x2160"]
+                    else:
+                        command += ["--render-size", args.render_size]
                     label = f"live-{name}-{iteration}-{runner}"
                     pair[runner] = run(command, label, True)
                     result["runs"][-1].update(mode="live", scenario=name, runner=runner,
