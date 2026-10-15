@@ -98,14 +98,12 @@ fn play_impacts(
     game: Res<Game_State>,
     server: Res<AssetServer>,
     preferences: Res<crate::app::Preferences>,
-    mut last: Local<Option<(u64, u32)>>,
+    mut impacts: MessageReader<crate::simulation::Impact>,
 ) {
-    let frame = (game.generation, game.elapsed.to_bits());
-    if *last == Some(frame) {
-        return;
-    }
-    *last = Some(frame);
-    for _ in &game.effects {
+    for _ in impacts
+        .read()
+        .filter(|impact| impact.generation == game.generation)
+    {
         commands.spawn((
             AudioPlayer::new(server.load("audio/fx/impact/hit-short-04.wav")),
             PlaybackSettings {

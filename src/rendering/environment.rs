@@ -85,7 +85,7 @@ fn animate_effects(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<Painted_Material>>,
     mut effects: Query<(Entity, &Effect, &mut Transform)>,
-    mut last_effect: Local<Option<(u64, u32)>>,
+    mut impacts: MessageReader<crate::simulation::Impact>,
 ) {
     for (entity, effect, mut transform) in &mut effects {
         let age = game.elapsed - effect.born;
@@ -96,23 +96,22 @@ fn animate_effects(
             transform.scale = Vec3::splat((1. - age / 0.7) * 2.);
         }
     }
-    // Effects are consumed once per acknowledged simulation frame.
-    if *last_effect == Some((game.generation, game.elapsed.to_bits())) {
-        return;
-    }
-    *last_effect = Some((game.generation, game.elapsed.to_bits()));
-    for (position, burst) in &game.effects {
+    for impact in impacts
+        .read()
+        .filter(|impact| impact.generation == game.generation)
+    {
+        let position = impact.position;
         let mesh = meshes.add(Sphere::new(1.));
         let material = paint(&mut materials, Color::srgb(0.80, 0.71, 0.48), false);
-        for i in 0..if *burst { 12 } else { 4 } {
+        for i in 0..if impact.burst { 12 } else { 4 } {
             let angle = i as f32 * 2.4;
             commands.spawn((
                 Mesh3d(mesh.clone()),
                 MeshMaterial3d(material.clone()),
-                Transform::from_translation(*position),
+                Transform::from_translation(position),
                 Effect {
-                    born: game.elapsed,
-                    origin: *position,
+                    born: impact.born,
+                    origin: position,
                     velocity: Vec3::new(angle.cos() * 20., 8., angle.sin() * 20.),
                 },
                 Room_Visual,

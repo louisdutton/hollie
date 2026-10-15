@@ -10,6 +10,7 @@ use std::{
 };
 
 mod ecs;
+pub(crate) use ecs::Impact;
 pub use ecs::{Game_Access, Game_View, Simulation_Plugin};
 
 pub const INITIAL_ROOM: &str = "demo";

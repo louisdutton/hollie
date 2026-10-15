@@ -2,6 +2,14 @@ use super::*;
 use crate::{app::Mode, input::Controls};
 use bevy::ecs::system::SystemParam;
 
+#[derive(Message, Clone, Copy, Debug)]
+pub(crate) struct Impact {
+    pub position: Vec3,
+    pub burst: bool,
+    pub generation: u64,
+    pub born: f32,
+}
+
 #[derive(SystemParam)]
 pub struct Game_View<'w, 's> {
     state: Res<'w, Game_State>,
@@ -31,6 +39,7 @@ pub struct Game_Access<'w, 's> {
     pub actors: Query<'w, 's, &'static mut Actor>,
     entities: Query<'w, 's, Entity, With<Actor>>,
     commands: Commands<'w, 's>,
+    impacts: MessageWriter<'w, Impact>,
 }
 impl Deref for Game_Access<'_, '_> {
     type Target = Game_State;
@@ -95,7 +104,17 @@ impl Game_Access<'_, '_> {
         self.with_simulation(|game| game.load_room(room, target))
     }
     pub(crate) fn step(&mut self, inputs: [Player_Input; 2], dt: f32) -> Result<()> {
-        self.with_simulation(|game| game.step(inputs, dt))
+        let result = self.with_simulation(|game| game.step(inputs, dt));
+        if result.is_ok() {
+            self.impacts
+                .write_batch(self.state.effects.iter().map(|(position, burst)| Impact {
+                    position: *position,
+                    burst: *burst,
+                    generation: self.state.generation,
+                    born: self.state.elapsed,
+                }));
+        }
+        result
     }
 }
 
@@ -106,7 +125,8 @@ impl Plugin for Simulation_Plugin {
         let registry =
             Room_Registry::load(std::path::Path::new(&root)).expect("room content must validate");
         let game = Game_World::new(registry).expect("initial room");
-        app.insert_resource(*game.state)
+        app.add_message::<Impact>()
+            .insert_resource(*game.state)
             .insert_resource(Time::<Fixed>::from_seconds(STEP as f64))
             .add_systems(FixedUpdate, simulate.run_if(in_state(Mode::Gameplay)));
     }
@@ -159,6 +179,33 @@ mod tests {
         app.world_mut()
             .run_system_once(|game: Game_View| game.observation())
             .unwrap()
+    }
+    #[test]
+    fn impacts_survive_multiple_simulation_ticks_for_independent_consumers() {
+        use bevy::ecs::message::MessageCursor;
+        let mut app = app();
+        reset(&mut app);
+        app.world_mut()
+            .run_system_once(|mut actors: Query<&mut Actor>| {
+                let mut player = actors.iter_mut().find(|a| a.player() == Some(0)).unwrap();
+                player.body.height = 1.;
+                player.body.vertical_velocity = -200.;
+                player.body.grounded = false;
+            })
+            .unwrap();
+        app.world_mut()
+            .run_system_once(|mut game: Game_Access| {
+                game.step([default(); 2], STEP).unwrap();
+                game.step([default(); 2], STEP).unwrap();
+                assert!(game.effects.is_empty());
+            })
+            .unwrap();
+        let messages = app.world().resource::<Messages<Impact>>();
+        let mut visuals = MessageCursor::<Impact>::default();
+        let mut audio = MessageCursor::<Impact>::default();
+        assert_eq!(visuals.read(messages).count(), 1);
+        assert_eq!(audio.read(messages).count(), 1);
+        assert_eq!(visuals.read(messages).count(), 0);
     }
     #[test]
     fn actor_components_are_authoritative_and_reset_is_atomic() {
