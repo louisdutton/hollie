@@ -1,9 +1,35 @@
-{...}: {
+{
+  pkgs,
+  config,
+  ...
+}: {
   tasks = {
-    # Cargo tracks source, dependency and compiler changes and missing outputs.
     "hollie:build-debug" = {
       after = ["hollie:format"];
-      exec = "cargo build --locked --bin hollie";
+      execIfModified = [
+        "src"
+        "Cargo.toml"
+        "Cargo.lock"
+        "build.rs"
+        ".cargo"
+        "rust-toolchain"
+        "rust-toolchain.toml"
+        "devenv.nix"
+        "devenv.yaml"
+        "devenv.lock"
+        "nix"
+        "assets/hollie-background.png"
+        # Cargo clean must invalidate the task cache as well as source edits.
+        "${config.env.CARGO_TARGET_DIR}/debug/hollie"
+      ];
+      exec = ''
+        set -e
+        cargo build --locked --bin hollie
+        ${pkgs.jq}/bin/jq -n \
+          --arg executable "${config.env.CARGO_TARGET_DIR}/debug/hollie" \
+          --arg sha256 "$(${pkgs.coreutils}/bin/sha256sum "${config.env.CARGO_TARGET_DIR}/debug/hollie" | ${pkgs.coreutils}/bin/cut -d ' ' -f 1)" \
+          '{executable: $executable, sha256: $sha256}' > "$DEVENV_TASK_OUTPUT_FILE"
+      '';
     };
     "hollie:format".exec = "treefmt";
     "hollie:check" = {

@@ -40,13 +40,16 @@ def main():
         parser.error("--gamescope requires --gpu --windowed")
     if args.session_timeout < 1:
         parser.error("--session-timeout must be positive")
+    executable = args.executable.resolve(strict=True)
     repo = Path(__file__).resolve().parent.parent
     output = Path(tempfile.mkdtemp(prefix="hollie-render-probe-"))
     print(f"Probe artifacts: {output}", flush=True)
     control = output / "control"
     control.mkdir()
-    shutil.copy2(args.executable, output / "hollie")
-    (output / "build-source.txt").write_text(str(args.executable.resolve()) + "\n")
+    build = json.loads(os.environ.get("DEVENV_TASKS_OUTPUTS", "{}")).get("hollie:build-debug", {})
+    if build.get("executable") != str(executable):
+        build = {"executable": str(executable)}
+    (output / "build-info.json").write_text(json.dumps(build, indent=2) + "\n")
     env = os.environ.copy()
     env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
                HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime or args.serve else "0",
@@ -98,7 +101,7 @@ def main():
             env["ENABLE_GAMESCOPE_WSI"] = "1"
             width, height = args.display_size.split("x")
             game = start("game", ["gamescope", "--backend", "headless", "--expose-wayland",
-                "-w", width, "-h", height, "-W", width, "-H", height, "-r", "60", "--", str(output / "hollie")])
+                "-w", width, "-h", height, "-W", width, "-H", height, "-r", "60", "--", str(executable)])
         else:
             # Let Xvfb allocate an unused display; never inherit the host display.
             display_file = output / "display"
@@ -121,7 +124,7 @@ def main():
                 return "_NET_SUPPORTING_WM_CHECK(WINDOW)" in result.stdout
 
             wait_until(wm_ready, wm, "window manager")
-            game = start("game", [str(output / "hollie")])
+            game = start("game", [str(executable)])
         report = output / "renderer.json"
         wait_until(report.is_file, game, "Bevy renderer")
         renderer = json.loads(report.read_text())
