@@ -22,11 +22,11 @@ For a replay test:
 devenv tasks run --show-output hollie:automation-probe
 ```
 
-This runs the saved keyboard and two-player gamepad scenarios in
-`tools/scenarios/`. It asserts movement, exact frame counts, frozen state between
+This runs the Robot keyboard and two-player gamepad journeys in
+`tools/robot/`. It asserts movement, exact frame counts, frozen state between
 commands, rejection of invalid commands, and matching state and pixels after a
 seeded reset and replay. Each printed temporary artifact directory contains
-screenshots, build/runtime logs, and a `scenario.json` command/response transcript.
+screenshots, build/runtime logs, Robot reports, and a `commands.json` command/response transcript.
 Inspect relevant screenshots and logs as well as the assertions; these scenarios
 do not prove all gameplay paths or cross-machine determinism.
 
@@ -75,10 +75,16 @@ The game renders while waiting, but simulation advances only through `step`.
 
 For a code iteration: reproduce the issue, capture/observe it, stop the session,
 edit the code, then launch again to rebuild and replay the same inputs and seed.
-Save reusable command sequences and assertions in `tools/scenarios/` using the
-existing scenario format; register new regression scenarios in the
+Save reusable command sequences and assertions as Robot journeys and resource
+keywords in `tools/robot/`; register new regression journeys in the
 `hollie:automation-probe` task. Do not rely on temporary transcripts as the only
 record of useful interactions. Keep routine checks in the automated commit hook.
+
+Keep each Robot journey in a fresh private game process. Do not add an implicit
+gameplay reset: title audio and first-entry checks depend on starting at the title
+screen. Use resource keywords for shared routes and native Robot assertions.
+`Sleep` waits in wall time with simulation frozen; advancing gameplay requires
+explicit tick commands, including any release ticks between repeated presses.
 
 Review and commit generated assets with their sources when explicitly baking
 assets; do not regenerate assets as part of routine verification.

@@ -12,7 +12,7 @@ warm sunlight, painted greens, cyan water, soft shadows, and atmospheric depth.
 Review visual changes against those images in a private-display rendering session.
 
 Seeded replay is a regression tool for this environment, not a promise of identical
-results across GPUs or Bevy versions. Retain useful interactions as saved scenarios.
+results across GPUs or Bevy versions. Retain useful interactions as Robot journeys.
 
 Editor exit discards unsaved changes. Review and commit generated assets together
 with their source or generator changes, and keep source assets and licenses.

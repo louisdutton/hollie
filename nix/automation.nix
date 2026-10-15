@@ -9,7 +9,7 @@
     after = ["hollie:build-debug"];
     exec = probe_command + " " + arguments;
   };
-  scenarios = ["audio" "movement" "gamepad" "editor" "debug" "rooms" "surfaces" "riding" "dismount" "carrying" "throwing" "bison"];
+  journeys = ["audio" "movement" "gamepad" "editor" "debug" "rooms" "surfaces" "riding" "dismount" "carrying" "throwing" "bison"];
 in {
   packages = with pkgs; [gamescope xwayland (python3.withPackages (python: [python.robotframework])) xorg.xorgserver xorg.xprop xdotool openbox imagemagick mesa];
   profiles.automation.module.processes.hollie-control = {
@@ -19,14 +19,6 @@ in {
     shutdown.grace = 15;
   };
   tasks = {
-    "hollie:robot-pilot" = {
-      after = ["hollie:build-debug"];
-      exec = ''python3 tools/benchmark_pilot.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie"'';
-    };
-    "hollie:automation-speed-probe" = {
-      after = ["hollie:build-debug"];
-      exec = ''python3 tools/benchmark_pilot.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie" --speed-comparison'';
-    };
     "hollie:automation-session" = probe_task "--gpu --serve";
     "hollie:automation-session-native" = probe_task "--windowed --serve";
     "hollie:automation-session-gamescope" = probe_task "--gpu --windowed --gamescope --display-size 3840x2160 --serve";
@@ -36,14 +28,14 @@ in {
       exec =
         "set -e\n"
         + lib.concatMapStringsSep "\n"
-        (scenario: "${probe_command} --gpu --scenario tools/scenarios/${scenario}.json")
-        scenarios
+        (journey: "${probe_command} --gpu --journey tools/robot/${journey}.robot")
+        journeys
         + ''
 
-          ${probe_command} --gpu --windowed --gamescope --display-size 3840x2160 --scenario tools/scenarios/display.json
+          ${probe_command} --gpu --windowed --gamescope --display-size 3840x2160 --journey tools/robot/display.robot
         '';
     };
-    "hollie:automation-probe-native" = probe_task "--windowed --scenario tools/scenarios/rooms.json";
+    "hollie:automation-probe-native" = probe_task "--windowed --journey tools/robot/rooms.robot";
     "hollie:render-probe" = probe_task "--windowed";
     "hollie:render-probe-gpu" = probe_task "--gpu";
     "hollie:render-probe-gamescope" = probe_task "--gpu --windowed --gamescope --display-size 3840x2160";

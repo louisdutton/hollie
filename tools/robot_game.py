@@ -1,98 +1,88 @@
-"""Local Robot keywords: one mailbox request per batched game action."""
+"""Robot bindings for fixed-tick game input and asynchronous rendered captures."""
 
-from collections import Counter
+from html import escape
 import json
 from pathlib import Path
 import shutil
 import subprocess
+import time
 
 from robot.api import logger
 from robot.api.deco import keyword, library
-from pilot_support import Recorded_Client
+from game_control import Control_Client
 
 
 @library(scope="SUITE", auto_keywords=False)
 class Hollie:
-    def __init__(self, source, output):
+    def __init__(self, directory, output):
         self.output = Path(output)
-        self.client = Recorded_Client(source, output)
-        self.checks = Counter()
+        self.client = Control_Client(directory)
+        self.trace = []
 
     def send(self, command, capture="", expected_error=""):
         if capture:
             if Path(capture).name != capture:
                 raise ValueError("Captures must be plain filenames")
             command["capture"] = capture
-        response = self.client.send(command)
-        if response["error"] != expected_error:
-            raise AssertionError(f"Command {command!r}: {response!r}")
-        if capture:
-            shutil.copyfile(response["capture"], self.output / capture)
-            logger.info(f'<a href="{capture}">{capture}</a>', html=True)
-        return response["state"]
+        entry = {"command": command}
+        self.trace.append(entry)
+        started = time.perf_counter()
+        try:
+            response = self.client.send(command)
+            entry["response"] = response
+            if response["error"] != expected_error:
+                raise AssertionError(f"Command {command!r}: {response!r}")
+            if capture:
+                shutil.copyfile(response["capture"], self.output / capture)
+                logger.info(f'<a href="{escape(capture, quote=True)}">{escape(capture)}</a>', html=True)
+            return response["state"]
+        except Exception as error:
+            entry["error"] = str(error)
+            raise
+        finally:
+            entry["seconds"] = time.perf_counter() - started
 
     @keyword
-    def reset_game(self, capture="", **options):
-        return self.send({"op": "reset", **options}, capture)
+    def reset_game(self, room=None, players: int | None = None, seed: int | None = None, capture="", expected_error=""):
+        options = {key: value for key, value in {"room": room, "players": players, "seed": seed}.items()
+                   if value is not None}
+        return self.send({"op": "reset", **options}, capture, expected_error)
 
     @keyword
-    def advance_ticks(self, ticks: int, *keys, capture="", expected_error=""):
+    def advance_ticks(self, ticks: int, *keys, capture="", expected_error="", gamepads: list | None = None):
         command = {"op": "step", "frames": ticks}
         if keys:
             command["keys"] = list(keys)
+        if gamepads is not None:
+            command["gamepads"] = gamepads
         return self.send(command, capture, expected_error)
 
     @keyword
-    def move_stick_for_ticks(self, ticks: int, left_x: float, left_y: float):
-        return self.send({"op": "step", "frames": ticks,
-                          "gamepads": [{"player": "Player_1", "axes": [left_x, left_y]}]})
+    def move_stick_for_ticks(self, ticks: int, left_x: float, left_y: float, player="Player_1", capture="", expected_error=""):
+        return self.advance_ticks(ticks, gamepads=[{"player": player, "axes": [left_x, left_y]}],
+                                  capture=capture, expected_error=expected_error)
 
     @keyword
-    def observe_game(self):
-        return self.send({"op": "observe"})
+    def press_gamepad_for_ticks(self, ticks: int, player, *buttons, capture="", expected_error=""):
+        return self.advance_ticks(ticks, gamepads=[{"player": player, "buttons": list(buttons)}],
+                                  capture=capture, expected_error=expected_error)
 
     @keyword
-    def reset_should_fail(self, room, error):
-        return self.send({"op": "reset", "room": room}, expected_error=error)
-
-    @keyword
-    def states_should_match(self, first, second):
-        self.checks["equal_state"] += 1
-        if first != second:
-            raise AssertionError(f"States differ: {first!r} != {second!r}")
-
-    @keyword
-    def player_should_have_moved(self, first, second):
-        self.checks["player_moved"] += 1
-        if first["players"][0]["body"]["position"] == second["players"][0]["body"]["position"]:
-            raise AssertionError("Player did not move")
-
-    @keyword
-    def frames_between_should_be(self, first, second, ticks: int):
-        self.checks["frame_delta"] += 1
-        actual = second["frame"] - first["frame"]
-        if actual != ticks:
-            raise AssertionError(f"Frame delta {actual}, expected {ticks}")
-
-    @keyword
-    def mounted_actor_should_be(self, state, actor: int):
-        self.checks["field"] += 1
-        actual = state["players"][0]["mounted"]
-        if actual != actor:
-            raise AssertionError(f"Mounted actor {actual}, expected {actor}")
+    def observe_game(self, capture=""):
+        return self.send({"op": "observe"}, capture)
 
     @keyword
     def images_should_match(self, first, second):
-        self.checks["pixels"] += 1
+        diff = f"diff-{Path(first).stem}-{Path(second).stem}.png"
         result = subprocess.run(["magick", "compare", "-metric", "AE", str(self.output / first),
-                                 str(self.output / second), str(self.output / "replay-diff.png")],
+                                 str(self.output / second), str(self.output / diff)],
                                 capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
-            raise AssertionError(f"Replay pixels differ: {result.stderr.strip()}")
+            logger.info(f'<a href="{escape(diff, quote=True)}">Pixel difference</a>', html=True)
+            raise AssertionError(f"{first} vs {second}: pixels differ (AE={result.stderr.strip()}); inspect {diff}")
 
     @keyword
     def image_dimensions_should_be(self, image, width: int, height: int):
-        self.checks["dimensions"] += 1
         actual = subprocess.check_output(["magick", "identify", "-format", "%wx%h",
                                           str(self.output / image)], text=True, timeout=10).strip()
         if actual != f"{width}x{height}":
@@ -100,5 +90,17 @@ class Hollie:
 
     @keyword
     def save_journey_evidence(self):
-        self.client.save()
-        (self.output / "checks.json").write_text(json.dumps(self.checks, indent=2) + "\n")
+        (self.output / "commands.json").write_text(json.dumps(self.trace, indent=2) + "\n")
+
+
+def run_journey(directory, suite, output):
+    import robot
+    from robot.api import TestSuite
+    suite = Path(suite)
+    if not suite.is_file() or suite.suffix != ".robot" or TestSuite.from_file_system(str(suite)).test_count != 1:
+        raise ValueError("Each .robot file must contain one journey with its own private game session")
+    result = robot.run(str(suite), pythonpath=[str(Path(__file__).parent)],
+                       variable=[f"CONTROL_DIR:{Path(directory).resolve()}", f"ARTIFACT_DIR:{Path(output).resolve()}"],
+                       outputdir=str(output), console="quiet")
+    if result:
+        raise AssertionError(f"Journey failed; inspect {output / 'log.html'}")

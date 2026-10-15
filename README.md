@@ -23,7 +23,7 @@ Nix requires a separate packaging step.
 
 Use the private-display workflow in [AGENTS.md](AGENTS.md) for gameplay and
 rendering tests, and save useful regression
-interactions in `tools/scenarios/` rather than relying on temporary transcripts.
+interactions as Robot journeys in `tools/robot/` rather than relying on temporary transcripts.
 
 Inspect screenshots and runtime logs as well as assertions. Smoke captures do
 not establish shader correctness, deterministic replay, or GPU performance.

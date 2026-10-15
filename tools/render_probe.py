@@ -13,7 +13,7 @@ import tempfile
 import time
 
 sys.dont_write_bytecode = True
-from game_control import Control_Client, run_scenario
+from game_control import Control_Client
 
 
 def main():
@@ -24,17 +24,13 @@ def main():
     parser.add_argument("--windowed", action="store_true", help="Exercise the native window on the private display")
     parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"), help="WGPU adapter name substring")
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--scenario", type=Path)
+    mode.add_argument("--journey", type=Path, help="Run a Robot journey on this private session")
     mode.add_argument("--serve", action="store_true")
-    parser.add_argument("--pilot-runner", choices=["json", "robot"], help="Opt-in comparison using --scenario as the baseline")
     parser.add_argument("--display-size", default="1280x720")
     parser.add_argument("--render-size", default="640x360", help="Offscreen capture extent; native window tests retain their own size")
     parser.add_argument("--realtime", action="store_true", help="Pace offscreen updates at 60 Hz for comparison")
     parser.add_argument("--session-timeout", type=int, default=300)
     args = parser.parse_args()
-    if args.pilot_runner and not args.scenario:
-        parser.error("--pilot-runner requires --scenario")
-    launched = time.perf_counter()
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
         parser.error("--display-size must be WIDTHxHEIGHT")
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.render_size) or any(
@@ -140,14 +136,10 @@ def main():
         ready = client.wait_for_response(0)
         if ready["error"]:
             raise RuntimeError(ready["error"])
-        if args.scenario:
-            if args.pilot_runner:
-                from pilot_support import run_pilot
-                startup = time.perf_counter() - launched
-                run_pilot(args.pilot_runner, control, args.scenario, output, game)
-                (output / "session-timings.json").write_text(json.dumps({"startup_seconds": startup}) + "\n")
-            else:
-                run_scenario(client, args.scenario, output)
+        if args.journey:
+            from robot_game import run_journey
+            run_journey(control, args.journey, output)
+            print(f"Journey passed: {args.journey.stem}", flush=True)
         elif args.serve:
             print(f"Paused control session: {control}", flush=True)
             deadline = time.monotonic() + args.session_timeout
@@ -164,7 +156,7 @@ def main():
                     raise RuntimeError(response["error"])
                 shutil.copy2(response["capture"], output / command["capture"])
             print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
-        if args.gamescope and not args.serve and not args.scenario:
+        if args.gamescope and not args.serve and not args.journey:
             for filename in ("title.png", "gameplay.png"):
                 size = subprocess.check_output(["magick", "identify", "-format", "%wx%h", str(output / filename)],
                     env=env, text=True, timeout=10).strip()
@@ -174,7 +166,7 @@ def main():
         if args.windowed and not args.gamescope and not args.serve:
             subprocess.run(["magick", "import", "-window", "root", str(output / "display.png")],
                            env=env, check=True, timeout=30)
-            if not args.scenario:
+            if not args.journey:
                 for filename in ("title.png", "gameplay.png", "display.png"):
                     size = subprocess.check_output(
                         ["magick", "identify", "-format", "%wx%h", str(output / filename)],
