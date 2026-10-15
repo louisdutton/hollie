@@ -71,7 +71,7 @@ devenv shell -- python3 tools/game_control.py /tmp/.../control '{"op":"stop"}'
 
 Use one controller per session and send commands sequentially. The Python client
 handles atomic request files, increasing IDs, matching responses, and timeouts.
-The game renders while waiting, but simulation advances only through `step`.
+Simulation advances only through `step`.
 
 For a code iteration: reproduce the issue, capture/observe it, stop the session,
 edit the code, then launch again to rebuild and replay the same inputs and seed.
@@ -80,11 +80,21 @@ keywords in `tools/robot/`; register new regression journeys in the
 `hollie:automation-probe` task. Do not rely on temporary transcripts as the only
 record of useful interactions. Keep routine checks in the automated commit hook.
 
-Keep each Robot journey in a fresh private game process. Do not add an implicit
-gameplay reset: title audio and first-entry checks depend on starting at the title
-screen. Use resource keywords for shared routes and native Robot assertions.
+Combine related checks into coherent Robot journeys when they can share a session.
+Keep each journey in a fresh private game process and its commands sequential.
+Title audio and first-entry checks must retain a fresh title-screen start; do not
+add an implicit gameplay reset. Use resource keywords for shared routes and native
+Robot assertions.
 `Sleep` waits in wall time with simulation frozen; advancing gameplay requires
 explicit tick commands, including any release ticks between repeated presses.
+
+Run independent journeys in bounded, balanced groups through native devenv tasks,
+with separate displays, control directories, and artifacts for each session.
+Keep build dependencies and caching in devenv, and execute the shared built binary
+directly to avoid duplicate build orchestration and large per-journey snapshots.
+Tune concurrency and group balance from measured durations and CPU, RAM, and GPU
+usage. When changing replay execution, preserve simulation and animation updates;
+verify matching observed state and captured pixels with the same inputs and seed.
 
 Review and commit generated assets with their sources when explicitly baking
 assets; do not regenerate assets as part of routine verification.
