@@ -5,7 +5,6 @@ use bevy::{
 };
 use bevy::{
     asset::RenderAssetUsages,
-    image::{CompressedImageFormats, ImageSampler, ImageType},
     mesh::{
         Indices, VertexAttributeValues,
         skinning::{SkinnedMesh, SkinnedMeshInverseBindposes},
@@ -24,6 +23,7 @@ mod environment;
 mod materials;
 mod models;
 mod room;
+mod title;
 pub(crate) use audio::Audio_Layer;
 #[cfg(test)]
 use audio::{TITLE_AMBIENCE, TITLE_MUSIC};
@@ -37,6 +37,7 @@ use models::transformed_bounds;
 #[cfg(test)]
 use room::clip_surface;
 use room::paint;
+pub(crate) use title::Title_Scene;
 
 #[derive(Component)]
 pub struct Room_Visual;
@@ -106,8 +107,6 @@ struct Skeleton {
     head: Option<Bone_Bounds>,
 }
 #[derive(Resource)]
-pub struct Title_Background(pub Handle<Image>);
-#[derive(Resource)]
 pub(crate) struct Offscreen_Target(pub Handle<Image>);
 pub struct Rendering_Plugin;
 impl Plugin for Rendering_Plugin {
@@ -120,6 +119,7 @@ impl Plugin for Rendering_Plugin {
             camera::Camera_Plugin,
             environment::Environment_Plugin,
             audio::Audio_Plugin,
+            title::Title_Plugin,
         ));
     }
 }

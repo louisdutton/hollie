@@ -47,6 +47,15 @@ fn vertex(input: Vertex) -> VertexOutput {
     v.position=vec3<f32>(v.position.x+direction.x*radius*(1.0-cos(arc)),0.04+radius*sin(arc),v.position.z+direction.y*radius*(1.0-cos(arc)));
     @if(VERTEX_NORMALS)
     v.normal=normalize(vec3<f32>(-curvature.x*fraction*0.32,1.0,-curvature.y*fraction*0.32));
+    if meadow.time.w > 0.0 {
+        let a=root.x*0.009+root.y*0.004;
+        let b=root.y*0.010;
+        v.position.y+=(sin(a)*12.0+sin(b)*8.0)*meadow.time.w;
+        @if(VERTEX_NORMALS) {
+            let slope=vec2<f32>(cos(a)*0.108,cos(a)*0.048+cos(b)*0.08);
+            v.normal=normalize(v.normal+vec3<f32>(-slope.x,0.0,-slope.y)*meadow.time.w);
+        }
+    }
     var out: VertexOutput;
     let world_from_local=mesh_functions::get_world_from_local(input.instance_index);
     out.world_position=mesh_functions::mesh_position_local_to_world(world_from_local,vec4<f32>(v.position,1.0));

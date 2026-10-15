@@ -478,6 +478,23 @@ fn audio_snapshot(
     }
     Value::Object(layers)
 }
+#[derive(bevy::ecs::system::SystemParam)]
+struct Presentation_Observation<'w, 's> {
+    scale: Res<'w, UiScale>,
+    title: Res<'w, crate::rendering::Title_Scene>,
+    area: Query<'w, 's, (&'static Text, &'static TextColor), With<crate::ui::Area_Title>>,
+}
+impl Presentation_Observation<'_, '_> {
+    fn snapshot(&self) -> Value {
+        let area = self.area.iter().next();
+        json!({
+            "ui_scale": self.scale.0,
+            "title_elapsed": self.title.elapsed,
+            "title_grass_vertices": self.title.grass_vertices,
+            "area_title": area.map(|(text, color)| json!({"text": text.0, "alpha": color.0.alpha()})),
+        })
+    }
+}
 fn observation(
     game: &Game_View,
     mode: &Mode,
@@ -486,12 +503,14 @@ fn observation(
     grass_vertices: usize,
     debug: &crate::debug::Debug_State,
     audio: Value,
+    presentation: Value,
 ) -> Value {
     let mut state = game.observation();
     state["scene"] = json!(format!("{mode:?}"));
     state["audio"] = audio;
     state["debug"] = json!({"enabled":debug.enabled,"colliders":debug.collider_count});
     state["render"] = json!({"fade_alpha":fade_alpha,"grass_vertices":grass_vertices});
+    state["presentation"] = presentation;
     if *mode == Mode::Editor {
         state["editor"] = json!({"dirty":editor.dirty,"cursor":[editor.cursor.x,editor.cursor.y],"base":game.room.layers.base});
     }
@@ -525,6 +544,7 @@ fn respond(
     fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
     stats: Res<crate::rendering::Scene_Stats>,
     debug: Res<crate::debug::Debug_State>,
+    presentation: Presentation_Observation,
     audio: Query<(
         &AudioPlayer,
         &crate::rendering::Audio_Layer,
@@ -571,6 +591,7 @@ fn respond(
                 stats.grass_vertices,
                 &debug,
                 audio_snapshot(&audio, &server),
+                presentation.snapshot(),
             ),
             "",
         ) {
@@ -593,6 +614,7 @@ fn respond(
                   fade: Query<&BackgroundColor, With<crate::ui::Transition_Fade>>,
                   stats: Res<crate::rendering::Scene_Stats>,
                   debug: Res<crate::debug::Debug_State>,
+                  presentation: Presentation_Observation,
                   server: Res<AssetServer>,
                   audio: Query<(
                 &AudioPlayer,
@@ -626,6 +648,7 @@ fn respond(
                         stats.grass_vertices,
                         &debug,
                         audio_snapshot(&audio, &server),
+                        presentation.snapshot(),
                     ),
                     path.to_str().unwrap_or(""),
                 ) {

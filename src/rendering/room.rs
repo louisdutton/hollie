@@ -295,52 +295,60 @@ fn meadow_noise(p: Vec2) -> f32 {
     (a + (b - a) * u.x) * (1. - u.y) + (c + (d - c) * u.x) * u.y
 }
 fn meadow_mesh(room: &Room) -> Mesh {
+    let size = room.grid.tile_size as f32;
+    let patches = room.layers.base.iter().enumerate().filter_map(|(i, tile)| {
+        (!room.interior && *tile != 0 && *tile != 500).then_some((
+            i as u32,
+            Vec2::new((i % room.size.width) as f32, (i / room.size.width) as f32) * size,
+            room.layers.grass.get(i).copied().unwrap_or(0) as f32 / 255.,
+        ))
+    });
+    grass_mesh(patches, size, |p| room.water_at(p))
+}
+
+pub(super) fn grass_mesh(
+    patches: impl IntoIterator<Item = (u32, Vec2, f32)>,
+    size: f32,
+    water_at: impl Fn(Vec2) -> bool,
+) -> Mesh {
     let (mut positions, mut roots, mut colors, mut indices) =
         (Vec::new(), Vec::new(), Vec::new(), Vec::new());
-    let size = room.grid.tile_size as f32;
-    if !room.interior {
-        for (i, tile) in room.layers.base.iter().enumerate() {
-            if *tile == 0 || *tile == 500 {
+    for (i, origin, density) in patches {
+        let (x, z) = (origin.x, origin.y);
+        for blade in 0..36_u32 {
+            let seed = i.wrapping_mul(251) + blade * 7;
+            let random = |offset| hash(seed + offset) as f32 / u32::MAX as f32;
+            if random(5) > density {
                 continue;
             }
-            let density = room.layers.grass.get(i).copied().unwrap_or(0) as f32 / 255.;
-            let x = (i % room.size.width) as f32 * size;
-            let z = (i / room.size.width) as f32 * size;
-            for blade in 0..36_u32 {
-                let seed = (i as u32).wrapping_mul(251) + blade * 7;
-                let random = |offset| hash(seed + offset) as f32 / u32::MAX as f32;
-                if random(5) > density {
-                    continue;
-                }
-                let root = Vec3::new(
-                    x + (blade % 6) as f32 * size / 6. + (0.2 + random(0) * 0.6) * size / 6.,
-                    0.04,
-                    z + (blade / 6) as f32 * size / 6. + (0.2 + random(1) * 0.6) * size / 6.,
-                );
-                if room.water_at(Vec2::new(root.x, root.z)) {
-                    continue;
-                }
-                let height =
-                    6.4 + meadow_noise(Vec2::new(root.x, root.z) * 0.035) * 2.4 + random(2) * 0.8;
-                let angle = -std::f32::consts::FRAC_PI_4 + (random(3) - 0.5) * 1.1;
-                let width = Vec3::new(angle.cos(), 0., angle.sin()) * (0.85 + random(4) * 0.3);
-                let shoulder = root + Vec3::Y * height * 0.58;
-                let tip = root + Vec3::Y * height;
-                let base = positions.len() as u32;
-                for p in [
-                    root - width,
-                    root + width,
-                    shoulder + width * 0.62,
-                    shoulder - width * 0.62,
-                    tip,
-                ] {
-                    positions.push(p.to_array());
-                    roots.push([root.x, root.z]);
-                    colors.push([1., 1., 1., height / 12.]);
-                }
-                for index in [0, 1, 2, 0, 2, 3, 3, 2, 4] {
-                    indices.push(base + index);
-                }
+            let root = Vec3::new(
+                x + (blade % 6) as f32 * size / 6. + (0.2 + random(0) * 0.6) * size / 6.,
+                0.04,
+                z + (blade / 6) as f32 * size / 6. + (0.2 + random(1) * 0.6) * size / 6.,
+            );
+            if water_at(Vec2::new(root.x, root.z)) {
+                continue;
+            }
+            let height =
+                6.4 + meadow_noise(Vec2::new(root.x, root.z) * 0.035) * 2.4 + random(2) * 0.8;
+            let angle = -std::f32::consts::FRAC_PI_4 + (random(3) - 0.5) * 1.1;
+            let width = Vec3::new(angle.cos(), 0., angle.sin()) * (0.85 + random(4) * 0.3);
+            let shoulder = root + Vec3::Y * height * 0.58;
+            let tip = root + Vec3::Y * height;
+            let base = positions.len() as u32;
+            for p in [
+                root - width,
+                root + width,
+                shoulder + width * 0.62,
+                shoulder - width * 0.62,
+                tip,
+            ] {
+                positions.push(p.to_array());
+                roots.push([root.x, root.z]);
+                colors.push([1., 1., 1., height / 12.]);
+            }
+            for index in [0, 1, 2, 0, 2, 3, 3, 2, 4] {
+                indices.push(base + index);
             }
         }
     }

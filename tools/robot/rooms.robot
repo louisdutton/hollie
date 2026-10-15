@@ -16,6 +16,8 @@ First-entry grass and door fades without pause
     Should Be Equal    ${inside}[room]    small_room
     Should Be Equal    ${inside}[render][fade_alpha]    ${0}
     Should Be Equal    ${inside}[scene]    Gameplay
+    Should Not Be Empty    ${inside}[presentation][area_title][text]
+    Should Be True    $inside['presentation']['area_title']['alpha'] > 0
     ${idle}=    Observe Game
     Should Be Equal    ${inside}    ${idle}
     Advance Ticks    1
@@ -25,3 +27,13 @@ First-entry grass and door fades without pause
     Should Be Equal    ${returned}[render][fade_alpha]    ${0}
     Should Be Equal    ${returned}[scene]    Gameplay
     Should Be True    $returned['render']['grass_vertices'] > 0
+    Should Be True    $returned['presentation']['area_title']['alpha'] > 0
+    ${visible}=    Advance Ticks    30    capture=area-title.png
+    Should Be Equal As Numbers    ${visible}[presentation][area_title][alpha]    1
+    Advance Ticks    1    P
+    ${paused}=    Advance Ticks    240
+    Should Be Equal As Numbers    ${paused}[presentation][area_title][alpha]    0
+    ${resumed}=    Advance Ticks    1    ENTER
+    Should Be Equal As Numbers    ${resumed}[presentation][area_title][alpha]    1
+    ${expired}=    Advance Ticks    240    capture=area-title-expired.png
+    Should Be Equal As Numbers    ${expired}[presentation][area_title][alpha]    0

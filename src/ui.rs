@@ -2,7 +2,6 @@ use crate::{
     app::{Mode, Preferences},
     editor::Editor_State,
     input::Controls,
-    rendering::Title_Background,
     simulation::{DIALOG, Game_Access, Game_State},
 };
 use bevy::{
@@ -38,7 +37,10 @@ pub struct Ui_Plugin;
 impl Plugin for Ui_Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Menu_State>()
-            .add_systems(Startup, setup_transition_fade)
+            .add_systems(OnEnter(Mode::Title), |mut menu: ResMut<Menu_State>| {
+                *menu = Menu_State::default();
+            })
+            .add_systems(Startup, (setup_transition_fade, setup_area_title))
             .add_systems(
                 Update,
                 (menu_input, button_input)
@@ -47,9 +49,95 @@ impl Plugin for Ui_Plugin {
             )
             .add_systems(
                 Update,
-                (apply_window_preferences, draw_ui, update_transition_fade)
+                (
+                    apply_window_preferences,
+                    scale_ui,
+                    draw_ui,
+                    update_transition_fade,
+                    update_area_title,
+                )
                     .in_set(crate::app::Game_Systems::Presentation),
             );
+    }
+}
+
+fn scale_ui(
+    cameras: Query<&Camera, With<crate::rendering::Main_Camera>>,
+    mut scale: ResMut<UiScale>,
+) {
+    if let Some(size) = cameras
+        .iter()
+        .next()
+        .and_then(Camera::logical_viewport_size)
+    {
+        scale.0 = (size.x / 1280.).min(size.y / 720.).max(0.1);
+    }
+}
+
+#[derive(Component)]
+pub(crate) struct Area_Title;
+
+fn setup_area_title(mut commands: Commands, server: Res<AssetServer>) {
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                top: percent(10.67),
+                width: percent(100),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            GlobalZIndex(10),
+            Pickable::IGNORE,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::default(),
+                TextFont::from_font_size(67.2)
+                    .with_font(server.load("font/aoboshi-one/AoboshiOne-Regular.ttf")),
+                TextColor(Color::NONE),
+                TextLayout::justify(Justify::Center),
+                Node {
+                    max_width: percent(90),
+                    ..default()
+                },
+                Pickable::IGNORE,
+                Area_Title,
+            ));
+        });
+}
+
+fn update_area_title(
+    game: Res<Game_State>,
+    mode: Res<State<Mode>>,
+    mut entry: Local<Option<(u64, f32)>>,
+    mut titles: Query<(&mut Text, &mut TextColor), With<Area_Title>>,
+) {
+    if *mode.get() == Mode::Title {
+        *entry = None;
+    } else if entry.is_none_or(|(generation, _)| generation != game.generation) {
+        *entry = Some((game.generation, game.elapsed));
+    }
+    let opacity = if *mode.get() == Mode::Gameplay {
+        entry.map_or(0., |(_, started)| {
+            area_title_opacity(game.elapsed - started)
+        })
+    } else {
+        0.
+    };
+    for (mut text, mut color) in &mut titles {
+        if text.0 != game.room.name {
+            text.0.clone_from(&game.room.name);
+        }
+        color.0 = Color::srgba(244. / 255., 242. / 255., 234. / 255., opacity);
+    }
+}
+
+fn area_title_opacity(age: f32) -> f32 {
+    if age < 0.5 {
+        1. - (1. - age.max(0.) / 0.5).powi(2)
+    } else {
+        1. - (age - 2.5).clamp(0., 1.).powi(2)
     }
 }
 #[derive(Component)]
@@ -502,7 +590,6 @@ struct Ui_Context<'w> {
     game: Res<'w, Game_State>,
     preferences: Res<'w, Preferences>,
     editor: Res<'w, Editor_State>,
-    background: Res<'w, Title_Background>,
     server: Res<'w, AssetServer>,
 }
 fn draw_ui(
@@ -517,7 +604,6 @@ fn draw_ui(
         game,
         preferences,
         editor,
-        background,
         server,
     } = context;
 
@@ -534,7 +620,7 @@ fn draw_ui(
                 .collect::<String>()
         )
     } else {
-        game.room.name.clone()
+        String::new()
     };
     let key = format!(
         "{:?}|{:?}|{}|{}|{:?}|{}",
@@ -568,17 +654,6 @@ fn draw_ui(
         ))
         .id();
     commands.entity(node).with_children(|parent| {
-        if *mode.get() == Mode::Title {
-            parent.spawn((
-                ImageNode::new(background.0.clone()),
-                Node {
-                    width: percent(100),
-                    height: percent(100),
-                    position_type: PositionType::Absolute,
-                    ..default()
-                },
-            ));
-        }
         if matches!(mode.get(), Mode::Title | Mode::Paused) {
             let list = items(mode.get(), menu.menu, &preferences, &bindings);
             parent
@@ -626,7 +701,7 @@ fn draw_ui(
                             });
                     }
                 });
-        } else {
+        } else if !status.is_empty() {
             parent.spawn((
                 Text::new(status),
                 text_font(if game.dialog.is_some() { 22. } else { 18. }),
@@ -648,6 +723,48 @@ fn draw_ui(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn area_titles_fade_hold_and_disappear_on_each_room_generation() {
+        let game = crate::simulation::Game_World::new(
+            crate::content::Room_Registry::load(std::path::Path::new("res")).unwrap(),
+        )
+        .unwrap();
+        let mut app = App::new();
+        app.add_plugins((MinimalPlugins, bevy::state::app::StatesPlugin))
+            .init_state::<Mode>()
+            .insert_resource(*game.state)
+            .add_systems(Update, update_area_title);
+        let title = app
+            .world_mut()
+            .spawn((Text::default(), TextColor(Color::NONE), Area_Title))
+            .id();
+        app.world_mut()
+            .resource_mut::<NextState<Mode>>()
+            .set(Mode::Gameplay);
+        app.update();
+        for (elapsed, expected) in [(0.25, 0.75), (0.5, 1.), (2.5, 1.), (3., 0.75), (3.5, 0.)] {
+            app.world_mut().resource_mut::<Game_State>().elapsed = elapsed;
+            app.update();
+            assert!(
+                (app.world().get::<TextColor>(title).unwrap().0.alpha() - expected).abs() < 0.001
+            );
+        }
+        app.world_mut().resource_mut::<Game_State>().generation += 1;
+        app.update();
+        app.world_mut().resource_mut::<Game_State>().elapsed += 0.5;
+        app.update();
+        assert_eq!(app.world().get::<TextColor>(title).unwrap().0.alpha(), 1.);
+        app.world_mut()
+            .resource_mut::<NextState<Mode>>()
+            .set(Mode::Paused);
+        app.update();
+        assert_eq!(app.world().get::<TextColor>(title).unwrap().0.alpha(), 0.);
+        app.world_mut()
+            .resource_mut::<NextState<Mode>>()
+            .set(Mode::Gameplay);
+        app.update();
+        assert_eq!(app.world().get::<TextColor>(title).unwrap().0.alpha(), 1.);
+    }
     #[test]
     fn fullscreen_waits_for_monitor_then_uses_physical_pixels_and_restores_windowed_size() {
         for scale in [1., 2.] {

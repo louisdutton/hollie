@@ -2,10 +2,26 @@ use super::*;
 
 fn update_materials(
     game: Game_View,
+    mode: Res<State<Mode>>,
+    time: Res<Time>,
+    mut title: ResMut<title::Title_Scene>,
+    #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
     mut materials: ResMut<Assets<Painted_Material>>,
     mut meadows: ResMut<Assets<Meadow_Material>>,
     actor_materials: Query<(&Actor_Material, &MeshMaterial3d<Painted_Material>)>,
 ) {
+    if *mode.get() == Mode::Title {
+        let dt = time.delta_secs();
+        #[cfg(debug_assertions)]
+        let dt = if crate::automation::waiting(&controller) {
+            0.
+        } else if controller.stepping {
+            STEP
+        } else {
+            dt
+        };
+        title.elapsed += dt;
+    }
     for (_, m) in materials.iter_mut() {
         m.extension.parameters.w = game.elapsed;
     }
@@ -61,23 +77,38 @@ fn update_materials(
         meadow.trail_motion[i] = Vec4::new(c.direction.x, c.direction.y, 0., 0.);
     }
     for (_, m) in meadows.iter_mut() {
-        m.extension.meadow = meadow.clone();
+        m.extension.meadow = if *mode.get() == Mode::Title {
+            Meadow_Uniform {
+                time: Vec4::new(title.elapsed, 0., 0., 1.),
+                ..default()
+            }
+        } else {
+            meadow.clone()
+        };
     }
 }
 fn update_lighting(
     game: Res<Game_State>,
+    mode: Res<State<Mode>>,
+    mut clear: ResMut<ClearColor>,
     mut sun: Query<&mut DirectionalLight, With<Sun>>,
     mut ambient: ResMut<GlobalAmbientLight>,
 ) {
+    let night = game.night && *mode.get() != Mode::Title;
+    clear.0 = if *mode.get() == Mode::Title {
+        title::SKY
+    } else {
+        Color::srgb(0.47, 0.72, 0.77)
+    };
     for mut light in &mut sun {
-        light.color = if game.night {
+        light.color = if night {
             Color::srgb(0.55, 0.65, 1.)
         } else {
             Color::srgb(1., 0.94, 0.85)
         };
-        light.illuminance = if game.night { 1300. } else { 6500. };
+        light.illuminance = if night { 1300. } else { 6500. };
     }
-    ambient.brightness = if game.night { 85. } else { 650. };
+    ambient.brightness = if night { 85. } else { 650. };
 }
 fn animate_effects(
     game: Res<Game_State>,

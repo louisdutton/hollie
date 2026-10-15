@@ -12,16 +12,6 @@ pub(super) fn game_camera_projection() -> Projection {
     })
 }
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let image = Image::from_buffer(
-        include_bytes!("../../assets/hollie-background.png"),
-        ImageType::Extension("png"),
-        CompressedImageFormats::NONE,
-        true,
-        ImageSampler::linear(),
-        RenderAssetUsages::default(),
-    )
-    .expect("reference background PNG");
-    commands.insert_resource(Title_Background(images.add(image)));
     commands.insert_resource(ClearColor(Color::srgb(0.47, 0.72, 0.77)));
     commands.insert_resource(GlobalAmbientLight {
         color: Color::srgb(0.72, 0.82, 0.94),
@@ -45,6 +35,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                 ..default()
             },
             Main_Camera,
+            bevy::camera::visibility::RenderLayers::default(),
         ))
         .id();
     if cfg!(debug_assertions) && std::env::var("HOLLIE_OFFSCREEN").is_ok_and(|v| v == "1") {
@@ -80,6 +71,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         }
         .build(),
         Sun,
+        bevy::camera::visibility::RenderLayers::from_layers(&[0, 1]),
     ));
 }
 pub(super) fn player_center(game: &Game_View) -> Vec3 {
@@ -121,10 +113,37 @@ pub(super) fn follow_camera(
     mode: Res<State<Mode>>,
     time: Res<Time>,
     mut state: ResMut<Camera_State>,
-    mut cameras: Query<(&Camera, &mut Transform, &mut Projection), With<Main_Camera>>,
+    mut cameras: Query<
+        (
+            &Camera,
+            &mut Transform,
+            &mut Projection,
+            &mut DistanceFog,
+            &mut bevy::camera::visibility::RenderLayers,
+        ),
+        With<Main_Camera>,
+    >,
     editor: Res<crate::editor::Editor_State>,
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
 ) {
+    if *mode.get() == Mode::Title {
+        for (_, mut transform, mut projection, mut fog, mut layers) in &mut cameras {
+            *transform =
+                Transform::from_xyz(0., 29., 100.).looking_at(Vec3::new(5., 14., -220.), Vec3::Y);
+            *projection = Projection::Perspective(PerspectiveProjection {
+                fov: 48_f32.to_radians(),
+                far: 5000.,
+                ..default()
+            });
+            fog.color = title::SKY;
+            fog.falloff = FogFalloff::Linear {
+                start: 240.,
+                end: 850.,
+            };
+            *layers = bevy::camera::visibility::RenderLayers::layer(1);
+        }
+        return;
+    }
     let dt = time.delta_secs();
     let mut target = player_center(&game);
     if *mode.get() == Mode::Editor {
@@ -134,7 +153,7 @@ pub(super) fn follow_camera(
         let viewport = cameras
             .iter()
             .next()
-            .and_then(|(camera, _, _)| camera.logical_viewport_size())
+            .and_then(|(camera, _, _, _, _)| camera.logical_viewport_size())
             .unwrap_or(Vec2::new(1280., 720.));
         target = bounded_camera_target(
             target,
@@ -170,7 +189,16 @@ pub(super) fn follow_camera(
         state.camera_target = target;
         state.zoom = zoom;
     }
-    for (_, mut transform, mut projection) in &mut cameras {
+    for (_, mut transform, mut projection, mut fog, mut layers) in &mut cameras {
+        *layers = bevy::camera::visibility::RenderLayers::default();
+        fog.color = Color::srgb(0.62, 0.77, 0.78);
+        fog.falloff = FogFalloff::Linear {
+            start: 2400.,
+            end: 5000.,
+        };
+        if !matches!(*projection, Projection::Orthographic(_)) {
+            *projection = game_camera_projection();
+        }
         *transform = Transform::from_translation(state.camera_target + Vec3::splat(500.))
             .looking_at(state.camera_target, Vec3::Y);
         if let Projection::Orthographic(p) = &mut *projection {
@@ -191,9 +219,7 @@ impl Plugin for Camera_Plugin {
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                follow_camera
-                    .in_set(crate::app::Game_Systems::Presentation)
-                    .run_if(not(in_state(Mode::Title))),
+                follow_camera.in_set(crate::app::Game_Systems::Presentation),
             );
     }
 }
