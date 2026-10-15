@@ -5,7 +5,7 @@ together with changes to their generator or source; keep source assets and
 license files.
 
 Use the `assets` devenv profile when baking. Task definitions and their commands
-live in [devenv.nix](../devenv.nix); baker arguments live in the scripts themselves.
+live in [nix/assets.nix](../nix/assets.nix); baker arguments live in the scripts themselves.
 
 Treat GLB files ending in `-raylib.glb` as generated output. Review changes to
 animation names, axes, scale, and mesh bounds alongside the corresponding content

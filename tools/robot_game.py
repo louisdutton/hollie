@@ -45,7 +45,7 @@ class Hollie:
         self.context = context
         self.client = self.session.client
         width, height = (display_size if options.gamescope else render_size).split("x")
-        return {"width": int(width), "height": int(height), "backend": backend}
+        return {"width": int(width), "height": int(height)}
 
     @keyword
     def finish_journey(self):
@@ -125,6 +125,7 @@ class Hollie:
         if result.returncode != 0:
             logger.info(f'<a href="{escape(self.artifact_link(diff), quote=True)}">Pixel difference</a>', html=True)
             raise AssertionError(f"{first} vs {second}: pixels differ (AE={result.stderr.strip()}); inspect {diff}")
+        (self.output / diff).unlink(missing_ok=True)
 
     @keyword
     def image_dimensions_should_be(self, image, width: int, height: int):

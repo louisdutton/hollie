@@ -7,9 +7,9 @@
 in {
   packages = with pkgs; [
     gamescope
-    xwayland
     (python3.withPackages (python: [python.robotframework (python.callPackage ./pabot.nix {})]))
     imagemagick
+    # Native Gamescope sessions need Mesa's Vulkan driver/layer manifests.
     mesa
   ];
   profiles.automation.module.processes.hollie-control = {

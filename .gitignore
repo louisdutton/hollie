@@ -1,5 +1,3 @@
-*.bin
-*.bin.dSYM
 .direnv
 .devenv*
 .pre-commit-config.yaml
