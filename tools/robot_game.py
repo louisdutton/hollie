@@ -2,22 +2,69 @@
 
 from html import escape
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+import tempfile
 import time
 
 from robot.api import logger
 from robot.api.deco import keyword, library
+from robot.libraries.BuiltIn import BuiltIn
 from game_control import Control_Client
+from game_session import Session_Options, private_session
 
 
 @library(scope="SUITE", auto_keywords=False)
 class Hollie:
-    def __init__(self, directory, output):
-        self.output = Path(output)
-        self.client = Control_Client(directory)
+    def __init__(self, directory=None, output=None):
+        self.output = Path(output) if output else None
+        self.output_root = self.output
+        self.client = Control_Client(directory) if directory else None
+        self.context = None
+        self.session = None
         self.trace = []
+
+    @keyword
+    def start_private_game(self, executable, backend="offscreen", gpu: bool | None = None,
+                           display_size="1280x720", render_size="640x360", display_scale=None):
+        if self.context is not None:
+            raise RuntimeError("A private game is already running in this journey")
+        if backend not in ("offscreen", "xvfb", "gamescope"):
+            raise ValueError(f"Unknown private display backend: {backend}")
+        if gpu is None:
+            gpu = backend != "xvfb"
+        self.trace = []
+        self.output_root = Path(BuiltIn().get_variable_value("${OUTPUT DIR}"))
+        self.output = Path(tempfile.mkdtemp(prefix="session-", dir=self.output_root))
+        options = Session_Options(Path(executable), gpu=gpu, gamescope=backend == "gamescope",
+            windowed=backend != "offscreen", display_size=display_size, render_size=render_size,
+            gpu_device=os.environ.get("HOLLIE_GPU_DEVICE"), display_scale=display_scale)
+        context = private_session(options, self.output)
+        self.session = context.__enter__()
+        self.context = context
+        self.client = self.session.client
+        width, height = (display_size if options.windowed else render_size).split("x")
+        return {"width": int(width), "height": int(height), "backend": backend}
+
+    @keyword
+    def finish_journey(self):
+        try:
+            if self.output is not None:
+                self.save_journey_evidence()
+        finally:
+            if self.context is not None:
+                context, self.context = self.context, None
+                try:
+                    context.__exit__(*sys.exc_info())
+                finally:
+                    self.session = None
+                    self.client = None
+
+    def artifact_link(self, filename):
+        return str((self.output / filename).relative_to(self.output_root))
 
     def send(self, command, capture="", expected_error=""):
         if capture:
@@ -34,7 +81,7 @@ class Hollie:
                 raise AssertionError(f"Command {command!r}: {response!r}")
             if capture:
                 shutil.copyfile(response["capture"], self.output / capture)
-                logger.info(f'<a href="{escape(capture, quote=True)}">{escape(capture)}</a>', html=True)
+                logger.info(f'<a href="{escape(self.artifact_link(capture), quote=True)}">{escape(capture)}</a>', html=True)
             return response["state"]
         except Exception as error:
             entry["error"] = str(error)
@@ -78,7 +125,7 @@ class Hollie:
                                  str(self.output / second), str(self.output / diff)],
                                 capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
-            logger.info(f'<a href="{escape(diff, quote=True)}">Pixel difference</a>', html=True)
+            logger.info(f'<a href="{escape(self.artifact_link(diff), quote=True)}">Pixel difference</a>', html=True)
             raise AssertionError(f"{first} vs {second}: pixels differ (AE={result.stderr.strip()}); inspect {diff}")
 
     @keyword
@@ -92,15 +139,12 @@ class Hollie:
     def save_journey_evidence(self):
         (self.output / "commands.json").write_text(json.dumps(self.trace, indent=2) + "\n")
 
+    @keyword
+    def capture_private_display(self, filename):
+        subprocess.run(["magick", "import", "-window", "root", str(self.output / filename)],
+                       env=self.session.env, check=True, timeout=30)
 
-def run_journey(directory, suite, output):
-    import robot
-    from robot.api import TestSuite
-    suite = Path(suite)
-    if not suite.is_file() or suite.suffix != ".robot" or TestSuite.from_file_system(str(suite)).test_count != 1:
-        raise ValueError("Each .robot file must contain one journey with its own private game session")
-    result = robot.run(str(suite), pythonpath=[str(Path(__file__).parent)],
-                       variable=[f"CONTROL_DIR:{Path(directory).resolve()}", f"ARTIFACT_DIR:{Path(output).resolve()}"],
-                       outputdir=str(output), console="quiet")
-    if result:
-        raise AssertionError(f"Journey failed; inspect {output / 'log.html'}")
+    @keyword
+    def image_edge_brightness(self, filename, side):
+        return float(subprocess.check_output(["magick", str(self.output / filename), "-gravity", side,
+            "-crop", "8x0+0+0", "+repage", "-format", "%[fx:mean]", "info:"], text=True, timeout=10))

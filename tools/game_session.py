@@ -1,11 +1,12 @@
-"""Bounded Bevy rendering/control session on a private display or compositor."""
+"""Private Bevy game sessions for Robot and interactive control."""
 
 import argparse
+from contextlib import contextmanager
+from dataclasses import dataclass
 import json
 import os
-import re
 from pathlib import Path
-import shutil
+import re
 import signal
 import subprocess
 import sys
@@ -16,34 +17,46 @@ sys.dont_write_bytecode = True
 from game_control import Control_Client
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--executable", type=Path, required=True)
-    parser.add_argument("--gpu", action="store_true")
-    parser.add_argument("--gamescope", action="store_true")
-    parser.add_argument("--windowed", action="store_true", help="Exercise the native window on the private display")
-    parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"), help="WGPU adapter name substring")
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--journey", type=Path, help="Run a Robot journey on this private session")
-    mode.add_argument("--serve", action="store_true")
-    parser.add_argument("--display-size", default="1280x720")
-    parser.add_argument("--render-size", default="640x360", help="Offscreen capture extent; native window tests retain their own size")
-    parser.add_argument("--realtime", action="store_true", help="Pace offscreen updates at 60 Hz for comparison")
-    parser.add_argument("--session-timeout", type=int, default=300)
-    args = parser.parse_args()
+@dataclass
+class Session_Options:
+    executable: Path
+    gpu: bool = True
+    gamescope: bool = False
+    windowed: bool = False
+    gpu_device: str | None = None
+    display_size: str = "1280x720"
+    render_size: str = "640x360"
+    realtime: bool = False
+    session_timeout: int = 300
+    display_scale: str | None = None
+
+
+@dataclass
+class Game_Session:
+    client: Control_Client
+    game: subprocess.Popen
+    output: Path
+    env: dict
+
+
+@contextmanager
+def private_session(args, output=None):
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.display_size):
-        parser.error("--display-size must be WIDTHxHEIGHT")
+        raise ValueError("--display-size must be WIDTHxHEIGHT")
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.render_size) or any(
             int(size) > 8192 for size in args.render_size.split("x")):
-        parser.error("--render-size must be WIDTHxHEIGHT with dimensions between 1 and 8192")
+        raise ValueError("--render-size must be WIDTHxHEIGHT with dimensions between 1 and 8192")
     if args.gamescope and not (args.gpu and args.windowed):
-        parser.error("--gamescope requires --gpu --windowed")
+        raise ValueError("--gamescope requires --gpu --windowed")
+    if args.gpu and args.windowed and not args.gamescope:
+        raise ValueError("Native GPU presentation requires Gamescope; use software rendering with Xvfb")
     if args.session_timeout < 1:
-        parser.error("--session-timeout must be positive")
+        raise ValueError("--session-timeout must be positive")
     executable = args.executable.resolve(strict=True)
     repo = Path(__file__).resolve().parent.parent
-    output = Path(tempfile.mkdtemp(prefix="hollie-render-probe-"))
-    print(f"Probe artifacts: {output}", flush=True)
+    output = Path(output or tempfile.mkdtemp(prefix="hollie-session-"))
+    output.mkdir(parents=True, exist_ok=True)
+    print(f"Session artifacts: {output}", flush=True)
     control = output / "control"
     control.mkdir()
     build = json.loads(os.environ.get("DEVENV_TASKS_OUTPUTS", "{}")).get("hollie:build-debug", {})
@@ -51,12 +64,14 @@ def main():
         build = {"executable": str(executable)}
     (output / "build-info.json").write_text(json.dumps(build, indent=2) + "\n")
     env = os.environ.copy()
+    if args.display_scale is not None:
+        env["WINIT_X11_SCALE_FACTOR"] = str(args.display_scale)
     env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
-               HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime or args.serve else "0",
+               HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime else "0",
                HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
                WGPU_FORCE_FALLBACK_ADAPTER="false" if args.gpu else "true")
     (output / "session-settings.json").write_text(json.dumps({"render_size": args.render_size if not args.windowed else "native",
-        "realtime": args.realtime or args.serve or args.windowed, "display_size": args.display_size}) + "\n")
+        "realtime": args.realtime or args.windowed, "display_size": args.display_size}) + "\n")
     # Exercise decoding and playback without sending probe audio to host speakers.
     alsa_config = output / "asound.conf"
     alsa_config.write_text("pcm.!default { type null }\n")
@@ -139,52 +154,7 @@ def main():
         ready = client.wait_for_response(0)
         if ready["error"]:
             raise RuntimeError(ready["error"])
-        if args.journey:
-            from robot_game import run_journey
-            run_journey(control, args.journey, output)
-            print(f"Journey passed: {args.journey.stem}", flush=True)
-        elif args.serve:
-            print(f"Paused control session: {control}", flush=True)
-            deadline = time.monotonic() + args.session_timeout
-            while game.poll() is None and time.monotonic() < deadline:
-                time.sleep(0.1)
-            if game.poll() is None:
-                raise TimeoutError("Control session reached --session-timeout")
-        else:
-            for command in ({"op": "observe", "capture": "title.png"},
-                            {"op": "reset", "room": "demo", "players": 1,
-                             "seed": 42, "capture": "gameplay.png"}):
-                response = client.send(command)
-                if response["error"]:
-                    raise RuntimeError(response["error"])
-                shutil.copy2(response["capture"], output / command["capture"])
-            print("Captured title.png and gameplay.png; inspect images and game.log.", flush=True)
-        if args.gamescope and not args.serve and not args.journey:
-            for filename in ("title.png", "gameplay.png"):
-                size = subprocess.check_output(["magick", "identify", "-format", "%wx%h", str(output / filename)],
-                    env=env, text=True, timeout=10).strip()
-                print(f"Gamescope render extent: {filename}: {size} (display {args.display_size})", flush=True)
-                if size != args.display_size:
-                    raise AssertionError(f"Gamescope rendered {size}, expected {args.display_size}")
-        if args.windowed and not args.gamescope and not args.serve:
-            subprocess.run(["magick", "import", "-window", "root", str(output / "display.png")],
-                           env=env, check=True, timeout=30)
-            if not args.journey:
-                for filename in ("title.png", "gameplay.png", "display.png"):
-                    size = subprocess.check_output(
-                        ["magick", "identify", "-format", "%wx%h", str(output / filename)],
-                        env=env, text=True, timeout=10).strip()
-                    if size != args.display_size:
-                        raise AssertionError(f"{filename} rendered at {size}, expected native {args.display_size}")
-                # The game clear colour is blue; black side strips indicate pillarboxing.
-                for side in ("West", "East"):
-                    brightness = float(subprocess.check_output(
-                        ["magick", str(output / "display.png"), "-gravity", side,
-                         "-crop", "8x0+0+0", "+repage", "-format", "%[fx:mean]", "info:"],
-                        env=env, text=True, timeout=10))
-                    if brightness < 0.01:
-                        raise AssertionError(f"Black {side} border on the private display")
-                print(f"Native fullscreen verified: {args.display_size}, no black side bars", flush=True)
+        yield Game_Session(client, game, output, env)
         if game.poll() is None:
             response = client.send({"op": "stop"})
             if response["error"]:
@@ -208,6 +178,27 @@ def main():
         for log in logs:
             log.close()
         signal.signal(signal.SIGTERM, previous_sigterm)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--executable", type=Path, required=True)
+    parser.add_argument("--gpu", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--gamescope", action="store_true")
+    parser.add_argument("--windowed", action="store_true")
+    parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"))
+    parser.add_argument("--display-size", default="1280x720")
+    parser.add_argument("--render-size", default="640x360")
+    parser.add_argument("--display-scale")
+    parser.add_argument("--session-timeout", type=int, default=300)
+    options = Session_Options(**vars(parser.parse_args()), realtime=True)
+    with private_session(options) as session:
+        print(f"Paused control session: {session.output / 'control'}", flush=True)
+        deadline = time.monotonic() + options.session_timeout
+        while session.game.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.1)
+        if session.game.poll() is None:
+            raise TimeoutError("Control session reached --session-timeout")
 
 
 if __name__ == "__main__":

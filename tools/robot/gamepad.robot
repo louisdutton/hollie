@@ -1,6 +1,7 @@
 *** Settings ***
 Resource         game.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
 
 *** Variables ***
 @{full_speed_axes}    ${0}    ${1}

@@ -54,7 +54,7 @@
         set -e
         python3 -c 'import pathlib; [compile(p.read_text(), str(p), "exec") for p in pathlib.Path("tools").glob("*.py")]'
         python3 -m unittest discover -s tools -p 'test_*.py'
-        python3 -m robot --dryrun --pythonpath tools --variable CONTROL_DIR:unused --variable ARTIFACT_DIR:unused --output NONE --log NONE --report NONE tools/robot
+        python3 -m robot --dryrun --pythonpath tools --output NONE --log NONE --report NONE tools/robot
       '';
     };
     "hollie:check-profiles" = {

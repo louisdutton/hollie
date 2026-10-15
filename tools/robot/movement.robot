@@ -1,6 +1,7 @@
 *** Settings ***
 Resource         game.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
 
 *** Test Cases ***
 Move, freeze, reset, and replay

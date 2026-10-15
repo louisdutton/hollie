@@ -1,6 +1,7 @@
 *** Settings ***
 Resource         game.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
 
 *** Variables ***
 &{title_audio_music}    path=audio/A-Feather-Falls-Ian-Aisling-stream-preview.mp3    playing=${True}

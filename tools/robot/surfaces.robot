@@ -1,6 +1,7 @@
 *** Settings ***
 Resource         game.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
 
 *** Test Cases ***
 Grass contact, swimming foam and wakes, frozen visuals and replay

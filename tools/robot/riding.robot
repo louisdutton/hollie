@@ -1,7 +1,8 @@
 *** Settings ***
 Resource         game.resource
 Resource         routes.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
 
 *** Test Cases ***
 Mounted motion, jump, dismount momentum and seeded replay

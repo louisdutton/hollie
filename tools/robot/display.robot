@@ -1,6 +1,11 @@
 *** Settings ***
 Resource         game.resource
-Test Teardown    Save Journey Evidence
+Test Setup       Start Journey
+Test Teardown    Finish Journey
+
+*** Variables ***
+${GAME_BACKEND}         gamescope
+${GAME_DISPLAY_SIZE}    3840x2160
 
 *** Test Cases ***
 Gamescope native 4K render and fullscreen windowed round-trip

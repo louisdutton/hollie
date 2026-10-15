@@ -6,19 +6,38 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+import robot
 
-from robot_game import Hollie, run_journey
+from robot_game import Hollie
 
 
 class Robot_Journey_Tests(unittest.TestCase):
-    def test_multiple_journeys_require_separate_sessions(self):
-        with tempfile.TemporaryDirectory() as directory, patch("robot_game.Control_Client") as client:
-            output = Path(directory)
-            suite = output / "multiple.robot"
-            suite.write_text("*** Test Cases ***\nFirst\n    No Operation\nSecond\n    No Operation\n")
-            with self.assertRaisesRegex(ValueError, "one journey"):
-                run_journey(output, suite, output)
-            client.assert_not_called()
+    def test_each_journey_has_fresh_control_and_no_implicit_reset(self):
+        with tempfile.TemporaryDirectory() as directory, patch("robot_game.BuiltIn") as built_in, patch("robot_game.private_session") as session:
+            built_in.return_value.get_variable_value.return_value = directory
+            game = Hollie()
+            game.start_private_game("unused")
+            first_output = game.output
+            game.client.send.assert_not_called()
+            game.trace.append({"previous": "journey"})
+            game.finish_journey()
+            game.start_private_game("unused")
+            self.assertNotEqual(game.output, first_output)
+            self.assertEqual(game.trace, [])
+            game.client.send.assert_not_called()
+            game.finish_journey()
+            self.assertEqual(session.return_value.__exit__.call_count, 2)
+
+    def test_journey_teardown_closes_session_even_if_evidence_fails(self):
+        with tempfile.TemporaryDirectory() as directory, patch("robot_game.Control_Client"), patch("robot_game.private_session") as session:
+            game = Hollie(directory, directory)
+            game.context = session()
+            with patch.object(game, "save_journey_evidence", side_effect=OSError("Disk full")):
+                with self.assertRaisesRegex(OSError, "Disk full"):
+                    game.finish_journey()
+            game_context = session.return_value
+            self.assertEqual(game_context.__exit__.call_args.args[0], OSError)
+            self.assertIsNone(game.context)
 
     def test_simultaneous_players_use_one_complete_snapshot(self):
         with tempfile.TemporaryDirectory() as directory, patch("robot_game.Control_Client") as client:
@@ -48,13 +67,14 @@ class Robot_Journey_Tests(unittest.TestCase):
             suite.write_text(
                 "*** Settings ***\n"
                 "Library    robot_game.Hollie    ${CONTROL_DIR}    ${ARTIFACT_DIR}\n"
-                "Test Teardown    Save Journey Evidence\n"
+                "Test Teardown    Finish Journey\n"
                 "*** Test Cases ***\n"
                 "A failed command preserves evidence\n"
                 "    Advance Ticks    30    S\n"
             )
-            with self.assertRaisesRegex(AssertionError, "Journey failed"):
-                run_journey(output, suite, output)
+            result = robot.run(str(suite), pythonpath=[str(Path(__file__).parent)],
+                variable=[f"CONTROL_DIR:{output}", f"ARTIFACT_DIR:{output}"], outputdir=str(output), console="quiet")
+            self.assertEqual(result, 1)
             trace = json.loads((output / "commands.json").read_text())
             self.assertEqual(trace[0]["command"], {"op": "step", "frames": 30, "keys": ["S"]})
             self.assertEqual(trace[0]["error"], "Game stopped responding")

@@ -1,16 +1,17 @@
 # Development
 
-- Do not launch the game on the host desktop. Use the private-display devenv tasks below for gameplay and rendering tests; they provide their own graphical environment. These tests do not require a separate user request.
+- Do not launch the game on the host desktop. Use the private-display workflow below for gameplay and rendering tests; it provides its own graphical environment. These tests do not require a separate user request.
 - Use `devenv shell` only for one-off commands.
 - Do not run routine checks manually. Rely on automated checks unless explicitly asked.
 - This project does not use CI; keep verification in the automated local commit hook and do not add CI workflows.
+- Define test cases and their setup in the test suite. Devenv tasks build and run the whole suite; use the runner CLI for selection, and devenv scripts only for workflows the runner cannot express.
 - Document only information that is not easily inferred from the source code itself. Record rationale, constraints, and non-obvious workflows; do not duplicate implementation details, configuration, or command inventories in prose.
 - Commit changes in small, complete, meaningful units. Each commit must leave the application working; do not split a coherent change across commits or create arbitrary checkpoint commits.
 
 ## Game control and iteration
 
 All rendering and control tools are supplied by `devenv.nix`. Do not install
-host tools or connect to the user's desktop. These tasks build the debug game
+host tools or connect to the user's desktop. The suite and session entrypoints build the debug game
 and launch it on an isolated Xvfb display or headless Gamescope compositor, with Bevy/WGPU Vulkan rendering.
 Fullscreen and resolution changes must also be verified through headless Gamescope: the user runs Gamescope with native Wayland clients, and Xvfb/offscreen captures do not exercise its surface size negotiation.
 Automation is opt-in via `HOLLIE_CONTROL_DIR` and absent from release builds;
@@ -26,20 +27,25 @@ This runs the Robot keyboard and two-player gamepad journeys in
 `tools/robot/`. It asserts movement, exact frame counts, frozen state between
 commands, rejection of invalid commands, and matching state and pixels after a
 seeded reset and replay. Each printed temporary artifact directory contains
-screenshots, build/runtime logs, Robot reports, and a `commands.json` command/response transcript.
+screenshots, build metadata, runtime logs, Robot reports, and a `commands.json` command/response transcript.
 Inspect relevant screenshots and logs as well as the assertions; these scenarios
 do not prove all gameplay paths or cross-machine determinism.
 
-For an interactive gameplay test:
+Robot discovers journeys under `tools/robot/`; adding a file needs no task
+registration. For selected tests, build with `hollie:build-debug`, then use Robot
+or Pabot's `--suite`, `--test`, or tag filters in a one-off `devenv shell` command.
+
+For an interactive gameplay session:
 
 ```sh
-devenv tasks run --show-output hollie:automation-session
+devenv shell -- hollie-session
 ```
 
 Alternatively, `devenv --profile automation up` supervises the same private-display
-session.
+session. Interactive sessions stay paced for observation; automated offscreen
+journeys use fixed ticks without real-time pacing.
 
-Keep that task running and wait for `Paused control session: /tmp/.../control`.
+Keep that session running and wait for `Paused control session: /tmp/.../control`.
 Use the actual printed directory in separate one-off commands:
 
 ```sh
@@ -76,8 +82,8 @@ Simulation advances only through `step`.
 For a code iteration: reproduce the issue, capture/observe it, stop the session,
 edit the code, then launch again to rebuild and replay the same inputs and seed.
 Save reusable command sequences and assertions as Robot journeys and resource
-keywords in `tools/robot/`; register new regression journeys in the
-`hollie:automation-probe` task. Do not rely on temporary transcripts as the only
+keywords in `tools/robot/`. Keep backend requirements beside the tests and share
+session setup through Robot resources. Do not rely on temporary transcripts as the only
 record of useful interactions. Keep routine checks in the automated commit hook.
 
 Combine related checks into coherent Robot journeys when they can share a session.
@@ -88,11 +94,11 @@ Robot assertions.
 `Sleep` waits in wall time with simulation frozen; advancing gameplay requires
 explicit tick commands, including any release ticks between repeated presses.
 
-Run independent journeys in bounded, balanced groups through native devenv tasks,
-with separate displays, control directories, and artifacts for each session.
+Let Pabot schedule independent journeys with bounded parallelism, with separate
+displays, control directories, and artifacts for each session.
 Keep build dependencies and caching in devenv, and execute the shared built binary
 directly to avoid duplicate build orchestration and large per-journey snapshots.
-Tune concurrency and group balance from measured durations and CPU, RAM, and GPU
+Tune concurrency from measured durations and CPU, RAM, and GPU
 usage. When changing replay execution, preserve simulation and animation updates;
 verify matching observed state and captured pixels with the same inputs and seed.
 
@@ -101,9 +107,11 @@ assets; do not regenerate assets as part of routine verification.
 
 Set `HOLLIE_GPU_DEVICE` to a WGPU adapter-name substring before the task to select
 a particular GPU. Hardware tasks fail if the GPU is unavailable
-or software rendering is detected. For a rendering smoke
-test, `hollie:render-probe-gpu` uses hardware and `hollie:render-probe` requests a
-software Vulkan adapter. Those smoke probes do not provide deterministic replay.
+or software rendering is detected. Native GPU presentation uses Gamescope;
+native Xvfb sessions use software rendering because Xvfb lacks DRI3.
+The rendering suite accepts Robot variables
+for software rendering, native display size, and scale; use it for alternate
+rendering configurations. Smoke captures do not provide deterministic replay.
 See [README.md](README.md#agent-control-and-replay) for further context.
 
 ## Casing
