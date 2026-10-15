@@ -11,7 +11,7 @@ fn update_materials(
     }
     for (reference, handle) in &actor_materials {
         if let (Some(actor), Some(mut material)) = (
-            game.actors.iter().find(|a| a.id == reference.actor),
+            game.actors.get(reference.actor).ok(),
             materials.get_mut(&handle.0),
         ) {
             let color = reference.base.to_linear().to_f32_array();

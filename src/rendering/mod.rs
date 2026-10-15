@@ -41,7 +41,11 @@ use room::paint;
 #[derive(Component)]
 pub struct Room_Visual;
 #[derive(Component)]
-pub struct Actor_Visual(pub u64);
+#[relationship(relationship_target = Actor_Visuals)]
+pub struct Actor_Visual(pub Entity);
+#[derive(Component, Default)]
+#[relationship_target(relationship = Actor_Visual, linked_spawn)]
+pub struct Actor_Visuals(Vec<Entity>);
 #[derive(Component)]
 struct Main_Camera;
 #[derive(Component)]
@@ -58,7 +62,7 @@ pub(crate) struct Model {
 }
 #[derive(Component)]
 struct Actor_Animation {
-    actor: u64,
+    actor: Entity,
     clips: HashMap<String, AnimationNodeIndex>,
     current: String,
     durations: HashMap<String, f32>,
@@ -67,14 +71,14 @@ struct Actor_Animation {
 }
 #[derive(Component)]
 struct Bone_Overlay {
-    actor: u64,
+    actor: Entity,
     turn: bool,
     ram: bool,
     pivot: Option<Entity>,
 }
 #[derive(Component)]
 struct Actor_Material {
-    actor: u64,
+    actor: Entity,
     base: Color,
 }
 #[derive(Component)]
@@ -95,7 +99,7 @@ pub(crate) struct Scene_Stats {
 }
 #[derive(Component)]
 struct Skeleton {
-    actor: u64,
+    actor: Entity,
     root: Entity,
     seat: Option<Bone_Anchor>,
     arms: [Option<Bone_Bounds>; 2],

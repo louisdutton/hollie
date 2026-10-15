@@ -1,6 +1,6 @@
 use super::*;
 
-impl<S: DerefMut<Target = Game_State>> Game_World<S> {
+impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
     pub(super) fn obstacles(&self, index: usize) -> Vec<Aabb> {
         let mut obstacles = self.static_obstacles();
         obstacles.extend(
@@ -8,7 +8,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 .iter()
                 .enumerate()
                 .filter(|(i, a)| {
-                    *i != index && a.solid() && a.release_player != Some(self.actors[index].id)
+                    *i != index && a.solid() && a.release_player != Some(self.actors[index].entity)
                 })
                 .map(|(_, a)| a.body.bounds()),
         );

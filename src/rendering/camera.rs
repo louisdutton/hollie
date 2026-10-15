@@ -151,7 +151,7 @@ pub(super) fn follow_camera(
     } else if game
         .actors
         .iter()
-        .any(|a| a.player().is_some() && a.mounted.is_some())
+        .any(|a| a.player().is_some() && a.mounted().is_some())
     {
         1. / 1.4
     } else {

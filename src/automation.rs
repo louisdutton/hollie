@@ -257,7 +257,7 @@ fn input_snapshot(command: &Command, controller: &Controller) -> [Player_Input; 
 fn execute(
     command: &Command,
     controller: &mut Controller,
-    game: &mut Game_World<impl std::ops::DerefMut<Target = Game_State>>,
+    game: &mut Game_World<'_, impl std::ops::DerefMut<Target = Game_State>>,
     next: &mut NextState<Mode>,
 ) -> Result<Pending> {
     ensure!(

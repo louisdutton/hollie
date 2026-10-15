@@ -52,8 +52,8 @@ pub(super) fn model_ready(
     };
     let tint = game
         .actors
-        .iter()
-        .find(|a| a.id == actor.0)
+        .get(actor.0)
+        .ok()
         .map_or(Color::WHITE, |a| {
             if let Some(player) = a.player() {
                 if player == 0 {
@@ -261,15 +261,16 @@ fn sync_actors(
         foot,
     } in &mut actors
     {
-        let Some(actor) = game.actors.iter().find(|a| a.id == reference.0) else {
+        let Some(actor) = game.actors.get(reference.0).ok() else {
             commands.entity(entity).despawn();
             continue;
         };
-        *visibility = if actor.open || *mode.get() == Mode::Editor || *mode.get() == Mode::Title {
-            Visibility::Hidden
-        } else {
-            Visibility::Inherited
-        };
+        *visibility =
+            if actor.puzzle.open || *mode.get() == Mode::Editor || *mode.get() == Mode::Title {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            };
         let b = actor.body.bounds();
         if model.is_some() {
             let scale = if matches!(actor.properties, Entity_Properties::Holdable(_)) {
@@ -284,14 +285,15 @@ fn sync_actors(
             );
             transform.scale = Vec3::splat(scale);
             let yaw = Quat::from_rotation_y(
-                actor.facing.x.atan2(actor.facing.y) + crate::visuals::animal_axis(actor.kind()),
+                actor.locomotion.facing.x.atan2(actor.locomotion.facing.y)
+                    + crate::visuals::animal_axis(actor.kind()),
             );
-            let forward = Vec3::new(actor.facing.x, 0., actor.facing.y);
+            let forward = Vec3::new(actor.locomotion.facing.x, 0., actor.locomotion.facing.y);
             let animal = crate::visuals::animal_axis(actor.kind()) != 0.;
             let axis = if animal {
                 forward
             } else {
-                Vec3::new(actor.facing.y, 0., -actor.facing.x)
+                Vec3::new(actor.locomotion.facing.y, 0., -actor.locomotion.facing.x)
             };
             let mut bank = actor.pose.lean;
             if actor.kind() == Some(Character_Kind::Bison) {
@@ -300,7 +302,7 @@ fn sync_actors(
                     * 3_f32.to_radians()
                     * (actor.body.velocity.length() / 140.).clamp(0., 1.);
             }
-            if actor.player().is_some() && actor.mounted.is_some() {
+            if actor.player().is_some() && actor.mounted().is_some() {
                 bank = 0.;
             }
             let rotation = Quat::from_axis_angle(axis, bank);
@@ -322,7 +324,7 @@ pub(super) fn animate_models(
     mut players: Query<(&mut AnimationPlayer, &mut Actor_Animation)>,
 ) {
     for (mut player, mut animation) in &mut players {
-        let Some(actor) = game.actors.iter().find(|a| a.id == animation.actor) else {
+        let Some(actor) = game.actors.get(animation.actor).ok() else {
             continue;
         };
         let animal = crate::visuals::animal_axis(actor.kind()) != 0.;
@@ -330,16 +332,16 @@ pub(super) fn animate_models(
         let speed = actor.body.velocity.length();
         let phase = actor.pose.phase;
         let name = if matches!(actor.properties, Entity_Properties::Pressure_Plate(_)) {
-            if actor.active {
+            if actor.puzzle.active {
                 "toggle-on"
             } else {
                 "toggle-off"
             }
-        } else if actor.health <= 0 {
+        } else if actor.vitality.health <= 0 {
             "die"
-        } else if actor.mounted.is_some() && actor.player().is_some() {
+        } else if actor.mounted().is_some() && actor.player().is_some() {
             "ride"
-        } else if actor.carrying.is_some() {
+        } else if actor.carrying().is_some() {
             "walk-holding-both"
         } else if airborne {
             if animal { "jump" } else { "static" }
@@ -394,13 +396,13 @@ pub(super) fn animate_models(
                 .max(0.001);
             let fraction = match name {
                 "ride" => actor
-                    .mounted
-                    .and_then(|id| game.actors.iter().find(|a| a.id == id))
+                    .mounted()
+                    .and_then(|id| game.actors.get(id).ok())
                     .map_or(0., |a| {
                         ((a.body.velocity.length() - 50.) / 110.).clamp(0., 1.)
                     }),
                 "toggle-on" | "toggle-off" => (game.elapsed - animation.changed_at) / duration,
-                "die" => actor.death_timer / duration,
+                "die" => actor.vitality.death_timer / duration,
                 "jump" | "static" => 0.,
                 "walk-holding-both" => phase,
                 _ => (game.elapsed - animation.changed_at).rem_euclid(duration) / duration,
@@ -446,13 +448,13 @@ pub(super) fn overlay_bones(
         .map(|(entity, _, transform)| (entity, transform.translation))
         .collect();
     for (_, overlay, mut transform) in &mut bones {
-        let Some(actor) = game.actors.iter().find(|a| a.id == overlay.actor) else {
+        let Some(actor) = game.actors.get(overlay.actor).ok() else {
             continue;
         };
         let mount = actor
-            .mounted
+            .mounted()
             .filter(|_| actor.player().is_some())
-            .and_then(|id| game.actors.iter().find(|a| a.id == id));
+            .and_then(|id| game.actors.get(id).ok());
         let turn = mount.map_or(actor.pose.head_turn, |a| a.pose.head_turn * 0.5);
         let yaw = if overlay.turn {
             Quat::from_rotation_y(turn)
@@ -507,11 +509,12 @@ pub(super) fn transformed_bounds(matrix: Mat4, bounds: Aabb) -> Aabb {
     result
 }
 pub(super) fn attach_carried_and_riders(
-    mut game: Game_Access,
+    mut game: ParamSet<(Game_View, Query<&mut Attachment_Pose>)>,
     skeletons: Query<&Skeleton>,
     bones: Query<(&Transform, Option<&ChildOf>), Without<Actor_Visual>>,
     mut actors: Query<(&Actor_Visual, &mut Transform, Option<&Model_Foot>)>,
 ) {
+    let view = game.p0();
     let mut riding_points = Vec::new();
     let mut held_points = Vec::new();
     let roots: HashMap<_, _> = actors.iter().map(|(v, t, _)| (v.0, *t)).collect();
@@ -520,37 +523,39 @@ pub(super) fn attach_carried_and_riders(
         bone_in_root(anchor.bone, rig.root, &bones).map(|m| m.transform_point3(anchor.point))
     };
     for (reference, mut transform, foot) in &mut actors {
-        let Some(actor) = game.actors.iter().find(|a| a.id == reference.0) else {
+        let Some(actor) = view.actors.get(reference.0).ok() else {
             continue;
         };
         if let Some(mount) = actor
-            .mounted
+            .mounted()
             .filter(|_| actor.player().is_some())
-            .and_then(|id| game.actors.iter().find(|a| a.id == id))
+            .and_then(|id| view.actors.get(id).ok())
         {
             if let (Some(mount_rig), Some(rider_rig), Some(mount_root)) = (
-                rigs.get(&mount.id),
-                rigs.get(&actor.id),
-                roots.get(&mount.id),
+                rigs.get(&mount.entity),
+                rigs.get(&actor.entity),
+                roots.get(&mount.entity),
             ) {
                 if let (Some(saddle), Some(seat)) = (
                     mount_rig.seat.and_then(|a| point(mount_rig, a)),
                     rider_rig.seat.and_then(|a| point(rider_rig, a)),
                 ) {
-                    let progress = ((actor.mount_time / 0.4 - 0.7) / 0.3).clamp(0., 1.);
+                    let progress = ((actor.attachment.mount_time / 0.4 - 0.7) / 0.3).clamp(0., 1.);
                     let bank = mount_root.rotation
                         * Quat::from_rotation_y(
-                            -(mount.facing.x.atan2(mount.facing.y)
+                            -(mount.locomotion.facing.x.atan2(mount.locomotion.facing.y)
                                 + crate::visuals::animal_axis(mount.kind())),
                         );
-                    let rotation =
-                        bank * Quat::from_rotation_y(actor.facing.x.atan2(actor.facing.y));
+                    let rotation = bank
+                        * Quat::from_rotation_y(
+                            actor.locomotion.facing.x.atan2(actor.locomotion.facing.y),
+                        );
                     let target = mount_root.transform_point(saddle) - rotation * (seat * 32.);
                     transform.translation = transform.translation.lerp(target, progress);
                     transform.rotation = transform.rotation.slerp(rotation, progress);
                     let anchor = transform.transform_point(Vec3::Y * foot.map_or(0., |f| f.0));
                     riding_points.push((
-                        actor.id,
+                        actor.entity,
                         anchor,
                         Vec3::new(
                             mount.body.position.x,
@@ -561,11 +566,9 @@ pub(super) fn attach_carried_and_riders(
                 }
             }
         }
-        if let Some(carrier) = actor
-            .held_by
-            .and_then(|id| game.actors.iter().find(|a| a.id == id))
-        {
-            if let (Some(rig), Some(root)) = (rigs.get(&carrier.id), roots.get(&carrier.id)) {
+        if let Some(carrier) = actor.held_by().and_then(|id| view.actors.get(id).ok()) {
+            if let (Some(rig), Some(root)) = (rigs.get(&carrier.entity), roots.get(&carrier.entity))
+            {
                 let posed_bounds = |b: Bone_Bounds| {
                     bone_in_root(b.bone, rig.root, &bones)
                         .map(|matrix| transformed_bounds(matrix, b.bounds))
@@ -589,7 +592,7 @@ pub(super) fn attach_carried_and_riders(
                     transform.translation = position;
                     transform.rotation = root.rotation;
                     held_points.push((
-                        actor.id,
+                        actor.entity,
                         position,
                         Vec3::new(
                             carrier.body.position.x,
@@ -601,14 +604,16 @@ pub(super) fn attach_carried_and_riders(
             }
         }
     }
+    drop(view);
+    let mut attachments = game.p1();
     for (id, point, origin) in riding_points {
-        if let Some(mut actor) = game.actors.iter_mut().find(|a| a.id == id) {
+        if let Ok(mut actor) = attachments.get_mut(id) {
             actor.riding_anchor = Some(point);
             actor.riding_origin = Some(origin);
         }
     }
     for (id, point, origin) in held_points {
-        if let Some(mut actor) = game.actors.iter_mut().find(|a| a.id == id) {
+        if let Ok(mut actor) = attachments.get_mut(id) {
             actor.held_anchor = Some(point);
             actor.held_origin = Some(origin);
         }

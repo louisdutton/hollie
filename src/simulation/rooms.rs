@@ -1,6 +1,6 @@
 use super::*;
 
-impl Game_World {
+impl Game_World<'_> {
     pub fn new(registry: Room_Registry) -> Result<Self> {
         let room = registry
             .get(INITIAL_ROOM)
@@ -35,7 +35,7 @@ impl Game_World {
         })
     }
 }
-impl<S: DerefMut<Target = Game_State>> Game_World<S> {
+impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
     pub fn reset(&mut self, room: &str, players: usize, seed: u64) -> Result<()> {
         ensure!((1..=2).contains(&players), "players must be 1 or 2");
         let next = self.state.registry.get(room)?.room.clone();
@@ -93,35 +93,14 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 entity.properties,
                 Entity_Properties::Gate(_) | Entity_Properties::Door(_)
             );
-            actors.push(Actor {
-                id: actors.len() as u64 + 1,
-                source_id: entity.id.clone(),
-                properties: entity.properties.clone(),
-                body: Body::new(entity.position.vector(), size, centered),
-                facing: Vec2::X,
-                mounted: None,
-                carrying: None,
-                held_by: None,
-                held_anchor: None,
-                held_origin: None,
-                release_player: None,
-                active: false,
-                open: false,
-                ram_charge: 0.,
-                ram_ready: false,
-                move_direction: Vec2::ZERO,
-                move_timer: 0.,
-                wait_timer: 0.,
-                coasting: false,
-                health: 100,
-                death_timer: 0.,
-                riding_anchor: None,
-                riding_origin: None,
-                dismount_air_control: false,
-                mount_time: 0.,
-                mount_start: Vec3::ZERO,
-                pose: default(),
-            });
+            actors.push(Actor::new(
+                Actor_Identity {
+                    id: actors.len() as u64 + 1,
+                    source_id: entity.id.clone(),
+                    properties: entity.properties.clone(),
+                },
+                Body::new(entity.position.vector(), size, centered),
+            ));
         }
         let door=actors.iter().find(|a|matches!(&a.properties,Entity_Properties::Door(d) if a.source_id==target || d.target_door_id==target)).or_else(||actors.iter().find(|a|matches!(a.properties,Entity_Properties::Door(_)))).cloned();
         self.state.surfaces = default();
@@ -146,37 +125,16 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 fallback
             };
             let id = self.actors.len() as u64 + 1;
-            self.actors.push(Actor {
-                id,
-                source_id: format!("player_{}", index + 1),
-                properties: Entity_Properties::Player(Player_Properties {
-                    player_index: index + 1,
-                }),
-                body: Body::new(position, Vec3::new(12., 24., 12.), true),
-                facing: Vec2::X,
-                mounted: None,
-                carrying: None,
-                held_by: None,
-                held_anchor: None,
-                held_origin: None,
-                release_player: None,
-                active: false,
-                open: false,
-                ram_charge: 0.,
-                ram_ready: false,
-                move_direction: Vec2::ZERO,
-                move_timer: 0.,
-                wait_timer: 0.,
-                coasting: false,
-                health: 100,
-                death_timer: 0.,
-                riding_anchor: None,
-                riding_origin: None,
-                dismount_air_control: false,
-                mount_time: 0.,
-                mount_start: Vec3::ZERO,
-                pose: default(),
-            });
+            self.actors.push(Actor::new(
+                Actor_Identity {
+                    id,
+                    source_id: format!("player_{}", index + 1),
+                    properties: Entity_Properties::Player(Player_Properties {
+                        player_index: index + 1,
+                    }),
+                },
+                Body::new(position, Vec3::new(12., 24., 12.), true),
+            ));
         }
         self.state.generation += 1;
         Ok(())

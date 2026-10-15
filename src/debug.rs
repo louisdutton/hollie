@@ -19,7 +19,7 @@ pub(crate) struct Debug_State {
 #[derive(Default, Reflect, GizmoConfigGroup)]
 struct Collider_Gizmos;
 #[derive(Component)]
-struct Debug_Label(Option<u64>);
+struct Debug_Label(Option<Entity>);
 pub(crate) struct Debug_Plugin;
 impl Plugin for Debug_Plugin {
     fn build(&self, app: &mut App) {
@@ -109,7 +109,7 @@ fn draw_colliders(
         );
     }
     for actor in &game.actors {
-        if actor.open {
+        if actor.puzzle.open {
             continue;
         }
         let color = match actor.properties {
@@ -193,7 +193,7 @@ fn draw_labels(
                         },
                         GlobalZIndex(20),
                         Pickable::IGNORE,
-                        Debug_Label(Some(actor.id)),
+                        Debug_Label(Some(actor.entity)),
                     ));
                 }
             }
@@ -227,7 +227,7 @@ fn draw_labels(
             }
             continue;
         };
-        let point = game.actors.iter().find(|a| a.id == id).and_then(|actor| {
+        let point = game.actors.get(id).ok().and_then(|actor| {
             let bounds = actor.body.bounds();
             camera
                 .world_to_viewport(transform, (bounds.min + bounds.max) * 0.5 + Vec3::Y * 4.)

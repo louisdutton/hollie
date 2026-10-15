@@ -39,7 +39,7 @@ impl Aabb {
         }
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Component, Clone, Debug)]
 pub struct Body {
     pub position: Vec2,
     pub velocity: Vec2,
@@ -81,66 +81,9 @@ impl Body {
         }
     }
 }
-#[derive(Component, Clone, Debug)]
-pub struct Actor {
-    pub id: u64,
-    pub source_id: String,
-    pub properties: Entity_Properties,
-    pub body: Body,
-    pub facing: Vec2,
-    pub mounted: Option<u64>,
-    pub carrying: Option<u64>,
-    pub held_by: Option<u64>,
-    pub held_anchor: Option<Vec3>,
-    pub held_origin: Option<Vec3>,
-    pub release_player: Option<u64>,
-    pub active: bool,
-    pub open: bool,
-    pub ram_charge: f32,
-    pub ram_ready: bool,
-    pub move_direction: Vec2,
-    pub move_timer: f32,
-    pub wait_timer: f32,
-    pub coasting: bool,
-    pub health: i32,
-    pub death_timer: f32,
-    pub mount_time: f32,
-    pub mount_start: Vec3,
-    pub riding_anchor: Option<Vec3>,
-    pub riding_origin: Option<Vec3>,
-    pub dismount_air_control: bool,
-    pub pose: crate::visuals::Motion_Pose,
-}
-impl Actor {
-    pub fn player(&self) -> Option<usize> {
-        if let Entity_Properties::Player(p) = &self.properties {
-            Some(p.player_index - 1)
-        } else {
-            None
-        }
-    }
-    pub fn kind(&self) -> Option<Character_Kind> {
-        if let Entity_Properties::Enemy(p) = &self.properties {
-            Some(p.kind)
-        } else {
-            None
-        }
-    }
-    pub fn movable(&self) -> bool {
-        matches!(
-            self.properties,
-            Entity_Properties::Player(_)
-                | Entity_Properties::Enemy(_)
-                | Entity_Properties::Npc(_)
-                | Entity_Properties::Holdable(_)
-        )
-    }
-    pub fn solid(&self) -> bool {
-        matches!(self.properties, Entity_Properties::Pressure_Plate(_))
-            || matches!(self.properties, Entity_Properties::Gate(_)) && !self.open
-            || matches!(self.properties, Entity_Properties::Holdable(_)) && self.held_by.is_none()
-    }
-}
+mod components;
+pub use components::*;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Player_Input {
     pub movement: Vec2,
@@ -228,17 +171,17 @@ pub struct Game_State {
     rng: ChaCha8Rng,
 }
 #[derive(Clone)]
-pub struct Game_World<S = Box<Game_State>> {
+pub struct Game_World<'w, S = Box<Game_State>> {
     pub(crate) state: S,
-    pub actors: Vec<Actor>,
+    pub actors: Vec<Actor<'w>>,
 }
-impl<S: Deref<Target = Game_State>> Deref for Game_World<S> {
+impl<S: Deref<Target = Game_State>> Deref for Game_World<'_, S> {
     type Target = Game_State;
     fn deref(&self) -> &Self::Target {
         &self.state
     }
 }
-impl<S: DerefMut<Target = Game_State>> DerefMut for Game_World<S> {
+impl<S: DerefMut<Target = Game_State>> DerefMut for Game_World<'_, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.state
     }

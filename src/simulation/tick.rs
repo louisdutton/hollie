@@ -1,6 +1,6 @@
 use super::*;
 
-impl<S: DerefMut<Target = Game_State>> Game_World<S> {
+impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
     pub fn step(&mut self, inputs: [Player_Input; 2], dt: f32) -> Result<()> {
         let dt = dt.clamp(0., 0.1);
         self.state.elapsed += dt;
@@ -79,8 +79,8 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             self.state.doors_enabled = true;
         }
         for a in &mut self.actors {
-            if a.health <= 0 {
-                a.death_timer += dt;
+            if a.vitality.health <= 0 {
+                a.vitality.death_timer += dt;
             }
         }
         let steering_by_actor: std::collections::HashMap<_, _> = self
@@ -89,7 +89,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             .filter_map(|actor| {
                 actor.player().map(|p| {
                     (
-                        actor.mounted.unwrap_or(actor.id),
+                        actor.mounted.unwrap_or(actor.entity),
                         camera_relative(inputs[p].movement),
                     )
                 })
@@ -99,33 +99,34 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             let animal = crate::visuals::animal_axis(actor.kind()) != 0.;
             let bison = actor.kind() == Some(Character_Kind::Bison);
             let steering = steering_by_actor
-                .get(&actor.id)
+                .get(&actor.entity)
                 .copied()
-                .unwrap_or(actor.move_direction);
+                .unwrap_or(actor.wander.direction);
             actor.pose.advance(
                 crate::visuals::Pose_Input {
                     velocity: actor.body.velocity,
-                    facing: actor.facing,
+                    facing: actor.locomotion.facing,
                     steering,
                     grounded: actor.body.grounded,
                     swimming: actor.body.swimming,
                     animal,
                     bison,
-                    ram: actor.ram_ready,
+                    ram: actor.ram.ready,
                 },
                 dt,
             );
         }
         let state = &mut *self.state;
         state.surfaces.advance(&self.actors, &state.room, dt);
-        self.actors
-            .retain(|a| a.player().is_some() || a.health > 0 || a.death_timer < 26. / 60.);
+        self.actors.retain(|a| {
+            a.player().is_some() || a.vitality.health > 0 || a.vitality.death_timer < 26. / 60.
+        });
         Ok(())
     }
 }
-impl<S: Deref<Target = Game_State>> Game_World<S> {
+impl<S: Deref<Target = Game_State>> Game_World<'_, S> {
     pub fn observation(&self) -> Value {
-        let body = |a: &Actor| json!({"ram_ready":a.ram_ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"vertical_velocity":a.body.vertical_velocity,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
-        json!({"visual":{"water_contacts":self.state.surfaces.water.len(),"wakes":self.state.surfaces.wakes.len(),"grass_contacts":self.state.surfaces.grass.len(),"grass_trails":self.state.surfaces.grass_trails.len()},"frame":self.state.frame,"seed":self.state.seed,"scene":"Gameplay","room":self.state.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"riding_anchor":a.riding_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z})),"dismount_air_control":a.dismount_air_control,"mounted":a.mounted.unwrap_or(0),"carrying":a.carrying.unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.move_direction.x,"y":a.move_direction.y},"move_timer":a.move_timer,"wait_timer":a.wait_timer})).collect::<Vec<_>>()})
+        let body = |a: &Actor| json!({"ram_ready":a.ram.ready,"ram":a.pose.ram,"head_turn":a.pose.head_turn,"vertical_velocity":a.body.vertical_velocity,"swimming":a.body.swimming,"stride":a.pose.phase,"lean":a.pose.lean,"id":a.id,"position":{"x":a.body.position.x,"y":a.body.position.y},"velocity":{"x":a.body.velocity.x,"y":a.body.velocity.y},"height":a.body.height,"grounded":a.body.grounded});
+        json!({"visual":{"water_contacts":self.state.surfaces.water.len(),"wakes":self.state.surfaces.wakes.len(),"grass_contacts":self.state.surfaces.grass.len(),"grass_trails":self.state.surfaces.grass_trails.len()},"frame":self.state.frame,"seed":self.state.seed,"scene":"Gameplay","room":self.state.room.id,"entity_count":self.actors.len(),"players":self.actors.iter().filter_map(|a|a.player().map(|i|json!({"body":body(a),"player":format!("Player_{}",i+1),"riding_anchor":a.attachment.riding_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z})),"dismount_air_control":a.locomotion.dismount_air_control,"mounted":a.mounted.and_then(|e| self.actors.iter().find(|a| a.entity == e).map(|a| a.id)).unwrap_or(0),"carrying":a.carrying.and_then(|e| self.actors.iter().find(|a| a.entity == e).map(|a| a.id)).unwrap_or(0)}))).collect::<Vec<_>>(),"holdables":self.actors.iter().filter(|a|matches!(a.properties,Entity_Properties::Holdable(_))).map(|a|json!({"body":body(a),"held_anchor":a.attachment.held_anchor.map(|p|json!({"x":p.x,"y":p.y,"z":p.z}))})).collect::<Vec<_>>(),"enemies":self.actors.iter().filter(|a|a.kind().is_some()).map(|a|json!({"body":body(a),"move_direction":{"x":a.wander.direction.x,"y":a.wander.direction.y},"move_timer":a.wander.move_timer,"wait_timer":a.wander.wait_timer})).collect::<Vec<_>>()})
     }
 }

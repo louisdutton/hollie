@@ -1,11 +1,11 @@
 use super::*;
 
-impl<S: DerefMut<Target = Game_State>> Game_World<S> {
+impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
     pub(super) fn dismount_direction(&self, player: usize, animal: usize) -> Option<Vec2> {
         let rider = &self.actors[player].body;
         let mount = &self.actors[animal];
-        let forward = if mount.facing.length_squared() > 0. {
-            mount.facing.normalize()
+        let forward = if mount.locomotion.facing.length_squared() > 0. {
+            mount.locomotion.facing.normalize()
         } else {
             Vec2::Y
         };
@@ -15,7 +15,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
         } else {
             rider.height
         };
-        let mut start = rider.clone();
+        let mut start = (**rider).clone();
         start.position = mount.body.position;
         start.height = height;
         let start_bounds = start.bounds();
@@ -71,7 +71,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
     }
     pub(super) fn interact(&mut self, player: usize) {
         if let Some(mount) = self.actors[player].mounted {
-            if let Some(animal) = self.actors.iter().position(|a| a.id == mount) {
+            if let Some(animal) = self.actors.iter().position(|a| a.entity == mount) {
                 let Some(direction) = self.dismount_direction(player, animal) else {
                     return;
                 };
@@ -83,14 +83,15 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 );
                 let rider = &self.actors[player];
                 let anchor = rider
+                    .attachment
                     .riding_anchor
-                    .map(|p| p + origin - rider.riding_origin.unwrap_or(origin))
+                    .map(|p| p + origin - rider.attachment.riding_origin.unwrap_or(origin))
                     .unwrap_or(Vec3::new(
                         rider.body.position.x,
                         rider.body.height,
                         rider.body.position.y,
                     ));
-                let mut body = rider.body.clone();
+                let mut body = (*rider.body).clone();
                 body.position = Vec2::new(anchor.x, anchor.z);
                 // The collision box top is not the saddle height of the animated model.
                 body.height = anchor.y;
@@ -102,46 +103,51 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 body.vertical_velocity = JUMP_SPEED + mount.body.vertical_velocity.max(0.);
                 body.grounded = false;
                 body.swimming = false;
-                self.actors[player].body = body;
+                *self.actors[player].body = body;
                 self.actors[player].mounted = None;
-                self.actors[player].riding_anchor = None;
-                self.actors[player].riding_origin = None;
-                self.actors[player].dismount_air_control = true;
+                self.actors[player].attachment.riding_anchor = None;
+                self.actors[player].attachment.riding_origin = None;
+                self.actors[player].locomotion.dismount_air_control = true;
                 self.actors[animal].mounted = None;
-                self.actors[animal].coasting = true;
+                self.actors[animal].locomotion.coasting = true;
             }
             return;
         }
         if let Some(item) = self.actors[player].carrying {
-            if let Some(index) = self.actors.iter().position(|a| a.id == item) {
-                let mut body = self.actors[index].body.clone();
+            if let Some(index) = self.actors.iter().position(|a| a.entity == item) {
+                let mut body = (*self.actors[index].body).clone();
                 // Release from the last evaluated hand pose, as in the original renderer.
                 let carrier_origin = Vec3::new(
                     self.actors[player].body.position.x,
                     self.actors[player].body.height,
                     self.actors[player].body.position.y,
                 );
-                let cached = self.actors[index].held_anchor.map(|anchor| {
+                let cached = self.actors[index].attachment.held_anchor.map(|anchor| {
                     anchor + carrier_origin
-                        - self.actors[index].held_origin.unwrap_or(carrier_origin)
+                        - self.actors[index]
+                            .attachment
+                            .held_origin
+                            .unwrap_or(carrier_origin)
                 });
                 let anchor = cached.unwrap_or(Vec3::new(
-                    self.actors[player].body.position.x + self.actors[player].facing.x * 8.,
+                    self.actors[player].body.position.x
+                        + self.actors[player].locomotion.facing.x * 8.,
                     self.actors[player].body.height + 28.,
-                    self.actors[player].body.position.y + self.actors[player].facing.y * 8.,
+                    self.actors[player].body.position.y
+                        + self.actors[player].locomotion.facing.y * 8.,
                 ));
                 body.position = Vec2::new(anchor.x, anchor.z);
                 body.height = anchor.y;
                 if !self.blocked(body.bounds(), &self.obstacles(index)) {
-                    body.velocity =
-                        self.actors[player].body.velocity + self.actors[player].facing * 45.;
+                    body.velocity = self.actors[player].body.velocity
+                        + self.actors[player].locomotion.facing * 45.;
                     body.vertical_velocity = self.actors[player].body.vertical_velocity + 15.;
                     body.grounded = false;
-                    self.actors[index].body = body;
+                    *self.actors[index].body = body;
                     self.actors[index].held_by = None;
-                    self.actors[index].held_anchor = None;
-                    self.actors[index].held_origin = None;
-                    self.actors[index].release_player = Some(self.actors[player].id);
+                    self.actors[index].attachment.held_anchor = None;
+                    self.actors[index].attachment.held_origin = None;
+                    self.actors[index].release_player = Some(self.actors[player].entity);
                     self.actors[player].carrying = None;
                 }
             }
@@ -165,7 +171,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                     a.kind(),
                     Some(Character_Kind::Horse | Character_Kind::Bison | Character_Kind::Turtle)
                 ) && a.mounted.is_none()
-                    && a.health > 0
+                    && a.vitality.health > 0
                     && (a.body.height - self.actors[player].body.height).abs() < 6.
                     && (a.body.grounded || a.body.swimming)
             })
@@ -179,13 +185,13 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             .map(|(i, _)| i);
         if let Some(animal) = nearest {
             if self.actors[player].body.grounded || self.actors[player].body.swimming {
-                self.actors[player].mounted = Some(self.actors[animal].id);
-                self.actors[animal].mounted = Some(self.actors[player].id);
-                self.actors[player].riding_anchor = None;
-                self.actors[player].riding_origin = None;
-                self.actors[player].dismount_air_control = false;
-                self.actors[player].mount_time = 0.;
-                self.actors[player].mount_start =
+                self.actors[player].mounted = Some(self.actors[animal].entity);
+                self.actors[animal].mounted = Some(self.actors[player].entity);
+                self.actors[player].attachment.riding_anchor = None;
+                self.actors[player].attachment.riding_origin = None;
+                self.actors[player].locomotion.dismount_air_control = false;
+                self.actors[player].attachment.mount_time = 0.;
+                self.actors[player].attachment.mount_start =
                     Vec3::new(pos.x, self.actors[player].body.height, pos.y);
             }
         } else if let Some(item) = self.actors.iter().position(|a| {
@@ -194,8 +200,8 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 && a.body.position.distance(pos) <= 24.
                 && (a.body.height - self.actors[player].body.height).abs() <= 24.
         }) {
-            self.actors[item].held_by = Some(self.actors[player].id);
-            self.actors[player].carrying = Some(self.actors[item].id);
+            self.actors[item].held_by = Some(self.actors[player].entity);
+            self.actors[player].carrying = Some(self.actors[item].entity);
         }
     }
     pub(super) fn update_ram(&mut self, dt: f32) {
@@ -203,9 +209,9 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             if self.actors[i].kind() != Some(Character_Kind::Bison) {
                 continue;
             }
-            let threshold = if self.actors[i].ram_ready {
+            let threshold = if self.actors[i].ram.ready {
                 105.
-            } else if self.actors[i].ram_charge > 0. {
+            } else if self.actors[i].ram.charge > 0. {
                 126.
             } else {
                 133.
@@ -214,13 +220,13 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                 || !self.actors[i].body.grounded
                 || self.actors[i].body.velocity.length() < threshold
             {
-                self.actors[i].ram_charge = 0.;
-                self.actors[i].ram_ready = false;
+                self.actors[i].ram.charge = 0.;
+                self.actors[i].ram.ready = false;
                 continue;
             }
-            self.actors[i].ram_charge += dt;
-            self.actors[i].ram_ready = self.actors[i].ram_charge >= 0.75;
-            if !self.actors[i].ram_ready {
+            self.actors[i].ram.charge += dt;
+            self.actors[i].ram.ready = self.actors[i].ram.charge >= 0.75;
+            if !self.actors[i].ram.ready {
                 continue;
             }
             let body = self.actors[i].body.bounds();
@@ -235,10 +241,10 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
             if let Some((wall, _, _speed)) = nearest.filter(|v| v.2 >= 100.) {
                 if let Some(gate) = self.actors.iter().position(|a| {
                     matches!(&a.properties,Entity_Properties::Gate(g) if g.breakable)
-                        && !a.open
+                        && !a.puzzle.open
                         && a.body.bounds() == wall
                 }) {
-                    self.actors[gate].open = true;
+                    self.actors[gate].puzzle.open = true;
                     self.state.effects.push(((wall.min + wall.max) * 0.5, true));
                 }
             }
@@ -253,7 +259,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                     .actors
                     .iter()
                     .filter(|a| {
-                        a.id != self.actors[i].id
+                        a.entity != self.actors[i].entity
                             && a.body.grounded
                             && a.held_by.is_none()
                             && a.body.bounds().horizontal(plate)
@@ -261,12 +267,12 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                     })
                     .count();
                 let active = weight >= if p.requires_both { 2 } else { 1 };
-                if active != self.actors[i].active {
+                if active != self.actors[i].puzzle.active {
                     self.state
                         .effects
                         .push(((plate.min + plate.max) * 0.5, false));
                 }
-                self.actors[i].active = active;
+                self.actors[i].puzzle.active = active;
                 triggers.insert(p.trigger_id, active);
             }
         }
@@ -281,16 +287,17 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                     .all(|id| triggers.get(id) == Some(&true));
                 let open = if g.inverted { !active } else { active };
                 if open {
-                    self.actors[i].open = true;
-                } else if self.actors[i].open {
+                    self.actors[i].puzzle.open = true;
+                } else if self.actors[i].puzzle.open {
                     self.close_gate(i);
                 }
             }
         }
     }
     pub(super) fn close_gate(&mut self, index: usize) {
-        let before = self.actors.clone();
-        self.actors[index].open = false;
+        let was_open = self.actors[index].puzzle.open;
+        let mut displaced = Vec::new();
+        self.actors[index].puzzle.open = false;
         let wall = self.actors[index].body.bounds();
         for i in 0..self.actors.len() {
             if !self.actors[i].movable()
@@ -325,13 +332,17 @@ impl<S: DerefMut<Target = Game_State>> Game_World<S> {
                     && !self.blocked(candidate, &obstacles)
             });
             if let Some(o) = offset {
+                displaced.push((i, (*self.actors[i].body).clone()));
                 self.actors[i].body.position += Vec2::new(o.x, o.z);
                 self.actors[i].body.height += o.y;
                 self.actors[i].body.velocity = Vec2::ZERO;
                 self.actors[i].body.vertical_velocity = 0.;
                 self.actors[i].body.grounded = false;
             } else {
-                self.actors = before;
+                for (actor, body) in displaced {
+                    *self.actors[actor].body = body;
+                }
+                self.actors[index].puzzle.open = was_open;
                 return;
             }
         }

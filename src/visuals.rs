@@ -2,7 +2,7 @@ use crate::{content::*, simulation::Actor};
 use bevy::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Component, Clone, Debug, Default)]
 pub struct Motion_Pose {
     pub phase: f32,
     pub lean: f32,
@@ -112,7 +112,7 @@ pub struct Surface_State {
     pub grass_trails: Vec<Imprint>,
     pub water: Vec<Water_Contact>,
     pub wakes: Vec<Wake>,
-    previous_water: HashMap<u64, Vec2>,
+    previous_water: HashMap<Entity, Vec2>,
     grass_timer: f32,
 }
 impl Surface_State {
@@ -146,7 +146,7 @@ impl Surface_State {
             let speed = actor.body.velocity.length();
             let direction = actor.body.velocity.normalize_or(Vec2::Y);
             if bounds.min.y < -1.5 && bounds.max.y > -1.5 && room.water_at(center) {
-                wet_ids.push(actor.id);
+                wet_ids.push(actor.entity);
                 let radii = Vec2::new(actor.body.size.x, actor.body.size.z) * 0.5;
                 if self.water.len() < 16 {
                     self.water.push(Water_Contact {
@@ -156,7 +156,7 @@ impl Surface_State {
                         speed: (speed / 60.).clamp(0., 1.),
                     });
                 }
-                let previous = self.previous_water.entry(actor.id).or_insert(center);
+                let previous = self.previous_water.entry(actor.entity).or_insert(center);
                 let delta = center - *previous;
                 let mut distance = delta.length();
                 if distance > 40. {
@@ -216,7 +216,7 @@ impl Surface_State {
 mod tests {
     use super::*;
     use crate::simulation::{Game_World, Player_Input, STEP};
-    fn game() -> Game_World {
+    fn game() -> Game_World<'static> {
         let mut g =
             Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap();
         g.reset("demo", 1, 42).unwrap();
@@ -325,13 +325,13 @@ mod tests {
             .iter()
             .position(|a| matches!(a.properties, Entity_Properties::Holdable(_)))
             .unwrap();
-        let id = g.actors[item].id;
-        let player_id = g.actors[p].id;
+        let id = g.actors[item].entity;
+        let player_id = g.actors[p].entity;
         g.actors[p].carrying = Some(id);
         g.actors[item].held_by = Some(player_id);
         let position = g.actors[p].body.position + Vec2::Y * 20.;
         let anchor = Vec3::new(position.x, 16., position.y);
-        g.actors[item].held_anchor = Some(anchor);
+        g.actors[item].attachment.held_anchor = Some(anchor);
         g.step(
             [
                 Player_Input {

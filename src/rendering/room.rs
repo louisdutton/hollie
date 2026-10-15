@@ -250,7 +250,7 @@ fn rebuild_room(
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(stone.clone()),
                 Transform::default(),
-                Actor_Visual(actor.id),
+                Actor_Visual(actor.entity),
                 Room_Visual,
             ));
         } else {
@@ -261,7 +261,7 @@ fn rebuild_room(
                         gltf: server.load(file),
                     },
                     Transform::default(),
-                    Actor_Visual(actor.id),
+                    Actor_Visual(actor.entity),
                     Room_Visual,
                 ))
                 .observe(model_ready);

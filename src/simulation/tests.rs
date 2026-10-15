@@ -3,7 +3,7 @@ use super::*;
 #[cfg(test)]
 mod movement {
     use super::*;
-    fn game() -> Game_World {
+    fn game() -> Game_World<'static> {
         Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap()
     }
     #[test]
@@ -115,7 +115,7 @@ mod movement {
 #[cfg(test)]
 mod interaction_tests {
     use super::*;
-    fn game() -> Game_World {
+    fn game() -> Game_World<'static> {
         let mut game =
             Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap();
         game.reset("demo", 2, 42).unwrap();
@@ -146,18 +146,18 @@ mod interaction_tests {
         game.actors[player].body.position = plates[1].1;
         game.actors[player].body.height = plates[1].2;
         game.puzzles();
-        assert!(game.actors[plates[0].0].active);
-        assert!(game.actors[plates[1].0].active);
+        assert!(game.actors[plates[0].0].puzzle.active);
+        assert!(game.actors[plates[1].0].puzzle.active);
         let gate = game
             .actors
             .iter()
             .position(|a| matches!(&a.properties,Entity_Properties::Gate(g) if !g.breakable))
             .unwrap();
-        assert!(game.actors[gate].open);
-        game.actors[crate_index].held_by = Some(game.actors[player].id);
+        assert!(game.actors[gate].puzzle.open);
+        game.actors[crate_index].held_by = Some(game.actors[player].entity);
         game.puzzles();
-        assert!(!game.actors[plates[0].0].active);
-        assert!(!game.actors[gate].open);
+        assert!(!game.actors[plates[0].0].puzzle.active);
+        assert!(!game.actors[gate].puzzle.open);
     }
     #[test]
     fn carry_drop_and_contact_exemption() {
@@ -174,15 +174,15 @@ mod interaction_tests {
             .unwrap();
         game.actors[player].body.position = game.actors[item].body.position + Vec2::X * 15.;
         game.interact(player);
-        assert_eq!(game.actors[player].carrying, Some(game.actors[item].id));
-        assert_eq!(game.actors[item].held_by, Some(game.actors[player].id));
+        assert_eq!(game.actors[player].carrying, Some(game.actors[item].entity));
+        assert_eq!(game.actors[item].held_by, Some(game.actors[player].entity));
         game.sync_relationships();
         game.interact(player);
         assert!(game.actors[player].carrying.is_none());
         assert!(game.actors[item].held_by.is_none());
         assert_eq!(
             game.actors[item].release_player,
-            Some(game.actors[player].id)
+            Some(game.actors[player].entity)
         );
         game.actors[item].body.position += Vec2::X * 100.;
         game.move_body(item, STEP);
@@ -203,14 +203,17 @@ mod interaction_tests {
             .unwrap();
         game.actors[player].body.position = game.actors[animal].body.position + Vec2::X * 30.;
         game.interact(player);
-        assert_eq!(game.actors[player].mounted, Some(game.actors[animal].id));
+        assert_eq!(
+            game.actors[player].mounted,
+            Some(game.actors[animal].entity)
+        );
         for _ in 0..30 {
             game.step(default(), STEP).unwrap();
         }
         assert!(!game.actors[player].body.grounded);
         assert!(game.actors[player].body.height > game.actors[animal].body.height);
     }
-    fn carrying_game() -> (Game_World, usize, usize) {
+    fn carrying_game() -> (Game_World<'static>, usize, usize) {
         let mut game = game();
         game.reset("demo", 1, 42).unwrap();
         let player = game
@@ -224,8 +227,8 @@ mod interaction_tests {
             .position(|a| matches!(a.properties, Entity_Properties::Holdable(_)))
             .unwrap();
         game.actors[player].body.position = Vec2::new(146., 204.);
-        game.actors[player].carrying = Some(game.actors[item].id);
-        game.actors[item].held_by = Some(game.actors[player].id);
+        game.actors[player].carrying = Some(game.actors[item].entity);
+        game.actors[item].held_by = Some(game.actors[player].entity);
         (game, player, item)
     }
     #[test]
@@ -236,7 +239,7 @@ mod interaction_tests {
             game.actors[player].body.grounded = false;
             game.actors[player].body.vertical_velocity = vertical;
             game.actors[player].body.velocity = Vec2::new(30., -50.);
-            game.actors[player].facing = -Vec2::Y;
+            game.actors[player].locomotion.facing = -Vec2::Y;
             game.interact(player);
             assert!(game.actors[item].held_by.is_none());
             assert_eq!(game.actors[item].body.velocity, Vec2::new(30., -95.));
@@ -276,8 +279,8 @@ mod interaction_tests {
         let (mut game, player, item) = carrying_game();
         let old = Vec3::new(480., 0., 440.);
         let offset = Vec3::new(0., 35., 4.);
-        game.actors[item].held_anchor = Some(old + offset);
-        game.actors[item].held_origin = Some(old);
+        game.actors[item].attachment.held_anchor = Some(old + offset);
+        game.actors[item].attachment.held_origin = Some(old);
         game.actors[player].body.position += Vec2::new(8., 10.);
         game.actors[player].body.height = 20.;
         let current = Vec3::new(
@@ -294,7 +297,7 @@ mod interaction_tests {
         );
         assert_eq!(released, current + offset);
     }
-    fn mounted_game() -> (Game_World, usize, usize) {
+    fn mounted_game() -> (Game_World<'static>, usize, usize) {
         let mut game = game();
         game.reset("demo", 1, 42).unwrap();
         let player = game
@@ -309,15 +312,15 @@ mod interaction_tests {
             .unwrap();
         let origin = Vec3::new(680., 0., 464.);
         game.actors[animal].body.position = Vec2::new(origin.x, origin.z);
-        game.actors[animal].facing = Vec2::Y;
-        game.actors[animal].mounted = Some(game.actors[player].id);
-        game.actors[player].mounted = Some(game.actors[animal].id);
-        game.actors[player].mount_time = 0.4;
+        game.actors[animal].locomotion.facing = Vec2::Y;
+        game.actors[animal].mounted = Some(game.actors[player].entity);
+        game.actors[player].mounted = Some(game.actors[animal].entity);
+        game.actors[player].attachment.mount_time = 0.4;
         game.actors[player].body.position = game.actors[animal].body.position;
         game.actors[player].body.height = 14.;
         game.actors[player].body.grounded = false;
-        game.actors[player].riding_anchor = Some(origin + Vec3::new(1., 14., 2.));
-        game.actors[player].riding_origin = Some(origin);
+        game.actors[player].attachment.riding_anchor = Some(origin + Vec3::new(1., 14., 2.));
+        game.actors[player].attachment.riding_origin = Some(origin);
         (game, player, animal)
     }
     #[test]
@@ -330,7 +333,7 @@ mod interaction_tests {
         assert_eq!(game.actors[player].body.height, 14.);
         assert_eq!(game.actors[player].body.velocity, Vec2::X * 70.);
         assert_eq!(game.actors[player].body.vertical_velocity, JUMP_SPEED);
-        assert!(game.actors[animal].coasting);
+        assert!(game.actors[animal].locomotion.coasting);
     }
     #[test]
     fn airborne_dismount_preserves_mount_momentum_and_caps_sideways_boost() {
@@ -380,7 +383,7 @@ mod interaction_tests {
         assert_ne!(game.actors[player].body.velocity, before);
         game.actors[player].body.grounded = true;
         game.update_motion(default(), STEP);
-        assert!(!game.actors[player].dismount_air_control);
+        assert!(!game.actors[player].locomotion.dismount_air_control);
     }
     #[test]
     fn failed_spawn_does_not_publish_partial_reset() {

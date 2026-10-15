@@ -13,7 +13,7 @@ pub(crate) struct Impact {
 #[derive(SystemParam)]
 pub struct Game_View<'w, 's> {
     state: Res<'w, Game_State>,
-    pub actors: Query<'w, 's, &'static Actor>,
+    pub actors: Query<'w, 's, Actor_QueryReadOnly>,
 }
 impl Deref for Game_View<'_, '_> {
     type Target = Game_State;
@@ -23,7 +23,7 @@ impl Deref for Game_View<'_, '_> {
 }
 impl Game_View<'_, '_> {
     pub fn observation(&self) -> Value {
-        let mut actors: Vec<_> = self.actors.iter().cloned().collect();
+        let mut actors: Vec<_> = self.actors.iter().map(Actor::snapshot).collect();
         actors.sort_by_key(|actor| actor.id);
         Game_World {
             state: &*self.state,
@@ -36,8 +36,8 @@ impl Game_View<'_, '_> {
 #[derive(SystemParam)]
 pub struct Game_Access<'w, 's> {
     state: ResMut<'w, Game_State>,
-    pub actors: Query<'w, 's, &'static mut Actor>,
-    entities: Query<'w, 's, Entity, With<Actor>>,
+    pub actors: Query<'w, 's, Actor_Query>,
+    entities: Query<'w, 's, Entity, With<Actor_Identity>>,
     commands: Commands<'w, 's>,
     impacts: MessageWriter<'w, Impact>,
 }
@@ -53,15 +53,14 @@ impl DerefMut for Game_Access<'_, '_> {
     }
 }
 impl Game_Access<'_, '_> {
-    // Contact resolution is ordered and couples bodies. Its temporary batch is sorted
-    // by authored ID so entity allocation/archetype order cannot change seeded replays.
-    // Actor components remain authoritative; no second persistent actor store exists.
+    // The batch contains borrows of component storage, sorted by authored ID.
+    // Contact order must not depend on ECS allocation or archetype layout.
     pub(crate) fn with_simulation<R>(
         &mut self,
-        run: impl FnOnce(&mut Game_World<&mut Game_State>) -> R,
+        run: impl FnOnce(&mut Game_World<'_, &mut Game_State>) -> R,
     ) -> R {
         let generation = self.state.generation;
-        let mut actors: Vec<_> = self.actors.iter().cloned().collect();
+        let mut actors: Vec<_> = self.actors.iter_mut().map(Actor::borrowed).collect();
         actors.sort_by_key(|actor| actor.id);
         let (result, actors) = {
             let mut simulation = Game_World {
@@ -76,23 +75,53 @@ impl Game_Access<'_, '_> {
                 self.commands.entity(entity).despawn();
             }
             for actor in actors {
-                self.commands.spawn(actor);
+                self.commands.spawn(actor.into_bundle());
             }
         } else {
-            let mut existing: BTreeMap<_, _> = self
-                .entities
+            // Body/state writes above already reached ECS. Only structural changes
+            // (death and relationship edits) require deferred commands.
+            let links: Vec<_> = actors
                 .iter()
-                .filter_map(|entity| self.actors.get(entity).ok().map(|actor| (actor.id, entity)))
+                .map(|a| {
+                    (
+                        a.entity,
+                        a.player().is_some(),
+                        a.mounted,
+                        a.held_by,
+                        a.release_player,
+                    )
+                })
                 .collect();
-            for actor in actors {
-                if let Some(entity) = existing.remove(&actor.id) {
-                    *self.actors.get_mut(entity).expect("live actor") = actor;
-                } else {
-                    self.commands.spawn(actor);
+            drop(actors);
+            for entity in &self.entities {
+                if !links.iter().any(|link| link.0 == entity) {
+                    self.commands.entity(entity).despawn();
                 }
             }
-            for entity in existing.into_values() {
-                self.commands.entity(entity).despawn();
+            for (entity, player, mount, carrier, released) in links {
+                let actor = self.actors.get(entity).expect("live solver actor");
+                let mut commands = self.commands.entity(entity);
+                if player && actor.mounted() != mount {
+                    if let Some(target) = mount {
+                        commands.insert(Mounted_On(target));
+                    } else {
+                        commands.remove::<Mounted_On>();
+                    }
+                }
+                if actor.held_by() != carrier {
+                    if let Some(target) = carrier {
+                        commands.insert(Carried_By(target));
+                    } else {
+                        commands.remove::<Carried_By>();
+                    }
+                }
+                if actor.release_player() != released {
+                    if let Some(target) = released {
+                        commands.insert(Released_By(target));
+                    } else {
+                        commands.remove::<Released_By>();
+                    }
+                }
             }
         }
         result
@@ -186,7 +215,7 @@ mod tests {
         let mut app = app();
         reset(&mut app);
         app.world_mut()
-            .run_system_once(|mut actors: Query<&mut Actor>| {
+            .run_system_once(|mut actors: Query<Actor_Query>| {
                 let mut player = actors.iter_mut().find(|a| a.player() == Some(0)).unwrap();
                 player.body.height = 1.;
                 player.body.vertical_velocity = -200.;
@@ -208,11 +237,89 @@ mod tests {
         assert_eq!(visuals.read(messages).count(), 0);
     }
     #[test]
+    fn solver_writes_borrowed_components_without_a_copy_back_pass() {
+        let mut app = app();
+        reset(&mut app);
+        app.world_mut()
+            .run_system_once(|mut game: Game_Access| {
+                game.with_simulation(|solver| {
+                    assert!(
+                        solver
+                            .actors
+                            .iter()
+                            .all(|actor| matches!(actor.body, Component_Data::Borrowed(_)))
+                    );
+                    solver
+                        .actors
+                        .iter_mut()
+                        .find(|a| a.player() == Some(0))
+                        .unwrap()
+                        .body
+                        .height = 23.;
+                });
+            })
+            .unwrap();
+        app.world_mut()
+            .run_system_once(|bodies: Query<(&Actor_Identity, &Body)>| {
+                assert_eq!(
+                    bodies
+                        .iter()
+                        .find(|(id, _)| id.player() == Some(0))
+                        .unwrap()
+                        .1
+                        .height,
+                    23.
+                );
+            })
+            .unwrap();
+    }
+    #[test]
+    fn relationships_enforce_exclusivity_and_clean_up_on_despawn() {
+        let mut app = app();
+        reset(&mut app);
+        let mut actors: Vec<_> = app
+            .world_mut()
+            .query::<(Entity, &Actor_Identity)>()
+            .iter(app.world())
+            .map(|(entity, identity)| (identity.id, entity))
+            .collect();
+        actors.sort_by_key(|a| a.0);
+        let [(_, first), (_, second), (_, target), ..] = actors[..] else {
+            panic!("fixture actors")
+        };
+        app.world_mut().entity_mut(first).insert(Mounted_On(target));
+        assert_eq!(app.world().get::<Riders>(target).unwrap().rider(), first);
+        app.world_mut()
+            .entity_mut(second)
+            .insert(Mounted_On(target));
+        assert!(app.world().get::<Mounted_On>(first).is_none());
+        assert_eq!(app.world().get::<Riders>(target).unwrap().rider(), second);
+        app.world_mut().entity_mut(first).insert(Carried_By(target));
+        app.world_mut()
+            .entity_mut(second)
+            .insert(Carried_By(target));
+        assert!(app.world().get::<Carried_By>(first).is_none());
+        assert_eq!(
+            app.world().get::<Carried_Items>(target).unwrap().item(),
+            second
+        );
+        let visual = app
+            .world_mut()
+            .spawn(crate::rendering::Actor_Visual(target))
+            .id();
+        let child = app.world_mut().spawn(ChildOf(visual)).id();
+        app.world_mut().despawn(target);
+        assert!(app.world().get::<Mounted_On>(second).is_none());
+        assert!(app.world().get::<Carried_By>(second).is_none());
+        assert!(app.world().get_entity(visual).is_err());
+        assert!(app.world().get_entity(child).is_err());
+    }
+    #[test]
     fn actor_components_are_authoritative_and_reset_is_atomic() {
         let mut app = app();
         reset(&mut app);
         app.world_mut()
-            .run_system_once(|mut actors: Query<&mut Actor>| {
+            .run_system_once(|mut actors: Query<Actor_Query>| {
                 let mut player = actors
                     .iter_mut()
                     .find(|actor| actor.player() == Some(0))
