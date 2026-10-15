@@ -25,7 +25,7 @@ class Control_Client:
                 pass
             if self.process is not None and self.process.poll() is not None:
                 raise RuntimeError(f"Game exited {self.process.returncode}; inspect game.log")
-            time.sleep(0.02)
+            time.sleep(0.001)
         raise TimeoutError(f"No response to command {request_id} in {self.directory}")
 
     def send(self, command):

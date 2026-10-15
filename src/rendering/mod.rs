@@ -47,7 +47,7 @@ pub struct Actor_Visual(pub Entity);
 #[relationship_target(relationship = Actor_Visual, linked_spawn)]
 pub struct Actor_Visuals(Vec<Entity>);
 #[derive(Component)]
-struct Main_Camera;
+pub(crate) struct Main_Camera;
 #[derive(Component)]
 struct Sun;
 #[derive(Component)]

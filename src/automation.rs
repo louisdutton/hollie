@@ -51,6 +51,7 @@ pub(crate) struct Controller {
     previous_keys: BTreeSet<String>,
     previous_buttons: [BTreeSet<String>; 2],
     ready_frames: u32,
+    render_on_demand: bool,
 }
 struct Pending {
     id: u64,
@@ -75,11 +76,39 @@ impl Plugin for Automation_Plugin {
             );
         }
         app.insert_resource(Controller {
+            render_on_demand: directory.is_some()
+                && std::env::var("HOLLIE_OFFSCREEN").as_deref() == Ok("1")
+                && std::env::var("HOLLIE_AUTOMATION_REALTIME").as_deref() != Ok("1")
+                && std::env::var("HOLLIE_AUTOMATION_RENDER_EVERY_TICK").as_deref() != Ok("1"),
             directory,
             ..default()
         })
         .add_systems(Update, poll.in_set(crate::app::Game_Systems::Automation))
+        .add_systems(
+            Update,
+            activate_capture_camera.after(crate::app::Game_Systems::Automation),
+        )
         .add_systems(Last, respond);
+    }
+}
+fn activate_capture_camera(
+    controller: Res<Controller>,
+    mut cameras: Query<&mut Camera, With<crate::rendering::Main_Camera>>,
+) {
+    if !controller.render_on_demand {
+        return;
+    }
+    // Keep all main-world systems ticking. Only drawing is unnecessary between
+    // captures; extraction still uploads assets and processes renderer messages.
+    let active = controller.last_id == 0
+        || controller
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.remaining == 0);
+    for mut camera in &mut cameras {
+        if camera.is_active != active {
+            camera.is_active = active;
+        }
     }
 }
 fn valid_key(key: &str) -> bool {
@@ -272,7 +301,16 @@ fn execute(
         inputs: default(),
         debug_toggle: false,
         keys: Vec::new(),
-        settle: 12,
+        // Keep captures and room resets fully settled. Other commands only
+        // need deferred state transitions and their main-world presentation.
+        settle: if controller.render_on_demand
+            && command.op != "reset"
+            && command.capture.is_empty()
+        {
+            2
+        } else {
+            12
+        },
         screenshot: false,
         stop: false,
     };
