@@ -28,25 +28,23 @@ class Hollie:
         self.trace = []
 
     @keyword
-    def start_private_game(self, executable, backend="offscreen", gpu: bool | None = None,
+    def start_private_game(self, executable, backend="offscreen",
                            display_size="1280x720", render_size="640x360", display_scale=None):
         if self.context is not None:
             raise RuntimeError("A private game is already running in this journey")
-        if backend not in ("offscreen", "xvfb", "gamescope"):
+        if backend not in ("offscreen", "gamescope"):
             raise ValueError(f"Unknown private display backend: {backend}")
-        if gpu is None:
-            gpu = backend != "xvfb"
         self.trace = []
         self.output_root = Path(BuiltIn().get_variable_value("${OUTPUT DIR}"))
         self.output = Path(tempfile.mkdtemp(prefix="session-", dir=self.output_root))
-        options = Session_Options(Path(executable), gpu=gpu, gamescope=backend == "gamescope",
-            windowed=backend != "offscreen", display_size=display_size, render_size=render_size,
+        options = Session_Options(Path(executable), gamescope=backend == "gamescope",
+            display_size=display_size, render_size=render_size,
             gpu_device=os.environ.get("HOLLIE_GPU_DEVICE"), display_scale=display_scale)
         context = private_session(options, self.output)
         self.session = context.__enter__()
         self.context = context
         self.client = self.session.client
-        width, height = (display_size if options.windowed else render_size).split("x")
+        width, height = (display_size if options.gamescope else render_size).split("x")
         return {"width": int(width), "height": int(height), "backend": backend}
 
     @keyword
@@ -138,13 +136,3 @@ class Hollie:
     @keyword
     def save_journey_evidence(self):
         (self.output / "commands.json").write_text(json.dumps(self.trace, indent=2) + "\n")
-
-    @keyword
-    def capture_private_display(self, filename):
-        subprocess.run(["magick", "import", "-window", "root", str(self.output / filename)],
-                       env=self.session.env, check=True, timeout=30)
-
-    @keyword
-    def image_edge_brightness(self, filename, side):
-        return float(subprocess.check_output(["magick", str(self.output / filename), "-gravity", side,
-            "-crop", "8x0+0+0", "+repage", "-format", "%[fx:mean]", "info:"], text=True, timeout=10))

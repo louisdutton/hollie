@@ -31,12 +31,13 @@ Seeded replay establishes repeatability for the tested scenarios in the current
 environment, not across GPUs or all gameplay paths.
 
 Hardware rendering requires an installed kernel driver and Vulkan-capable GPU
-device access; devenv supplies the user-space tools and libraries. Use the software
-probe separately when hardware is unavailable.
+device access; devenv supplies the user-space tools and libraries. All private
+sessions require GPU rendering and fail rather than falling back to software.
 
-Headless verification does not exercise GPU rendering, audio playback, controller
-hardware, or Blender asset generation. Changes to those systems also need review
-in the corresponding runtime environment.
+Private sessions exercise GPU rendering and audio decoding/playback through a
+silent sink. They do not verify audible output, physical controllers, or Blender
+asset generation; changes to those systems need review in the corresponding
+runtime environment.
 
 [Maintenance conventions](docs/maintenance.md) cover project ownership and
 conventions. [Asset tooling](tools/README.md) covers generated-asset maintenance.

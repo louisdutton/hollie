@@ -20,9 +20,7 @@ from game_control import Control_Client
 @dataclass
 class Session_Options:
     executable: Path
-    gpu: bool = True
     gamescope: bool = False
-    windowed: bool = False
     gpu_device: str | None = None
     display_size: str = "1280x720"
     render_size: str = "640x360"
@@ -46,10 +44,6 @@ def private_session(args, output=None):
     if not re.fullmatch(r"[1-9][0-9]*x[1-9][0-9]*", args.render_size) or any(
             int(size) > 8192 for size in args.render_size.split("x")):
         raise ValueError("--render-size must be WIDTHxHEIGHT with dimensions between 1 and 8192")
-    if args.gamescope and not (args.gpu and args.windowed):
-        raise ValueError("--gamescope requires --gpu --windowed")
-    if args.gpu and args.windowed and not args.gamescope:
-        raise ValueError("Native GPU presentation requires Gamescope; use software rendering with Xvfb")
     if args.session_timeout < 1:
         raise ValueError("--session-timeout must be positive")
     executable = args.executable.resolve(strict=True)
@@ -66,12 +60,12 @@ def private_session(args, output=None):
     env = os.environ.copy()
     if args.display_scale is not None:
         env["WINIT_X11_SCALE_FACTOR"] = str(args.display_scale)
-    env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.windowed else "1",
+    env.update(RES_ROOT=str(repo / "res"), HOLLIE_CONTROL_DIR=str(control), HOLLIE_OFFSCREEN="0" if args.gamescope else "1",
                HOLLIE_CAPTURE_SIZE=args.render_size, HOLLIE_AUTOMATION_REALTIME="1" if args.realtime else "0",
                HOLLIE_RENDERER_REPORT=str(output / "renderer.json"), WGPU_BACKEND="vulkan",
-               WGPU_FORCE_FALLBACK_ADAPTER="false" if args.gpu else "true")
-    (output / "session-settings.json").write_text(json.dumps({"render_size": args.render_size if not args.windowed else "native",
-        "realtime": args.realtime or args.windowed, "display_size": args.display_size}) + "\n")
+               WGPU_FORCE_FALLBACK_ADAPTER="false")
+    (output / "session-settings.json").write_text(json.dumps({"render_size": "native" if args.gamescope else args.render_size,
+        "realtime": args.realtime or args.gamescope, "display_size": args.display_size}) + "\n")
     # Exercise decoding and playback without sending probe audio to host speakers.
     alsa_config = output / "asound.conf"
     alsa_config.write_text("pcm.!default { type null }\n")
@@ -80,8 +74,6 @@ def private_session(args, output=None):
         env.pop(key, None)
     if args.gpu_device:
         env["WGPU_ADAPTER_NAME"] = args.gpu_device
-    elif not args.gpu:
-        env.pop("WGPU_ADAPTER_NAME", None)
     processes, logs = [], []
 
     def terminate(signum, frame):
@@ -146,10 +138,8 @@ def private_session(args, output=None):
         print(json.dumps(renderer), flush=True)
         software = renderer["device_type"] == "Cpu" or any(
             name in renderer["name"].lower() for name in ("llvmpipe", "lavapipe", "software"))
-        if args.gpu and software:
+        if software:
             raise RuntimeError(f"GPU session selected a software adapter: {renderer}")
-        if not args.gpu and not software:
-            raise RuntimeError(f"Software session selected a hardware adapter: {renderer}")
         client = Control_Client(control, game)
         ready = client.wait_for_response(0)
         if ready["error"]:
@@ -183,9 +173,7 @@ def private_session(args, output=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--executable", type=Path, required=True)
-    parser.add_argument("--gpu", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--gamescope", action="store_true")
-    parser.add_argument("--windowed", action="store_true")
     parser.add_argument("--gpu-device", default=os.environ.get("HOLLIE_GPU_DEVICE"))
     parser.add_argument("--display-size", default="1280x720")
     parser.add_argument("--render-size", default="640x360")

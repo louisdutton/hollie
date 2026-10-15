@@ -68,11 +68,10 @@ and captured pixels using the same inputs and seed.
 
 Verify fullscreen and resolution changes through headless Gamescope: the user
 runs Gamescope with native Wayland clients, and Xvfb/offscreen captures do not
-exercise surface size negotiation. Native Xvfb sessions use software rendering
-because Xvfb lacks DRI3; use Gamescope for native GPU presentation.
-Use the rendering suite's Robot variables for alternate display sizes, scales,
-and software rendering. `HOLLIE_GPU_DEVICE` selects an adapter by name substring;
-hardware tests must fail if it is unavailable or software rendering is detected.
+exercise surface size negotiation. All sessions require GPU rendering; Xvfb only
+provides an isolated window for offscreen GPU rendering. Use Gamescope for native
+GPU presentation. `HOLLIE_GPU_DEVICE` selects an adapter by name substring;
+sessions must fail if it is unavailable or software rendering is detected.
 
 ## Casing
 

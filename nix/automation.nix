@@ -3,7 +3,7 @@
   config,
   ...
 }: let
-  session_command = ''python3 tools/game_session.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie" --gpu'';
+  session_command = ''python3 tools/game_session.py --executable "${config.env.CARGO_TARGET_DIR}/debug/hollie"'';
 in {
   packages = with pkgs; [
     gamescope
@@ -11,7 +11,6 @@ in {
     (python3.withPackages (python: [python.robotframework (python.callPackage ./pabot.nix {})]))
     xorg.xorgserver
     xorg.xprop
-    xdotool
     openbox
     imagemagick
     mesa
