@@ -1,11 +1,12 @@
 use bevy::{prelude::*, render::render_resource::AsBindGroup, shader::ShaderRef};
 
 #[derive(AsBindGroup, Asset, TypePath, Clone, Debug)]
-pub(super) struct Logo_Material {
+pub(crate) struct Logo_Material {
     #[uniform(0)]
     ink: Vec4,
     #[texture(1)]
     #[sampler(2)]
+    #[dependency]
     mask: Handle<Image>,
 }
 impl UiMaterial for Logo_Material {

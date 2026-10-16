@@ -163,11 +163,17 @@ impl Plugin for Simulation_Plugin {
 fn simulate(
     mut game: Game_Access,
     mut controls: ResMut<Controls>,
+    transition: Option<Res<crate::transition::Scene_Transition>>,
     windows: Query<&Window>,
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
 ) {
     #[cfg(debug_assertions)]
     if controller.enabled() {
+        return;
+    }
+    if transition.is_some_and(|transition| {
+        transition.loading() || transition.phase == crate::transition::Phase::Covering
+    }) {
         return;
     }
     if windows.iter().all(|window| window.focused) {

@@ -12,7 +12,10 @@ use bevy::{
 };
 
 mod title_logo;
-use title_logo::{Logo_Material, Title_Logo};
+pub(crate) use crate::transition::Transition_Fade;
+use crate::transition::{Destination, Scene_Transition};
+pub(crate) use title_logo::Logo_Material;
+use title_logo::Title_Logo;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum Menu {
@@ -45,7 +48,7 @@ impl Plugin for Ui_Plugin {
             .add_systems(OnEnter(Mode::Title), |mut menu: ResMut<Menu_State>| {
                 *menu = Menu_State::default();
             })
-            .add_systems(Startup, (setup_transition_fade, setup_area_title))
+            .add_systems(Startup, setup_area_title)
             .add_systems(
                 Update,
                 (menu_input, button_input)
@@ -58,7 +61,6 @@ impl Plugin for Ui_Plugin {
                     apply_window_preferences,
                     scale_ui,
                     draw_ui,
-                    update_transition_fade,
                     update_area_title,
                 )
                     .in_set(crate::app::Game_Systems::Presentation),
@@ -145,41 +147,6 @@ fn area_title_opacity(age: f32) -> f32 {
         1. - (age - 2.5).clamp(0., 1.).powi(2)
     }
 }
-#[derive(Component)]
-pub(crate) struct Transition_Fade;
-fn setup_transition_fade(mut commands: Commands) {
-    commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            width: percent(100),
-            height: percent(100),
-            ..default()
-        },
-        GlobalZIndex(100),
-        BackgroundColor(Color::NONE),
-        Pickable::IGNORE,
-        Transition_Fade,
-    ));
-}
-fn update_transition_fade(
-    game: Res<Game_State>,
-    mut fades: Query<&mut BackgroundColor, With<Transition_Fade>>,
-) {
-    let opacity = game
-        .transition
-        .as_ref()
-        .map_or(0., |transition| {
-            if transition.elapsed < 0.3 {
-                transition.elapsed / 0.3
-            } else {
-                1. - (transition.elapsed - 0.3) / 0.3
-            }
-        })
-        .clamp(0., 1.);
-    for mut color in &mut fades {
-        color.0 = Color::srgba(0., 0., 0., opacity);
-    }
-}
 fn items(
     mode: &Mode,
     menu: Menu,
@@ -239,7 +206,7 @@ fn activate(
     menu: &mut Menu_State,
     mode: &Mode,
     next: &mut NextState<Mode>,
-    game: &mut Game_Access,
+    transition: &mut Scene_Transition,
     preferences: &mut Preferences,
     exit: &mut MessageWriter<AppExit>,
 ) {
@@ -248,15 +215,10 @@ fn activate(
             if *mode == Mode::Title {
                 match index {
                     0 => {
-                        let id = crate::simulation::INITIAL_ROOM;
-                        if let Err(error) = game.reset(id, 42) {
-                            error!("{error}");
-                            return;
-                        }
-                        next.set(Mode::Gameplay);
+                        transition.request(Destination::New_Game);
                     }
                     1 => menu.menu = Menu::Options,
-                    2 => next.set(Mode::Tree_Study),
+                    2 => transition.request(Destination::Tree_Study),
                     3 => {
                         exit.write(AppExit::Success);
                     }
@@ -266,7 +228,7 @@ fn activate(
                 match index {
                     0 => next.set(Mode::Gameplay),
                     1 => menu.menu = Menu::Options,
-                    2 => next.set(Mode::Title),
+                    2 => transition.request(Destination::Title),
                     _ => {}
                 }
             }
@@ -305,6 +267,7 @@ fn activate(
 #[derive(bevy::ecs::system::SystemParam)]
 struct Menu_Actions<'w, 's> {
     next: ResMut<'w, NextState<Mode>>,
+    transition: ResMut<'w, Scene_Transition>,
     game: Game_Access<'w, 's>,
     preferences: ResMut<'w, Preferences>,
     exit: MessageWriter<'w, AppExit>,
@@ -327,6 +290,7 @@ fn menu_input(
 ) {
     let Menu_Actions {
         mut next,
+        mut transition,
         mut game,
         mut preferences,
         mut exit,
@@ -343,14 +307,14 @@ fn menu_input(
     if crate::automation::waiting(&controller) {
         return;
     }
-    if windows.iter().any(|w| !w.focused) {
+    if transition.busy() || windows.iter().any(|w| !w.focused) {
         return;
     }
     if *mode.get() == Mode::Tree_Study {
         if pads.iter().any(|pad| {
             pad.just_pressed(GamepadButton::East) || pad.just_pressed(GamepadButton::Start)
         }) {
-            next.set(Mode::Title);
+            transition.request(Destination::Title);
         }
         return;
     }
@@ -484,7 +448,7 @@ fn menu_input(
             &mut menu,
             mode.get(),
             &mut next,
-            &mut game,
+            &mut transition,
             &mut preferences,
             &mut exit,
         );
@@ -577,18 +541,21 @@ fn button_activate(
 ) {
     let Menu_Actions {
         mut next,
-        mut game,
+        mut transition,
+        game: _,
         mut preferences,
         mut exit,
     } = actions;
 
-    if let Ok(option) = options.get(event.entity) {
+    if !transition.busy()
+        && let Ok(option) = options.get(event.entity)
+    {
         activate(
             option.0,
             &mut menu,
             mode.get(),
             &mut next,
-            &mut game,
+            &mut transition,
             &mut preferences,
             &mut exit,
         );
@@ -898,40 +865,5 @@ mod tests {
                 Vec2::new(1280., 720.)
             );
         }
-    }
-    #[test]
-    fn fade_updates_and_clears_without_a_menu_rebuild() {
-        let game = crate::simulation::Game_World::new(
-            crate::content::Room_Registry::load(std::path::Path::new("res")).unwrap(),
-        )
-        .unwrap();
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .insert_resource(*game.state)
-            .add_systems(Update, update_transition_fade);
-        let fade = app
-            .world_mut()
-            .spawn((BackgroundColor(Color::NONE), Transition_Fade))
-            .id();
-        for (elapsed, expected) in [(0.15, 0.5), (0.3, 1.), (0.45, 0.5)] {
-            app.world_mut().resource_mut::<Game_State>().transition =
-                Some(crate::simulation::Transition {
-                    room: "demo".into(),
-                    door: String::new(),
-                    loaded: true,
-                    elapsed,
-                });
-            app.update();
-            assert!(
-                (app.world().get::<BackgroundColor>(fade).unwrap().0.alpha() - expected).abs()
-                    < 0.001
-            );
-        }
-        app.world_mut().resource_mut::<Game_State>().transition = None;
-        app.update();
-        assert_eq!(
-            app.world().get::<BackgroundColor>(fade).unwrap().0.alpha(),
-            0.
-        );
     }
 }

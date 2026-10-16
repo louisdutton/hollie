@@ -68,6 +68,7 @@ impl Plugin for Hollie_Plugin {
             Rendering_Plugin,
             Ui_Plugin,
             Editor_Plugin,
+            crate::transition::Transition_Plugin,
         ));
         #[cfg(debug_assertions)]
         app.add_plugins((
@@ -109,9 +110,6 @@ pub fn run() {
         })
         .set(RenderPlugin {
             render_creation: RenderCreation::Automatic(Box::new(settings)),
-            // Asset readiness alone does not imply that asynchronous render pipelines
-            // can draw the scene. Controlled captures must include those pipelines.
-            synchronous_pipeline_compilation: controlled,
             ..default()
         })
         .set(WindowPlugin {

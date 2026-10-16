@@ -29,11 +29,12 @@ pub struct Controls {
 fn axis(keys: &ButtonInput<KeyCode>, positive: KeyCode, negative: KeyCode) -> f32 {
     (keys.pressed(positive) as u8 as f32) - (keys.pressed(negative) as u8 as f32)
 }
-pub fn collect_input(
+fn collect_input(
     keys: Res<ButtonInput<KeyCode>>,
     pads: Query<(Entity, &Gamepad)>,
     bindings: Res<Key_Bindings>,
     mode: Res<State<Mode>>,
+    transition: Res<crate::transition::Scene_Transition>,
     windows: Query<&Window>,
     mut controls: ResMut<Controls>,
 ) {
@@ -59,7 +60,11 @@ pub fn collect_input(
             input.interact |= pad.just_pressed(GamepadButton::West);
         }
     }
-    let active = *mode.get() == Mode::Gameplay && windows.iter().all(|w| w.focused);
+    let active =
+        *mode.get() == Mode::Gameplay && !transition.busy() && windows.iter().all(|w| w.focused);
+    if !active {
+        input.movement = Vec2::ZERO;
+    }
     input.jump = active && (input.jump || controls.player.jump);
     input.interact = active && (input.interact || controls.player.interact);
     controls.player = input;

@@ -173,6 +173,7 @@ fn native_button(button: &str) -> GamepadButton {
 }
 fn activate_capture_camera(
     controller: Res<Controller>,
+    transition: Res<crate::transition::Scene_Transition>,
     mut cameras: Query<&mut Camera, With<crate::rendering::Main_Camera>>,
 ) {
     if !controller.render_on_demand {
@@ -180,7 +181,8 @@ fn activate_capture_camera(
     }
     // Keep all main-world systems ticking. Only drawing is unnecessary between
     // captures; extraction still uploads assets and processes renderer messages.
-    let active = controller.last_id == 0
+    let active = transition.busy()
+        || controller.last_id == 0
         || controller
             .pending
             .as_ref()
@@ -440,6 +442,7 @@ fn execute(
     Ok(pending)
 }
 fn poll(
+    transition: Res<crate::transition::Scene_Transition>,
     mut controller: ResMut<Controller>,
     mut game: Game_Access,
     mut next: ResMut<NextState<Mode>>,
@@ -450,8 +453,12 @@ fn poll(
     let Some(directory) = controller.directory.clone() else {
         return;
     };
-    controller.stepping = controller.pending.as_ref().is_some_and(|p| p.remaining > 0);
+    controller.stepping =
+        !transition.busy() && controller.pending.as_ref().is_some_and(|p| p.remaining > 0);
     controller.debug_toggle = false;
+    if transition.busy() {
+        return;
+    }
     // Publish the controller edge separately from keyboard F3.
     let toggle = controller
         .pending
@@ -554,6 +561,8 @@ struct Presentation_Observation<'w, 's> {
     study_lamp: Query<'w, 's, &'static PointLight, With<crate::rendering::tree_study::Study_Lamp>>,
     ambient: Res<'w, GlobalAmbientLight>,
     scale: Res<'w, UiScale>,
+    transition: Res<'w, crate::transition::Scene_Transition>,
+    readiness: Res<'w, crate::transition::Render_Readiness>,
     title: Res<'w, crate::rendering::Title_Scene>,
     area: Query<'w, 's, (&'static Text, &'static TextColor), With<crate::ui::Area_Title>>,
     cameras: Query<'w, 's, Has<bevy::light::VolumetricFog>, With<crate::rendering::Main_Camera>>,
@@ -564,6 +573,7 @@ impl Presentation_Observation<'_, '_> {
         let area = self.area.iter().next();
         json!({
             "ui_scale": self.scale.0,
+            "scene_transition": {"phase": format!("{:?}", self.transition.phase), "alpha": self.transition.alpha, "confirmations": self.transition.confirmations, "renderer_ready": self.readiness.ready},
             "tree_study": {"preset":format!("{:?}",self.study.preset), "yaw":self.study.yaw, "sun_turn":self.study.sun_turn, "parameters":self.study.parameters, "selected":self.study.selected, "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
             "title_elapsed": self.title.elapsed,
             "title_grass_vertices": self.title.grass_vertices,
@@ -631,6 +641,9 @@ fn respond(
     let Some(directory) = controller.directory.clone() else {
         return;
     };
+    if presentation.transition.busy() {
+        return;
+    }
     if controller.last_id == 0
         && controller.ready_frames >= 30
         && !directory.join("response.json").exists()
@@ -641,6 +654,10 @@ fn respond(
         return;
     };
     if pending.remaining > 0 || pending.screenshot {
+        return;
+    }
+    if !presentation.readiness.ready {
+        pending.settle = pending.settle.max(5);
         return;
     }
     if !pending.capture.is_empty()

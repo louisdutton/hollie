@@ -174,6 +174,7 @@ fn setup(
 }
 
 fn controls(
+    transition: Res<crate::transition::Scene_Transition>,
     pads: Query<&Gamepad>,
     time: Res<Time>,
     mut study: ResMut<Tree_Study>,
@@ -181,6 +182,9 @@ fn controls(
 ) {
     #[cfg(debug_assertions)]
     if crate::automation::waiting(&controller) {
+        return;
+    }
+    if transition.busy() {
         return;
     }
     let pressed = |button| pads.iter().any(|pad| pad.just_pressed(button));

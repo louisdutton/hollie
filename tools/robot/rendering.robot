@@ -8,6 +8,7 @@ Title and gameplay fill the requested render extent
     ${title}=    Observe Game    capture=title.png
     Should Be True    $title['presentation']['title_grass_vertices'] > 0
     Should Be True    ${title}[presentation][volumetric_lighting]
+    Scene Should Be Revealed    ${title}
     ${animated}=    Advance Ticks    120    capture=title-animated.png
     Should Be True    $animated['presentation']['title_elapsed'] > $title['presentation']['title_elapsed'] + 1.9
     Run Keyword And Expect Error    *pixels differ*    Images Should Match    title.png    title-animated.png
@@ -30,3 +31,12 @@ Title and gameplay fill the requested render extent
     ${new_game}=    Advance Ticks    1    ENTER
     Should Be Equal    ${new_game}[scene]    Gameplay
     Length Should Be    ${new_game}[players]    1
+    Scene Should Be Revealed    ${new_game}
+
+*** Keywords ***
+Scene Should Be Revealed
+    [Arguments]    ${state}
+    Should Be Equal    ${state}[presentation][scene_transition][phase]    Visible
+    Should Be Equal As Numbers    ${state}[presentation][scene_transition][alpha]    0
+    Should Be True    ${state}[presentation][scene_transition][renderer_ready]
+    Should Be True    $state['presentation']['scene_transition']['confirmations'] >= 5
