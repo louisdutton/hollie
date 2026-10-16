@@ -118,6 +118,90 @@ impl Forest_Mesh {
         });
     }
 
+    fn standing_stone(&mut self, origin: Vec3) {
+        // A weathered slab, rather than a stretched boulder: preserve broad
+        // faces and a broken crown so its silhouette reads against the sun.
+        let crown = [49., 55., 54., 58., 57., 50., 48.];
+        let strokes = [
+            (Vec2::new(0., 19.), Vec2::new(0., 44.)),
+            (Vec2::new(0., 44.), Vec2::new(-4., 39.)),
+            (Vec2::new(0., 44.), Vec2::new(4., 39.)),
+            (Vec2::new(0., 37.), Vec2::new(-5., 32.)),
+            (Vec2::new(-5., 32.), Vec2::new(0., 27.)),
+            (Vec2::new(0., 27.), Vec2::new(5., 32.)),
+            (Vec2::new(5., 32.), Vec2::new(0., 37.)),
+            (Vec2::new(-4., 22.), Vec2::new(0., 19.)),
+            (Vec2::new(0., 19.), Vec2::new(4., 22.)),
+        ];
+        let point = |t: f32, s: f32, front: bool| {
+            let u = s.clamp(0., 1.) * (crown.len() - 1) as f32;
+            let i = (u.floor() as usize).min(crown.len() - 2);
+            let height = crown[i] + (crown[i + 1] - crown[i]) * (u - i as f32);
+            let x = (s * 2. - 1.) * (14.5 - t * 3.) + t * 2.;
+            let y = -4. + t * (height + 4.);
+            let edge = (s.min(1. - s) * 27.).min(t.min(1. - t) * height);
+            let bevel = (1. - edge / 2.).clamp(0., 1.) * 2.;
+            let face = Vec2::new(x - t * 2., y);
+            let distance = strokes.iter().fold(f32::MAX, |nearest, (a, b)| {
+                let line = *b - *a;
+                let along = ((face - *a).dot(line) / line.length_squared()).clamp(0., 1.);
+                nearest.min(face.distance(*a + line * along))
+            });
+            let carving = if front {
+                ((0.9 - distance) / 0.35).clamp(0., 1.)
+            } else {
+                0.
+            };
+            let z = if front {
+                8. - bevel - carving * 1.4
+            } else {
+                -7. + bevel
+            };
+            (origin + Vec3::new(x, y, z - t * 3.), carving)
+        };
+        let stone_colour = Color::srgb(0.40, 0.48, 0.40);
+        for front in [true, false] {
+            self.grid(96, 64, |t, s| {
+                let s = if front { s } else { 1. - s };
+                let (p, carving) = point(t, s, front);
+                let dt = point(t + 0.0001, s, front).0 - point(t - 0.0001, s, front).0;
+                let ds = point(t, s + 0.0001, front).0 - point(t, s - 0.0001, front).0;
+                let normal = ds.cross(dt).normalize_or(Vec3::Z) * if front { 1. } else { -1. };
+                let colour = if carving > 0.5 {
+                    Color::srgb(0.57, 0.59, 0.46)
+                } else {
+                    stone_colour
+                };
+                (p, normal, colour, Vec2::new(s, t))
+            });
+        }
+        // Close each edge independently to retain the slab's hard shoulders.
+        for edge in 0..4 {
+            let perimeter = |s: f32| match edge {
+                0 => (s, 0.),
+                1 => (1., s),
+                2 => (1. - s, 1.),
+                _ => (0., 1. - s),
+            };
+            self.grid(1, 64, |depth, s| {
+                let sample = |depth: f32, s: f32| {
+                    let (t, across) = perimeter(s);
+                    point(t, across, true)
+                        .0
+                        .lerp(point(t, across, false).0, depth)
+                };
+                let ds = sample(depth, s + 0.0001) - sample(depth, s - 0.0001);
+                let dt = sample(depth + 0.0001, s) - sample(depth - 0.0001, s);
+                (
+                    sample(depth, s),
+                    ds.cross(dt).normalize_or(Vec3::Y),
+                    stone_colour,
+                    Vec2::new(s, depth),
+                )
+            });
+        }
+    }
+
     fn leaf(&mut self, center: Vec3, axis: Vec3, width: f32, length: f32, color: Color) {
         let side = axis.cross(Vec3::Y).normalize_or(Vec3::X);
         let up = side.cross(axis).normalize();
@@ -658,12 +742,7 @@ pub(super) fn build() -> Forest_Geometry {
     }
     // The foreground standing stone anchors the right-hand third of the view.
     let stone = Vec3::new(FOCAL_POINT.x, terrain_height(FOCAL_POINT), FOCAL_POINT.y);
-    stone_mesh.rock(
-        stone + Vec3::Y * 20.,
-        Vec3::new(15., 34., 11.),
-        Color::srgb(0.40, 0.48, 0.40),
-        413,
-    );
+    stone_mesh.standing_stone(stone);
     Forest_Geometry {
         wood: wood.finish(),
         canopy: canopy.finish(),
