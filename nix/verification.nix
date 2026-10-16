@@ -61,7 +61,7 @@
       after = ["hollie:format"];
       exec = "devenv --profile assets --profile automation tasks list";
     };
-    "hollie:verify".after = ["hollie:check" "hollie:build-debug" "hollie:build-release" "hollie:test" "hollie:validate-content" "hollie:check-tools" "hollie:check-profiles"];
+    "hollie:verify".after = ["hollie:check" "hollie:build-debug" "hollie:test" "hollie:validate-content" "hollie:check-tools" "hollie:check-profiles"];
   };
   git-hooks.hooks.hollie-verify = {
     enable = true;

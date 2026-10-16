@@ -4,6 +4,7 @@
 
 - Do not launch the game on the host desktop or connect to the user's desktop. Use the private-display workflow below; gameplay and rendering tests do not require a separate user request.
 - Use tools supplied by `devenv.nix`; do not install host tools. Use `devenv shell` only for one-off commands.
+- Production builds are opt-in; keep them out of normal development and commit verification.
 - Do not run routine checks manually unless explicitly asked. Verification belongs in the automated local commit hook. This project does not use CI; do not add CI workflows.
 - Define test cases and setup in the test suite. Devenv tasks build and run the whole suite; use the runner CLI for selection, and devenv scripts only for workflows the runner cannot express.
 - Document only information that is not easily inferred from source code: rationale, constraints, and non-obvious workflows. Do not duplicate implementation details, configuration, or command inventories in prose. Keep this file under 100 lines.
