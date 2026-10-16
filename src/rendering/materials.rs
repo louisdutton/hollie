@@ -107,8 +107,8 @@ pub(crate) fn woodland_material(kind: Woodland_Kind) -> Woodland_Material {
             },
             double_sided: kind == Woodland_Kind::Foliage,
             diffuse_transmission: if leaves { 0.35 } else { 0. },
-            perceptual_roughness: 0.92,
-            reflectance: 0.12,
+            perceptual_roughness: 1.,
+            reflectance: 0.,
             ..default()
         },
         extension: Woodland_Surface {

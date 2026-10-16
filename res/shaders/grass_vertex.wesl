@@ -3,14 +3,7 @@ import bevy_pbr::render::{mesh_functions, view_transformations::position_world_t
 import bevy_pbr::prepass::io::{Vertex, VertexOutput, decompress_vertex};
 @else
 import bevy_pbr::render::forward_io::{Vertex, VertexOutput, decompress_vertex};
-struct Meadow {
-    time: vec4<f32>,
-    contacts: array<vec4<f32>,32>,
-    motion: array<vec4<f32>,32>,
-    trails: array<vec4<f32>,64>,
-    trail_motion: array<vec4<f32>,64>,
-}
-@group(constants::MATERIAL_BIND_GROUP) @binding(100) var<uniform> meadow: Meadow;
+import super::grass_uniform::meadow;
 fn hash(p: vec2<f32>) -> f32 { return fract(sin(dot(p,vec2<f32>(127.1,311.7)))*43758.5453); }
 fn noise(p: vec2<f32>) -> f32 {
     let c=floor(p); let f=fract(p); let u=f*f*(3.0-2.0*f);

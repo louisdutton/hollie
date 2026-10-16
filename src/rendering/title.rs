@@ -7,7 +7,6 @@ use bevy::{
 pub(super) mod forest;
 
 const FOCAL_POINT: Vec2 = Vec2::new(60., 80.);
-const TITLE_KEY_LUMENS: f32 = 8_000_000_000.;
 const SUNSHAFT_OPENING: Vec2 = Vec2::new(FOCAL_POINT.x + 126., FOCAL_POINT.y - 114.);
 
 pub(super) const SKY: Color = Color::srgb(0.14, 0.28, 0.27);
@@ -21,8 +20,6 @@ pub(crate) struct Title_Scene {
 struct Canopy;
 #[derive(Component)]
 struct Title_Sun;
-#[derive(Component)]
-struct Title_Key;
 #[derive(Component)]
 struct Mote {
     origin: Vec3,
@@ -204,32 +201,6 @@ fn setup(
         Title_Sun,
         RenderLayers::layer(1),
     ));
-    // A warm key from the camera side makes the foreground stone readable.
-    // Its narrow shaft complements the canopy sun rather than washing the forest.
-    let focus = Vec3::new(
-        FOCAL_POINT.x,
-        terrain_height(FOCAL_POINT) + 20.,
-        FOCAL_POINT.y,
-    );
-    commands.spawn((
-        SpotLight {
-            color: Color::srgb(1., 0.92, 0.74),
-            intensity: TITLE_KEY_LUMENS,
-            range: 400.,
-            radius: 8.,
-            inner_angle: 0.12,
-            outer_angle: 0.24,
-            shadow_maps_enabled: true,
-            shadow_map_near_z: 5.,
-            shadow_normal_bias: 1.2,
-            ..default()
-        },
-        Transform::from_translation(focus + Vec3::new(-35., 190., 115.)).looking_at(focus, Vec3::Y),
-        Title_Key,
-        VolumetricLight,
-        Title_Sun,
-        RenderLayers::layer(1),
-    ));
     commands.spawn((
         FogVolume {
             density_factor: 0.0015,
@@ -325,17 +296,7 @@ fn configure_view(
     mode: Res<State<Mode>>,
     cameras: Query<(Entity, Has<VolumetricFog>), With<Main_Camera>>,
     lights: Query<(Entity, Has<VolumetricLight>), With<Title_Sun>>,
-    mut keys: Query<&mut SpotLight, With<Title_Key>>,
 ) {
-    // Refresh extraction across view activation, including offscreen captures;
-    // otherwise the renderer can retain a culled copy of a static local light.
-    for mut light in &mut keys {
-        light.intensity = if *mode.get() == Mode::Title {
-            TITLE_KEY_LUMENS
-        } else {
-            0.
-        };
-    }
     for (entity, volumetric) in &cameras {
         if !volumetric {
             commands.entity(entity).insert(VolumetricFog {
