@@ -348,11 +348,9 @@ fn menu_input(
         return;
     }
     if *mode.get() == Mode::Tree_Study {
-        if keys.just_pressed(KeyCode::Escape)
-            || pads.iter().any(|pad| {
-                pad.just_pressed(GamepadButton::East) || pad.just_pressed(GamepadButton::Start)
-            })
-        {
+        if pads.iter().any(|pad| {
+            pad.just_pressed(GamepadButton::East) || pad.just_pressed(GamepadButton::Start)
+        }) {
             next.set(Mode::Title);
         }
         return;

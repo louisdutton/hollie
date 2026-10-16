@@ -1,4 +1,5 @@
 use super::*;
+use crate::rendering::tree_study::{Crown_Layout, Tree_Parameters};
 
 #[derive(Default)]
 struct Forest_Mesh {
@@ -361,7 +362,7 @@ pub(super) struct Forest_Geometry {
     pub stone: Mesh,
 }
 
-pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
+pub(in crate::rendering) fn study_tree(parameters: &Tree_Parameters) -> (Mesh, Mesh) {
     let mut wood = Forest_Mesh::default();
     let mut leaves = Forest_Mesh::default();
     let bark = Color::srgb(0.30, 0.24, 0.15);
@@ -393,9 +394,19 @@ pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
             bark,
         );
     }
-    // Layer the branch volumes into a broad lower crown and a narrower,
-    // off-centre top. Small foliage masses overlap their shoulders; the tree
-    // is evaluated here without glade fog or neighbouring trees hiding gaps.
+    if parameters.layout == Crown_Layout::Joined_Crown {
+        study_joined_crown(&mut leaves, parameters);
+    } else {
+        study_tiers(&mut leaves, parameters);
+    }
+    let scale = Vec3::new(parameters.width, parameters.height, parameters.depth);
+    (
+        wood.finish().scaled_by(scale),
+        leaves.finish().scaled_by(scale),
+    )
+}
+
+fn study_tiers(leaves: &mut Forest_Mesh, parameters: &Tree_Parameters) {
     let crown_center = Vec3::new(0., 150., 0.);
     let crown_size = Vec3::new(110., 140., 85.);
     let mut cluster = 0_u32;
@@ -407,21 +418,28 @@ pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
         (222., 14., 14., 3, 22.),
     ] {
         for i in 0..count {
-            let seed = 1723 + cluster * 199;
+            let seed = parameters.seed + cluster * 199;
             cluster += 1;
             let angle = i as f32 / count as f32 * std::f32::consts::TAU + height * 0.027;
             let center = Vec3::new(
                 (angle.cos() * spread * (0.9 + random(seed) * 0.2) - (height - 66.) * 0.05) * 1.15,
-                height + (random(seed + 1) - 0.5) * 18.,
+                height + (random(seed + 1) - 0.5) * (parameters.irregularity * 28.),
                 angle.sin() * depth,
             );
             let size = Vec3::new(
                 radius * (0.92 + random(seed + 2) * 0.2) * 1.1,
-                radius * (0.85 + random(seed + 3) * 0.22),
+                radius * (0.85 + random(seed + 3) * 0.22) * (0.7 + parameters.lobes * 0.46),
                 radius * 0.92,
             );
-            leaves.tuft(center, size, (crown_center, crown_size), true, seed, 0.32);
-            let count = 110;
+            leaves.tuft(
+                center,
+                size,
+                (crown_center, crown_size),
+                true,
+                seed,
+                parameters.local_shading,
+            );
+            let count = (110. * parameters.leaf_density) as u32;
             for leaf in 0..count {
                 let n = seed + leaf * 37;
                 let y = 1. - 2. * (leaf as f32 + 0.5) / count as f32;
@@ -429,23 +447,95 @@ pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
                 let ring = (1. - y * y).sqrt();
                 let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
                 let p = center + radial * size * (0.98 + random(n + 1) * 0.07);
-                let radius = 4. + random(n + 2) * 3.5;
-                leaves.tuft(
-                    p,
-                    Vec3::new(
-                        radius * (0.95 + random(n + 3) * 0.5),
-                        radius * (0.55 + random(n + 4) * 0.25),
-                        radius * (0.7 + random(n + 5) * 0.5),
-                    ),
-                    (center, size),
-                    true,
-                    n,
-                    0.10,
-                );
+                study_leaf(leaves, p, (center, size), n, parameters);
             }
         }
     }
-    (wood.finish(), leaves.finish())
+}
+
+fn study_leaf(
+    leaves: &mut Forest_Mesh,
+    point: Vec3,
+    guide: (Vec3, Vec3),
+    seed: u32,
+    parameters: &Tree_Parameters,
+) {
+    let rounded = parameters.layout == Crown_Layout::Rounded_Tiers;
+    let radius = if rounded {
+        3.5 + random(seed + 2) * 3.
+    } else {
+        4. + random(seed + 2) * 3.5
+    } * parameters.leaf_size;
+    let size = if rounded {
+        Vec3::new(radius, radius * 0.85, radius)
+    } else {
+        Vec3::new(
+            radius * (0.95 + random(seed + 3) * 0.5),
+            radius * (0.55 + random(seed + 4) * 0.25),
+            radius * (0.7 + random(seed + 5) * 0.5),
+        )
+    };
+    leaves.tuft(point, size, guide, true, seed, 0.10);
+}
+
+// One closed crown avoids seams and dark gaps between independent branch balls.
+// Broad, non-repeating lobes change the silhouette continuously in all directions.
+fn study_crown_point(radial: Vec3, parameters: &Tree_Parameters) -> Vec3 {
+    let phase = random(parameters.seed) * std::f32::consts::TAU;
+    let bulges = (radial.x * 4.1 + radial.y * 3.2 + radial.z * 1.7 + phase).sin() * 0.19
+        + (radial.z * 5.3 - radial.y * 2.1 + radial.x * 1.3 - phase).sin() * 0.12;
+    let shape = 1. + bulges * parameters.lobes;
+    let broad = 1. - radial.y * 0.17;
+    let skew = Vec3::new(
+        (radial.y * 2.7 + phase).sin() * 13.,
+        (radial.x * 2.3 + radial.z * 3.1 + phase).sin() * 10.,
+        (radial.y * 3.2 - phase).sin() * 12.,
+    ) * parameters.irregularity;
+    Vec3::Y * 150. + radial * Vec3::new(105. * broad, 108., 105. * broad) * shape + skew
+}
+
+fn study_crown_normal(radial: Vec3, parameters: &Tree_Parameters) -> Vec3 {
+    let tangent = radial.cross(Vec3::Y).normalize_or(Vec3::X);
+    let bitangent = radial.cross(tangent).normalize();
+    let along = |axis: Vec3| {
+        study_crown_point((radial + axis * 0.001).normalize(), parameters)
+            - study_crown_point((radial - axis * 0.001).normalize(), parameters)
+    };
+    along(tangent).cross(along(bitangent)).normalize_or(radial)
+}
+
+fn study_joined_crown(leaves: &mut Forest_Mesh, parameters: &Tree_Parameters) {
+    leaves.grid(64, 128, |t, s| {
+        let latitude = t * std::f32::consts::PI;
+        let longitude = s * std::f32::consts::TAU;
+        let radial = Vec3::new(
+            latitude.sin() * longitude.cos(),
+            latitude.cos(),
+            latitude.sin() * longitude.sin(),
+        );
+        let point = study_crown_point(radial, parameters);
+        let normal = study_crown_normal(radial, parameters);
+        let shade = radial.lerp(normal, parameters.local_shading).normalize();
+        (point, normal, normal_colour(shade), Vec2::new(0.4, t))
+    });
+    let count = (3800. * parameters.leaf_density) as u32;
+    for leaf in 0..count {
+        let seed = parameters.seed + leaf * 37;
+        let y = 1. - 2. * (leaf as f32 + 0.5) / count as f32;
+        let angle = leaf as f32 * 2.399963 + random(parameters.seed) * 6.;
+        let ring = (1. - y * y).sqrt();
+        let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
+        let point = study_crown_point(radial, parameters);
+        let normal = study_crown_normal(radial, parameters);
+        let shade = radial.lerp(normal, parameters.local_shading).normalize();
+        study_leaf(
+            leaves,
+            point,
+            (point - shade * 65., Vec3::splat(65.)),
+            seed,
+            parameters,
+        );
+    }
 }
 
 pub(super) fn build() -> Forest_Geometry {

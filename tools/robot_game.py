@@ -135,6 +135,22 @@ class Hollie:
             raise AssertionError(f"{image}: {actual}, expected {width}x{height}")
 
     @keyword
+    def image_region_signature(self, image, x: int, y: int, width: int, height: int):
+        result = subprocess.run(["magick", str(self.captures / image),
+                                 "-crop", f"{width}x{height}+{x}+{y}", "+repage",
+                                 "-format", "%#", "info:"],
+                                check=True, capture_output=True, text=True)
+        return result.stdout.strip()
+
+    @keyword
+    def foliage_width(self, image):
+        result = subprocess.run(["magick", str(self.captures / image),
+                                 "-fx", "g > r*1.1 && r < 0.65 && b < g*0.95 ? 1 : 0",
+                                 "-trim", "-format", "%w", "info:"],
+                                check=True, capture_output=True, text=True)
+        return int(result.stdout)
+
+    @keyword
     def image_region_mean(self, image, x: int, y: int, width: int, height: int):
         value = subprocess.check_output(["magick", str(self.captures / image),
             "-crop", f"{width}x{height}+{x}+{y}", "+repage", "-colorspace", "RGB",

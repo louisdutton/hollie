@@ -593,7 +593,7 @@ impl Presentation_Observation<'_, '_> {
         let area = self.area.iter().next();
         json!({
             "ui_scale": self.scale.0,
-            "tree_study": {"preset":format!("{:?}",self.study.preset), "yaw":self.study.yaw, "sun_turn":self.study.sun_turn, "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
+            "tree_study": {"preset":format!("{:?}",self.study.preset), "yaw":self.study.yaw, "sun_turn":self.study.sun_turn, "parameters":self.study.parameters, "selected":self.study.selected, "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
             "title_elapsed": self.title.elapsed,
             "title_grass_vertices": self.title.grass_vertices,
             "volumetric_lighting": self.cameras.iter().any(|enabled| enabled) && !self.volumetric_lights.is_empty(),

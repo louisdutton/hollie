@@ -1,5 +1,7 @@
 use super::*;
+mod settings;
 use bevy::camera::visibility::RenderLayers;
+pub(crate) use settings::{Crown_Layout, Tree_Parameters};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) enum Study_Light {
@@ -19,7 +21,40 @@ pub(crate) struct Tree_Study {
     pub preset: Study_Light,
     pub yaw: f32,
     pub sun_turn: f32,
+    pub parameters: Tree_Parameters,
+    pub selected: usize,
+    built: Option<Tree_Parameters>,
+    repeats: [Edit_Repeat; 2],
 }
+#[derive(Default)]
+struct Edit_Repeat {
+    direction: i32,
+    elapsed: f32,
+    delay: f32,
+}
+impl Edit_Repeat {
+    fn tick(&mut self, direction: i32, dt: f32) -> bool {
+        if direction != self.direction {
+            self.direction = direction;
+            self.elapsed = 0.;
+            self.delay = 0.4;
+            return direction != 0;
+        }
+        self.elapsed += dt;
+        if direction != 0 && self.elapsed >= self.delay {
+            self.elapsed = 0.;
+            self.delay = 0.12;
+            return true;
+        }
+        false
+    }
+}
+#[derive(Component)]
+enum Study_Part {
+    Wood,
+    Leaves,
+}
+
 impl Study_Light {
     fn cycle(self, direction: i32) -> Self {
         const PRESETS: [Study_Light; 8] = [
@@ -37,9 +72,19 @@ impl Study_Light {
 }
 impl Tree_Study {
     pub(crate) fn caption(&self) -> String {
+        let rows = self
+            .parameters
+            .rows()
+            .into_iter()
+            .enumerate()
+            .map(|(index, row)| {
+                format!("{} {}", if index == self.selected { ">" } else { " " }, row)
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         format!(
-            "Tree study — {:?}\n\nLeft stick / D-pad   Orbit\nLB / RB   Lighting preset\nX   Turn sun    Y   Reset study\nB / Start   Return to title\n\nKeyboard: Left / Right   Orbit\n[ / ]   Lighting    L   Sun\nHome   Reset    Esc   Back",
-            self.preset
+            "Tree study — {:?}\n\n{}\n\nD-pad Up / Down   Select\nD-pad Left / Right   Edit\nLeft stick   Orbit\nLB / RB   Lighting\nA   Reset view    X   Turn sun\nY   Reset value    B / Start   Back",
+            self.preset, rows
         )
     }
 }
@@ -57,8 +102,9 @@ fn setup(
     mut woodlands: ResMut<Assets<Woodland_Material>>,
     mut study: ResMut<Tree_Study>,
 ) {
-    *study = default();
-    let (wood, leaves) = title::forest::study_tree();
+    study.repeats = default();
+    let (wood, leaves) = title::forest::study_tree(&study.parameters);
+    study.built = Some(study.parameters);
     let bark = woodlands.add(woodland_material(Woodland_Kind::Bark));
     let foliage = woodlands.add(woodland_material(Woodland_Kind::Canopy));
     commands
@@ -69,8 +115,12 @@ fn setup(
             DespawnOnExit(Mode::Tree_Study),
         ))
         .with_children(|tree| {
-            for (mesh, material) in [(wood, bark), (leaves, foliage)] {
+            for (mesh, material, part) in [
+                (wood, bark, Study_Part::Wood),
+                (leaves, foliage, Study_Part::Leaves),
+            ] {
                 tree.spawn((
+                    part,
                     Mesh3d(meshes.add(mesh)),
                     MeshMaterial3d(material),
                     RenderLayers::layer(2),
@@ -124,7 +174,6 @@ fn setup(
 }
 
 fn controls(
-    keys: Res<ButtonInput<KeyCode>>,
     pads: Query<&Gamepad>,
     time: Res<Time>,
     mut study: ResMut<Tree_Study>,
@@ -134,52 +183,70 @@ fn controls(
     if crate::automation::waiting(&controller) {
         return;
     }
-    for (key, preset) in [
-        (KeyCode::KeyD, Study_Light::Daylight),
-        (KeyCode::KeyR, Study_Light::Reverse),
-        (KeyCode::KeyF, Study_Light::Dim),
-        (KeyCode::KeyE, Study_Light::Sunset),
-        (KeyCode::KeyN, Study_Light::Moonlight),
-        (KeyCode::KeyP, Study_Light::Lantern),
-        (KeyCode::KeyB, Study_Light::Darkness),
-        (KeyCode::KeyA, Study_Light::Ambient),
-    ] {
-        if keys.just_pressed(key) {
-            study.preset = preset;
-            study.sun_turn = 0.;
-        }
-    }
     let pressed = |button| pads.iter().any(|pad| pad.just_pressed(button));
-    let previous = keys.just_pressed(KeyCode::BracketLeft) || pressed(GamepadButton::LeftTrigger);
-    let next = keys.just_pressed(KeyCode::BracketRight) || pressed(GamepadButton::RightTrigger);
+    let previous = pressed(GamepadButton::LeftTrigger);
+    let next = pressed(GamepadButton::RightTrigger);
     if previous != next {
         study.preset = study.preset.cycle(if next { 1 } else { -1 });
         study.sun_turn = 0.;
     }
-    if keys.just_pressed(KeyCode::Home) || pressed(GamepadButton::North) {
-        *study = default();
+    if pressed(GamepadButton::South) {
+        study.yaw = 0.;
     }
-    if keys.just_pressed(KeyCode::KeyL) || pressed(GamepadButton::West) {
+    if pressed(GamepadButton::North) {
+        let selected = study.selected;
+        study.parameters.reset(selected);
+    }
+    if pressed(GamepadButton::West) {
         study.sun_turn += std::f32::consts::FRAC_PI_4;
     }
     let dt = time.delta_secs();
     #[cfg(debug_assertions)]
     let dt = if controller.stepping { STEP } else { dt };
-    let mut orbit = keys.pressed(KeyCode::ArrowRight) as u8 as f32
-        - keys.pressed(KeyCode::ArrowLeft) as u8 as f32;
+    let mut orbit: f32 = 0.;
     for pad in &pads {
         let stick = pad.left_stick().x;
         let direction = if stick.abs() > 0.15 {
             stick.signum() * (stick.abs() - 0.15) / 0.85
         } else {
-            pad.pressed(GamepadButton::DPadRight) as u8 as f32
-                - pad.pressed(GamepadButton::DPadLeft) as u8 as f32
+            0.
         };
         if direction.abs() > orbit.abs() {
             orbit = direction;
         }
     }
     study.yaw += orbit * dt * 0.8;
+    let held = |button| pads.iter().any(|pad| pad.pressed(button)) as i32;
+    let navigation = held(GamepadButton::DPadDown) - held(GamepadButton::DPadUp);
+    if study.repeats[0].tick(navigation, dt) {
+        study.selected =
+            (study.selected as i32 + navigation).rem_euclid(Tree_Parameters::ROWS as i32) as usize;
+    }
+    let edit = held(GamepadButton::DPadRight) - held(GamepadButton::DPadLeft);
+    if study.repeats[1].tick(edit, dt) {
+        let selected = study.selected;
+        study.parameters.adjust(selected, edit);
+    }
+}
+
+fn rebuild(
+    mut study: ResMut<Tree_Study>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut parts: Query<(&Study_Part, &mut Mesh3d)>,
+) {
+    if study.built == Some(study.parameters) {
+        return;
+    }
+    let (wood, leaves) = title::forest::study_tree(&study.parameters);
+    let wood = meshes.add(wood);
+    let leaves = meshes.add(leaves);
+    for (part, mut mesh) in &mut parts {
+        mesh.0 = match part {
+            Study_Part::Wood => wood.clone(),
+            Study_Part::Leaves => leaves.clone(),
+        };
+    }
+    study.built = Some(study.parameters);
 }
 
 fn present(
@@ -275,7 +342,8 @@ impl Plugin for Tree_Study_Plugin {
             .add_systems(OnEnter(Mode::Tree_Study), setup)
             .add_systems(
                 Update,
-                controls
+                (controls, rebuild)
+                    .chain()
                     .run_if(in_state(Mode::Tree_Study))
                     .in_set(crate::app::Game_Systems::Actions),
             )
