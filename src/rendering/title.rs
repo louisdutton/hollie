@@ -38,6 +38,7 @@ fn ground_mesh() -> Mesh {
     let mut positions = Vec::new();
     let mut normals = Vec::new();
     let mut colors = Vec::new();
+    let mut uv = Vec::new();
     let mut indices = Vec::new();
     for z in 0..=96 {
         for x in 0..=96 {
@@ -51,6 +52,7 @@ fn ground_mesh() -> Mesh {
                     .to_array(),
             );
             let grass = clearing(p);
+            uv.push([grass, 0.]);
             colors.push(
                 Color::srgb(
                     0.26 - grass * 0.07,
@@ -73,6 +75,7 @@ fn ground_mesh() -> Mesh {
     .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
     .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
     .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uv)
     .with_inserted_indices(Indices::U32(indices))
 }
 
@@ -81,61 +84,95 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut meadows: ResMut<Assets<Meadow_Material>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut woodlands: ResMut<Assets<Woodland_Material>>,
+    server: Res<AssetServer>,
     mut scene: ResMut<Title_Scene>,
 ) {
     // Independent title assets and lights never load or mutate a gameplay room.
-    let patches = (-28..6).flat_map(|z| {
-        (-20..20).map(move |x| {
-            let p = Vec2::new(x as f32, z as f32) * 32.;
-            let density = clearing(p + Vec2::splat(16.)) * if z < -16 { 0.28 } else { 0.85 };
-            (((z + 28) * 40 + x + 20) as u32, p, density)
-        })
+    let grass_material = meadows.add(Meadow_Material {
+        base: StandardMaterial {
+            cull_mode: None,
+            double_sided: true,
+            reflectance: 0.05,
+            ..default()
+        },
+        extension: default(),
     });
-    let grass = room::grass_mesh(patches, 32., |_| false);
-    scene.grass_vertices = grass.count_vertices();
-    commands.spawn((
-        Mesh3d(meshes.add(grass)),
-        MeshMaterial3d(meadows.add(Meadow_Material {
-            base: StandardMaterial {
-                cull_mode: None,
-                double_sided: true,
-                reflectance: 0.05,
-                ..default()
-            },
-            extension: default(),
-        })),
-        Transform::default(),
-        RenderLayers::layer(1),
-    ));
-    let matte = materials.add(StandardMaterial {
-        perceptual_roughness: 1.,
-        reflectance: 0.08,
-        ..default()
-    });
-    commands.spawn((
-        Mesh3d(meshes.add(ground_mesh())),
-        MeshMaterial3d(matte.clone()),
-        Transform::default(),
-        RenderLayers::layer(1),
-    ));
-    let (wood, leaves, floor) = forest::build();
-    for mesh in [wood, floor] {
+    for (size, columns, rows, seed, density_scale) in [
+        (8., -32..32, 8..24, 20000_u32, 1.),
+        (16., -30..30, -20..4, 0_u32, 1.),
+        (32., -20..20, -28..-10, 10000_u32, 0.28),
+    ] {
+        let first_row = rows.start;
+        let first_column = columns.start;
+        let column_count = columns.end - columns.start;
+        let patches = rows.flat_map(|z| {
+            columns.clone().map(move |x| {
+                let p = Vec2::new(x as f32, z as f32) * size;
+                let density = clearing(p + Vec2::splat(size * 0.5)).powf(0.45) * density_scale;
+                (
+                    seed + ((z - first_row) * column_count + x - first_column) as u32,
+                    p,
+                    density,
+                )
+            })
+        });
+        let mut grass = room::grass_mesh(patches, size, |_| false);
+        if let Some(VertexAttributeValues::Float32x3(positions)) =
+            grass.attribute_mut(Mesh::ATTRIBUTE_POSITION)
+        {
+            for p in positions {
+                p[1] = 0.04 + (p[1] - 0.04) * 0.68;
+            }
+        }
+        if let Some(VertexAttributeValues::Float32x4(colors)) =
+            grass.attribute_mut(Mesh::ATTRIBUTE_COLOR)
+        {
+            for c in colors {
+                c[3] *= 0.68;
+            }
+        }
+        scene.grass_vertices += grass.count_vertices();
         commands.spawn((
-            Mesh3d(meshes.add(mesh)),
-            MeshMaterial3d(matte.clone()),
+            Mesh3d(meshes.add(grass)),
+            MeshMaterial3d(grass_material.clone()),
             Transform::default(),
             RenderLayers::layer(1),
         ));
     }
     commands.spawn((
-        Mesh3d(meshes.add(leaves)),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            cull_mode: None,
-            double_sided: true,
-            perceptual_roughness: 0.86,
-            reflectance: 0.12,
-            ..default()
-        })),
+        Mesh3d(meshes.add(ground_mesh())),
+        MeshMaterial3d(woodlands.add(woodland_material(Woodland_Kind::Soil))),
+        Transform::default(),
+        RenderLayers::layer(1),
+    ));
+    let geometry = forest::build();
+    let mut leaf_material = woodland_material(Woodland_Kind::Foliage);
+    leaf_material.base.base_color_texture = Some(server.load("foliage/woodland-atlas.png"));
+    leaf_material.base.alpha_mode = AlphaMode::Mask(0.4);
+    leaf_material.extension.parameters.y = 1.;
+    let leaf_material = woodlands.add(leaf_material);
+    for (mesh, kind) in [
+        (geometry.wood, Woodland_Kind::Bark),
+        (geometry.understory, Woodland_Kind::Foliage),
+        (geometry.stone, Woodland_Kind::Stone),
+    ] {
+        commands.spawn((
+            Mesh3d(meshes.add(mesh)),
+            MeshMaterial3d(woodlands.add(woodland_material(kind))),
+            Transform::default(),
+            RenderLayers::layer(1),
+        ));
+    }
+    commands.spawn((
+        Mesh3d(meshes.add(geometry.sprays)),
+        MeshMaterial3d(leaf_material.clone()),
+        Transform::default(),
+        RenderLayers::layer(1),
+    ));
+    commands.spawn((
+        Mesh3d(meshes.add(geometry.canopy)),
+        MeshMaterial3d(leaf_material),
         Transform::default(),
         RenderLayers::layer(1),
         Canopy,

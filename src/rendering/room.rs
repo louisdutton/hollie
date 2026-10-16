@@ -332,23 +332,20 @@ pub(super) fn grass_mesh(
             let height =
                 6.4 + meadow_noise(Vec2::new(root.x, root.z) * 0.035) * 2.4 + random(2) * 0.8;
             let angle = -std::f32::consts::FRAC_PI_4 + (random(3) - 0.5) * 1.1;
-            let width = Vec3::new(angle.cos(), 0., angle.sin()) * (0.85 + random(4) * 0.3);
-            let shoulder = root + Vec3::Y * height * 0.58;
-            let tip = root + Vec3::Y * height;
+            let width = Vec3::new(angle.cos(), 0., angle.sin()) * (0.62 + random(4) * 0.28);
             let base = positions.len() as u32;
-            for p in [
-                root - width,
-                root + width,
-                shoulder + width * 0.62,
-                shoulder - width * 0.62,
-                tip,
-            ] {
-                positions.push(p.to_array());
-                roots.push([root.x, root.z]);
-                colors.push([1., 1., 1., height / 12.]);
-            }
-            for index in [0, 1, 2, 0, 2, 3, 3, 2, 4] {
-                indices.push(base + index);
+            for row in 0..=6 {
+                let t = row as f32 / 6.;
+                let taper = (1. - t).powf(0.72) * (0.85 + (t * std::f32::consts::PI).sin() * 0.15);
+                for side in [-1., 1.] {
+                    positions.push((root + Vec3::Y * height * t + width * taper * side).to_array());
+                    roots.push([root.x, root.z]);
+                    colors.push([1., 1., 1., height / 12.]);
+                }
+                if row < 6 {
+                    let i = base + row * 2;
+                    indices.extend([i, i + 1, i + 3, i, i + 3, i + 2]);
+                }
             }
         }
     }

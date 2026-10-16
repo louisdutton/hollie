@@ -5,70 +5,161 @@ struct Forest_Mesh {
     positions: Vec<[f32; 3]>,
     normals: Vec<[f32; 3]>,
     colors: Vec<[f32; 4]>,
+    uv: Vec<[f32; 2]>,
+    indices: Vec<u32>,
 }
 impl Forest_Mesh {
-    fn triangle(&mut self, a: Vec3, b: Vec3, c: Vec3, color: Color) {
-        let normal = (b - a).cross(c - a).normalize_or_zero().to_array();
-        for point in [a, b, c] {
-            self.positions.push(point.to_array());
-            self.normals.push(normal);
-            self.colors.push(color.to_linear().to_f32_array());
-        }
+    fn vertex(&mut self, point: Vec3, normal: Vec3, color: Color, uv: Vec2) {
+        self.positions.push(point.to_array());
+        self.normals.push(normal.to_array());
+        self.colors.push(color.to_linear().to_f32_array());
+        self.uv.push(uv.to_array());
     }
 
-    fn branch(&mut self, start: Vec3, end: Vec3, radius: f32, tip: f32, color: Color) {
-        let axis = (end - start).normalize();
-        let u = axis.any_orthonormal_vector();
-        let v = axis.cross(u);
-        for side in 0..9 {
-            let ring = |i: u32| {
-                let angle = i as f32 * std::f32::consts::TAU / 9.;
-                u * angle.cos() + v * angle.sin()
-            };
-            let a = start + ring(side) * radius;
-            let b = start + ring(side + 1) * radius;
-            let c = end + ring(side + 1) * tip;
-            let d = end + ring(side) * tip;
-            self.triangle(a, b, c, color);
-            self.triangle(a, c, d, color);
-            self.triangle(end, d, c, color);
-        }
-    }
-
-    fn rock(&mut self, center: Vec3, size: Vec3, color: Color, seed: u32) {
-        for ring in 0..5 {
-            for side in 0..9 {
-                let point = |r: u32, s: u32| {
-                    let latitude = r as f32 * std::f32::consts::PI / 5.;
-                    let longitude = s as f32 * std::f32::consts::TAU / 9.;
-                    let uneven = 0.85 + random(seed + s % 9 + r * 11) * 0.3;
-                    center
-                        + Vec3::new(
-                            latitude.sin() * longitude.cos(),
-                            latitude.cos(),
-                            latitude.sin() * longitude.sin(),
-                        ) * size
-                            * uneven
-                };
-                let a = point(ring, side);
-                let b = point(ring + 1, side);
-                let c = point(ring + 1, side + 1);
-                let d = point(ring, side + 1);
-                self.triangle(a, c, b, color);
-                self.triangle(a, d, c, color);
+    fn grid(
+        &mut self,
+        rows: u32,
+        columns: u32,
+        mut sample: impl FnMut(f32, f32) -> (Vec3, Vec3, Color, Vec2),
+    ) {
+        let base = self.positions.len() as u32;
+        for row in 0..=rows {
+            for column in 0..=columns {
+                let (point, normal, color, uv) =
+                    sample(row as f32 / rows as f32, column as f32 / columns as f32);
+                self.vertex(point, normal, color, uv);
+                if row < rows && column < columns {
+                    let a = base + row * (columns + 1) + column;
+                    self.indices.extend([
+                        a,
+                        a + 1,
+                        a + columns + 2,
+                        a,
+                        a + columns + 2,
+                        a + columns + 1,
+                    ]);
+                }
             }
         }
     }
 
+    fn stem(
+        &mut self,
+        centerline: impl Fn(f32) -> Vec3,
+        radius: f32,
+        tip: f32,
+        color: Color,
+        rows: u32,
+    ) {
+        let point = |t: f32, angle: f32| {
+            let center = centerline(t);
+            let axis = (centerline(t + 0.001) - centerline(t - 0.001)).normalize();
+            let u = axis.cross(Vec3::Z).normalize_or(Vec3::X);
+            let v = axis.cross(u);
+            let radial = u * angle.cos() + v * angle.sin();
+            let flute =
+                1. + (angle * 5. + t * 1.7).sin() * 0.045 + (angle * 9. - t * 2.).sin() * 0.018;
+            center + radial * (radius + (tip - radius) * t) * flute
+        };
+        self.grid(rows, 32, |t, s| {
+            let angle = s * std::f32::consts::TAU;
+            let p = point(t, angle);
+            let tangent = point(t + 0.001, angle) - point(t - 0.001, angle);
+            let across = point(t, angle + 0.001) - point(t, angle - 0.001);
+            let normal = across.cross(tangent).normalize_or(Vec3::Y);
+            (
+                p,
+                normal,
+                color,
+                Vec2::new(
+                    s * radius * std::f32::consts::TAU,
+                    centerline(0.).distance(centerline(t)),
+                ),
+            )
+        });
+    }
+
+    fn branch(&mut self, start: Vec3, end: Vec3, radius: f32, tip: f32, color: Color) {
+        let bend = Vec3::Y * start.distance(end) * 0.09;
+        self.stem(
+            |t| start.lerp(end, t) + bend * (t * std::f32::consts::PI).sin(),
+            radius,
+            tip,
+            color,
+            8,
+        );
+    }
+
+    fn rock(&mut self, center: Vec3, size: Vec3, color: Color, seed: u32) {
+        let phase = random(seed) * std::f32::consts::TAU;
+        let point = |t: f32, s: f32| {
+            let latitude = t * std::f32::consts::PI;
+            let longitude = s * std::f32::consts::TAU;
+            let normal = Vec3::new(
+                latitude.sin() * longitude.cos(),
+                latitude.cos(),
+                latitude.sin() * longitude.sin(),
+            );
+            let uneven = 1.
+                + (normal.x * 2.7 + normal.y * 1.8 + phase).sin() * 0.10
+                + (normal.z * 4.3 - normal.y * 2.1 + phase).sin() * 0.06;
+            center + normal * size * uneven
+        };
+        self.grid(18, 32, |t, s| {
+            let dt = point(t + 0.001, s) - point(t - 0.001, s);
+            let ds = point(t, s + 0.001) - point(t, s - 0.001);
+            let p = point(t, s);
+            let normal = ds
+                .cross(dt)
+                .normalize_or((p - center).normalize_or(Vec3::Y));
+            (p, normal, color, Vec2::new(s, t))
+        });
+    }
+
     fn leaf(&mut self, center: Vec3, axis: Vec3, width: f32, length: f32, color: Color) {
-        let side = axis.cross(Vec3::Y).normalize_or(Vec3::X) * width;
-        let ridge = center + Vec3::Y * width * 0.25;
-        let tip = center + axis * length;
-        let base = center - axis * length * 0.7;
-        self.triangle(base, center + side, ridge, color);
-        self.triangle(center + side, tip, ridge, color);
-        self.triangle(tip, center - side, ridge, color);
-        self.triangle(center - side, base, ridge, color);
+        let side = axis.cross(Vec3::Y).normalize_or(Vec3::X);
+        let up = side.cross(axis).normalize();
+        let point = |t: f32, s: f32| {
+            let outline = (t * std::f32::consts::PI).sin().max(0.).powf(0.72);
+            let lateral = s * 2. - 1.;
+            center
+                + axis * (t * 1.7 - 0.7) * length
+                + side * lateral * outline * width
+                + up * (outline * width * 0.24 * (1. - lateral * lateral) - t * t * length * 0.14)
+        };
+        self.grid(8, 2, |t, s| {
+            let dt = point((t + 0.001).min(1.), s) - point((t - 0.001).max(0.), s);
+            let ds = point(t, s + 0.001) - point(t, s - 0.001);
+            let normal = ds.cross(dt).normalize_or(up);
+            (point(t, s), normal, color, Vec2::new(s, t))
+        });
+    }
+
+    fn spray(
+        &mut self,
+        center: Vec3,
+        axis: Vec3,
+        width: f32,
+        length: f32,
+        tile: u32,
+        color: Color,
+    ) {
+        let side = axis.cross(Vec3::Y).normalize_or(Vec3::X);
+        let up = side.cross(axis).normalize();
+        self.grid(4, 2, |t, s| {
+            let lateral = s * 2. - 1.;
+            let bend = (t * std::f32::consts::PI).sin();
+            let p = center
+                + axis * (t - 0.5) * length
+                + side * lateral * width * 0.5
+                + up * (bend * (1. - lateral * lateral) * width * 0.10);
+            let normal = (up + side * lateral * 0.22 - axis * (t - 0.5) * 0.16).normalize();
+            let uv = Vec2::new(
+                (tile % 2) as f32 * 0.5 + 0.012 + s * 0.476,
+                (tile / 2) as f32 * 0.5 + 0.012 + (1. - t) * 0.476,
+            );
+            (p, normal, color, uv)
+        });
     }
 
     fn finish(self) -> Mesh {
@@ -79,6 +170,8 @@ impl Forest_Mesh {
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals)
         .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, self.colors)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
+        .with_inserted_indices(Indices::U32(self.indices))
     }
 }
 
@@ -91,10 +184,20 @@ fn random(mut seed: u32) -> f32 {
     seed as f32 / u32::MAX as f32
 }
 
-pub(super) fn build() -> (Mesh, Mesh, Mesh) {
+pub(super) struct Forest_Geometry {
+    pub wood: Mesh,
+    pub canopy: Mesh,
+    pub understory: Mesh,
+    pub sprays: Mesh,
+    pub stone: Mesh,
+}
+
+pub(super) fn build() -> Forest_Geometry {
     let mut wood = Forest_Mesh::default();
     let mut canopy = Forest_Mesh::default();
     let mut floor = Forest_Mesh::default();
+    let mut sprays = Forest_Mesh::default();
+    let mut stone_mesh = Forest_Mesh::default();
     let mut trees = vec![
         (-175., 55., 230., 20.),
         (210., 20., 255., 23.),
@@ -128,25 +231,25 @@ pub(super) fn build() -> (Mesh, Mesh, Mesh) {
             0.20 + random(seed + 4) * 0.07,
             0.13,
         );
-        for section in 0..5 {
-            let a = section as f32 / 5.;
-            let b = (section + 1) as f32 / 5.;
-            wood.branch(
-                base + Vec3::Y * height * a + lean * a * a,
-                base + Vec3::Y * height * b + lean * b * b,
-                radius * (1. - a * 0.8),
-                radius * (1. - b * 0.8),
-                bark,
-            );
-        }
+        wood.stem(
+            |t| {
+                base + Vec3::Y * height * t
+                    + lean * t * t
+                    + Vec3::new((t * 3.1).sin(), 0., (t * 4.2).sin()) * radius * 0.15
+            },
+            radius,
+            radius * 0.2,
+            bark,
+            24,
+        );
         for root in 0..6 {
             let angle = root as f32 * std::f32::consts::TAU / 6. + random(seed + 9);
             let reach = Vec3::new(angle.cos(), 0., angle.sin()) * radius * 3.5;
             let end = base + reach;
             wood.branch(
-                base + Vec3::Y * radius * 1.4,
+                base + Vec3::Y * radius * 0.45,
                 Vec3::new(end.x, terrain_height(end.xz()) - 1., end.z),
-                radius * 0.6,
+                radius * 0.45,
                 0.5,
                 bark,
             );
@@ -162,7 +265,8 @@ pub(super) fn build() -> (Mesh, Mesh, Mesh) {
             let elbow = start.lerp(crown, 0.65) - Vec3::Y * 13.;
             wood.branch(start, elbow, radius * 0.45, radius * 0.22, bark);
             wood.branch(elbow, crown, radius * 0.22, 0.5, bark);
-            for leaf in 0..160 {
+            let leaf_count = if z > -400. { 66 } else { 44 };
+            for leaf in 0..leaf_count {
                 let n = seed + branch * 1277 + leaf * 17;
                 let y = random(n + 1) * 2. - 1.;
                 let angle = random(n + 2) * std::f32::consts::TAU;
@@ -170,16 +274,18 @@ pub(super) fn build() -> (Mesh, Mesh, Mesh) {
                 let radial = Vec3::new(ring * angle.cos(), y * 0.5, ring * angle.sin());
                 let center = crown + radial * (34. + random(n + 3) * 16.);
                 // Leave a canopy opening on the sunward side of the clearing.
-                if ((center.xz() - Vec2::new(198., -314.)) / Vec2::new(63., 78.)).length() < 1. {
+                if ((center.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1. {
                     continue;
                 }
                 let tone = random(n + 4);
-                let color = Color::srgb(0.13 + tone * 0.15, 0.28 + tone * 0.19, 0.12 + tone * 0.08);
-                canopy.leaf(
+                let color = Color::srgb(0.85 + tone * 0.15, 0.91 + tone * 0.09, 0.78 + tone * 0.18);
+                canopy.spray(
                     center,
-                    Vec3::new(angle.cos(), 0.12, angle.sin()).normalize(),
-                    4. + random(n + 5) * 4.,
-                    9. + random(n + 6) * 7.,
+                    Vec3::new(angle.cos() * 0.7, 0.45 + random(n + 7), angle.sin() * 0.7)
+                        .normalize(),
+                    25. + random(n + 5) * 13.,
+                    28. + random(n + 6) * 15.,
+                    leaf % 2,
                     color,
                 );
             }
@@ -197,22 +303,14 @@ pub(super) fn build() -> (Mesh, Mesh, Mesh) {
             for frond in 0..7 {
                 let angle = frond as f32 * 2.4;
                 let direction = Vec3::new(angle.cos(), 0., angle.sin());
-                for leaflet in 1..7 {
-                    let t = leaflet as f32 / 7.;
-                    let center = base
-                        + direction * t * 15.
-                        + Vec3::Y * (t * std::f32::consts::PI * 0.8).sin() * 12.;
-                    for side in [-1., 1.] {
-                        let axis = Quat::from_rotation_y(side * 0.8) * direction;
-                        floor.leaf(
-                            center,
-                            axis,
-                            (1. - t) * 2.5,
-                            (1. - t) * 6.,
-                            Color::srgb(0.17, 0.39, 0.23),
-                        );
-                    }
-                }
+                sprays.spray(
+                    base + direction * 5. + Vec3::Y * 8.,
+                    (direction + Vec3::Y * 0.9).normalize(),
+                    12.,
+                    24.,
+                    2,
+                    Color::srgb(0.84, 0.94, 0.82),
+                );
             }
         } else {
             for flower in 0..4 {
@@ -245,32 +343,26 @@ pub(super) fn build() -> (Mesh, Mesh, Mesh) {
         let z = -random(i * 19 + 2) * 570.;
         let p = Vec3::new(x, terrain_height(Vec2::new(x, z)), z);
         let radius = 5. + random(i * 19 + 3) * 13.;
-        floor.rock(
+        stone_mesh.rock(
             p,
             Vec3::new(radius, radius * 0.55, radius * 0.8),
             Color::srgb(0.27, 0.34, 0.29),
             i,
         );
-        floor.rock(
-            p + Vec3::Y * radius * 0.3,
-            Vec3::new(radius * 0.88, radius * 0.3, radius * 0.75),
-            Color::srgb(0.27, 0.41, 0.19),
-            i,
-        );
     }
     // A small, weathered standing stone gives the eye a destination in the light.
     let stone = Vec3::new(72., terrain_height(Vec2::new(72., -200.)), -200.);
-    floor.rock(
+    stone_mesh.rock(
         stone + Vec3::Y * 15.,
         Vec3::new(11., 27., 8.),
         Color::srgb(0.40, 0.48, 0.40),
         413,
     );
-    floor.rock(
-        stone + Vec3::Y * 5.,
-        Vec3::new(14., 7., 11.),
-        Color::srgb(0.31, 0.44, 0.21),
-        719,
-    );
-    (wood.finish(), canopy.finish(), floor.finish())
+    Forest_Geometry {
+        wood: wood.finish(),
+        canopy: canopy.finish(),
+        understory: floor.finish(),
+        sprays: sprays.finish(),
+        stone: stone_mesh.finish(),
+    }
 }

@@ -32,6 +32,7 @@ use camera::{Camera_State, player_center};
 use camera::{bounded_camera_target, game_camera_projection};
 pub use materials::{Meadow_Material, Meadow_Surface, Painted_Material, Painted_Surface};
 use materials::{Meadow_Uniform, Water_Uniform};
+use materials::{Woodland_Kind, Woodland_Material, woodland_material};
 #[cfg(test)]
 use models::transformed_bounds;
 #[cfg(test)]
@@ -114,6 +115,7 @@ impl Plugin for Rendering_Plugin {
         app.add_plugins((
             MaterialPlugin::<Painted_Material>::default(),
             MaterialPlugin::<Meadow_Material>::default(),
+            MaterialPlugin::<Woodland_Material>::default(),
             room::Room_Plugin,
             models::Model_Plugin,
             camera::Camera_Plugin,

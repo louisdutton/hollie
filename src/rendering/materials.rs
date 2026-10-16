@@ -74,3 +74,47 @@ impl MaterialExtension for Painted_Surface {
     }
 }
 pub type Painted_Material = ExtendedMaterial<StandardMaterial, Painted_Surface>;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Woodland_Kind {
+    Bark,
+    Stone,
+    Foliage,
+    Soil,
+}
+
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
+pub(crate) struct Woodland_Surface {
+    #[uniform(100)]
+    pub parameters: Vec4,
+}
+impl MaterialExtension for Woodland_Surface {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/woodland.wesl".into()
+    }
+}
+pub(crate) type Woodland_Material = ExtendedMaterial<StandardMaterial, Woodland_Surface>;
+
+pub(crate) fn woodland_material(kind: Woodland_Kind) -> Woodland_Material {
+    Woodland_Material {
+        base: StandardMaterial {
+            cull_mode: if kind == Woodland_Kind::Foliage {
+                None
+            } else {
+                Some(bevy::render::render_resource::Face::Back)
+            },
+            double_sided: kind == Woodland_Kind::Foliage,
+            diffuse_transmission: if kind == Woodland_Kind::Foliage {
+                0.35
+            } else {
+                0.
+            },
+            perceptual_roughness: 0.92,
+            reflectance: 0.12,
+            ..default()
+        },
+        extension: Woodland_Surface {
+            parameters: Vec4::new(kind as u32 as f32, 0., 0., 0.),
+        },
+    }
+}
