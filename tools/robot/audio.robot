@@ -17,18 +17,25 @@ Test Teardown    Finish Journey
 Title birdsong and demo wind layered playback, pause and room transitions
     ${title}=    Observe Game
     Should Be Equal    ${title}[audio]    ${title_audio}
+    Should Be Equal As Numbers    ${title}[presentation][audio_levels][Music]    0.65    precision=5
+    Should Be Equal As Numbers    ${title}[presentation][audio_levels][Ambience]    0.8    precision=5
     ${demo}=    Reset Game
     Should Be Equal    ${demo}[audio]    ${demo_audio}
     ${paused}=    Advance Ticks    1    P
     Should Be Equal    ${paused}[audio]    ${demo_audio}
     Advance Ticks    1
     Advance Ticks    1    ENTER
-    Advance Ticks    8    W    D
+    ${fading}=    Advance Ticks    8    W    D
+    Should Be True    0 < $fading['presentation']['audio_levels']['Music'] < 0.65
+    Should Be True    0 < $fading['presentation']['audio_levels']['Ambience'] < 0.8
     ${inside}=    Advance Ticks    45
     Should Be Equal    ${inside}[audio]    ${inside_audio}
+    Should Be Equal As Numbers    ${inside}[presentation][audio_levels][Music]    0.65    precision=5
     Should Be Equal    ${inside}[room]    small_room
     Advance Ticks    1
     Advance Ticks    8    A    S
     ${returned}=    Advance Ticks    45
     Should Be Equal    ${returned}[audio]    ${demo_audio}
+    Should Be Equal As Numbers    ${returned}[presentation][audio_levels][Music]    0.65    precision=5
+    Should Be Equal As Numbers    ${returned}[presentation][audio_levels][Ambience]    0.8    precision=5
     Should Be Equal    ${returned}[room]    demo

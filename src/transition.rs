@@ -60,6 +60,14 @@ impl Default for Scene_Transition {
     }
 }
 impl Scene_Transition {
+    pub fn opacity(&self, game: &crate::simulation::Game_State) -> f32 {
+        let door_alpha = game
+            .transition
+            .as_ref()
+            .filter(|door| !door.loaded)
+            .map_or(0., |door| (door.elapsed / 0.3).clamp(0., 1.));
+        self.alpha.max(door_alpha)
+    }
     pub fn busy(&self) -> bool {
         self.phase != Phase::Visible
     }
@@ -104,6 +112,9 @@ pub(crate) struct Transition_Fade;
 #[derive(Component)]
 struct Fade_Camera;
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Transition_Systems;
+
 pub(crate) struct Transition_Plugin;
 impl Plugin for Transition_Plugin {
     fn build(&self, app: &mut App) {
@@ -111,7 +122,10 @@ impl Plugin for Transition_Plugin {
             .init_resource::<Render_Readiness>()
             .insert_resource(ClearColor(Color::BLACK))
             .add_systems(PostStartup, setup)
-            .add_systems(PostUpdate, (advance, display).chain());
+            .add_systems(
+                PostUpdate,
+                (advance, display).chain().in_set(Transition_Systems),
+            );
         // Match Bevy's loading-screen pattern: render-world readiness is
         // published through MainWorld during extraction, never by blocking.
         if let Some(render) = app.get_sub_app_mut(RenderApp) {
@@ -185,12 +199,17 @@ struct Scene_Assets<'w, 's> {
     fonts: Query<'w, 's, &'static TextFont>,
     font_assets: Res<'w, Assets<Font>>,
     logos: Res<'w, Assets<crate::ui::Logo_Material>>,
+    audio: Query<'w, 's, &'static AudioPlayer>,
 }
 impl Scene_Assets<'_, '_> {
     fn ready(&self) -> bool {
-        self.models
+        self.audio
             .iter()
-            .all(|model| self.server.is_loaded_with_dependencies(model.gltf.id()))
+            .all(|player| self.server.is_loaded_with_dependencies(player.0.id()))
+            && self
+                .models
+                .iter()
+                .all(|model| self.server.is_loaded_with_dependencies(model.gltf.id()))
             && self
                 .roots
                 .iter()
@@ -270,12 +289,7 @@ fn display(
     mut overlay: Single<&mut Camera, (With<Fade_Camera>, Without<Main_Camera>)>,
     mut fade: Single<&mut BackgroundColor, With<Transition_Fade>>,
 ) {
-    let door_alpha = game
-        .transition
-        .as_ref()
-        .filter(|door| !door.loaded)
-        .map_or(0., |door| (door.elapsed / 0.3).clamp(0., 1.));
-    let alpha = transition.alpha.max(door_alpha);
+    let alpha = transition.opacity(&game);
     // Skip only the final output, keeping the scene's render graph running
     // behind a shader-independent black camera clear while pipelines warm up.
     main.output_mode = if transition.loading() && transition.confirmations == 0 {

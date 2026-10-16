@@ -563,6 +563,7 @@ struct Presentation_Observation<'w, 's> {
     scale: Res<'w, UiScale>,
     transition: Res<'w, crate::transition::Scene_Transition>,
     readiness: Res<'w, crate::transition::Render_Readiness>,
+    audio_levels: Query<'w, 's, (&'static crate::rendering::Audio_Layer, &'static AudioSink)>,
     title: Res<'w, crate::rendering::Title_Scene>,
     area: Query<'w, 's, (&'static Text, &'static TextColor), With<crate::ui::Area_Title>>,
     cameras: Query<'w, 's, Has<bevy::light::VolumetricFog>, With<crate::rendering::Main_Camera>>,
@@ -573,6 +574,7 @@ impl Presentation_Observation<'_, '_> {
         let area = self.area.iter().next();
         json!({
             "ui_scale": self.scale.0,
+            "audio_levels": self.audio_levels.iter().map(|(layer, sink)| (format!("{layer:?}"), json!(sink.volume().to_linear()))).collect::<serde_json::Map<String, Value>>(),
             "scene_transition": {"phase": format!("{:?}", self.transition.phase), "alpha": self.transition.alpha, "confirmations": self.transition.confirmations, "renderer_ready": self.readiness.ready},
             "tree_study": {"preset":format!("{:?}",self.study.preset), "yaw":self.study.yaw, "sun_turn":self.study.sun_turn, "parameters":self.study.parameters, "selected":self.study.selected, "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
             "title_elapsed": self.title.elapsed,

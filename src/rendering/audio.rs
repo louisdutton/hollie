@@ -25,10 +25,8 @@ fn play_music(
     mode: Res<State<Mode>>,
     mut state: Local<Audio_State>,
     server: Res<AssetServer>,
-    preferences: Res<crate::app::Preferences>,
-    audio: Audio_Players,
+    players: Query<(Entity, &Audio_Layer)>,
 ) {
-    let Audio_Players { players, mut sinks } = audio;
     let (music, ambience) = if *mode.get() == Mode::Title {
         (TITLE_MUSIC, TITLE_AMBIENCE)
     } else {
@@ -59,7 +57,7 @@ fn play_music(
                 commands.spawn((
                     AudioPlayer::new(server.load(path.to_string())),
                     PlaybackSettings {
-                        volume: layer.volume(&preferences),
+                        volume: bevy::audio::Volume::Linear(0.),
                         ..PlaybackSettings::LOOP
                     },
                     layer,
@@ -67,9 +65,6 @@ fn play_music(
             }
             *current = path.into();
         }
-    }
-    for (layer, mut sink) in &mut sinks {
-        sink.set_volume(layer.volume(&preferences));
     }
 }
 
@@ -82,22 +77,48 @@ pub(super) struct Audio_Plugin;
 impl Plugin for Audio_Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Update,
-            (play_music, play_impacts).in_set(crate::app::Game_Systems::Presentation),
+            PostUpdate,
+            (play_music, play_impacts, update_volume)
+                .chain()
+                .after(crate::transition::Transition_Systems)
+                // Bevy starts queued audio after transform propagation; set
+                // its initial gain first so a new track cannot start at full volume.
+                .before(bevy::transform::TransformSystems::Propagate),
         );
     }
 }
 
-#[derive(bevy::ecs::system::SystemParam)]
-struct Audio_Players<'w, 's> {
-    players: Query<'w, 's, (Entity, &'static Audio_Layer)>,
-    sinks: Query<'w, 's, (&'static Audio_Layer, &'static mut AudioSink)>,
+#[derive(Component)]
+struct Sound_Effect;
+fn update_volume(
+    preferences: Res<crate::app::Preferences>,
+    transition: Res<crate::transition::Scene_Transition>,
+    game: Res<Game_State>,
+    mut players: Query<
+        (
+            &mut PlaybackSettings,
+            Option<&Audio_Layer>,
+            Option<&mut AudioSink>,
+        ),
+        Or<(With<Audio_Layer>, With<Sound_Effect>)>,
+    >,
+) {
+    let gain = 1. - transition.opacity(&game);
+    for (mut settings, layer, sink) in &mut players {
+        let base = layer.map_or(preferences.master * preferences.effects, |layer| {
+            layer.volume(&preferences).to_linear()
+        });
+        let volume = bevy::audio::Volume::Linear(base * gain);
+        settings.volume = volume;
+        if let Some(mut sink) = sink {
+            sink.set_volume(volume);
+        }
+    }
 }
 fn play_impacts(
     mut commands: Commands,
     game: Res<Game_State>,
     server: Res<AssetServer>,
-    preferences: Res<crate::app::Preferences>,
     mut impacts: MessageReader<crate::simulation::Impact>,
 ) {
     for _ in impacts
@@ -108,9 +129,81 @@ fn play_impacts(
             AudioPlayer::new(server.load("audio/fx/impact/hit-short-04.wav")),
             PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Despawn,
-                volume: bevy::audio::Volume::Linear(preferences.master * preferences.effects),
+                volume: bevy::audio::Volume::Linear(0.),
                 ..default()
             },
+            Sound_Effect,
         ));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        app::Preferences,
+        transition::{Phase, Scene_Transition},
+    };
+    use bevy::audio::Volume;
+
+    #[test]
+    fn queued_audio_follows_the_fade_and_preserves_each_bus_volume() {
+        let game =
+            Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap();
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .insert_resource(*game.state)
+            .insert_resource(Preferences {
+                master: 0.6,
+                music: 0.5,
+                effects: 0.25,
+                ..default()
+            })
+            .init_resource::<Scene_Transition>()
+            .add_systems(Update, update_volume);
+        let music = app
+            .world_mut()
+            .spawn((PlaybackSettings::LOOP, Audio_Layer::Music))
+            .id();
+        let ambience = app
+            .world_mut()
+            .spawn((PlaybackSettings::LOOP, Audio_Layer::Ambience))
+            .id();
+        let effect = app
+            .world_mut()
+            .spawn((PlaybackSettings::default(), Sound_Effect))
+            .id();
+        app.update();
+        for entity in [music, ambience, effect] {
+            assert_eq!(
+                app.world().get::<PlaybackSettings>(entity).unwrap().volume,
+                Volume::Linear(0.)
+            );
+        }
+        for (alpha, gain) in [(0.5, 0.5), (0., 1.)] {
+            {
+                let mut transition = app.world_mut().resource_mut::<Scene_Transition>();
+                transition.phase = Phase::Revealing;
+                transition.alpha = alpha;
+            }
+            app.update();
+            for (entity, level) in [(music, 0.3), (ambience, 0.15), (effect, 0.15)] {
+                let volume = app
+                    .world()
+                    .get::<PlaybackSettings>(entity)
+                    .unwrap()
+                    .volume
+                    .to_linear();
+                assert!((volume - level * gain).abs() < 0.00001);
+            }
+        }
+        app.world_mut().resource_mut::<Preferences>().master = 0.;
+        app.update();
+        for entity in [music, ambience, effect] {
+            assert_eq!(
+                app.world().get::<PlaybackSettings>(entity).unwrap().volume,
+                Volume::Linear(0.)
+            );
+        }
     }
 }
