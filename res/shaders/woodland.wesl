@@ -3,6 +3,7 @@ import bevy_pbr::render::{
     pbr_fragment::pbr_input_from_standard_material,
     pbr_functions::{alpha_discard,apply_pbr_lighting,main_pass_post_lighting_processing},
 };
+import super::palette::{grass_colour,moss_colour,foliage_colour,WOOD_LIGHT};
 struct Woodland { parameters: vec4<f32> }
 @group(constants::MATERIAL_BIND_GROUP) @binding(100) var<uniform> woodland: Woodland;
 fn hash(p: vec2<f32>) -> f32 { return fract(sin(dot(p,vec2<f32>(127.1,311.7)))*43758.5453); }
@@ -28,12 +29,8 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
         // backlit canopy, without changing the sun that casts the glade rays.
         let light=normalize(normalize(woodland.parameters.yzw)+vec3<f32>(-0.55,0.0,1.05));
         let brush=(noise(p.xz*0.16+vec2<f32>(p.y*0.11))+noise(p.zy*0.23))*0.5;
-        let brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.38+(in.uv.x-0.5)*0.30;
-        var paint=vec3<f32>(0.035,0.22,0.20);
-        if brightness>0.02 { paint=vec3<f32>(0.055,0.30,0.27); }
-        if brightness>0.38 { paint=vec3<f32>(0.10,0.43,0.34); }
-        if brightness>0.70 { paint=vec3<f32>(0.16,0.50,0.37); }
-        if brightness>0.90 && brush>0.54 { paint=vec3<f32>(0.36,0.58,0.36); }
+        let brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.65+(in.uv.x-0.5)*0.30;
+        let paint=foliage_colour(brightness,brush);
         var out: FragmentOutput;
         out.color=vec4<f32>(linear(paint)*albedo*2.2,1.0);
         out.color=main_pass_post_lighting_processing(pbr,out.color);
@@ -46,13 +43,13 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
         let grain=0.5+0.5*sin(uv.x*1.1+warp+sin(uv.y*0.055)*0.35);
         let grooves=smoothstep(0.75,0.97,grain);
         albedo*=0.94+mottling*0.32-grooves*0.17;
-        albedo=mix(albedo,linear(vec3<f32>(0.40,0.33,0.24)),mottling*0.20);
+        albedo=mix(albedo,linear(WOOD_LIGHT),mottling*0.20);
         let moss=smoothstep(-0.25,0.65,pbr.N.y)*smoothstep(0.48,0.78,pigment(p.xz*0.065+vec2<f32>(p.y*0.05)));
-        albedo=mix(albedo,linear(vec3<f32>(0.25,0.37,0.19)),moss*0.75);
+        albedo=mix(albedo,linear(moss_colour(0.4)),moss*0.75);
     } else if kind<1.5 {
         albedo*=0.88+mottling*0.35;
         let moss=smoothstep(0.22,0.78,pbr.N.y+(pigment(p.xz*0.08)-0.5)*0.9);
-        let green=mix(vec3<f32>(0.21,0.33,0.16),vec3<f32>(0.34,0.47,0.22),mottling);
+        let green=moss_colour(mottling);
         albedo=mix(albedo,linear(green),moss*0.88);
     } else if kind<2.5 {
         // Broad pigment variation keeps the shared canopy normals readable.
@@ -62,8 +59,8 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
     } else {
         albedo*=0.90+mottling*0.28;
         let moss=smoothstep(0.55,0.78,pigment(p.xz*0.032));
-        albedo=mix(albedo,linear(vec3<f32>(0.28,0.39,0.21)),moss*0.6);
-        let grass=mix(vec3<f32>(0.44,0.65,0.38),vec3<f32>(0.56,0.79,0.38),noise(p.xz*0.012));
+        albedo=mix(albedo,linear(moss_colour(0.5)),moss*0.6);
+        let grass=grass_colour(noise(p.xz*0.012));
         albedo=mix(albedo,linear(grass)*0.80,smoothstep(0.0,0.5,in.uv.x));
     }
     pbr.material.base_color=vec4<f32>(albedo,1.0);

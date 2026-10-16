@@ -3,6 +3,7 @@ import bevy_pbr::render::{
     pbr_fragment::pbr_input_from_standard_material,
     pbr_functions::{alpha_discard,apply_pbr_lighting,main_pass_post_lighting_processing},
 };
+import super::palette::{grass_colour,WATER_DEEP,WATER_LIGHT,WATER_SHALLOW,FOAM};
 struct Paint {parameters:vec4<f32>}
 struct Water {contacts:array<vec4<f32>,16>,headings:array<vec4<f32>,16>,starts:array<vec4<f32>,64>,ends:array<vec4<f32>,64>}
 @group(constants::MATERIAL_BIND_GROUP) @binding(100) var<uniform> paint:Paint;
@@ -65,9 +66,9 @@ fn water_color(p:vec2<f32>,bank:f32,time:f32,surface_weight:f32,tile_size:f32) -
     var shore_fade = smoothstep(0.0, tile_size * 0.4, bank);
     var shallows = 1.0 - smoothstep(0.0, tile_size * 0.9, bank);
 
-    var color = mix(vec3<f32>(0.10, 0.47, 0.56), vec3<f32>(0.19, 0.56, 0.61),
+    var color = mix(WATER_DEEP, WATER_LIGHT,
                      smoothstep(0.25, 0.75, wash));
-    color = mix(color, vec3<f32>(0.37, 0.71, 0.66), shallows * 0.8);
+    color = mix(color, WATER_SHALLOW, shallows * 0.8);
 
     var pattern = foam_cells((p + drift) * 0.043,time);
     var dark_pattern = foam_cells((p + drift + vec2<f32>(4.0, -3.0)) * 0.043,time);
@@ -123,7 +124,7 @@ fn water_color(p:vec2<f32>,bank:f32,time:f32,surface_weight:f32,tile_size:f32) -
     foam *= surface_weight;
 
 
-    return mix(color,vec3<f32>(0.90,0.94,0.82),foam*0.95);
+    return mix(color,FOAM,foam*0.95);
 }
 @fragment
 fn fragment(in:VertexOutput,@builtin(front_facing) front:bool) -> FragmentOutput {
@@ -139,7 +140,7 @@ fn fragment(in:VertexOutput,@builtin(front_facing) front:bool) -> FragmentOutput
         pbr.N=normalize(vec3<f32>(-slope.x,1.0,-slope.y));
         pbr.material.perceptual_roughness=0.65;
     } else if paint.parameters.x==2.0 && grass_ground {
-        let albedo=mix(vec3<f32>(0.44,0.65,0.38),vec3<f32>(0.56,0.79,0.38),noise(p*0.012));
+        let albedo=grass_colour(noise(p*0.012));
         pbr.material.base_color=vec4<f32>(pow(albedo,vec3<f32>(2.2)),1.0);
     } else {
         pbr.material.base_color=vec4<f32>(pbr.material.base_color.rgb*(1.0+(noise(p*0.045)-0.5)*paint.parameters.y),pbr.material.base_color.a);
