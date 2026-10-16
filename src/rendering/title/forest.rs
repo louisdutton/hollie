@@ -135,8 +135,8 @@ impl Forest_Mesh {
         });
     }
 
-    // A single surface carries the whole crown. Small contour lobes suggest
-    // leaves without giving every leaf clump an independent spherical outline.
+    // The connected volume guides leaf placement and broad lighting, but is
+    // never rendered: its smooth skin previously made the crowns look solid.
     fn crown(&mut self, center: Vec3, size: Vec3, seed: u32) {
         let phase = random(seed) * std::f32::consts::TAU;
         let lobes: Vec<_> = (0..9)
@@ -145,14 +145,14 @@ impl Forest_Mesh {
                 let angle = i as f32 * 2.4 + phase;
                 (
                     Vec3::new(
-                        angle.cos() * 0.48,
-                        (random(n + 1) - 0.45) * 0.9,
-                        angle.sin() * 0.48,
+                        angle.cos() * (0.48 + random(n + 5) * 0.42),
+                        (random(n + 1) - 0.45) * 1.25,
+                        angle.sin() * (0.48 + random(n + 6) * 0.42),
                     ),
                     Vec3::new(
-                        0.58 + random(n + 2) * 0.24,
-                        0.56 + random(n + 3) * 0.22,
-                        0.58 + random(n + 4) * 0.24,
+                        0.40 + random(n + 2) * 0.22,
+                        0.42 + random(n + 3) * 0.24,
+                        0.40 + random(n + 4) * 0.22,
                     ),
                 )
             })
@@ -167,7 +167,7 @@ impl Forest_Mesh {
             );
             // Find the outer boundary of overlapping crown lobes along each
             // ray. A smooth union joins their shoulders into one closed mesh.
-            let mut outline: f32 = 0.78;
+            let mut outline: f32 = 0.45;
             for &(offset, radii) in &lobes {
                 let ray = n / radii;
                 let origin = offset / radii;
@@ -181,95 +181,61 @@ impl Forest_Mesh {
                     outline = outline.max(distance) + h * h * 0.18 * 0.25;
                 }
             }
-            outline += (n.x * 29. + n.y * 13. + phase).sin()
-                * (n.z * 27. - n.y * 11. + phase).sin()
-                * 0.025
-                + (n.x * -16. + n.z * 23. + n.y * 18. + phase).sin() * 0.018;
             center + n * size * outline
         };
-        let first_index = self.indices.len();
-        let (rows, columns) = if center.z > -400. {
-            (64, 128)
-        } else {
-            (48, 96)
-        };
-        self.grid(rows, columns, |t, s| {
-            let p = point(t, s);
-            let dt = point(t + 0.001, s) - point(t - 0.001, s);
-            let ds = point(t, s + 0.001) - point(t, s - 0.001);
-            let guide = ((p - center) / size / size).normalize_or(Vec3::Y);
-            let surface = ds.cross(dt).normalize_or(guide);
-            // Broad lighting connects the crown; surface detail only breaks
-            // the painted boundaries, rather than shading a field of balls.
-            (
-                p,
-                guide.lerp(surface, 0.12).normalize(),
-                Color::WHITE,
-                Vec2::new(random(seed), t),
-            )
-        });
-        // Keep the established opening that admits the glade's god rays.
-        let triangles = self.indices.split_off(first_index);
-        let positions = &self.positions;
-        self.indices.extend(
-            triangles
-                .chunks_exact(3)
-                .filter(|triangle| {
-                    let p = triangle
-                        .iter()
-                        .map(|&i| Vec3::from_array(positions[i as usize]))
-                        .sum::<Vec3>()
-                        / 3.;
-                    ((p.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() >= 1.
-                })
-                .flatten()
-                .copied(),
-        );
-        // Small leaf masses overlap the filled crown. Their shared guide
-        // normals keep them attached visually instead of shading separate balls.
-        let leaf_count = if center.z > -400. { 260 } else { 130 };
+        let leaf_count = if center.z > -400. { 2400 } else { 1200 };
         for leaf in 0..leaf_count {
             let n = seed + leaf * 53;
             let y = 1. - 2. * (leaf as f32 + 0.5) / leaf_count as f32;
             let angle = leaf as f32 * 2.399963 + phase;
-            let p = point(
-                y.acos() / std::f32::consts::PI,
-                angle / std::f32::consts::TAU,
-            );
+            let t = y.acos() / std::f32::consts::PI;
+            let s = angle / std::f32::consts::TAU;
+            let surface_point = point(t, s);
+            let p = center + (surface_point - center) * (0.86 + random(n + 1) * 0.17);
             if ((p.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1. {
                 continue;
             }
             let guide = ((p - center) / size / size).normalize();
-            let radius = 4. + random(n + 1) * 3.;
-            self.tuft(
-                p - guide * radius * 0.45,
-                Vec3::new(radius, radius * 0.8, radius),
-                (center, size),
-                Color::WHITE,
+            let dt = point(t + 0.001, s) - point(t - 0.001, s);
+            let ds = point(t, s + 0.001) - point(t, s - 0.001);
+            let normal = guide
+                .lerp(ds.cross(dt).normalize_or(guide), 0.65)
+                .normalize();
+            let variation = Vec3::new(random(n + 7), random(n + 8), random(n + 9)) * 2. - Vec3::ONE;
+            self.leaf_patch(
+                p,
+                (normal + variation * 0.40).normalize(),
+                Vec2::new(4. + random(n + 2) * 3., 4. + random(n + 3) * 4.),
                 n,
-                0.12,
             );
         }
     }
 
-    // Shrubs retain their smaller overlapping leaf masses.
-    fn tuft(
-        &mut self,
-        center: Vec3,
-        size: Vec3,
-        envelope: (Vec3, Vec3),
-        color: Color,
-        seed: u32,
-        local_weight: f32,
-    ) {
+    fn leaf_patch(&mut self, center: Vec3, normal: Vec3, size: Vec2, seed: u32) {
+        let side = normal.cross(Vec3::Y).normalize_or(Vec3::X);
+        let up = side.cross(normal).normalize();
         let phase = random(seed) * std::f32::consts::TAU;
-        let (rows, columns) = if local_weight < 0.5 {
-            (6, 12)
-        } else if center.z > -400. {
-            (12, 24)
-        } else {
-            (8, 16)
-        };
+        let u = side * phase.cos() + up * phase.sin();
+        let v = -side * phase.sin() + up * phase.cos();
+        let base = self.positions.len() as u32;
+        let uv = Vec2::new(random(seed + 4), 0.);
+        self.vertex(center + normal * size.x * 0.08, normal, Color::WHITE, uv);
+        const EDGES: u32 = 24;
+        for edge in 0..EDGES {
+            let angle = edge as f32 / EDGES as f32 * std::f32::consts::TAU;
+            let outline =
+                0.87 + (angle * 3. + phase).sin() * 0.13 + (angle * 7. - phase).cos() * 0.06;
+            let p = center + (u * angle.cos() * size.x + v * angle.sin() * size.y) * outline;
+            self.vertex(p, normal, Color::WHITE, uv);
+            self.indices
+                .extend([base, base + 1 + (edge + 1) % EDGES, base + 1 + edge]);
+        }
+    }
+
+    // Shrubs retain their smaller overlapping leaf masses.
+    fn tuft(&mut self, center: Vec3, size: Vec3, envelope: (Vec3, Vec3), color: Color, seed: u32) {
+        let phase = random(seed) * std::f32::consts::TAU;
+        let (rows, columns) = if center.z > -400. { (12, 24) } else { (8, 16) };
         self.grid(rows, columns, |t, s| {
             let latitude = t * std::f32::consts::PI;
             let longitude = s * std::f32::consts::TAU;
@@ -286,7 +252,7 @@ impl Forest_Mesh {
             let local_normal = (radial / size).normalize();
             (
                 p,
-                crown_normal.lerp(local_normal, local_weight).normalize(),
+                crown_normal.lerp(local_normal, 0.78).normalize(),
                 color,
                 Vec2::new(random(seed), t),
             )
@@ -430,7 +396,6 @@ pub(super) fn build() -> Forest_Geometry {
                     (crown, radii),
                     Color::WHITE,
                     n,
-                    0.78,
                 );
             }
         } else {

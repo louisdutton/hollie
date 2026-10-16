@@ -81,6 +81,7 @@ pub(crate) enum Woodland_Kind {
     Stone,
     Foliage,
     Soil,
+    Canopy,
 }
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
@@ -96,19 +97,16 @@ impl MaterialExtension for Woodland_Surface {
 pub(crate) type Woodland_Material = ExtendedMaterial<StandardMaterial, Woodland_Surface>;
 
 pub(crate) fn woodland_material(kind: Woodland_Kind) -> Woodland_Material {
+    let leaves = matches!(kind, Woodland_Kind::Foliage | Woodland_Kind::Canopy);
     Woodland_Material {
         base: StandardMaterial {
-            cull_mode: if kind == Woodland_Kind::Foliage {
+            cull_mode: if leaves {
                 None
             } else {
                 Some(bevy::render::render_resource::Face::Back)
             },
             double_sided: kind == Woodland_Kind::Foliage,
-            diffuse_transmission: if kind == Woodland_Kind::Foliage {
-                0.35
-            } else {
-                0.
-            },
+            diffuse_transmission: if leaves { 0.35 } else { 0. },
             perceptual_roughness: 0.92,
             reflectance: 0.12,
             ..default()

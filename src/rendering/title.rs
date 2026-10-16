@@ -158,6 +158,9 @@ fn setup(
         sun_direction.z,
     );
     leaf_material.base.double_sided = false;
+    let mut canopy_material = leaf_material.clone();
+    canopy_material.extension.parameters.x = Woodland_Kind::Canopy as u32 as f32;
+    let canopy_material = woodlands.add(canopy_material);
     let leaf_material = woodlands.add(leaf_material);
     for (mesh, kind) in [
         (geometry.wood, Woodland_Kind::Bark),
@@ -180,7 +183,7 @@ fn setup(
     ));
     commands.spawn((
         Mesh3d(meshes.add(geometry.canopy)),
-        MeshMaterial3d(leaf_material),
+        MeshMaterial3d(canopy_material),
         bevy::light::NotShadowReceiver,
         Transform::default(),
         RenderLayers::layer(1),

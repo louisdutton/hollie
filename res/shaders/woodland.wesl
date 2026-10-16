@@ -3,7 +3,7 @@ import bevy_pbr::render::{
     pbr_fragment::pbr_input_from_standard_material,
     pbr_functions::{alpha_discard,apply_pbr_lighting,main_pass_post_lighting_processing},
 };
-import super::palette::{grass_colour,moss_colour,foliage_colour,WOOD_LIGHT};
+import super::palette::{grass_colour,moss_colour,foliage_colour,WOOD_LIGHT,CANOPY_LIGHT};
 struct Woodland { parameters: vec4<f32> }
 @group(constants::MATERIAL_BIND_GROUP) @binding(100) var<uniform> woodland: Woodland;
 fn hash(p: vec2<f32>) -> f32 { return fract(sin(dot(p,vec2<f32>(127.1,311.7)))*43758.5453); }
@@ -22,17 +22,24 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
     let p=in.world_position.xyz;
     let kind=woodland.parameters.x;
     var albedo=pbr.material.base_color.rgb;
-    if kind>1.5 && kind<2.5 && length(woodland.parameters.yzw)>0.5 {
+    if ((kind>1.5 && kind<2.5) || kind>3.5) && length(woodland.parameters.yzw)>0.5 {
         // A hue-shifting paint ramp, rather than smooth PBR shading. The
         // low-frequency breakup makes irregular paint boundaries, not veins.
         // A broad front fill keeps painted clumps readable beneath the
         // backlit canopy, without changing the sun that casts the glade rays.
         let light=normalize(normalize(woodland.parameters.yzw)+vec3<f32>(-0.55,0.0,1.05));
-        let brush=(noise(p.xz*0.16+vec2<f32>(p.y*0.11))+noise(p.zy*0.23))*0.5;
-        let brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.65+(in.uv.x-0.5)*0.30;
+        var brush=(noise(p.xz*0.16+vec2<f32>(p.y*0.11))+noise(p.zy*0.23))*0.5;
+        var brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.65+(in.uv.x-0.5)*0.30;
+        if kind>3.5 {
+            // Each small leaf is one paint mark. Noise painted across a smooth
+            // shell made camouflage contours instead of layered leaf shapes.
+            brush=in.uv.x;
+            brightness=dot(normalize(in.world_normal),light)*0.85+(brush-0.5)*0.38;
+        }
         let paint=foliage_colour(brightness,brush);
         var out: FragmentOutput;
-        out.color=vec4<f32>(linear(paint)*albedo*2.2,1.0);
+        let illumination=select(2.2,CANOPY_LIGHT,kind>3.5);
+        out.color=vec4<f32>(linear(paint)*albedo*illumination,1.0);
         out.color=main_pass_post_lighting_processing(pbr,out.color);
         return out;
     }
