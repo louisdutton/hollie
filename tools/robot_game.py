@@ -94,8 +94,10 @@ class Hollie:
         return self.send({"op": "reset", **options}, capture, expected_error)
 
     @keyword
-    def advance_ticks(self, ticks: int, *keys, capture="", expected_error="", gamepads: list | None = None):
+    def advance_ticks(self, ticks: int, *keys, capture="", expected_error="", gamepads: list | None = None, fade_captures: bool = False):
         command = {"op": "step", "frames": ticks}
+        if fade_captures:
+            command["fade_captures"] = True
         if keys:
             command["keys"] = list(keys)
         if gamepads is not None:

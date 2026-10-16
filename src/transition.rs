@@ -236,6 +236,7 @@ fn advance(
     mut game: Game_Access,
     mut next: ResMut<NextState<Mode>>,
     assets: Scene_Assets,
+    #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
 ) {
     let scene = match mode.get() {
         Mode::Title => (Mode::Title, 0),
@@ -249,6 +250,10 @@ fn advance(
     if transition.scene.as_ref() != Some(&scene) {
         transition.scene = Some(scene);
         transition.begin_loading();
+    }
+    #[cfg(debug_assertions)]
+    if controller.capturing_fade() {
+        return;
     }
     match transition.phase {
         Phase::Loading => transition.confirm(assets.ready(), &render),
@@ -301,7 +306,9 @@ fn display(
     overlay.clear_color = if alpha >= 1. {
         ClearColorConfig::Custom(Color::BLACK)
     } else {
-        ClearColorConfig::None
+        // This camera has its own intermediate texture. Loading its previous
+        // opaque black frame would keep the reveal black until it switches off.
+        ClearColorConfig::Custom(Color::NONE)
     };
     fade.0 = Color::srgba(0., 0., 0., alpha);
 }

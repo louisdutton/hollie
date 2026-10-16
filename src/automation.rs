@@ -38,6 +38,8 @@ struct Command {
     gamepads: Vec<Gamepad_Input>,
     #[serde(default)]
     capture: String,
+    #[serde(default)]
+    fade_captures: bool,
 }
 #[derive(Resource, Default)]
 pub(crate) struct Controller {
@@ -50,6 +52,19 @@ pub(crate) struct Controller {
     previous_buttons: BTreeSet<String>,
     ready_frames: u32,
     render_on_demand: bool,
+    fade_capture: Option<Fade_Capture>,
+}
+struct Fade_Capture {
+    prefix: String,
+    stage: usize,
+    in_flight: bool,
+}
+impl Controller {
+    pub(crate) fn capturing_fade(&self) -> bool {
+        self.fade_capture
+            .as_ref()
+            .is_some_and(|capture| capture.in_flight)
+    }
 }
 #[derive(Component)]
 struct Virtual_Pad;
@@ -99,7 +114,7 @@ impl Plugin for Automation_Plugin {
                 .after(crate::app::Game_Systems::Automation)
                 .before(crate::app::Game_Systems::Actions),
         )
-        .add_systems(Last, respond);
+        .add_systems(Last, (record_fade, respond).chain());
     }
 }
 // Drive Bevy gamepad components too, so scene-specific bindings exercise
@@ -367,6 +382,11 @@ fn execute(
         capture_valid(&command.capture),
         "capture must be a plain PNG filename"
     );
+    ensure!(
+        !command.fade_captures
+            || (!command.capture.is_empty() && matches!(command.op.as_str(), "step" | "reset")),
+        "fade captures require a scene-changing step or reset and PNG filename"
+    );
     let mut pending = Pending {
         id: command.id,
         error: String::new(),
@@ -438,6 +458,13 @@ fn execute(
         "observe" => {}
         "stop" => pending.stop = true,
         _ => anyhow::bail!("unknown operation"),
+    }
+    if command.fade_captures {
+        controller.fade_capture = Some(Fade_Capture {
+            prefix: command.capture.trim_end_matches(".png").into(),
+            stage: 0,
+            in_flight: false,
+        });
     }
     Ok(pending)
 }
@@ -620,6 +647,62 @@ fn write_response(
     file.persist(directory.join("response.json"))?;
     Ok(())
 }
+// Sample real transitions without advancing the fade during GPU readback.
+// Final-only captures cannot detect a cover that remains black until disabled.
+fn record_fade(
+    mut commands: Commands,
+    mut controller: ResMut<Controller>,
+    transition: Res<crate::transition::Scene_Transition>,
+    target: Option<Res<crate::rendering::Offscreen_Target>>,
+) {
+    let Some(directory) = controller.directory.clone() else {
+        return;
+    };
+    let Some(capture) = &mut controller.fade_capture else {
+        return;
+    };
+    if capture.in_flight {
+        return;
+    }
+    let sample = match capture.stage {
+        0 if transition.loading() => "covered",
+        1 if transition.phase == crate::transition::Phase::Revealing && transition.alpha <= 0.5 => {
+            "half"
+        }
+        2 if !transition.busy() => "visible",
+        _ => return,
+    };
+    let path = directory.join(format!("{}-{sample}.png", capture.prefix));
+    capture.in_flight = true;
+    let screenshot = target.map_or_else(Screenshot::primary_window, |target| {
+        Screenshot::image(target.0.clone())
+    });
+    commands.spawn(screenshot).observe(
+        move |event: On<ScreenshotCaptured>, mut controller: ResMut<Controller>| {
+            let result = event
+                .image
+                .clone()
+                .try_into_dynamic()
+                .map_err(|error| anyhow::anyhow!("{error:?}"))
+                .and_then(|image| {
+                    image.save(&path)?;
+                    Ok(())
+                });
+            if let Err(error) = result
+                && let Some(pending) = &mut controller.pending
+            {
+                pending.error = error.to_string();
+            }
+            if let Some(capture) = &mut controller.fade_capture {
+                capture.in_flight = false;
+                capture.stage += 1;
+                if capture.stage == 3 {
+                    controller.fade_capture = None;
+                }
+            }
+        },
+    );
+}
 fn respond(
     mut commands: Commands,
     mut controller: ResMut<Controller>,
@@ -643,7 +726,7 @@ fn respond(
     let Some(directory) = controller.directory.clone() else {
         return;
     };
-    if presentation.transition.busy() {
+    if controller.fade_capture.is_some() || presentation.transition.busy() {
         return;
     }
     if controller.last_id == 0
