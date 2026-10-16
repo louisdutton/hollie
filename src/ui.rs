@@ -11,6 +11,9 @@ use bevy::{
     window::{MonitorSelection, WindowMode},
 };
 
+mod title_logo;
+use title_logo::{Logo_Material, Title_Logo};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum Menu {
     #[default]
@@ -36,7 +39,9 @@ struct Menu_Option(usize);
 pub struct Ui_Plugin;
 impl Plugin for Ui_Plugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Menu_State>()
+        app.add_plugins(UiMaterialPlugin::<Logo_Material>::default())
+            .init_resource::<Title_Logo>()
+            .init_resource::<Menu_State>()
             .add_systems(OnEnter(Mode::Title), |mut menu: ResMut<Menu_State>| {
                 *menu = Menu_State::default();
             })
@@ -606,6 +611,7 @@ struct Ui_Context<'w> {
     preferences: Res<'w, Preferences>,
     editor: Res<'w, Editor_State>,
     study: Res<'w, crate::rendering::Tree_Study>,
+    logo: Res<'w, Title_Logo>,
     server: Res<'w, AssetServer>,
 }
 fn draw_ui(
@@ -621,6 +627,7 @@ fn draw_ui(
         preferences,
         editor,
         study,
+        logo,
         server,
     } = context;
 
@@ -676,10 +683,6 @@ fn draw_ui(
         if matches!(mode.get(), Mode::Title | Mode::Paused) {
             let list = items(mode.get(), menu.menu, &preferences, &bindings);
             let title = *mode.get() == Mode::Title;
-            let shadow = TextShadow {
-                offset: Vec2::new(2., 3.),
-                color: Color::srgba(0.05, 0.10, 0.07, 0.85),
-            };
             parent
                 .spawn((
                     Node {
@@ -710,23 +713,19 @@ fn draw_ui(
                     }),
                 ))
                 .with_children(|panel| {
-                    panel.spawn((
-                        Text::new(if title { "HOLLIE" } else { "Paused" }),
-                        text_font(if title { 104. } else { 64. }),
-                        bevy::text::LetterSpacing::Px(if title { 4. } else { 0. }),
-                        TextColor(color),
-                        shadow,
-                    ));
                     if title {
                         panel.spawn((
+                            MaterialNode(logo.0.clone()),
                             Node {
-                                width: px(144),
-                                height: px(2),
+                                width: percent(100),
+                                aspect_ratio: Some(2.38),
+                                flex_shrink: 0.,
                                 margin: UiRect::bottom(px(20)),
                                 ..default()
                             },
-                            BackgroundColor(Color::srgb(0.82, 0.79, 0.50)),
                         ));
+                    } else {
+                        panel.spawn((Text::new("Paused"), text_font(64.), TextColor(color)));
                     }
                     for (index, item) in list.iter().enumerate() {
                         panel
@@ -768,7 +767,6 @@ fn draw_ui(
                                     Text::new(item),
                                     text_font(if title { 24. } else { 22. }),
                                     TextColor(color),
-                                    shadow,
                                 ));
                                 if title {
                                     button.spawn((

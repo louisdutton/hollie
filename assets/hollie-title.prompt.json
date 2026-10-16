@@ -1,0 +1,7 @@
+{
+  "tool": "image_gen.imagegen",
+  "reference": "assets/hollie-cover.png",
+  "output": "res/ui/title/hollie-mask.png",
+  "transparent_background": false,
+  "prompt": "Use case: logo-brand. Asset type: monochrome game-logo opacity mask for a shader. Reproduce the hand-lettered Hollie wordmark from the supplied cover, including its capital H, lowercase ollie and three paw-print toes above the final e. Exact word: \"Hollie\". OUTPUT A PERFECTLY CLEAN TWO-COLOUR MASK: all intended letters, the i dot and three paw toes are pure solid white (#FFFFFF); EVERY other pixel is solid pure black (#000000), including all space between letters and the counters of o and e. Opaque black background, not transparency. No shading or gradients or textured surfaces; only smooth antialiased contours separating white letter silhouettes from black. Preserve the reference logo proportions, friendly rounded irregular strokes and sweeping H crossbar. Wide horizontal canvas, wordmark centered with modest black margins and no cropping. No extra white shapes, flecks, speckles, debris or scene elements. No outline, shadow, glow, underline, bevel, tagline or extra copy. Production mask, not a photographed logo or mockup."
+}
