@@ -147,8 +147,16 @@ fn setup(
     ));
     let geometry = forest::build();
     let mut leaf_material = woodland_material(Woodland_Kind::Foliage);
-    // Back-facing patches still use the crown's outward normals. Flipping each
-    // patch independently breaks the continuous shading into dark rings.
+    let sun_position = Vec3::new(240., 420., -300.);
+    let sun_target = Vec3::new(20., 0., -100.);
+    let sun_direction = sun_position - sun_target;
+    // The painted ramp uses the same sun as the glade's shadows and god rays.
+    leaf_material.extension.parameters = Vec4::new(
+        leaf_material.extension.parameters.x,
+        sun_direction.x,
+        sun_direction.y,
+        sun_direction.z,
+    );
     leaf_material.base.double_sided = false;
     let leaf_material = woodlands.add(leaf_material);
     for (mesh, kind) in [
@@ -185,7 +193,7 @@ fn setup(
             shadow_maps_enabled: true,
             ..default()
         },
-        Transform::from_xyz(240., 420., -300.).looking_at(Vec3::new(20., 0., -100.), Vec3::Y),
+        Transform::from_translation(sun_position).looking_at(sun_target, Vec3::Y),
         bevy::light::CascadeShadowConfigBuilder {
             first_cascade_far_bound: 300.,
             maximum_distance: 1500.,

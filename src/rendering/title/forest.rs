@@ -135,43 +135,33 @@ impl Forest_Mesh {
         });
     }
 
-    // Shade all the brush-shaped patches against one ellipsoid, rather than
-    // lighting every leaf separately. This is the radial-normal technique from
-    // aversionofreality.com/blog/2022/8/7/stylized-tree-shader.
-    fn cluster(
-        &mut self,
-        center: Vec3,
-        facing: Vec3,
-        size: Vec2,
-        envelope: (Vec3, Vec3),
-        color: Color,
-        seed: u32,
-    ) {
-        let side = facing.cross(Vec3::Y).normalize_or(Vec3::X);
-        let up = side.cross(facing).normalize();
+    // Closed, overlapping clumps avoid the visible sheets of the previous
+    // canopy. Blend local and crown normals to keep both scales readable in
+    // the painted light bands (Lightning Boy Studio's Ghibli tree approach).
+    fn tuft(&mut self, center: Vec3, size: Vec3, envelope: (Vec3, Vec3), color: Color, seed: u32) {
         let phase = random(seed) * std::f32::consts::TAU;
-        let u = side * phase.cos() + up * phase.sin();
-        let v = -side * phase.sin() + up * phase.cos();
-        let normal = |p: Vec3| ((p - envelope.0) / envelope.1 / envelope.1).normalize();
-        let base = self.positions.len() as u32;
-        self.vertex(center, normal(center), color, Vec2::splat(0.5));
-        // Connected paint dabs keep detail at the silhouette. Geometry also
-        // gives the shadow the same outline, without a botanical texture atlas.
-        const EDGES: u32 = 72;
-        for edge in 0..EDGES {
-            let angle = edge as f32 / EDGES as f32 * std::f32::consts::TAU;
-            let lobe = (angle * 9. + phase).cos();
-            let outline = 0.88 + lobe * 0.09 + (angle * 3. + phase).sin() * 0.06;
-            let p = center + (u * angle.cos() * size.x + v * angle.sin() * size.y) * outline * 0.5;
-            self.vertex(
-                p,
-                normal(p),
-                color,
-                Vec2::new(angle.cos(), angle.sin()) * 0.5 + Vec2::splat(0.5),
+        let (rows, columns) = if center.z > -400. { (12, 24) } else { (8, 16) };
+        self.grid(rows, columns, |t, s| {
+            let latitude = t * std::f32::consts::PI;
+            let longitude = s * std::f32::consts::TAU;
+            let radial = Vec3::new(
+                latitude.sin() * longitude.cos(),
+                latitude.cos(),
+                latitude.sin() * longitude.sin(),
             );
-            self.indices
-                .extend([base, base + 1 + (edge + 1) % EDGES, base + 1 + edge]);
-        }
+            let lobes = 1.
+                + (radial.x * 7. + radial.y * 4. + phase).sin() * 0.10
+                + (radial.z * 8. - radial.y * 6. + phase).sin() * 0.07;
+            let p = center + radial * size * lobes;
+            let crown_normal = ((p - envelope.0) / envelope.1 / envelope.1).normalize_or(radial);
+            let local_normal = (radial / size).normalize();
+            (
+                p,
+                crown_normal.lerp(local_normal, 0.78).normalize(),
+                color,
+                Vec2::new(random(seed), t),
+            )
+        });
     }
 
     fn finish(self) -> Mesh {
@@ -277,26 +267,28 @@ pub(super) fn build() -> Forest_Geometry {
             let elbow = start.lerp(crown, 0.65) - Vec3::Y * 13.;
             wood.branch(start, elbow, radius * 0.45, radius * 0.22, bark);
             wood.branch(elbow, crown, radius * 0.22, 0.5, bark);
-            let leaf_count = if z > -400. { 48 } else { 32 };
+            let leaf_count = if z > -400. { 52 } else { 32 };
             for leaf in 0..leaf_count {
                 let n = seed + branch * 1277 + leaf * 17;
                 let y = random(n + 1) * 2. - 1.;
                 let angle = random(n + 2) * std::f32::consts::TAU;
                 let ring = (1. - y * y).sqrt();
-                let radial = Vec3::new(ring * angle.cos(), y * 0.5, ring * angle.sin());
-                let center = crown + radial * (34. + random(n + 3) * 16.);
+                let radial = Vec3::new(ring * angle.cos(), y * 0.65, ring * angle.sin());
+                let center = crown + radial * (24. + random(n + 3) * 19.);
                 // Leave a canopy opening on the sunward side of the clearing.
                 if ((center.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1. {
                     continue;
                 }
-                let tone = random(seed + branch + 4);
-                let color = Color::srgb(0.28 + tone * 0.06, 0.43 + tone * 0.07, 0.23 + tone * 0.04);
-                canopy.cluster(
+                let tone = 0.90 + random(n + 4) * 0.18;
+                canopy.tuft(
                     center,
-                    radial.normalize(),
-                    Vec2::new(33. + random(n + 5) * 10., 28. + random(n + 6) * 10.),
-                    (crown, Vec3::new(48., 24., 48.)),
-                    color,
+                    Vec3::new(
+                        10. + random(n + 5) * 7.,
+                        9. + random(n + 6) * 6.,
+                        11. + random(n + 7) * 6.,
+                    ),
+                    (crown, Vec3::new(48., 31., 48.)),
+                    Color::srgb(tone, tone, tone),
                     n,
                 );
             }
@@ -312,19 +304,22 @@ pub(super) fn build() -> Forest_Geometry {
         }
         if i % 3 == 0 {
             let crown = base + Vec3::Y * 5.;
-            let radii = Vec3::new(13., 10., 12.);
-            for patch in 0..18 {
+            let radii = Vec3::new(
+                9. + random(i + 4) * 8.,
+                5. + random(i + 5) * 7.,
+                8. + random(i + 6) * 5.,
+            );
+            for patch in 0..22 {
                 let n = i * 97 + patch * 19;
                 let y = random(n + 1) * 0.95 + 0.05;
                 let angle = patch as f32 * 2.4;
                 let ring = (1. - y * y).sqrt();
                 let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
-                sprays.cluster(
+                sprays.tuft(
                     crown + radial * radii,
-                    radial.normalize(),
-                    Vec2::new(11., 10.),
+                    Vec3::new(4.5, 4., 5.) * (0.8 + random(n + 2) * 0.6),
                     (crown, radii),
-                    Color::srgb(0.29, 0.46, 0.25),
+                    Color::WHITE,
                     n,
                 );
             }

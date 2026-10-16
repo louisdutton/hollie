@@ -21,6 +21,24 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
     let p=in.world_position.xyz;
     let kind=woodland.parameters.x;
     var albedo=pbr.material.base_color.rgb;
+    if kind>1.5 && kind<2.5 && length(woodland.parameters.yzw)>0.5 {
+        // A hue-shifting paint ramp, rather than smooth PBR shading. The
+        // low-frequency breakup makes irregular paint boundaries, not veins.
+        // A broad front fill keeps painted clumps readable beneath the
+        // backlit canopy, without changing the sun that casts the glade rays.
+        let light=normalize(normalize(woodland.parameters.yzw)+vec3<f32>(-0.55,0.0,1.05));
+        let brush=(noise(p.xz*0.16+vec2<f32>(p.y*0.11))+noise(p.zy*0.23))*0.5;
+        let brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.38+(in.uv.x-0.5)*0.30;
+        var paint=vec3<f32>(0.035,0.22,0.20);
+        if brightness>0.02 { paint=vec3<f32>(0.055,0.30,0.27); }
+        if brightness>0.38 { paint=vec3<f32>(0.10,0.43,0.34); }
+        if brightness>0.70 { paint=vec3<f32>(0.16,0.50,0.37); }
+        if brightness>0.90 && brush>0.54 { paint=vec3<f32>(0.36,0.58,0.36); }
+        var out: FragmentOutput;
+        out.color=vec4<f32>(linear(paint)*albedo*2.2,1.0);
+        out.color=main_pass_post_lighting_processing(pbr,out.color);
+        return out;
+    }
     let mottling=pigment(p.xz*0.045+vec2<f32>(p.y*0.027,p.y*0.019));
     if kind<0.5 {
         let uv=in.uv;
