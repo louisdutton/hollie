@@ -656,11 +656,11 @@ pub(super) fn build() -> Forest_Geometry {
             i,
         );
     }
-    // A small, weathered standing stone gives the eye a destination in the light.
+    // The foreground standing stone anchors the right-hand third of the view.
     let stone = Vec3::new(FOCAL_POINT.x, terrain_height(FOCAL_POINT), FOCAL_POINT.y);
     stone_mesh.rock(
-        stone + Vec3::Y * 15.,
-        Vec3::new(11., 27., 8.),
+        stone + Vec3::Y * 20.,
+        Vec3::new(15., 34., 11.),
         Color::srgb(0.40, 0.48, 0.40),
         413,
     );

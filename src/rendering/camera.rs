@@ -35,6 +35,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                 ..default()
             },
             Main_Camera,
+            bevy::camera::ShadowLodOrigin,
             bevy::camera::visibility::RenderLayers::default(),
         ))
         .id();

@@ -699,7 +699,7 @@ fn draw_ui(
                             JustifyContent::FlexStart
                         },
                         align_items: if title {
-                            AlignItems::Center
+                            AlignItems::FlexStart
                         } else {
                             AlignItems::Stretch
                         },
@@ -734,9 +734,13 @@ fn draw_ui(
                                 Hovered::default(),
                                 Menu_Option(index),
                                 Node {
-                                    padding: UiRect::axes(px(16), px(8)),
+                                    padding: UiRect::axes(px(if title { 8. } else { 16. }), px(8)),
                                     width: if title { percent(100) } else { Val::Auto },
-                                    justify_content: JustifyContent::Center,
+                                    justify_content: if title {
+                                        JustifyContent::FlexStart
+                                    } else {
+                                        JustifyContent::Center
+                                    },
                                     align_items: AlignItems::Center,
                                     column_gap: px(14),
                                     ..default()
@@ -760,13 +764,17 @@ fn draw_ui(
                                         UiTransform::from_rotation(Rot2::radians(
                                             std::f32::consts::FRAC_PI_4,
                                         )),
-                                        BackgroundColor(if selected { color } else { Color::NONE }),
+                                        BackgroundColor(if selected {
+                                            Color::WHITE
+                                        } else {
+                                            Color::NONE
+                                        }),
                                     ));
                                 }
                                 button.spawn((
                                     Text::new(item),
                                     text_font(if title { 24. } else { 22. }),
-                                    TextColor(color),
+                                    TextColor(if title { Color::WHITE } else { color }),
                                 ));
                                 if title {
                                     button.spawn((
@@ -778,7 +786,11 @@ fn draw_ui(
                                         UiTransform::from_rotation(Rot2::radians(
                                             std::f32::consts::FRAC_PI_4,
                                         )),
-                                        BackgroundColor(if selected { color } else { Color::NONE }),
+                                        BackgroundColor(if selected {
+                                            Color::WHITE
+                                        } else {
+                                            Color::NONE
+                                        }),
                                     ));
                                 }
                             });
