@@ -492,12 +492,12 @@ pub(super) fn build() -> Forest_Geometry {
             let seed = row * 173 + column * 23 + 19;
             let x = column as f32 * 100. - 480. + random(seed) * 65.;
             let z = -140. - row as f32 * 105. - random(seed + 1) * 65.;
-            if Vec2::new(x - 45., (z + 180.) * 0.8).length() < 175. {
+            if Vec2::new(x - FOCAL_POINT.x, (z - FOCAL_POINT.y) * 0.8).length() < 175. {
                 continue;
             }
             // Whole crowns frame the sun shaft rather than cutting holes in
             // their foliage. Keep the source opening free of nearby branches.
-            if ((Vec2::new(x, z) - Vec2::new(198., -314.)) / Vec2::new(175., 180.)).length() < 1. {
+            if ((Vec2::new(x, z) - SUNSHAFT_OPENING) / Vec2::new(175., 180.)).length() < 1. {
                 continue;
             }
             trees.push((
@@ -508,7 +508,10 @@ pub(super) fn build() -> Forest_Geometry {
             ));
         }
     }
-    for (index, (x, z, height, radius)) in trees.into_iter().enumerate() {
+    for (index, (mut x, z, height, radius)) in trees.into_iter().enumerate() {
+        if ((Vec2::new(x, z) - SUNSHAFT_OPENING) / Vec2::new(175., 180.)).length() < 1. {
+            x = SUNSHAFT_OPENING.x + 185.;
+        }
         let seed = index as u32 * 199;
         let base = Vec3::new(x, terrain_height(Vec2::new(x, z)) - 1., z);
         let lean = Vec3::new(random(seed + 1) - 0.5, 0., random(seed + 2) - 0.5) * 35.;
@@ -654,7 +657,7 @@ pub(super) fn build() -> Forest_Geometry {
         );
     }
     // A small, weathered standing stone gives the eye a destination in the light.
-    let stone = Vec3::new(72., terrain_height(Vec2::new(72., -200.)), -200.);
+    let stone = Vec3::new(FOCAL_POINT.x, terrain_height(FOCAL_POINT), FOCAL_POINT.y);
     stone_mesh.rock(
         stone + Vec3::Y * 15.,
         Vec3::new(11., 27., 8.),

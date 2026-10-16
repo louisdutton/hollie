@@ -6,6 +6,9 @@ use bevy::{
 
 pub(super) mod forest;
 
+const FOCAL_POINT: Vec2 = Vec2::new(72., -100.);
+const SUNSHAFT_OPENING: Vec2 = Vec2::new(FOCAL_POINT.x + 126., FOCAL_POINT.y - 114.);
+
 pub(super) const SKY: Color = Color::srgb(0.14, 0.28, 0.27);
 
 #[derive(Resource, Default)]
@@ -30,7 +33,7 @@ fn terrain_height(p: Vec2) -> f32 {
 fn clearing(p: Vec2) -> f32 {
     let path_x = 40. + (p.y * 0.009).sin() * 24.;
     let path = ((p.x - path_x).abs() - 15.) / 38.;
-    let glade = (p.distance(Vec2::new(65., -180.)) - 52.) / 70.;
+    let glade = (p.distance(FOCAL_POINT) - 52.) / 70.;
     path.min(glade).clamp(0., 1.)
 }
 
@@ -147,8 +150,8 @@ fn setup(
     ));
     let geometry = forest::build();
     let mut leaf_material = woodland_material(Woodland_Kind::Foliage);
-    let sun_position = Vec3::new(240., 420., -300.);
-    let sun_target = Vec3::new(20., 0., -100.);
+    let sun_position = Vec3::new(240., 420., FOCAL_POINT.y - 100.);
+    let sun_target = Vec3::new(20., 0., FOCAL_POINT.y + 100.);
     leaf_material.extension.parameters.y = 1.;
     leaf_material.base.double_sided = false;
     let mut canopy_material = leaf_material.clone();

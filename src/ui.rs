@@ -675,29 +675,59 @@ fn draw_ui(
     commands.entity(node).with_children(|parent| {
         if matches!(mode.get(), Mode::Title | Mode::Paused) {
             let list = items(mode.get(), menu.menu, &preferences, &bindings);
+            let title = *mode.get() == Mode::Title;
+            let shadow = TextShadow {
+                offset: Vec2::new(2., 3.),
+                color: Color::srgba(0.05, 0.10, 0.07, 0.85),
+            };
             parent
                 .spawn((
                     Node {
                         position_type: PositionType::Absolute,
                         left: percent(5),
-                        top: percent(10),
+                        top: if title { px(0) } else { percent(10) },
+                        bottom: if title { px(0) } else { Val::Auto },
+                        width: if title { px(460) } else { Val::Auto },
                         padding: UiRect::all(px(24)),
                         flex_direction: FlexDirection::Column,
-                        row_gap: px(12),
+                        justify_content: if title {
+                            JustifyContent::Center
+                        } else {
+                            JustifyContent::FlexStart
+                        },
+                        align_items: if title {
+                            AlignItems::Center
+                        } else {
+                            AlignItems::Stretch
+                        },
+                        row_gap: px(if title { 8. } else { 12. }),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.08, 0.15, 0.13, 0.7)),
+                    BackgroundColor(if title {
+                        Color::NONE
+                    } else {
+                        Color::srgba(0.08, 0.15, 0.13, 0.7)
+                    }),
                 ))
                 .with_children(|panel| {
                     panel.spawn((
-                        Text::new(if *mode.get() == Mode::Title {
-                            "Hollie"
-                        } else {
-                            "Paused"
-                        }),
-                        text_font(64.),
+                        Text::new(if title { "HOLLIE" } else { "Paused" }),
+                        text_font(if title { 104. } else { 64. }),
+                        bevy::text::LetterSpacing::Px(if title { 4. } else { 0. }),
                         TextColor(color),
+                        shadow,
                     ));
+                    if title {
+                        panel.spawn((
+                            Node {
+                                width: px(144),
+                                height: px(2),
+                                margin: UiRect::bottom(px(20)),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.82, 0.79, 0.50)),
+                        ));
+                    }
                     for (index, item) in list.iter().enumerate() {
                         panel
                             .spawn((
@@ -706,9 +736,13 @@ fn draw_ui(
                                 Menu_Option(index),
                                 Node {
                                     padding: UiRect::axes(px(16), px(8)),
+                                    width: if title { percent(100) } else { Val::Auto },
+                                    justify_content: JustifyContent::Center,
+                                    align_items: AlignItems::Center,
+                                    column_gap: px(14),
                                     ..default()
                                 },
-                                BackgroundColor(if index == menu.selection {
+                                BackgroundColor(if !title && index == menu.selection {
                                     Color::srgba(0.53, 0.58, 0.35, 0.65)
                                 } else {
                                     Color::NONE
@@ -716,7 +750,39 @@ fn draw_ui(
                             ))
                             .observe(button_activate)
                             .with_children(|button| {
-                                button.spawn((Text::new(item), text_font(22.), TextColor(color)));
+                                let selected = index == menu.selection;
+                                if title {
+                                    button.spawn((
+                                        Node {
+                                            width: px(6),
+                                            height: px(6),
+                                            ..default()
+                                        },
+                                        UiTransform::from_rotation(Rot2::radians(
+                                            std::f32::consts::FRAC_PI_4,
+                                        )),
+                                        BackgroundColor(if selected { color } else { Color::NONE }),
+                                    ));
+                                }
+                                button.spawn((
+                                    Text::new(item),
+                                    text_font(if title { 24. } else { 22. }),
+                                    TextColor(color),
+                                    shadow,
+                                ));
+                                if title {
+                                    button.spawn((
+                                        Node {
+                                            width: px(6),
+                                            height: px(6),
+                                            ..default()
+                                        },
+                                        UiTransform::from_rotation(Rot2::radians(
+                                            std::f32::consts::FRAC_PI_4,
+                                        )),
+                                        BackgroundColor(if selected { color } else { Color::NONE }),
+                                    ));
+                                }
                             });
                     }
                 });
