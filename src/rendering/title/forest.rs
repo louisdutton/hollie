@@ -251,7 +251,9 @@ impl Forest_Mesh {
         local_weight: f32,
     ) {
         let phase = random(seed) * std::f32::consts::TAU;
-        let (rows, columns) = if local_weight < 0.5 {
+        let (rows, columns) = if paint_normals && size.max_element() > 15. {
+            (16, 32)
+        } else if local_weight < 0.5 {
             (10, 24)
         } else if local_weight < 0.75 {
             (16, 32)
@@ -259,6 +261,13 @@ impl Forest_Mesh {
             (12, 24)
         } else {
             (8, 16)
+        };
+        let leaf_fan = paint_normals && size.max_element() < 15.;
+        let rotation = if leaf_fan {
+            Quat::from_rotation_z((random(seed + 13) - 0.5) * 1.5)
+                * Quat::from_rotation_x((random(seed + 17) - 0.5) * 1.3)
+        } else {
+            Quat::IDENTITY
         };
         let point = |t: f32, s: f32| {
             let latitude = t * std::f32::consts::PI;
@@ -270,17 +279,32 @@ impl Forest_Mesh {
             );
             let detail = if local_weight < 0.5 { 0.5 } else { 1. };
             let softness = if paint_normals { 0.65 } else { 1. };
-            let lobes = 1.
+            let mut lobes = 1.
                 + ((radial.x * 7. + radial.y * 4.) * softness + phase).sin() * 0.10 * softness
                 + ((radial.z * 8. - radial.y * 6.) * softness + phase).sin()
                     * 0.07
                     * detail
                     * softness;
-            center + radial * size * lobes
+            if leaf_fan {
+                lobes += (radial.x * 13. + radial.y * 6. + phase).sin()
+                    * (radial.z * 11. - phase).cos()
+                    * 0.09;
+            }
+            let mut offset = radial * size * lobes;
+            if paint_normals {
+                // Uneven leaf fans overlap in broad strokes. Shear their tips
+                // instead of leaving concentric ellipsoids on each branch.
+                offset.x += radial.y * size.x * (phase.sin() * 0.28);
+                offset.y +=
+                    (radial.x * 3. + phase).sin() * size.y * 0.16 * (1. - radial.y * radial.y);
+                offset.z += radial.x * size.z * (phase.cos() * 0.22);
+            }
+            center + rotation * offset
         };
         self.grid(rows, columns, |t, s| {
             let p = point(t, s);
-            let local_normal = ((p - center) / size / size).normalize();
+            let local_normal =
+                (rotation * ((rotation.inverse() * (p - center)) / size / size)).normalize();
             let crown_normal =
                 ((p - envelope.0) / envelope.1 / envelope.1).normalize_or(local_normal);
             let shade = crown_normal.lerp(local_normal, local_weight).normalize();
@@ -396,7 +420,7 @@ pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
                 radius * (0.85 + random(seed + 3) * 0.22),
                 radius * 0.92,
             );
-            leaves.tuft(center, size, (crown_center, crown_size), true, seed, 0.65);
+            leaves.tuft(center, size, (crown_center, crown_size), true, seed, 0.32);
             let count = 110;
             for leaf in 0..count {
                 let n = seed + leaf * 37;
@@ -405,14 +429,18 @@ pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
                 let ring = (1. - y * y).sqrt();
                 let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
                 let p = center + radial * size * (0.98 + random(n + 1) * 0.07);
-                let radius = 3.5 + random(n + 2) * 3.;
+                let radius = 4. + random(n + 2) * 3.5;
                 leaves.tuft(
                     p,
-                    Vec3::new(radius, radius * 0.85, radius),
+                    Vec3::new(
+                        radius * (0.95 + random(n + 3) * 0.5),
+                        radius * (0.55 + random(n + 4) * 0.25),
+                        radius * (0.7 + random(n + 5) * 0.5),
+                    ),
                     (center, size),
                     true,
                     n,
-                    0.16,
+                    0.10,
                 );
             }
         }

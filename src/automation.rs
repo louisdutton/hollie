@@ -53,6 +53,9 @@ pub(crate) struct Controller {
     ready_frames: u32,
     render_on_demand: bool,
 }
+#[derive(Component)]
+struct Virtual_Pad(usize);
+
 struct Pending {
     id: u64,
     error: String,
@@ -61,6 +64,7 @@ struct Pending {
     inputs: [Player_Input; 2],
     debug_toggle: bool,
     keys: Vec<KeyCode>,
+    gamepads: Vec<Gamepad_Input>,
     settle: u32,
     screenshot: bool,
     stop: bool,
@@ -75,6 +79,12 @@ impl Plugin for Automation_Plugin {
                 "HOLLIE_CONTROL_DIR must be an existing private directory"
             );
         }
+        if directory.is_some() {
+            for player in 0..2 {
+                app.world_mut()
+                    .spawn((Virtual_Pad(player), Gamepad::default()));
+            }
+        }
         app.insert_resource(Controller {
             render_on_demand: directory.is_some()
                 && std::env::var("HOLLIE_OFFSCREEN").as_deref() == Ok("1")
@@ -88,7 +98,84 @@ impl Plugin for Automation_Plugin {
             Update,
             activate_capture_camera.after(crate::app::Game_Systems::Automation),
         )
+        .add_systems(
+            Update,
+            inject_gamepads
+                .after(crate::app::Game_Systems::Automation)
+                .before(crate::app::Game_Systems::Actions),
+        )
         .add_systems(Last, respond);
+    }
+}
+// Drive Bevy gamepad components too, so scene-specific bindings exercise
+// the same input path as physical controllers.
+fn inject_gamepads(controller: Res<Controller>, mut pads: Query<(&Virtual_Pad, &mut Gamepad)>) {
+    for (slot, mut pad) in &mut pads {
+        pad.digital_mut().clear();
+        if !controller.stepping {
+            continue;
+        }
+        let snapshot = controller.pending.as_ref().and_then(|pending| {
+            pending
+                .gamepads
+                .iter()
+                .find(|input| input.player == if slot.0 == 0 { "Player_1" } else { "Player_2" })
+        });
+        let buttons: Vec<_> = snapshot
+            .into_iter()
+            .flat_map(|input| &input.buttons)
+            .map(|name| native_button(name))
+            .collect();
+        let released: Vec<_> = pad
+            .digital()
+            .get_pressed()
+            .filter(|button| !buttons.contains(button))
+            .copied()
+            .collect();
+        for button in released {
+            pad.digital_mut().release(button);
+        }
+        for button in buttons {
+            pad.digital_mut().press(button);
+        }
+        for (index, axis) in [
+            GamepadAxis::LeftStickX,
+            GamepadAxis::LeftStickY,
+            GamepadAxis::RightStickX,
+            GamepadAxis::RightStickY,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let value = snapshot
+                .and_then(|input| input.axes.get(index))
+                .copied()
+                .unwrap_or(0.);
+            pad.analog_mut()
+                .set(axis, if index % 2 == 1 { -value } else { value });
+        }
+    }
+}
+fn native_button(button: &str) -> GamepadButton {
+    match button {
+        "LEFT_FACE_UP" => GamepadButton::DPadUp,
+        "LEFT_FACE_DOWN" => GamepadButton::DPadDown,
+        "LEFT_FACE_LEFT" => GamepadButton::DPadLeft,
+        "LEFT_FACE_RIGHT" => GamepadButton::DPadRight,
+        "RIGHT_FACE_UP" => GamepadButton::North,
+        "RIGHT_FACE_DOWN" => GamepadButton::South,
+        "RIGHT_FACE_LEFT" => GamepadButton::West,
+        "RIGHT_FACE_RIGHT" => GamepadButton::East,
+        "LEFT_TRIGGER_1" => GamepadButton::LeftTrigger,
+        "RIGHT_TRIGGER_1" => GamepadButton::RightTrigger,
+        "LEFT_TRIGGER_2" => GamepadButton::LeftTrigger2,
+        "RIGHT_TRIGGER_2" => GamepadButton::RightTrigger2,
+        "MIDDLE_LEFT" => GamepadButton::Select,
+        "MIDDLE_RIGHT" => GamepadButton::Start,
+        "MIDDLE" => GamepadButton::Mode,
+        "LEFT_THUMB" => GamepadButton::LeftThumb,
+        "RIGHT_THUMB" => GamepadButton::RightThumb,
+        _ => unreachable!("gamepad inputs have been validated"),
     }
 }
 fn activate_capture_camera(
@@ -133,6 +220,9 @@ fn valid_key(key: &str) -> bool {
                 | "RIGHT_CONTROL"
                 | "MINUS"
                 | "EQUAL"
+                | "HOME"
+                | "BRACKET_RIGHT"
+                | "BRACKET_LEFT"
         )
 }
 impl Controller {
@@ -188,6 +278,9 @@ fn native_key(key: &str) -> KeyCode {
         "RIGHT_CONTROL" => KeyCode::ControlRight,
         "MINUS" => KeyCode::Minus,
         "EQUAL" => KeyCode::Equal,
+        "HOME" => KeyCode::Home,
+        "BRACKET_RIGHT" => KeyCode::BracketRight,
+        "BRACKET_LEFT" => KeyCode::BracketLeft,
         _ => unreachable!("validated legacy key"),
     }
 }
@@ -301,6 +394,7 @@ fn execute(
         inputs: default(),
         debug_toggle: false,
         keys: Vec::new(),
+        gamepads: Vec::new(),
         // Keep captures and room resets fully settled. Other commands only
         // need deferred state transitions and their main-world presentation.
         settle: if controller.render_on_demand
@@ -335,6 +429,7 @@ fn execute(
             );
             validate_inputs(command)?;
             pending.inputs = input_snapshot(command, controller);
+            pending.gamepads = command.gamepads.clone();
             pending.debug_toggle = command.gamepads.iter().any(|pad| {
                 pad.player == "Player_1"
                     && pad.buttons.iter().any(|b| b == "RIGHT_THUMB")
@@ -452,6 +547,7 @@ fn poll(
             inputs: default(),
             debug_toggle: false,
             keys: Vec::new(),
+            gamepads: Vec::new(),
             settle: 0,
             screenshot: false,
             stop: false,
@@ -497,7 +593,7 @@ impl Presentation_Observation<'_, '_> {
         let area = self.area.iter().next();
         json!({
             "ui_scale": self.scale.0,
-            "tree_study": {"preset":format!("{:?}",self.study.preset), "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
+            "tree_study": {"preset":format!("{:?}",self.study.preset), "yaw":self.study.yaw, "sun_turn":self.study.sun_turn, "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
             "title_elapsed": self.title.elapsed,
             "title_grass_vertices": self.title.grass_vertices,
             "volumetric_lighting": self.cameras.iter().any(|enabled| enabled) && !self.volumetric_lights.is_empty(),

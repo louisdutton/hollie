@@ -54,3 +54,47 @@ One tree responds to world sun, ambient and local lighting
     Should Be Equal    ${title}[scene]    Title
     Should Be Equal As Numbers    ${title}[presentation][tree_study][trees]    0
     Should Be True    ${title}[presentation][volumetric_lighting]
+
+Controller operates the complete tree study
+    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+    Advance Ticks    1
+    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+    Advance Ticks    1
+    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+    Advance Ticks    1
+    ${day}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_DOWN    capture=pad-day.png
+    Should Be Equal    ${day}[scene]    Tree_Study
+    ${drift}=    Move Stick For Ticks    30    0.1    0
+    Should Be Equal As Numbers    ${drift}[presentation][tree_study][yaw]    0
+    ${orbit}=    Move Stick For Ticks    30    0.5    0    capture=pad-orbit.png
+    Should Be True    0.1 < $orbit['presentation']['tree_study']['yaw'] < 0.4
+    ${held}=    Move Stick For Ticks    30    0.5    0
+    Should Be Equal As Numbers    ${held}[presentation][tree_study][yaw]    ${{ $orbit['presentation']['tree_study']['yaw'] * 2 }}    precision=5
+    ${reset}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_UP    capture=pad-reset.png
+    Should Be Equal As Numbers    ${reset}[presentation][tree_study][yaw]    0
+    Images Should Match    pad-day.png    pad-reset.png
+    ${turned}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_LEFT    capture=pad-sun.png
+    Should Be True    $turned['presentation']['tree_study']['sun_turn'] > 0.7
+    ${held}=    Press Gamepad For Ticks    20    Player_1    RIGHT_FACE_LEFT
+    Should Be Equal As Numbers    ${held}[presentation][tree_study][sun_turn]    ${turned}[presentation][tree_study][sun_turn]
+    FOR    ${preset}    IN    Reverse    Dim    Sunset    Moonlight    Lantern    Darkness    Ambient    Daylight
+        Advance Ticks    1
+        ${light}=    Press Gamepad For Ticks    1    Player_1    RIGHT_TRIGGER_1
+        Should Be Equal    ${light}[presentation][tree_study][preset]    ${preset}
+        Should Be Equal As Numbers    ${light}[presentation][tree_study][sun_turn]    0
+    END
+    ${previous}=    Press Gamepad For Ticks    1    Player_1    LEFT_TRIGGER_1
+    Should Be Equal    ${previous}[presentation][tree_study][preset]    Ambient
+    ${dpad}=    Press Gamepad For Ticks    30    Player_1    LEFT_FACE_LEFT
+    Should Be True    $dpad['presentation']['tree_study']['yaw'] < -0.3
+    ${title}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_RIGHT
+    Should Be Equal    ${title}[scene]    Title
+    FOR    ${index}    IN RANGE    3
+        Advance Ticks    1
+        Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+    END
+    Advance Ticks    1
+    ${study}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_DOWN
+    Should Be Equal    ${study}[scene]    Tree_Study
+    ${title}=    Press Gamepad For Ticks    1    Player_1    MIDDLE_RIGHT
+    Should Be Equal    ${title}[scene]    Title

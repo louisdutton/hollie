@@ -17,13 +17,28 @@ pub(crate) enum Study_Light {
 #[derive(Resource, Default)]
 pub(crate) struct Tree_Study {
     pub preset: Study_Light,
-    yaw: f32,
-    sun_turn: f32,
+    pub yaw: f32,
+    pub sun_turn: f32,
+}
+impl Study_Light {
+    fn cycle(self, direction: i32) -> Self {
+        const PRESETS: [Study_Light; 8] = [
+            Study_Light::Daylight,
+            Study_Light::Reverse,
+            Study_Light::Dim,
+            Study_Light::Sunset,
+            Study_Light::Moonlight,
+            Study_Light::Lantern,
+            Study_Light::Darkness,
+            Study_Light::Ambient,
+        ];
+        PRESETS[(self as i32 + direction).rem_euclid(PRESETS.len() as i32) as usize]
+    }
 }
 impl Tree_Study {
     pub(crate) fn caption(&self) -> String {
         format!(
-            "Tree study — {:?}\n\nLeft / Right   Orbit tree\nL   Turn sun\nD   Daylight    R   Reverse sun\nF   Dim daylight    E   Sunset\nN   Moonlight    P   Lantern\nA   Ambient only    B   No lights\nEsc   Return to title",
+            "Tree study — {:?}\n\nLeft stick / D-pad   Orbit\nLB / RB   Lighting preset\nX   Turn sun    Y   Reset study\nB / Start   Return to title\n\nKeyboard: Left / Right   Orbit\n[ / ]   Lighting    L   Sun\nHome   Reset    Esc   Back",
             self.preset
         )
     }
@@ -110,6 +125,7 @@ fn setup(
 
 fn controls(
     keys: Res<ButtonInput<KeyCode>>,
+    pads: Query<&Gamepad>,
     time: Res<Time>,
     mut study: ResMut<Tree_Study>,
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
@@ -133,16 +149,37 @@ fn controls(
             study.sun_turn = 0.;
         }
     }
-    if keys.just_pressed(KeyCode::KeyL) {
+    let pressed = |button| pads.iter().any(|pad| pad.just_pressed(button));
+    let previous = keys.just_pressed(KeyCode::BracketLeft) || pressed(GamepadButton::LeftTrigger);
+    let next = keys.just_pressed(KeyCode::BracketRight) || pressed(GamepadButton::RightTrigger);
+    if previous != next {
+        study.preset = study.preset.cycle(if next { 1 } else { -1 });
+        study.sun_turn = 0.;
+    }
+    if keys.just_pressed(KeyCode::Home) || pressed(GamepadButton::North) {
+        *study = default();
+    }
+    if keys.just_pressed(KeyCode::KeyL) || pressed(GamepadButton::West) {
         study.sun_turn += std::f32::consts::FRAC_PI_4;
     }
     let dt = time.delta_secs();
     #[cfg(debug_assertions)]
     let dt = if controller.stepping { STEP } else { dt };
-    study.yaw += (keys.pressed(KeyCode::ArrowRight) as u8 as f32
-        - keys.pressed(KeyCode::ArrowLeft) as u8 as f32)
-        * dt
-        * 0.8;
+    let mut orbit = keys.pressed(KeyCode::ArrowRight) as u8 as f32
+        - keys.pressed(KeyCode::ArrowLeft) as u8 as f32;
+    for pad in &pads {
+        let stick = pad.left_stick().x;
+        let direction = if stick.abs() > 0.15 {
+            stick.signum() * (stick.abs() - 0.15) / 0.85
+        } else {
+            pad.pressed(GamepadButton::DPadRight) as u8 as f32
+                - pad.pressed(GamepadButton::DPadLeft) as u8 as f32
+        };
+        if direction.abs() > orbit.abs() {
+            orbit = direction;
+        }
+    }
+    study.yaw += orbit * dt * 0.8;
 }
 
 fn present(

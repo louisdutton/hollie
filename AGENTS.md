@@ -1,5 +1,7 @@
 # Development
 
+- Design controls and on-screen prompts for gamepad first, with keyboard fallbacks.
+
 - Do not launch the game on the host desktop or connect to the user's desktop. Use the private-display workflow below; gameplay and rendering tests do not require a separate user request.
 - Use tools supplied by `devenv.nix`; do not install host tools. Use `devenv shell` only for one-off commands.
 - Do not run routine checks manually unless explicitly asked. Verification belongs in the automated local commit hook. This project does not use CI; do not add CI workflows.
