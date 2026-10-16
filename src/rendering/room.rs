@@ -213,6 +213,7 @@ fn rebuild_room(
             Mesh3d(meshes.add(grass_mesh)),
             MeshMaterial3d(material),
             Transform::default(),
+            bevy::light::NotShadowCaster,
             Room_Visual,
         ));
     }

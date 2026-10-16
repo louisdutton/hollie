@@ -139,6 +139,7 @@ fn setup(
             Mesh3d(meshes.add(grass)),
             MeshMaterial3d(grass_material.clone()),
             Transform::default(),
+            bevy::light::NotShadowCaster,
             RenderLayers::layer(1),
         ));
     }
