@@ -126,6 +126,9 @@ pub(super) fn follow_camera(
     editor: Res<crate::editor::Editor_State>,
     #[cfg(debug_assertions)] controller: Res<crate::automation::Controller>,
 ) {
+    if *mode.get() == Mode::Tree_Study {
+        return;
+    }
     if *mode.get() == Mode::Title {
         for (_, mut transform, mut projection, mut fog, mut layers) in &mut cameras {
             *transform =

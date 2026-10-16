@@ -80,6 +80,9 @@ fn update_lighting(
     mut sun: Query<&mut DirectionalLight, With<Sun>>,
     mut ambient: ResMut<GlobalAmbientLight>,
 ) {
+    if *mode.get() == Mode::Tree_Study {
+        return;
+    }
     let night = game.night && *mode.get() != Mode::Title;
     clear.0 = if *mode.get() == Mode::Title {
         title::SKY

@@ -480,6 +480,12 @@ fn audio_snapshot(
 }
 #[derive(bevy::ecs::system::SystemParam)]
 struct Presentation_Observation<'w, 's> {
+    study: Res<'w, crate::rendering::Tree_Study>,
+    specimens: Query<'w, 's, (), With<crate::rendering::tree_study::Tree_Specimen>>,
+    study_sun:
+        Query<'w, 's, &'static DirectionalLight, With<crate::rendering::tree_study::Study_Sun>>,
+    study_lamp: Query<'w, 's, &'static PointLight, With<crate::rendering::tree_study::Study_Lamp>>,
+    ambient: Res<'w, GlobalAmbientLight>,
     scale: Res<'w, UiScale>,
     title: Res<'w, crate::rendering::Title_Scene>,
     area: Query<'w, 's, (&'static Text, &'static TextColor), With<crate::ui::Area_Title>>,
@@ -491,6 +497,7 @@ impl Presentation_Observation<'_, '_> {
         let area = self.area.iter().next();
         json!({
             "ui_scale": self.scale.0,
+            "tree_study": {"preset":format!("{:?}",self.study.preset), "trees":self.specimens.iter().count(), "sun":self.study_sun.iter().next().map_or(0., |light| light.illuminance), "lamp":self.study_lamp.iter().next().map_or(0., |light| light.intensity), "ambient":self.ambient.brightness},
             "title_elapsed": self.title.elapsed,
             "title_grass_vertices": self.title.grass_vertices,
             "volumetric_lighting": self.cameras.iter().any(|enabled| enabled) && !self.volumetric_lights.is_empty(),

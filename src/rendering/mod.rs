@@ -24,6 +24,7 @@ mod materials;
 mod models;
 mod room;
 mod title;
+pub(crate) mod tree_study;
 pub(crate) use audio::Audio_Layer;
 #[cfg(test)]
 use audio::{TITLE_AMBIENCE, TITLE_MUSIC};
@@ -39,6 +40,7 @@ use models::transformed_bounds;
 use room::clip_surface;
 use room::paint;
 pub(crate) use title::Title_Scene;
+pub(crate) use tree_study::Tree_Study;
 
 #[derive(Component)]
 pub struct Room_Visual;
@@ -122,6 +124,7 @@ impl Plugin for Rendering_Plugin {
             environment::Environment_Plugin,
             audio::Audio_Plugin,
             title::Title_Plugin,
+            tree_study::Tree_Study_Plugin,
         ));
     }
 }

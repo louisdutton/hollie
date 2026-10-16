@@ -184,9 +184,15 @@ fn items(
     match menu {
         Menu::Main => {
             if *mode == Mode::Title {
-                ["1 player", "2 players", "Options", "Exit game"]
-                    .map(str::to_string)
-                    .into()
+                [
+                    "1 player",
+                    "2 players",
+                    "Options",
+                    "Tree study",
+                    "Exit game",
+                ]
+                .map(str::to_string)
+                .into()
             } else {
                 ["Resume", "Options", "Return to title"]
                     .map(str::to_string)
@@ -251,7 +257,8 @@ fn activate(
                         next.set(Mode::Gameplay);
                     }
                     2 => menu.menu = Menu::Options,
-                    3 => {
+                    3 => next.set(Mode::Tree_Study),
+                    4 => {
                         exit.write(AppExit::Success);
                     }
                     _ => {}
@@ -338,6 +345,12 @@ fn menu_input(
         return;
     }
     if windows.iter().any(|w| !w.focused) {
+        return;
+    }
+    if *mode.get() == Mode::Tree_Study {
+        if keys.just_pressed(KeyCode::Escape) {
+            next.set(Mode::Title);
+        }
         return;
     }
     if let Some(index) = menu.rebinding {
@@ -590,6 +603,7 @@ struct Ui_Context<'w> {
     game: Res<'w, Game_State>,
     preferences: Res<'w, Preferences>,
     editor: Res<'w, Editor_State>,
+    study: Res<'w, crate::rendering::Tree_Study>,
     server: Res<'w, AssetServer>,
 }
 fn draw_ui(
@@ -604,10 +618,13 @@ fn draw_ui(
         game,
         preferences,
         editor,
+        study,
         server,
     } = context;
 
-    let status = if menu.rebinding.is_some() {
+    let status = if *mode.get() == Mode::Tree_Study {
+        study.caption()
+    } else if menu.rebinding.is_some() {
         "Press a new key, or Escape to cancel".to_string()
     } else if *mode.get() == Mode::Editor {
         editor.status(&game)

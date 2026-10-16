@@ -135,5 +135,15 @@ class Hollie:
             raise AssertionError(f"{image}: {actual}, expected {width}x{height}")
 
     @keyword
+    def image_region_mean(self, image, x: int, y: int, width: int, height: int):
+        value = subprocess.check_output(["magick", str(self.captures / image),
+            "-crop", f"{width}x{height}+{x}+{y}", "+repage", "-colorspace", "RGB",
+            "-format", "%[fx:mean.r],%[fx:mean.g],%[fx:mean.b]", "info:"],
+            text=True, timeout=10)
+        red, green, blue = map(float, value.split(","))
+        return {"red": red, "green": green, "blue": blue,
+                "luminance": red * 0.2126 + green * 0.7152 + blue * 0.0722}
+
+    @keyword
     def save_journey_evidence(self):
         (self.output / "commands.json").write_text(json.dumps(self.trace, indent=2) + "\n")

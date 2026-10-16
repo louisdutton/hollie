@@ -19,6 +19,7 @@ pub enum Mode {
     Gameplay,
     Paused,
     Editor,
+    Tree_Study,
 }
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Game_Systems {

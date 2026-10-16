@@ -4,7 +4,7 @@ use bevy::{
     light::{FogVolume, VolumetricFog, VolumetricLight},
 };
 
-mod forest;
+pub(super) mod forest;
 
 pub(super) const SKY: Color = Color::srgb(0.14, 0.28, 0.27);
 
@@ -149,14 +149,7 @@ fn setup(
     let mut leaf_material = woodland_material(Woodland_Kind::Foliage);
     let sun_position = Vec3::new(240., 420., -300.);
     let sun_target = Vec3::new(20., 0., -100.);
-    let sun_direction = sun_position - sun_target;
-    // The painted ramp uses the same sun as the glade's shadows and god rays.
-    leaf_material.extension.parameters = Vec4::new(
-        leaf_material.extension.parameters.x,
-        sun_direction.x,
-        sun_direction.y,
-        sun_direction.z,
-    );
+    leaf_material.extension.parameters.y = 1.;
     leaf_material.base.double_sided = false;
     let mut canopy_material = leaf_material.clone();
     canopy_material.extension.parameters.x = Woodland_Kind::Canopy as u32 as f32;
@@ -177,14 +170,12 @@ fn setup(
     commands.spawn((
         Mesh3d(meshes.add(geometry.sprays)),
         MeshMaterial3d(leaf_material.clone()),
-        bevy::light::NotShadowReceiver,
         Transform::default(),
         RenderLayers::layer(1),
     ));
     commands.spawn((
         Mesh3d(meshes.add(geometry.canopy)),
         MeshMaterial3d(canopy_material),
-        bevy::light::NotShadowReceiver,
         Transform::default(),
         RenderLayers::layer(1),
         Canopy,

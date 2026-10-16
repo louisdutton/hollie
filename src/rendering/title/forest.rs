@@ -137,7 +137,7 @@ impl Forest_Mesh {
 
     // The connected volume guides leaf placement and broad lighting, but is
     // never rendered: its smooth skin previously made the crowns look solid.
-    fn crown(&mut self, center: Vec3, size: Vec3, seed: u32) {
+    fn crown(&mut self, center: Vec3, size: Vec3, seed: u32, glade_opening: bool) {
         let phase = random(seed) * std::f32::consts::TAU;
         let lobes: Vec<_> = (0..9)
             .map(|i| {
@@ -192,7 +192,9 @@ impl Forest_Mesh {
             let s = angle / std::f32::consts::TAU;
             let surface_point = point(t, s);
             let p = center + (surface_point - center) * (0.86 + random(n + 1) * 0.17);
-            if ((p.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1. {
+            if glade_opening
+                && ((p.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1.
+            {
                 continue;
             }
             let guide = ((p - center) / size / size).normalize();
@@ -219,24 +221,46 @@ impl Forest_Mesh {
         let v = -side * phase.sin() + up * phase.cos();
         let base = self.positions.len() as u32;
         let uv = Vec2::new(random(seed + 4), 0.);
-        self.vertex(center + normal * size.x * 0.08, normal, Color::WHITE, uv);
+        self.vertex(
+            center + normal * size.x * 0.08,
+            normal,
+            normal_colour(normal),
+            uv,
+        );
         const EDGES: u32 = 24;
         for edge in 0..EDGES {
             let angle = edge as f32 / EDGES as f32 * std::f32::consts::TAU;
             let outline =
                 0.87 + (angle * 3. + phase).sin() * 0.13 + (angle * 7. - phase).cos() * 0.06;
             let p = center + (u * angle.cos() * size.x + v * angle.sin() * size.y) * outline;
-            self.vertex(p, normal, Color::WHITE, uv);
+            self.vertex(p, normal, normal_colour(normal), uv);
             self.indices
                 .extend([base, base + 1 + (edge + 1) % EDGES, base + 1 + edge]);
         }
     }
 
-    // Shrubs retain their smaller overlapping leaf masses.
-    fn tuft(&mut self, center: Vec3, size: Vec3, envelope: (Vec3, Vec3), color: Color, seed: u32) {
+    // Transfer the parent volume's normals to small foliage masses so their
+    // shading stays grouped, while closed geometry supplies a soft silhouette.
+    fn tuft(
+        &mut self,
+        center: Vec3,
+        size: Vec3,
+        envelope: (Vec3, Vec3),
+        paint_normals: bool,
+        seed: u32,
+        local_weight: f32,
+    ) {
         let phase = random(seed) * std::f32::consts::TAU;
-        let (rows, columns) = if center.z > -400. { (12, 24) } else { (8, 16) };
-        self.grid(rows, columns, |t, s| {
+        let (rows, columns) = if local_weight < 0.5 {
+            (10, 24)
+        } else if local_weight < 0.75 {
+            (16, 32)
+        } else if center.z > -400. {
+            (12, 24)
+        } else {
+            (8, 16)
+        };
+        let point = |t: f32, s: f32| {
             let latitude = t * std::f32::consts::PI;
             let longitude = s * std::f32::consts::TAU;
             let radial = Vec3::new(
@@ -244,16 +268,35 @@ impl Forest_Mesh {
                 latitude.cos(),
                 latitude.sin() * longitude.sin(),
             );
+            let detail = if local_weight < 0.5 { 0.5 } else { 1. };
+            let softness = if paint_normals { 0.65 } else { 1. };
             let lobes = 1.
-                + (radial.x * 7. + radial.y * 4. + phase).sin() * 0.10
-                + (radial.z * 8. - radial.y * 6. + phase).sin() * 0.07;
-            let p = center + radial * size * lobes;
-            let crown_normal = ((p - envelope.0) / envelope.1 / envelope.1).normalize_or(radial);
-            let local_normal = (radial / size).normalize();
+                + ((radial.x * 7. + radial.y * 4.) * softness + phase).sin() * 0.10 * softness
+                + ((radial.z * 8. - radial.y * 6.) * softness + phase).sin()
+                    * 0.07
+                    * detail
+                    * softness;
+            center + radial * size * lobes
+        };
+        self.grid(rows, columns, |t, s| {
+            let p = point(t, s);
+            let local_normal = ((p - center) / size / size).normalize();
+            let crown_normal =
+                ((p - envelope.0) / envelope.1 / envelope.1).normalize_or(local_normal);
+            let shade = crown_normal.lerp(local_normal, local_weight).normalize();
+            let dt = point(t + 0.001, s) - point(t - 0.001, s);
+            let ds = point(t, s + 0.001) - point(t, s - 0.001);
+            // Shadow bias needs the real surface normal; transferred foliage
+            // normals belong to the lighting lobe only. RGB stores that guide.
+            let geometry = ds.cross(dt).normalize_or(local_normal);
             (
                 p,
-                crown_normal.lerp(local_normal, 0.78).normalize(),
-                color,
+                if paint_normals { geometry } else { shade },
+                if paint_normals {
+                    normal_colour(shade)
+                } else {
+                    Color::WHITE
+                },
                 Vec2::new(random(seed), t),
             )
         });
@@ -272,6 +315,11 @@ impl Forest_Mesh {
     }
 }
 
+fn normal_colour(normal: Vec3) -> Color {
+    let rgb = normal * 0.5 + Vec3::splat(0.5);
+    Color::linear_rgb(rgb.x, rgb.y, rgb.z)
+}
+
 fn random(mut seed: u32) -> f32 {
     seed ^= seed >> 16;
     seed = seed.wrapping_mul(0x7feb352d);
@@ -287,6 +335,89 @@ pub(super) struct Forest_Geometry {
     pub understory: Mesh,
     pub sprays: Mesh,
     pub stone: Mesh,
+}
+
+pub(in crate::rendering) fn study_tree() -> (Mesh, Mesh) {
+    let mut wood = Forest_Mesh::default();
+    let mut leaves = Forest_Mesh::default();
+    let bark = Color::srgb(0.30, 0.24, 0.15);
+    wood.stem(
+        |t| Vec3::new((t * 2.8).sin() * 9., t * 210., t * t * -12.),
+        13.,
+        2.,
+        bark,
+        28,
+    );
+    for i in 0..7 {
+        let angle = i as f32 * 2.4;
+        let end = Vec3::new(angle.cos() * 62., 95. + i as f32 * 15., angle.sin() * 55.);
+        wood.branch(
+            Vec3::Y * (38. + i as f32 * 15.),
+            end,
+            6. - i as f32 * 0.5,
+            0.8,
+            bark,
+        );
+    }
+    for i in 0..5 {
+        let angle = i as f32 * std::f32::consts::TAU / 5.;
+        wood.branch(
+            Vec3::Y * 7.,
+            Vec3::new(angle.cos() * 28., 0., angle.sin() * 28.),
+            5.,
+            0.5,
+            bark,
+        );
+    }
+    // Layer the branch volumes into a broad lower crown and a narrower,
+    // off-centre top. Small foliage masses overlap their shoulders; the tree
+    // is evaluated here without glade fog or neighbouring trees hiding gaps.
+    let crown_center = Vec3::new(0., 150., 0.);
+    let crown_size = Vec3::new(110., 140., 85.);
+    let mut cluster = 0_u32;
+    for (height, spread, depth, count, radius) in [
+        (66., 73., 39., 8_u32, 29.),
+        (110., 70., 41., 9, 29.),
+        (155., 57., 35., 8, 28.),
+        (196., 36., 26., 6, 26.),
+        (222., 14., 14., 3, 22.),
+    ] {
+        for i in 0..count {
+            let seed = 1723 + cluster * 199;
+            cluster += 1;
+            let angle = i as f32 / count as f32 * std::f32::consts::TAU + height * 0.027;
+            let center = Vec3::new(
+                (angle.cos() * spread * (0.9 + random(seed) * 0.2) - (height - 66.) * 0.05) * 1.15,
+                height + (random(seed + 1) - 0.5) * 18.,
+                angle.sin() * depth,
+            );
+            let size = Vec3::new(
+                radius * (0.92 + random(seed + 2) * 0.2) * 1.1,
+                radius * (0.85 + random(seed + 3) * 0.22),
+                radius * 0.92,
+            );
+            leaves.tuft(center, size, (crown_center, crown_size), true, seed, 0.65);
+            let count = 110;
+            for leaf in 0..count {
+                let n = seed + leaf * 37;
+                let y = 1. - 2. * (leaf as f32 + 0.5) / count as f32;
+                let angle = leaf as f32 * 2.399963 + random(seed) * 6.;
+                let ring = (1. - y * y).sqrt();
+                let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
+                let p = center + radial * size * (0.98 + random(n + 1) * 0.07);
+                let radius = 3.5 + random(n + 2) * 3.;
+                leaves.tuft(
+                    p,
+                    Vec3::new(radius, radius * 0.85, radius),
+                    (center, size),
+                    true,
+                    n,
+                    0.16,
+                );
+            }
+        }
+    }
+    (wood.finish(), leaves.finish())
 }
 
 pub(super) fn build() -> Forest_Geometry {
@@ -367,6 +498,7 @@ pub(super) fn build() -> Forest_Geometry {
             base + Vec3::Y * height * 0.86 + lean,
             Vec3::new(height * 0.28 + 18., height * 0.31, height * 0.27 + 18.),
             seed + 1103,
+            true,
         );
     }
     // Low, rounded shrubs and small flowers gather along the clearing's edge.
@@ -394,8 +526,9 @@ pub(super) fn build() -> Forest_Geometry {
                     crown + radial * radii,
                     Vec3::new(4.5, 4., 5.) * (0.8 + random(n + 2) * 0.6),
                     (crown, radii),
-                    Color::WHITE,
+                    false,
                     n,
+                    0.78,
                 );
             }
         } else {

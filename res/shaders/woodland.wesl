@@ -1,9 +1,10 @@
 import bevy_pbr::render::{
     forward_io::{VertexOutput,FragmentOutput},
+    mesh_functions::mesh_normal_local_to_world,
     pbr_fragment::pbr_input_from_standard_material,
     pbr_functions::{alpha_discard,apply_pbr_lighting,main_pass_post_lighting_processing},
 };
-import super::palette::{grass_colour,moss_colour,foliage_colour,WOOD_LIGHT,CANOPY_LIGHT};
+import super::palette::{grass_colour,moss_colour,foliage_colour,WOOD_LIGHT};
 struct Woodland { parameters: vec4<f32> }
 @group(constants::MATERIAL_BIND_GROUP) @binding(100) var<uniform> woodland: Woodland;
 fn hash(p: vec2<f32>) -> f32 { return fract(sin(dot(p,vec2<f32>(127.1,311.7)))*43758.5453); }
@@ -22,24 +23,25 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
     let p=in.world_position.xyz;
     let kind=woodland.parameters.x;
     var albedo=pbr.material.base_color.rgb;
-    if ((kind>1.5 && kind<2.5) || kind>3.5) && length(woodland.parameters.yzw)>0.5 {
-        // A hue-shifting paint ramp, rather than smooth PBR shading. The
-        // low-frequency breakup makes irregular paint boundaries, not veins.
-        // A broad front fill keeps painted clumps readable beneath the
-        // backlit canopy, without changing the sun that casts the glade rays.
-        let light=normalize(normalize(woodland.parameters.yzw)+vec3<f32>(-0.55,0.0,1.05));
-        var brush=(noise(p.xz*0.16+vec2<f32>(p.y*0.11))+noise(p.zy*0.23))*0.5;
-        var brightness=dot(normalize(in.world_normal),light)+0.12+(brush-0.5)*0.65+(in.uv.x-0.5)*0.30;
+    if ((kind>1.5 && kind<2.5 && woodland.parameters.y>0.5) || kind>3.5) {
+        // Sample actual renderer lighting on a matte white surface. This
+        // includes light colour/intensity, ambient, local lights and shadows;
+        // the paint ramp only stylizes its response, never replaces the lights.
+        pbr.material.base_color=vec4<f32>(1.0);
+        pbr.material.reflectance=vec3<f32>(0.0);
+        pbr.material.perceptual_roughness=1.0;
+        pbr.material.diffuse_transmission=0.0;
+        pbr.N=normalize(in.world_normal);
         if kind>3.5 {
-            // Each small leaf is one paint mark. Noise painted across a smooth
-            // shell made camouflage contours instead of layered leaf shapes.
-            brush=in.uv.x;
-            brightness=dot(normalize(in.world_normal),light)*0.85+(brush-0.5)*0.38;
+            pbr.N=mesh_normal_local_to_world(normalize(in.color.rgb*2.0-1.0),in.instance_index);
+            albedo=vec3<f32>(1.0);
         }
-        let paint=foliage_colour(brightness,brush);
+        let illumination=max(apply_pbr_lighting(pbr).rgb,vec3<f32>(0.0));
+        let luminance=dot(illumination,vec3<f32>(0.2126,0.7152,0.0722));
+        let brightness=luminance/(luminance+0.7)+(in.uv.x-0.5)*0.15;
+        let paint=foliage_colour(brightness,in.uv.x);
         var out: FragmentOutput;
-        let illumination=select(2.2,CANOPY_LIGHT,kind>3.5);
-        out.color=vec4<f32>(linear(paint)*albedo*illumination,1.0);
+        out.color=vec4<f32>(linear(paint)*albedo*(illumination/max(luminance,0.00001))*(luminance/(luminance+0.15))*1.2,1.0);
         out.color=main_pass_post_lighting_processing(pbr,out.color);
         return out;
     }
