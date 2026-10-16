@@ -8786,26 +8786,13 @@
       }
     },
     {
-      "id": "player_1_spawn",
+      "id": "player_spawn",
       "type": "player",
       "position": {
         "x": 544,
         "y": 512
       },
-      "properties": {
-        "player_index": 1
-      }
-    },
-    {
-      "id": "player_2_spawn",
-      "type": "player",
-      "position": {
-        "x": 560,
-        "y": 512
-      },
-      "properties": {
-        "player_index": 2
-      }
+      "properties": {}
     },
     {
       "id": "enemy_1",

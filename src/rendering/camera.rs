@@ -76,19 +76,12 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     ));
 }
 pub(super) fn player_center(game: &Game_View) -> Vec3 {
-    let players: Vec<_> = game
-        .actors
+    game.actors
         .iter()
-        .filter(|a| a.player().is_some())
-        .collect();
-    if players.is_empty() {
-        return Vec3::new(480., 0., 384.);
-    }
-    players
-        .iter()
-        .map(|a| Vec3::new(a.body.position.x, a.body.height.max(0.), a.body.position.y))
-        .sum::<Vec3>()
-        / players.len() as f32
+        .find(|a| a.is_player())
+        .map_or(Vec3::new(480., 0., 384.), |a| {
+            Vec3::new(a.body.position.x, a.body.height.max(0.), a.body.position.y)
+        })
 }
 pub(super) fn bounded_camera_target(
     mut target: Vec3,
@@ -178,7 +171,7 @@ pub(super) fn follow_camera(
     } else if game
         .actors
         .iter()
-        .any(|a| a.player().is_some() && a.mounted().is_some())
+        .any(|a| a.is_player() && a.mounted().is_some())
     {
         1. / 1.4
     } else {

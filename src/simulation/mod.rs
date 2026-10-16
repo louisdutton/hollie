@@ -1,5 +1,5 @@
 use crate::content::*;
-use anyhow::{Result, ensure};
+use anyhow::Result;
 use bevy::prelude::*;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
@@ -158,7 +158,6 @@ pub struct Game_State {
     pub room: Room,
     pub frame: u64,
     pub seed: u64,
-    pub player_count: usize,
     pub generation: u64,
     pub elapsed: f32,
     pub night: bool,

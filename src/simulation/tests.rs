@@ -7,20 +7,15 @@ mod movement {
         Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap()
     }
     #[test]
-    fn seeded_reset_replays_both_players() {
+    fn seeded_reset_replays_the_player() {
         let mut world = game();
-        world.reset("demo", 2, 84).unwrap();
+        world.reset("demo", 84).unwrap();
         let initial = world.observation();
-        let input = [
-            Player_Input {
-                movement: Vec2::Y,
-                ..default()
-            },
-            Player_Input {
-                movement: Vec2::Y * 0.5,
-                ..default()
-            },
-        ];
+        let input = Player_Input {
+            movement: Vec2::Y,
+            ..default()
+        };
+        assert_eq!(initial["players"].as_array().unwrap().len(), 1);
         for _ in 0..30 {
             world.step(input, STEP).unwrap();
         }
@@ -30,11 +25,7 @@ mod movement {
             moved["players"][0]["body"]["position"],
             initial["players"][0]["body"]["position"]
         );
-        assert_ne!(
-            moved["players"][1]["body"]["position"],
-            initial["players"][1]["body"]["position"]
-        );
-        world.reset("demo", 2, 84).unwrap();
+        world.reset("demo", 84).unwrap();
         assert_eq!(world.observation(), initial);
         for _ in 0..30 {
             world.step(input, STEP).unwrap();
@@ -44,11 +35,9 @@ mod movement {
     #[test]
     fn invalid_reset_does_not_mutate_world() {
         let mut world = game();
-        world.reset("demo", 1, 42).unwrap();
+        world.reset("demo", 42).unwrap();
         let before = world.observation();
-        assert!(world.reset("missing", 2, 4).is_err());
-        assert_eq!(before, world.observation());
-        assert!(world.reset("demo", 3, 4).is_err());
+        assert!(world.reset("missing", 4).is_err());
         assert_eq!(before, world.observation());
     }
     #[test]
@@ -62,12 +51,8 @@ mod movement {
     #[test]
     fn jump_and_buoyancy() {
         let mut world = game();
-        world.reset("demo", 1, 42).unwrap();
-        let i = world
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        world.reset("demo", 42).unwrap();
+        let i = world.actors.iter().position(|a| a.is_player()).unwrap();
         world.actors[i].body.jump(220.);
         world.move_body(i, STEP);
         assert!(world.actors[i].body.height > 0.);
@@ -118,7 +103,7 @@ mod interaction_tests {
     fn game() -> Game_World<'static> {
         let mut game =
             Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap();
-        game.reset("demo", 2, 42).unwrap();
+        game.reset("demo", 42).unwrap();
         game
     }
     #[test]
@@ -136,11 +121,7 @@ mod interaction_tests {
             .iter()
             .position(|a| matches!(a.properties, Entity_Properties::Holdable(_)))
             .unwrap();
-        let player = game
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        let player = game.actors.iter().position(|a| a.is_player()).unwrap();
         game.actors[crate_index].body.position = plates[0].1;
         game.actors[crate_index].body.height = plates[0].2;
         game.actors[player].body.position = plates[1].1;
@@ -162,11 +143,7 @@ mod interaction_tests {
     #[test]
     fn carry_drop_and_contact_exemption() {
         let mut game = game();
-        let player = game
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        let player = game.actors.iter().position(|a| a.is_player()).unwrap();
         let item = game
             .actors
             .iter()
@@ -191,11 +168,7 @@ mod interaction_tests {
     #[test]
     fn riders_follow_mount_without_bearing_ground_weight() {
         let mut game = game();
-        let player = game
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        let player = game.actors.iter().position(|a| a.is_player()).unwrap();
         let animal = game
             .actors
             .iter()
@@ -215,12 +188,8 @@ mod interaction_tests {
     }
     fn carrying_game() -> (Game_World<'static>, usize, usize) {
         let mut game = game();
-        game.reset("demo", 1, 42).unwrap();
-        let player = game
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        game.reset("demo", 42).unwrap();
+        let player = game.actors.iter().position(|a| a.is_player()).unwrap();
         let item = game
             .actors
             .iter()
@@ -250,14 +219,11 @@ mod interaction_tests {
     fn simultaneous_jump_and_throw_inherits_the_jump() {
         let (mut game, player, item) = carrying_game();
         game.step(
-            [
-                Player_Input {
-                    jump: true,
-                    interact: true,
-                    ..default()
-                },
-                default(),
-            ],
+            Player_Input {
+                jump: true,
+                interact: true,
+                ..default()
+            },
             STEP,
         )
         .unwrap();
@@ -299,12 +265,8 @@ mod interaction_tests {
     }
     fn mounted_game() -> (Game_World<'static>, usize, usize) {
         let mut game = game();
-        game.reset("demo", 1, 42).unwrap();
-        let player = game
-            .actors
-            .iter()
-            .position(|a| a.player() == Some(0))
-            .unwrap();
+        game.reset("demo", 42).unwrap();
+        let player = game.actors.iter().position(|a| a.is_player()).unwrap();
         let animal = game
             .actors
             .iter()
@@ -370,13 +332,10 @@ mod interaction_tests {
         assert!((game.actors[player].body.velocity.length() - 70.).abs() < 0.001);
         let before = game.actors[player].body.velocity;
         game.update_motion(
-            [
-                Player_Input {
-                    movement: Vec2::new(-1., 1.).normalize(),
-                    ..default()
-                },
-                default(),
-            ],
+            Player_Input {
+                movement: Vec2::new(-1., 1.).normalize(),
+                ..default()
+            },
             STEP,
         );
         assert!((game.actors[player].body.velocity.length() - 70.).abs() < 0.001);
@@ -397,7 +356,7 @@ mod interaction_tests {
             .layers
             .collision
             .fill(1);
-        assert!(game.reset("demo", 1, 7).is_err());
+        assert!(game.reset("demo", 7).is_err());
         assert_eq!(game.observation(), before);
     }
 }

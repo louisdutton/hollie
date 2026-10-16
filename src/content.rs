@@ -79,9 +79,7 @@ impl Character_Kind {
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Player_Properties {
-    pub player_index: usize,
-}
+pub struct Player_Properties {}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Enemy_Properties {
@@ -286,10 +284,9 @@ impl Room {
                 e.id
             );
             match &e.properties {
-                Entity_Properties::Player(p) => ensure!(
-                    (1..=2).contains(&p.player_index) && players.insert(p.player_index),
-                    "invalid or duplicate player"
-                ),
+                Entity_Properties::Player(_) => {
+                    ensure!(players.insert(()), "invalid or duplicate player")
+                }
                 Entity_Properties::Pressure_Plate(p) => ensure!(
                     p.trigger_id > 0 && triggers.insert(p.trigger_id),
                     "invalid or duplicate trigger"
@@ -427,6 +424,24 @@ mod tests {
         room.layers.base.clear();
         assert!(room.save(&path).is_err());
         assert_eq!(fs::read(path).unwrap(), before);
+    }
+    #[test]
+    fn duplicate_player_spawn_is_rejected() {
+        let mut room = Room_Registry::load(Path::new("res"))
+            .unwrap()
+            .get("demo")
+            .unwrap()
+            .room
+            .clone();
+        let mut marker = room
+            .entities
+            .iter()
+            .find(|entity| matches!(entity.properties, Entity_Properties::Player(_)))
+            .unwrap()
+            .clone();
+        marker.id = "duplicate_spawn".into();
+        room.entities.push(marker);
+        assert!(room.validate().is_err());
     }
     #[test]
     fn unknown_entity_property_is_rejected() {

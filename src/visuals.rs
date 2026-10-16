@@ -136,7 +136,7 @@ impl Surface_State {
         for actor in actors {
             if !actor.movable()
                 || actor.held_by.is_some()
-                || actor.player().is_some() && actor.mounted.is_some()
+                || actor.is_player() && actor.mounted.is_some()
             {
                 continue;
             }
@@ -219,7 +219,7 @@ mod tests {
     fn game() -> Game_World<'static> {
         let mut g =
             Game_World::new(Room_Registry::load(std::path::Path::new("res")).unwrap()).unwrap();
-        g.reset("demo", 1, 42).unwrap();
+        g.reset("demo", 42).unwrap();
         g
     }
     #[test]
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn water_contact_wakes_and_reset_are_simulation_owned() {
         let mut g = game();
-        let i = g.actors.iter().position(|a| a.player().is_some()).unwrap();
+        let i = g.actors.iter().position(|a| a.is_player()).unwrap();
         let tile = g.room.layers.base.iter().position(|t| *t == 500).unwrap();
         let t = g.room.grid.tile_size as f32;
         let p = Vec2::new(
@@ -254,18 +254,13 @@ mod tests {
         g.state.surfaces.advance(&[], &g.state.room, 2.);
         assert!(g.surfaces.wakes.is_empty());
         assert!(g.surfaces.water.is_empty());
-        g.reset("demo", 1, 42).unwrap();
+        g.reset("demo", 42).unwrap();
         assert!(g.surfaces.wakes.is_empty());
     }
     #[test]
     fn grass_footprints_recover_and_airborne_bodies_do_not_flatten_it() {
         let g = game();
-        let mut actor = g
-            .actors
-            .iter()
-            .find(|a| a.player().is_some())
-            .unwrap()
-            .clone();
+        let mut actor = g.actors.iter().find(|a| a.is_player()).unwrap().clone();
         actor.body.velocity = Vec2::X * 80.;
         let mut state = Surface_State::default();
         state.advance(std::slice::from_ref(&actor), &g.room, STEP);
@@ -319,7 +314,7 @@ mod tests {
     #[test]
     fn carried_crate_releases_from_the_evaluated_hands() {
         let mut g = game();
-        let p = g.actors.iter().position(|a| a.player().is_some()).unwrap();
+        let p = g.actors.iter().position(|a| a.is_player()).unwrap();
         let item = g
             .actors
             .iter()
@@ -333,13 +328,10 @@ mod tests {
         let anchor = Vec3::new(position.x, 16., position.y);
         g.actors[item].attachment.held_anchor = Some(anchor);
         g.step(
-            [
-                Player_Input {
-                    interact: true,
-                    ..default()
-                },
-                default(),
-            ],
+            Player_Input {
+                interact: true,
+                ..default()
+            },
             STEP,
         )
         .unwrap();
@@ -355,18 +347,15 @@ mod tests {
         let mut g = game();
         for _ in 0..30 {
             g.step(
-                [
-                    Player_Input {
-                        movement: Vec2::Y,
-                        ..default()
-                    },
-                    default(),
-                ],
+                Player_Input {
+                    movement: Vec2::Y,
+                    ..default()
+                },
                 STEP,
             )
             .unwrap();
         }
-        let pose = &g.actors.iter().find(|a| a.player().is_some()).unwrap().pose;
+        let pose = &g.actors.iter().find(|a| a.is_player()).unwrap().pose;
         assert!(pose.phase > 0.);
         assert!(pose.lean > 0.);
         let mut pose = Motion_Pose::default();

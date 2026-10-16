@@ -189,15 +189,9 @@ fn items(
     match menu {
         Menu::Main => {
             if *mode == Mode::Title {
-                [
-                    "1 player",
-                    "2 players",
-                    "Options",
-                    "Tree study",
-                    "Exit game",
-                ]
-                .map(str::to_string)
-                .into()
+                ["Start game", "Options", "Tree study", "Exit game"]
+                    .map(str::to_string)
+                    .into()
             } else {
                 ["Resume", "Options", "Return to title"]
                     .map(str::to_string)
@@ -233,7 +227,7 @@ fn items(
             ]
             .iter()
             .enumerate()
-            .map(|(i, label)| format!("{label}   {:?}", bindings.player_one[i]))
+            .map(|(i, label)| format!("{label}   {:?}", bindings.keyboard[i]))
             .collect();
             items.push("Back".into());
             items
@@ -253,17 +247,17 @@ fn activate(
         Menu::Main => {
             if *mode == Mode::Title {
                 match index {
-                    0 | 1 => {
+                    0 => {
                         let id = crate::simulation::INITIAL_ROOM;
-                        if let Err(error) = game.reset(id, index + 1, 42) {
+                        if let Err(error) = game.reset(id, 42) {
                             error!("{error}");
                             return;
                         }
                         next.set(Mode::Gameplay);
                     }
-                    2 => menu.menu = Menu::Options,
-                    3 => next.set(Mode::Tree_Study),
-                    4 => {
+                    1 => menu.menu = Menu::Options,
+                    2 => next.set(Mode::Tree_Study),
+                    3 => {
                         exit.write(AppExit::Success);
                     }
                     _ => {}
@@ -363,7 +357,7 @@ fn menu_input(
     if let Some(index) = menu.rebinding {
         if let Some(key) = keys.get_just_pressed().find(|key| **key != KeyCode::Enter) {
             if *key != KeyCode::Escape {
-                bindings.player_one[index] = *key;
+                bindings.keyboard[index] = *key;
             }
             menu.rebinding = None;
             menu.rebuild = true;
@@ -384,25 +378,22 @@ fn menu_input(
         }
     }
     if *mode.get() == Mode::Gameplay {
-        if keys.just_pressed(bindings.player_one[6])
+        if keys.just_pressed(bindings.keyboard[6])
             || keys.just_pressed(KeyCode::Escape)
             || pads.iter().any(|p| p.just_pressed(GamepadButton::Start))
         {
             next.set(Mode::Paused);
             menu.menu = Menu::Main;
             menu.selection = 0;
-            for p in &mut controls.players {
-                p.interact = false;
-                p.jump = false;
-            }
+            controls.player.interact = false;
+            controls.player.jump = false;
         }
         #[cfg(debug_assertions)]
         {
-            if keys.just_pressed(bindings.player_one[7]) {
+            if keys.just_pressed(bindings.keyboard[7]) {
                 let id = game.room.id.clone();
-                let count = game.player_count;
                 let seed = game.seed;
-                let _ = game.reset(&id, count, seed);
+                let _ = game.reset(&id, seed);
             }
             if keys.just_pressed(KeyCode::KeyN)
                 || pads
@@ -653,7 +644,7 @@ fn draw_ui(
         mode.get(),
         menu.menu,
         menu.selection,
-        format_args!("{status}|{:?}", bindings.player_one),
+        format_args!("{status}|{:?}", bindings.keyboard),
         [preferences.master, preferences.music, preferences.effects],
         preferences.fullscreen
     );

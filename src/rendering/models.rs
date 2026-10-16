@@ -55,12 +55,8 @@ pub(super) fn model_ready(
         .get(actor.0)
         .ok()
         .map_or(Color::WHITE, |a| {
-            if let Some(player) = a.player() {
-                if player == 0 {
-                    Color::srgb(92. / 255., 156. / 255., 214. / 255.)
-                } else {
-                    Color::srgb(102. / 255., 190. / 255., 132. / 255.)
-                }
+            if a.is_player() {
+                Color::srgb(92. / 255., 156. / 255., 214. / 255.)
             } else if matches!(a.properties, Entity_Properties::Npc(_)) {
                 Color::srgb(220. / 255., 190. / 255., 96. / 255.)
             } else if a.kind().is_some() && crate::visuals::animal_axis(a.kind()) == 0. {
@@ -302,7 +298,7 @@ fn sync_actors(
                     * 3_f32.to_radians()
                     * (actor.body.velocity.length() / 140.).clamp(0., 1.);
             }
-            if actor.player().is_some() && actor.mounted().is_some() {
+            if actor.is_player() && actor.mounted().is_some() {
                 bank = 0.;
             }
             let rotation = Quat::from_axis_angle(axis, bank);
@@ -339,7 +335,7 @@ pub(super) fn animate_models(
             }
         } else if actor.vitality.health <= 0 {
             "die"
-        } else if actor.mounted().is_some() && actor.player().is_some() {
+        } else if actor.mounted().is_some() && actor.is_player() {
             "ride"
         } else if actor.carrying().is_some() {
             "walk-holding-both"
@@ -453,7 +449,7 @@ pub(super) fn overlay_bones(
         };
         let mount = actor
             .mounted()
-            .filter(|_| actor.player().is_some())
+            .filter(|_| actor.is_player())
             .and_then(|id| game.actors.get(id).ok());
         let turn = mount.map_or(actor.pose.head_turn, |a| a.pose.head_turn * 0.5);
         let yaw = if overlay.turn {
@@ -528,7 +524,7 @@ pub(super) fn attach_carried_and_riders(
         };
         if let Some(mount) = actor
             .mounted()
-            .filter(|_| actor.player().is_some())
+            .filter(|_| actor.is_player())
             .and_then(|id| view.actors.get(id).ok())
         {
             if let (Some(mount_rig), Some(rider_rig), Some(mount_root)) = (

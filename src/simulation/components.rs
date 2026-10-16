@@ -303,12 +303,8 @@ impl<'w> Actor<'w> {
     }
 }
 impl Actor_Identity {
-    pub fn player(&self) -> Option<usize> {
-        if let Entity_Properties::Player(p) = &self.properties {
-            Some(p.player_index - 1)
-        } else {
-            None
-        }
+    pub fn is_player(&self) -> bool {
+        matches!(self.properties, Entity_Properties::Player(_))
     }
     pub fn kind(&self) -> Option<Character_Kind> {
         if let Entity_Properties::Enemy(p) = &self.properties {

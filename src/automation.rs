@@ -19,7 +19,6 @@ use std::{
 #[derive(Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Gamepad_Input {
-    player: String,
     #[serde(default)]
     axes: Vec<f32>,
     #[serde(default)]
@@ -31,7 +30,6 @@ struct Command {
     id: u64,
     op: String,
     room: Option<String>,
-    players: Option<usize>,
     seed: Option<u64>,
     frames: Option<u32>,
     #[serde(default)]
@@ -49,19 +47,19 @@ pub(crate) struct Controller {
     last_id: u64,
     pending: Option<Pending>,
     previous_keys: BTreeSet<String>,
-    previous_buttons: [BTreeSet<String>; 2],
+    previous_buttons: BTreeSet<String>,
     ready_frames: u32,
     render_on_demand: bool,
 }
 #[derive(Component)]
-struct Virtual_Pad(usize);
+struct Virtual_Pad;
 
 struct Pending {
     id: u64,
     error: String,
     capture: String,
     remaining: u32,
-    inputs: [Player_Input; 2],
+    inputs: Player_Input,
     debug_toggle: bool,
     keys: Vec<KeyCode>,
     gamepads: Vec<Gamepad_Input>,
@@ -80,10 +78,7 @@ impl Plugin for Automation_Plugin {
             );
         }
         if directory.is_some() {
-            for player in 0..2 {
-                app.world_mut()
-                    .spawn((Virtual_Pad(player), Gamepad::default()));
-            }
+            app.world_mut().spawn((Virtual_Pad, Gamepad::default()));
         }
         app.insert_resource(Controller {
             render_on_demand: directory.is_some()
@@ -109,18 +104,16 @@ impl Plugin for Automation_Plugin {
 }
 // Drive Bevy gamepad components too, so scene-specific bindings exercise
 // the same input path as physical controllers.
-fn inject_gamepads(controller: Res<Controller>, mut pads: Query<(&Virtual_Pad, &mut Gamepad)>) {
-    for (slot, mut pad) in &mut pads {
+fn inject_gamepads(controller: Res<Controller>, mut pads: Query<&mut Gamepad, With<Virtual_Pad>>) {
+    for mut pad in &mut pads {
         pad.digital_mut().clear();
         if !controller.stepping {
             continue;
         }
-        let snapshot = controller.pending.as_ref().and_then(|pending| {
-            pending
-                .gamepads
-                .iter()
-                .find(|input| input.player == if slot.0 == 0 { "Player_1" } else { "Player_2" })
-        });
+        let snapshot = controller
+            .pending
+            .as_ref()
+            .and_then(|pending| pending.gamepads.first());
         let buttons: Vec<_> = snapshot
             .into_iter()
             .flat_map(|input| &input.buttons)
@@ -311,12 +304,10 @@ fn validate_inputs(command: &Command) -> Result<()> {
         command.keys.iter().all(|key| valid_key(key)),
         "invalid input state"
     );
-    let mut players = BTreeSet::new();
+    ensure!(command.gamepads.len() <= 1, "invalid input state");
     for pad in &command.gamepads {
         ensure!(
-            matches!(pad.player.as_str(), "Player_1" | "Player_2")
-                && players.insert(&pad.player)
-                && pad.axes.len() <= 6
+            pad.axes.len() <= 6
                 && pad
                     .axes
                     .iter()
@@ -336,43 +327,31 @@ fn capture_valid(capture: &str) -> bool {
                 .file_name()
                 .is_some_and(|name| name == capture)
 }
-fn input_snapshot(command: &Command, controller: &Controller) -> [Player_Input; 2] {
+fn input_snapshot(command: &Command, controller: &Controller) -> Player_Input {
     let held: BTreeSet<_> = command.keys.iter().map(String::as_str).collect();
     let key = |k: &str| held.contains(k);
     let edge = |k: &str| key(k) && !controller.previous_keys.contains(k);
-    let mut result = [
-        Player_Input {
-            movement: Vec2::new(
-                key("D") as u8 as f32 - key("A") as u8 as f32,
-                key("S") as u8 as f32 - key("W") as u8 as f32,
-            )
-            .clamp_length_max(1.),
-            jump: edge("H"),
-            interact: edge("J"),
-        },
-        Player_Input {
-            movement: Vec2::new(
-                key("RIGHT") as u8 as f32 - key("LEFT") as u8 as f32,
-                key("DOWN") as u8 as f32 - key("UP") as u8 as f32,
-            )
-            .clamp_length_max(1.),
-            jump: edge("SEMICOLON"),
-            interact: edge("L"),
-        },
-    ];
+    let mut result = Player_Input {
+        movement: Vec2::new(
+            key("D") as u8 as f32 - key("A") as u8 as f32,
+            key("S") as u8 as f32 - key("W") as u8 as f32,
+        )
+        .clamp_length_max(1.),
+        jump: edge("H"),
+        interact: edge("J"),
+    };
     for pad in &command.gamepads {
-        let i = if pad.player == "Player_1" { 0 } else { 1 };
         let button = |name: &str| pad.buttons.iter().any(|b| b == name);
-        let pressed = |name: &str| button(name) && !controller.previous_buttons[i].contains(name);
+        let pressed = |name: &str| button(name) && !controller.previous_buttons.contains(name);
         let analog = Vec2::new(
             pad.axes.first().copied().unwrap_or(0.),
             pad.axes.get(1).copied().unwrap_or(0.),
         );
         if analog.length() > 0.15 {
-            result[i].movement = analog.clamp_length_max(1.);
+            result.movement = analog.clamp_length_max(1.);
         }
-        result[i].jump |= pressed("RIGHT_FACE_DOWN");
-        result[i].interact |= pressed("RIGHT_FACE_LEFT");
+        result.jump |= pressed("RIGHT_FACE_DOWN");
+        result.interact |= pressed("RIGHT_FACE_LEFT");
     }
     result
 }
@@ -412,11 +391,7 @@ fn execute(
         "reset" => {
             let room = command.room.as_deref().unwrap_or("demo");
             ensure!(game.registry.rooms.contains_key(room), "unknown room");
-            game.reset(
-                room,
-                command.players.unwrap_or(1),
-                command.seed.unwrap_or(42),
-            )?;
+            game.reset(room, command.seed.unwrap_or(42))?;
             controller.previous_keys.clear();
             controller.previous_buttons = default();
             next.set(Mode::Gameplay);
@@ -431,9 +406,8 @@ fn execute(
             pending.inputs = input_snapshot(command, controller);
             pending.gamepads = command.gamepads.clone();
             pending.debug_toggle = command.gamepads.iter().any(|pad| {
-                pad.player == "Player_1"
-                    && pad.buttons.iter().any(|b| b == "RIGHT_THUMB")
-                    && !controller.previous_buttons[0].contains("RIGHT_THUMB")
+                pad.buttons.iter().any(|b| b == "RIGHT_THUMB")
+                    && !controller.previous_buttons.contains("RIGHT_THUMB")
             });
             pending.remaining = frames;
             pending.keys = command.keys.iter().map(|key| native_key(key)).collect();
@@ -456,8 +430,7 @@ fn execute(
             controller.previous_keys = command.keys.iter().cloned().collect();
             controller.previous_buttons = default();
             for pad in &command.gamepads {
-                let i = if pad.player == "Player_1" { 0 } else { 1 };
-                controller.previous_buttons[i] = pad.buttons.iter().cloned().collect();
+                controller.previous_buttons = pad.buttons.iter().cloned().collect();
             }
         }
         "observe" => {}
@@ -511,10 +484,8 @@ fn poll(
             } else {
                 pending.remaining -= 1;
             }
-            for input in &mut pending.inputs {
-                input.jump = false;
-                input.interact = false;
-            }
+            pending.inputs.jump = false;
+            pending.inputs.interact = false;
         }
         return;
     }
@@ -774,7 +745,6 @@ mod tests {
     fn invalid_input_and_paths_rejected() {
         let command = Command {
             gamepads: vec![Gamepad_Input {
-                player: "Player_1".into(),
                 axes: vec![0., 2.],
                 buttons: vec![],
             }],
@@ -787,23 +757,37 @@ mod tests {
         assert!(capture_valid("state.png"));
     }
     #[test]
+    fn multiplayer_commands_are_rejected() {
+        for command in [
+            r#"{"id":1,"op":"reset","players":2}"#,
+            r#"{"id":1,"op":"step","frames":1,"gamepads":[{"player":"Player_2"}]}"#,
+        ] {
+            assert!(serde_json::from_str::<Command>(command).is_err());
+        }
+        let command = Command {
+            gamepads: vec![Gamepad_Input::default(), Gamepad_Input::default()],
+            ..default()
+        };
+        assert!(validate_inputs(&command).is_err());
+    }
+    #[test]
     fn held_actions_only_fire_on_rising_edge() {
         let command = Command {
             keys: vec!["H".into()],
             ..default()
         };
         let mut controller = Controller::default();
-        assert!(input_snapshot(&command, &controller)[0].jump);
+        assert!(input_snapshot(&command, &controller).jump);
         controller.previous_keys.insert("H".into());
-        assert!(!input_snapshot(&command, &controller)[0].jump);
-        assert!(input_snapshot(&Command::default(), &controller)[0].movement == Vec2::ZERO);
+        assert!(!input_snapshot(&command, &controller).jump);
+        assert!(input_snapshot(&Command::default(), &controller).movement == Vec2::ZERO);
     }
     #[test]
     fn rejected_command_does_not_change_state_or_inputs() {
         let mut game =
             Game_World::new(crate::content::Room_Registry::load(Path::new("res")).unwrap())
                 .unwrap();
-        game.reset("demo", 1, 42).unwrap();
+        game.reset("demo", 42).unwrap();
         let before = game.observation();
         let mut controller = Controller::default();
         controller.previous_keys.insert("S".into());

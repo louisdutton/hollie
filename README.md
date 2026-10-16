@@ -1,6 +1,6 @@
 # Hollie
 
-A Rust and Bevy game with local multiplayer, physics, rideable animals, room
+A single-player Rust and Bevy game with physics, rideable animals, room
 puzzles, and an in-game map editor.
 
 ## Development

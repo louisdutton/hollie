@@ -20,7 +20,6 @@ impl Game_World<'_> {
                 room,
                 frame: 0,
                 seed: 42,
-                player_count: 1,
                 generation: 0,
                 elapsed: 0.,
                 night: false,
@@ -36,8 +35,7 @@ impl Game_World<'_> {
     }
 }
 impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
-    pub fn reset(&mut self, room: &str, players: usize, seed: u64) -> Result<()> {
-        ensure!((1..=2).contains(&players), "players must be 1 or 2");
+    pub fn reset(&mut self, room: &str, seed: u64) -> Result<()> {
         let next = self.state.registry.get(room)?.room.clone();
         let mut pending = Game_World {
             state: Box::new((*self.state).clone()),
@@ -45,7 +43,6 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         };
         pending.seed = seed;
         pending.rng = ChaCha8Rng::seed_from_u64(seed);
-        pending.player_count = players;
         pending.frame = 0;
         pending.elapsed = 0.;
         pending.night = false;
@@ -120,42 +117,41 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         self.state.dialog = None;
         self.state.dialog_characters = 0.;
         self.state.doors_enabled = false;
-        for index in 0..self.state.player_count {
-            let marker = self.state.room.entities.iter().find(
-                |e| matches!(&e.properties,Entity_Properties::Player(p) if p.player_index==index+1),
-            );
-            let fallback = marker.map(|e| e.position.vector()).unwrap_or_else(|| {
-                Vec2::new(
-                    self.state.room.collision_bounds.x + 32.,
-                    self.state.room.collision_bounds.y + 32.,
-                )
-            });
-            let position = if let Some(door) = door {
-                self.door_spawn(&self.actors[door], index)?
-            } else {
-                fallback
-            };
-            let id = self.actors.len() as u64 + 1;
-            self.actors.push(Actor::new(
-                Actor_Identity {
-                    id,
-                    source_id: format!("player_{}", index + 1),
-                    properties: Entity_Properties::Player(Player_Properties {
-                        player_index: index + 1,
-                    }),
-                },
-                Body::new(position, Vec3::new(12., 24., 12.), true),
-            ));
-        }
+        let marker = self
+            .state
+            .room
+            .entities
+            .iter()
+            .find(|e| matches!(&e.properties, Entity_Properties::Player(_)));
+        let fallback = marker.map(|e| e.position.vector()).unwrap_or_else(|| {
+            Vec2::new(
+                self.state.room.collision_bounds.x + 32.,
+                self.state.room.collision_bounds.y + 32.,
+            )
+        });
+        let position = if let Some(door) = door {
+            self.door_spawn(&self.actors[door])?
+        } else {
+            fallback
+        };
+        let id = self.actors.len() as u64 + 1;
+        self.actors.push(Actor::new(
+            Actor_Identity {
+                id,
+                source_id: "player".into(),
+                properties: Entity_Properties::Player(Player_Properties {}),
+            },
+            Body::new(position, Vec3::new(12., 24., 12.), true),
+        ));
         self.state.generation += 1;
         Ok(())
     }
-    pub(super) fn door_spawn(&self, door: &Actor, index: usize) -> Result<Vec2> {
+    pub(super) fn door_spawn(&self, door: &Actor) -> Result<Vec2> {
         let bounds = door.body.bounds();
         let center = (bounds.min + bounds.max) / 2.;
         let side = if self.state.room.interior { -1. } else { 1. };
         let first = Vec2::new(
-            center.x + (index as f32) * 16.,
+            center.x,
             if side < 0. {
                 bounds.min.z - 8.
             } else {
@@ -190,7 +186,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
                     && !solids.iter().any(|s| s.intersects(b))
                     && !self.actors.iter().any(|a| {
                         (a.solid()
-                            || a.player().is_some()
+                            || a.is_player()
                             || matches!(a.properties, Entity_Properties::Door(_)))
                             && a.body.bounds().intersects(b)
                     })

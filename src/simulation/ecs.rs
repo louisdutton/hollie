@@ -85,7 +85,7 @@ impl Game_Access<'_, '_> {
                 .map(|a| {
                     (
                         a.entity,
-                        a.player().is_some(),
+                        a.is_player(),
                         a.mounted,
                         a.held_by,
                         a.release_player,
@@ -126,13 +126,13 @@ impl Game_Access<'_, '_> {
         }
         result
     }
-    pub fn reset(&mut self, room: &str, players: usize, seed: u64) -> Result<()> {
-        self.with_simulation(|game| game.reset(room, players, seed))
+    pub fn reset(&mut self, room: &str, seed: u64) -> Result<()> {
+        self.with_simulation(|game| game.reset(room, seed))
     }
     pub fn load_room(&mut self, room: Room, target: &str) -> Result<()> {
         self.with_simulation(|game| game.load_room(room, target))
     }
-    pub(crate) fn step(&mut self, inputs: [Player_Input; 2], dt: f32) -> Result<()> {
+    pub(crate) fn step(&mut self, inputs: Player_Input, dt: f32) -> Result<()> {
         let result = self.with_simulation(|game| game.step(inputs, dt));
         if result.is_ok() {
             self.impacts
@@ -171,15 +171,13 @@ fn simulate(
         return;
     }
     if windows.iter().all(|window| window.focused) {
-        if let Err(error) = game.step(controls.players, STEP) {
+        if let Err(error) = game.step(controls.player, STEP) {
             error!("Simulation error: {error}");
         }
     }
     // Input edges are consumed once, even if a render frame contains several fixed ticks.
-    for input in &mut controls.players {
-        input.jump = false;
-        input.interact = false;
-    }
+    controls.player.jump = false;
+    controls.player.interact = false;
 }
 
 #[cfg(test)]
@@ -200,7 +198,7 @@ mod tests {
     fn reset(app: &mut App) {
         app.world_mut()
             .run_system_once(|mut game: Game_Access| {
-                game.reset("demo", 2, 42).unwrap();
+                game.reset("demo", 42).unwrap();
             })
             .unwrap();
     }
@@ -216,7 +214,7 @@ mod tests {
         reset(&mut app);
         app.world_mut()
             .run_system_once(|mut actors: Query<Actor_Query>| {
-                let mut player = actors.iter_mut().find(|a| a.player() == Some(0)).unwrap();
+                let mut player = actors.iter_mut().find(|a| a.is_player()).unwrap();
                 player.body.height = 1.;
                 player.body.vertical_velocity = -200.;
                 player.body.grounded = false;
@@ -224,8 +222,8 @@ mod tests {
             .unwrap();
         app.world_mut()
             .run_system_once(|mut game: Game_Access| {
-                game.step([default(); 2], STEP).unwrap();
-                game.step([default(); 2], STEP).unwrap();
+                game.step(default(), STEP).unwrap();
+                game.step(default(), STEP).unwrap();
                 assert!(game.effects.is_empty());
             })
             .unwrap();
@@ -252,7 +250,7 @@ mod tests {
                     solver
                         .actors
                         .iter_mut()
-                        .find(|a| a.player() == Some(0))
+                        .find(|a| a.is_player())
                         .unwrap()
                         .body
                         .height = 23.;
@@ -264,7 +262,7 @@ mod tests {
                 assert_eq!(
                     bodies
                         .iter()
-                        .find(|(id, _)| id.player() == Some(0))
+                        .find(|(id, _)| id.is_player())
                         .unwrap()
                         .1
                         .height,
@@ -320,10 +318,7 @@ mod tests {
         reset(&mut app);
         app.world_mut()
             .run_system_once(|mut actors: Query<Actor_Query>| {
-                let mut player = actors
-                    .iter_mut()
-                    .find(|actor| actor.player() == Some(0))
-                    .unwrap();
+                let mut player = actors.iter_mut().find(|actor| actor.is_player()).unwrap();
                 player.body.height = 17.;
             })
             .unwrap();
@@ -331,7 +326,7 @@ mod tests {
         assert_eq!(before["players"][0]["body"]["height"], 17.);
         app.world_mut()
             .run_system_once(|mut game: Game_Access| {
-                assert!(game.reset("missing-room", 2, 99).is_err());
+                assert!(game.reset("missing-room", 99).is_err());
             })
             .unwrap();
         assert_eq!(observe(&mut app), before);
@@ -348,7 +343,7 @@ mod tests {
                 (
                     actors
                         .iter()
-                        .find(|(_, identity)| identity.player() == Some(0))
+                        .find(|(_, identity)| identity.is_player())
                         .unwrap()
                         .0,
                     actors
@@ -374,7 +369,7 @@ mod tests {
                     .layers
                     .collision
                     .fill(1);
-                assert!(game.reset("demo", 1, 777).is_err());
+                assert!(game.reset("demo", 777).is_err());
             })
             .unwrap();
         assert_eq!(observe(&mut app), before);
@@ -396,16 +391,13 @@ mod tests {
             app.world_mut()
                 .spawn((Name::new("unrelated"), Transform::default()));
             reset(&mut app);
-            expected.reset("demo", 2, 42).unwrap();
+            expected.reset("demo", 42).unwrap();
             for frame in 0..90 {
-                let inputs = [
-                    Player_Input {
-                        movement: Vec2::Y,
-                        jump: frame == 20,
-                        interact: false,
-                    },
-                    default(),
-                ];
+                let inputs = Player_Input {
+                    movement: Vec2::Y,
+                    jump: frame == 20,
+                    interact: false,
+                };
                 expected.step(inputs, STEP).unwrap();
                 app.world_mut()
                     .run_system_once(move |mut game: Game_Access| game.step(inputs, STEP).unwrap())

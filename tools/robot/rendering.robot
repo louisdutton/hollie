@@ -29,3 +29,4 @@ Title and gameplay fill the requested render extent
     Should Be Equal    ${returned}[presentation][area_title][alpha]    ${0}
     ${new_game}=    Advance Ticks    1    ENTER
     Should Be Equal    ${new_game}[scene]    Gameplay
+    Length Should Be    ${new_game}[players]    1

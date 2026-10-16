@@ -191,7 +191,7 @@ mod tests {
         app.update();
         app.world_mut()
             .run_system_once(|mut game: crate::simulation::Game_Access| {
-                game.reset("demo", 2, 42).unwrap()
+                game.reset("demo", 42).unwrap()
             })
             .unwrap();
         app.world_mut()

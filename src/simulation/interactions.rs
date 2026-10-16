@@ -302,7 +302,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         for i in 0..self.actors.len() {
             if !self.actors[i].movable()
                 || self.actors[i].held_by.is_some()
-                || self.actors[i].player().is_some() && self.actors[i].mounted.is_some()
+                || self.actors[i].is_player() && self.actors[i].mounted.is_some()
             {
                 continue;
             }

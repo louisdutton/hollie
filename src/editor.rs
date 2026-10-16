@@ -328,7 +328,7 @@ fn edit(
                     })
                     .collect();
                 let properties = match selected {
-                    0 => Entity_Properties::Player(Player_Properties { player_index: 1 }),
+                    0 => Entity_Properties::Player(Player_Properties {}),
                     1 => Entity_Properties::Enemy(Enemy_Properties {
                         kind: Character_Kind::Horse,
                     }),
@@ -376,6 +376,11 @@ fn edit(
                         target_door_id: "from_small_room".into(),
                     }),
                 };
+                if selected == 0 {
+                    game.room.entities.retain(|entity| {
+                        !matches!(entity.properties, Entity_Properties::Player(_))
+                    });
+                }
                 game.room.entities.push(Room_Entity {
                     id: format!("editor_entity_{id}"),
                     position,
@@ -430,7 +435,6 @@ fn edit_properties(
         })
         .collect();
     match &mut room.entities[index].properties {
-        Entity_Properties::Player(p) => p.player_index = if p.player_index == 1 { 2 } else { 1 },
         Entity_Properties::Enemy(e) => {
             let i = kinds.iter().position(|k| *k == e.kind).unwrap();
             e.kind = kinds[(i as i32 + delta).rem_euclid(kinds.len() as i32) as usize];

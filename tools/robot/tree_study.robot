@@ -13,7 +13,7 @@ One tree responds to world sun, ambient and local lighting
     Should Be Equal As Numbers    ${day}[presentation][tree_study][trees]    1
     Should Not Be True    ${day}[presentation][volumetric_lighting]
     ${day_mean}=    Image Region Mean    tree-day.png    600    220    160    180
-    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_LEFT    capture=tree-sun-turned.png
+    Press Gamepad For Ticks    1    RIGHT_FACE_LEFT    capture=tree-sun-turned.png
     Run Keyword And Expect Error    *pixels differ*    Images Should Match    tree-day.png    tree-sun-turned.png
     ${reverse}=    Next Study Light    tree-reverse.png
     ${reverse_mean}=    Image Region Mean    tree-reverse.png    600    220    160    180
@@ -51,7 +51,7 @@ One tree responds to world sun, ambient and local lighting
     Move Stick For Ticks    118    1    0    capture=tree-three-quarters.png
     ${other_width}=    Foliage Width    tree-three-quarters.png
     Should Be True    min($front_width, $side_width, $back_width, $other_width) / max($front_width, $side_width, $back_width, $other_width) > 0.75
-    ${title}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_RIGHT    capture=tree-exit.png
+    ${title}=    Press Gamepad For Ticks    1    RIGHT_FACE_RIGHT    capture=tree-exit.png
     Should Be Equal    ${title}[scene]    Title
     Should Be Equal As Numbers    ${title}[presentation][tree_study][trees]    0
     Should Be True    ${title}[presentation][volumetric_lighting]
@@ -65,83 +65,83 @@ Controller operates the complete tree study
     Should Be True    0.1 < $orbit['presentation']['tree_study']['yaw'] < 0.4
     ${held}=    Move Stick For Ticks    30    0.5    0
     Should Be Equal As Numbers    ${held}[presentation][tree_study][yaw]    ${{ $orbit['presentation']['tree_study']['yaw'] * 2 }}    precision=5
-    ${reset}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_DOWN    capture=pad-reset.png
+    ${reset}=    Press Gamepad For Ticks    1    RIGHT_FACE_DOWN    capture=pad-reset.png
     Should Be Equal As Numbers    ${reset}[presentation][tree_study][yaw]    0
     Images Should Match    pad-day.png    pad-reset.png
-    ${turned}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_LEFT    capture=pad-sun.png
+    ${turned}=    Press Gamepad For Ticks    1    RIGHT_FACE_LEFT    capture=pad-sun.png
     Should Be True    $turned['presentation']['tree_study']['sun_turn'] > 0.7
-    ${held}=    Press Gamepad For Ticks    20    Player_1    RIGHT_FACE_LEFT
+    ${held}=    Press Gamepad For Ticks    20    RIGHT_FACE_LEFT
     Should Be Equal As Numbers    ${held}[presentation][tree_study][sun_turn]    ${turned}[presentation][tree_study][sun_turn]
     FOR    ${preset}    IN    Reverse    Dim    Sunset    Moonlight    Lantern    Darkness    Ambient    Daylight
         Advance Ticks    1
-        ${light}=    Press Gamepad For Ticks    1    Player_1    RIGHT_TRIGGER_1
+        ${light}=    Press Gamepad For Ticks    1    RIGHT_TRIGGER_1
         Should Be Equal    ${light}[presentation][tree_study][preset]    ${preset}
         Should Be Equal As Numbers    ${light}[presentation][tree_study][sun_turn]    0
     END
-    ${previous}=    Press Gamepad For Ticks    1    Player_1    LEFT_TRIGGER_1
+    ${previous}=    Press Gamepad For Ticks    1    LEFT_TRIGGER_1
     Should Be Equal    ${previous}[presentation][tree_study][preset]    Ambient
     ${ignored}=    Advance Ticks    30    RIGHT    L    D    ESCAPE    HOME
     Should Be Equal    ${ignored}[scene]    Tree_Study
     Should Be Equal As Numbers    ${ignored}[presentation][tree_study][yaw]    0
     Should Be Equal    ${ignored}[presentation][tree_study][preset]    Ambient
-    ${title}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_RIGHT
+    ${title}=    Press Gamepad For Ticks    1    RIGHT_FACE_RIGHT
     Should Be Equal    ${title}[scene]    Title
     ${study}=    Enter Tree Study
-    ${title}=    Press Gamepad For Ticks    1    Player_1    MIDDLE_RIGHT
+    ${title}=    Press Gamepad For Ticks    1    MIDDLE_RIGHT
     Should Be Equal    ${title}[scene]    Title
 
 Tree parameters rebuild the specimen and persist between visits
     ${initial}=    Enter Tree Study    editor-initial.png
     Should Be Equal    ${initial}[presentation][tree_study][parameters][layout]    Joined_Crown
     ${initial_pixels}=    Image Region Signature    editor-initial.png    360    90    600    600
-    ${old}=    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_LEFT    capture=editor-leafy.png
+    ${old}=    Press Gamepad For Ticks    1    LEFT_FACE_LEFT    capture=editor-leafy.png
     Should Be Equal    ${old}[presentation][tree_study][parameters][layout]    Leafy_Tiers
     Advance Ticks    1
-    ${old}=    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_LEFT    capture=editor-rounded.png
+    ${old}=    Press Gamepad For Ticks    1    LEFT_FACE_LEFT    capture=editor-rounded.png
     Should Be Equal    ${old}[presentation][tree_study][parameters][layout]    Rounded_Tiers
-    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_UP    capture=editor-restored.png
+    Press Gamepad For Ticks    1    RIGHT_FACE_UP    capture=editor-restored.png
     Images Should Match    editor-initial.png    editor-restored.png
-    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
-    ${wide}=    Press Gamepad For Ticks    30    Player_1    LEFT_FACE_RIGHT    capture=editor-width.png
+    Press Gamepad For Ticks    1    LEFT_FACE_DOWN
+    ${wide}=    Press Gamepad For Ticks    30    LEFT_FACE_RIGHT    capture=editor-width.png
     Should Be True    $wide['presentation']['tree_study']['parameters']['width'] > 1.05
     ${wide_pixels}=    Foliage Width    editor-width.png
     ${original_pixels}=    Foliage Width    editor-initial.png
     Should Be True    $wide_pixels > $original_pixels * 1.04
-    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_RIGHT
+    Press Gamepad For Ticks    1    RIGHT_FACE_RIGHT
     ${returned}=    Enter Tree Study
     Should Be Equal    ${wide}[presentation][tree_study][parameters]    ${returned}[presentation][tree_study][parameters]
-    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_UP
+    Press Gamepad For Ticks    1    RIGHT_FACE_UP
     FOR    ${row}    IN RANGE    2    10
         Advance Ticks    1
-        ${selected}=    Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+        ${selected}=    Press Gamepad For Ticks    1    LEFT_FACE_DOWN
         Should Be Equal As Numbers    ${selected}[presentation][tree_study][selected]    ${row}
         ${before}=    Observe Game
-        Press Gamepad For Ticks    1    Player_1    LEFT_FACE_RIGHT    capture=editor-field-${row}.png
+        Press Gamepad For Ticks    1    LEFT_FACE_RIGHT    capture=editor-field-${row}.png
         ${pixels}=    Image Region Signature    editor-field-${row}.png    360    90    600    600
         Should Not Be Equal    ${pixels}    ${initial_pixels}
         ${changed}=    Observe Game
         Should Not Be Equal    ${before}[presentation][tree_study][parameters]    ${changed}[presentation][tree_study][parameters]
-        ${restored}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_UP    capture=editor-reset-${row}.png
+        ${restored}=    Press Gamepad For Ticks    1    RIGHT_FACE_UP    capture=editor-reset-${row}.png
         ${pixels}=    Image Region Signature    editor-reset-${row}.png    360    90    600    600
         Should Be Equal    ${pixels}    ${initial_pixels}
         Should Be Equal    ${before}[presentation][tree_study][parameters]    ${restored}[presentation][tree_study][parameters]
     END
-    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_RIGHT
+    Press Gamepad For Ticks    1    RIGHT_FACE_RIGHT
 
 *** Keywords ***
 Enter Tree Study
     [Arguments]    ${capture}=${EMPTY}
-    FOR    ${index}    IN RANGE    3
+    FOR    ${index}    IN RANGE    2
         Advance Ticks    1
-        Press Gamepad For Ticks    1    Player_1    LEFT_FACE_DOWN
+        Press Gamepad For Ticks    1    LEFT_FACE_DOWN
     END
     Advance Ticks    1
-    ${state}=    Press Gamepad For Ticks    1    Player_1    RIGHT_FACE_DOWN    capture=${capture}
+    ${state}=    Press Gamepad For Ticks    1    RIGHT_FACE_DOWN    capture=${capture}
     Should Be Equal    ${state}[scene]    Tree_Study
     RETURN    ${state}
 
 Next Study Light
     [Arguments]    ${capture}
     Advance Ticks    1
-    ${state}=    Press Gamepad For Ticks    1    Player_1    RIGHT_TRIGGER_1    capture=${capture}
+    ${state}=    Press Gamepad For Ticks    1    RIGHT_TRIGGER_1    capture=${capture}
     RETURN    ${state}

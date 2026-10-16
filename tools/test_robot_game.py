@@ -39,12 +39,11 @@ class Robot_Journey_Tests(unittest.TestCase):
             self.assertEqual(game_context.__exit__.call_args.args[0], OSError)
             self.assertIsNone(game.context)
 
-    def test_simultaneous_players_use_one_complete_snapshot(self):
+    def test_gamepad_uses_one_complete_snapshot(self):
         with tempfile.TemporaryDirectory() as directory, patch("robot_game.Control_Client") as client:
             client.return_value.send.return_value = {"state": {}, "error": ""}
             game = Hollie(directory, directory)
-            pads = [{"player": "Player_1", "axes": [0, 1]},
-                    {"player": "Player_2", "axes": [0, 0.5]}]
+            pads = [{"axes": [0, 1], "buttons": ["RIGHT_FACE_DOWN"]}]
             game.advance_ticks(30, gamepads=pads)
             client.return_value.send.assert_called_once_with({"op": "step", "frames": 30, "gamepads": pads})
             game.advance_ticks(1)

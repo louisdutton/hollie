@@ -5,7 +5,7 @@ Test Teardown    Finish Journey
 
 *** Test Cases ***
 Move, freeze, reset, and replay
-    ${initial}=    Reset Game    room=demo    players=1    seed=42    capture=initial.png
+    ${initial}=    Reset Game    room=demo    seed=42    capture=initial.png
     Sleep    0.5s
     ${idle}=    Observe Game
     Should Be Equal    ${initial}    ${idle}
@@ -19,7 +19,7 @@ Move, freeze, reset, and replay
     Reset Game    room=does_not_exist    expected_error=unknown room
     ${after_errors}=    Observe Game
     Should Be Equal    ${moved}    ${after_errors}
-    ${reset}=    Reset Game    room=demo    players=1    seed=42
+    ${reset}=    Reset Game    room=demo    seed=42
     Should Be Equal    ${initial}    ${reset}
     ${replayed}=    Advance Ticks    30    S    capture=replayed.png
     Should Be Equal    ${moved}    ${replayed}

@@ -88,8 +88,8 @@ class Hollie:
             entry["seconds"] = time.perf_counter() - started
 
     @keyword
-    def reset_game(self, room=None, players: int | None = None, seed: int | None = None, capture="", expected_error=""):
-        options = {key: value for key, value in {"room": room, "players": players, "seed": seed}.items()
+    def reset_game(self, room=None, seed: int | None = None, capture="", expected_error=""):
+        options = {key: value for key, value in {"room": room, "seed": seed}.items()
                    if value is not None}
         return self.send({"op": "reset", **options}, capture, expected_error)
 
@@ -103,13 +103,13 @@ class Hollie:
         return self.send(command, capture, expected_error)
 
     @keyword
-    def move_stick_for_ticks(self, ticks: int, left_x: float, left_y: float, player="Player_1", capture="", expected_error=""):
-        return self.advance_ticks(ticks, gamepads=[{"player": player, "axes": [left_x, left_y]}],
+    def move_stick_for_ticks(self, ticks: int, left_x: float, left_y: float, capture="", expected_error=""):
+        return self.advance_ticks(ticks, gamepads=[{"axes": [left_x, left_y]}],
                                   capture=capture, expected_error=expected_error)
 
     @keyword
-    def press_gamepad_for_ticks(self, ticks: int, player, *buttons, capture="", expected_error=""):
-        return self.advance_ticks(ticks, gamepads=[{"player": player, "buttons": list(buttons)}],
+    def press_gamepad_for_ticks(self, ticks: int, *buttons, capture="", expected_error=""):
+        return self.advance_ticks(ticks, gamepads=[{"buttons": list(buttons)}],
                                   capture=capture, expected_error=expected_error)
 
     @keyword

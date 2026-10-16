@@ -60,7 +60,8 @@ fn toggle_debug(
     {
         return;
     }
-    let right_stick = controls.pads[0]
+    let right_stick = controls
+        .pad
         .and_then(|id| pads.get(id).ok())
         .is_some_and(|pad| pad.just_pressed(GamepadButton::RightThumb));
     if keys.just_pressed(KeyCode::F3) || right_stick || controller.debug_toggle {
@@ -257,9 +258,7 @@ mod tests {
             .init_resource::<ButtonInput<KeyCode>>()
             .add_systems(Update, toggle_debug);
         let pad = app.world_mut().spawn(Gamepad::default()).id();
-        app.world_mut()
-            .resource_mut::<crate::input::Controls>()
-            .pads[0] = Some(pad);
+        app.world_mut().resource_mut::<crate::input::Controls>().pad = Some(pad);
         app.world_mut()
             .resource_mut::<NextState<Mode>>()
             .set(Mode::Gameplay);

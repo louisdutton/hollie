@@ -44,24 +44,24 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         .x;
         actor.body.velocity = actor.locomotion.facing * speed;
     }
-    pub(super) fn update_motion(&mut self, inputs: [Player_Input; 2], dt: f32) {
+    pub(super) fn update_motion(&mut self, inputs: Player_Input, dt: f32) {
         for i in 0..self.actors.len() {
-            if let Some(player) = self.actors[i].player() {
+            if self.actors[i].is_player() {
                 if self.actors[i].body.grounded || self.actors[i].body.swimming {
                     self.actors[i].locomotion.dismount_air_control = false;
                 }
-                if inputs[player].jump
+                if inputs.jump
                     && self.actors[i].mounted.is_none()
                     && self.actors[i].carrying.is_some()
                 {
                     self.actors[i].body.jump(JUMP_SPEED);
                 }
-                if inputs[player].interact && self.actors[i].attachment.mount_time >= 0.4 {
+                if inputs.interact && self.actors[i].attachment.mount_time >= 0.4 {
                     self.interact(i);
-                } else if inputs[player].interact && self.actors[i].mounted.is_none() {
+                } else if inputs.interact && self.actors[i].mounted.is_none() {
                     self.interact(i);
                 }
-                let direction = camera_relative(inputs[player].movement);
+                let direction = camera_relative(inputs.movement);
                 if let Some(mount) = self.actors[i].mounted {
                     self.actors[i].attachment.mount_time += dt;
                     if self.actors[i].attachment.mount_time < 0.4 {
@@ -80,7 +80,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
                             _ => {}
                         }
                         Self::animal_movement(&mut self.actors[index], direction, profile, dt);
-                        if inputs[player].jump
+                        if inputs.jump
                             && kind != Character_Kind::Turtle
                             && !self.actors[index].ram.ready
                         {
@@ -107,7 +107,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
                     if self.actors[i].body.velocity.length_squared() > 0.01 {
                         self.actors[i].locomotion.facing = self.actors[i].body.velocity.normalize();
                     }
-                    if inputs[player].jump {
+                    if inputs.jump {
                         self.actors[i].body.jump(JUMP_SPEED);
                     }
                 }
@@ -197,7 +197,7 @@ impl<S: DerefMut<Target = Game_State>> Game_World<'_, S> {
         for i in 0..self.actors.len() {
             if let Some(id) = self.actors[i]
                 .mounted
-                .filter(|_| self.actors[i].player().is_some())
+                .filter(|_| self.actors[i].is_player())
             {
                 if let Some((animal, facing)) = self
                     .actors
