@@ -135,31 +135,43 @@ impl Forest_Mesh {
         });
     }
 
-    fn spray(
+    // Shade all the brush-shaped patches against one ellipsoid, rather than
+    // lighting every leaf separately. This is the radial-normal technique from
+    // aversionofreality.com/blog/2022/8/7/stylized-tree-shader.
+    fn cluster(
         &mut self,
         center: Vec3,
-        axis: Vec3,
-        width: f32,
-        length: f32,
-        tile: u32,
+        facing: Vec3,
+        size: Vec2,
+        envelope: (Vec3, Vec3),
         color: Color,
+        seed: u32,
     ) {
-        let side = axis.cross(Vec3::Y).normalize_or(Vec3::X);
-        let up = side.cross(axis).normalize();
-        self.grid(4, 2, |t, s| {
-            let lateral = s * 2. - 1.;
-            let bend = (t * std::f32::consts::PI).sin();
-            let p = center
-                + axis * (t - 0.5) * length
-                + side * lateral * width * 0.5
-                + up * (bend * (1. - lateral * lateral) * width * 0.10);
-            let normal = (up + side * lateral * 0.22 - axis * (t - 0.5) * 0.16).normalize();
-            let uv = Vec2::new(
-                (tile % 2) as f32 * 0.5 + 0.012 + s * 0.476,
-                (tile / 2) as f32 * 0.5 + 0.012 + (1. - t) * 0.476,
+        let side = facing.cross(Vec3::Y).normalize_or(Vec3::X);
+        let up = side.cross(facing).normalize();
+        let phase = random(seed) * std::f32::consts::TAU;
+        let u = side * phase.cos() + up * phase.sin();
+        let v = -side * phase.sin() + up * phase.cos();
+        let normal = |p: Vec3| ((p - envelope.0) / envelope.1 / envelope.1).normalize();
+        let base = self.positions.len() as u32;
+        self.vertex(center, normal(center), color, Vec2::splat(0.5));
+        // Connected paint dabs keep detail at the silhouette. Geometry also
+        // gives the shadow the same outline, without a botanical texture atlas.
+        const EDGES: u32 = 72;
+        for edge in 0..EDGES {
+            let angle = edge as f32 / EDGES as f32 * std::f32::consts::TAU;
+            let lobe = (angle * 9. + phase).cos();
+            let outline = 0.88 + lobe * 0.09 + (angle * 3. + phase).sin() * 0.06;
+            let p = center + (u * angle.cos() * size.x + v * angle.sin() * size.y) * outline * 0.5;
+            self.vertex(
+                p,
+                normal(p),
+                color,
+                Vec2::new(angle.cos(), angle.sin()) * 0.5 + Vec2::splat(0.5),
             );
-            (p, normal, color, uv)
-        });
+            self.indices
+                .extend([base, base + 1 + (edge + 1) % EDGES, base + 1 + edge]);
+        }
     }
 
     fn finish(self) -> Mesh {
@@ -265,7 +277,7 @@ pub(super) fn build() -> Forest_Geometry {
             let elbow = start.lerp(crown, 0.65) - Vec3::Y * 13.;
             wood.branch(start, elbow, radius * 0.45, radius * 0.22, bark);
             wood.branch(elbow, crown, radius * 0.22, 0.5, bark);
-            let leaf_count = if z > -400. { 66 } else { 44 };
+            let leaf_count = if z > -400. { 48 } else { 32 };
             for leaf in 0..leaf_count {
                 let n = seed + branch * 1277 + leaf * 17;
                 let y = random(n + 1) * 2. - 1.;
@@ -277,21 +289,20 @@ pub(super) fn build() -> Forest_Geometry {
                 if ((center.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1. {
                     continue;
                 }
-                let tone = random(n + 4);
-                let color = Color::srgb(0.85 + tone * 0.15, 0.91 + tone * 0.09, 0.78 + tone * 0.18);
-                canopy.spray(
+                let tone = random(seed + branch + 4);
+                let color = Color::srgb(0.28 + tone * 0.06, 0.43 + tone * 0.07, 0.23 + tone * 0.04);
+                canopy.cluster(
                     center,
-                    Vec3::new(angle.cos() * 0.7, 0.45 + random(n + 7), angle.sin() * 0.7)
-                        .normalize(),
-                    25. + random(n + 5) * 13.,
-                    28. + random(n + 6) * 15.,
-                    leaf % 2,
+                    radial.normalize(),
+                    Vec2::new(33. + random(n + 5) * 10., 28. + random(n + 6) * 10.),
+                    (crown, Vec3::new(48., 24., 48.)),
                     color,
+                    n,
                 );
             }
         }
     }
-    // Ferns and blue-white flowers gather along the clearing's winding edge.
+    // Low, rounded shrubs and small flowers gather along the clearing's edge.
     for i in 0..260 {
         let x = random(i * 31 + 1) * 620. - 300.;
         let z = random(i * 31 + 2) * -640. + 90.;
@@ -300,16 +311,21 @@ pub(super) fn build() -> Forest_Geometry {
             continue;
         }
         if i % 3 == 0 {
-            for frond in 0..7 {
-                let angle = frond as f32 * 2.4;
-                let direction = Vec3::new(angle.cos(), 0., angle.sin());
-                sprays.spray(
-                    base + direction * 5. + Vec3::Y * 8.,
-                    (direction + Vec3::Y * 0.9).normalize(),
-                    12.,
-                    24.,
-                    2,
-                    Color::srgb(0.84, 0.94, 0.82),
+            let crown = base + Vec3::Y * 5.;
+            let radii = Vec3::new(13., 10., 12.);
+            for patch in 0..18 {
+                let n = i * 97 + patch * 19;
+                let y = random(n + 1) * 0.95 + 0.05;
+                let angle = patch as f32 * 2.4;
+                let ring = (1. - y * y).sqrt();
+                let radial = Vec3::new(ring * angle.cos(), y, ring * angle.sin());
+                sprays.cluster(
+                    crown + radial * radii,
+                    radial.normalize(),
+                    Vec2::new(11., 10.),
+                    (crown, radii),
+                    Color::srgb(0.29, 0.46, 0.25),
+                    n,
                 );
             }
         } else {

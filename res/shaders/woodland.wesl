@@ -37,14 +37,10 @@ fn fragment(in: VertexOutput,@builtin(front_facing) front: bool) -> FragmentOutp
         let green=mix(vec3<f32>(0.21,0.33,0.16),vec3<f32>(0.34,0.47,0.22),mottling);
         albedo=mix(albedo,linear(green),moss*0.88);
     } else if kind<2.5 {
-        let uv=in.uv;
-        let midrib=1.0-smoothstep(0.012,0.065,abs(uv.x-0.5));
-        let veins=pow(0.5+0.5*cos(uv.y*43.0-abs(uv.x-0.5)*20.0),16.0);
-        let edge=smoothstep(0.42,0.5,abs(uv.x-0.5));
-        if woodland.parameters.y<0.5 {
-            albedo*=0.96+uv.y*0.25+midrib*0.12+veins*0.035-edge*0.09;
-        }
-        pbr.material.perceptual_roughness=0.78;
+        // Broad pigment variation keeps the shared canopy normals readable.
+        let wash=noise(p.xz*0.018+vec2<f32>(p.y*0.012));
+        albedo*=0.96+wash*0.08;
+        pbr.material.perceptual_roughness=1.0;
     } else {
         albedo*=0.90+mottling*0.28;
         let moss=smoothstep(0.55,0.78,pigment(p.xz*0.032));

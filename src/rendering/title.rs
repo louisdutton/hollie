@@ -85,7 +85,6 @@ fn setup(
     mut meadows: ResMut<Assets<Meadow_Material>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut woodlands: ResMut<Assets<Woodland_Material>>,
-    server: Res<AssetServer>,
     mut scene: ResMut<Title_Scene>,
 ) {
     // Independent title assets and lights never load or mutate a gameplay room.
@@ -148,9 +147,9 @@ fn setup(
     ));
     let geometry = forest::build();
     let mut leaf_material = woodland_material(Woodland_Kind::Foliage);
-    leaf_material.base.base_color_texture = Some(server.load("foliage/woodland-atlas.png"));
-    leaf_material.base.alpha_mode = AlphaMode::Mask(0.4);
-    leaf_material.extension.parameters.y = 1.;
+    // Back-facing patches still use the crown's outward normals. Flipping each
+    // patch independently breaks the continuous shading into dark rings.
+    leaf_material.base.double_sided = false;
     let leaf_material = woodlands.add(leaf_material);
     for (mesh, kind) in [
         (geometry.wood, Woodland_Kind::Bark),
@@ -167,12 +166,14 @@ fn setup(
     commands.spawn((
         Mesh3d(meshes.add(geometry.sprays)),
         MeshMaterial3d(leaf_material.clone()),
+        bevy::light::NotShadowReceiver,
         Transform::default(),
         RenderLayers::layer(1),
     ));
     commands.spawn((
         Mesh3d(meshes.add(geometry.canopy)),
         MeshMaterial3d(leaf_material),
+        bevy::light::NotShadowReceiver,
         Transform::default(),
         RenderLayers::layer(1),
         Canopy,
