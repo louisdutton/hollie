@@ -8,6 +8,7 @@ struct Forest_Mesh {
     colors: Vec<[f32; 4]>,
     uv: Vec<[f32; 2]>,
     indices: Vec<u32>,
+    tuft_resolution: Option<(u32, u32)>,
 }
 impl Forest_Mesh {
     fn vertex(&mut self, point: Vec3, normal: Vec3, color: Color, uv: Vec2) {
@@ -136,108 +137,31 @@ impl Forest_Mesh {
         });
     }
 
-    // The connected volume guides leaf placement and broad lighting, but is
-    // never rendered: its smooth skin previously made the crowns look solid.
-    fn crown(&mut self, center: Vec3, size: Vec3, seed: u32, glade_opening: bool) {
-        let phase = random(seed) * std::f32::consts::TAU;
-        let lobes: Vec<_> = (0..9)
-            .map(|i| {
-                let n = seed + i * 37;
-                let angle = i as f32 * 2.4 + phase;
-                (
-                    Vec3::new(
-                        angle.cos() * (0.48 + random(n + 5) * 0.42),
-                        (random(n + 1) - 0.45) * 1.25,
-                        angle.sin() * (0.48 + random(n + 6) * 0.42),
-                    ),
-                    Vec3::new(
-                        0.40 + random(n + 2) * 0.22,
-                        0.42 + random(n + 3) * 0.24,
-                        0.40 + random(n + 4) * 0.22,
-                    ),
-                )
-            })
-            .collect();
-        let point = |t: f32, s: f32| {
-            let latitude = t * std::f32::consts::PI;
-            let longitude = s * std::f32::consts::TAU;
-            let n = Vec3::new(
-                latitude.sin() * longitude.cos(),
-                latitude.cos(),
-                latitude.sin() * longitude.sin(),
-            );
-            // Find the outer boundary of overlapping crown lobes along each
-            // ray. A smooth union joins their shoulders into one closed mesh.
-            let mut outline: f32 = 0.45;
-            for &(offset, radii) in &lobes {
-                let ray = n / radii;
-                let origin = offset / radii;
-                let a = ray.length_squared();
-                let b = -ray.dot(origin);
-                let c = origin.length_squared() - 1.;
-                let discriminant = b * b - a * c;
-                if discriminant >= 0. {
-                    let distance = (-b + discriminant.sqrt()) / a;
-                    let h = (0.18 - (outline - distance).abs()).max(0.) / 0.18;
-                    outline = outline.max(distance) + h * h * 0.18 * 0.25;
-                }
-            }
-            center + n * size * outline
-        };
-        let leaf_count = if center.z > -400. { 2400 } else { 1200 };
-        for leaf in 0..leaf_count {
-            let n = seed + leaf * 53;
-            let y = 1. - 2. * (leaf as f32 + 0.5) / leaf_count as f32;
-            let angle = leaf as f32 * 2.399963 + phase;
-            let t = y.acos() / std::f32::consts::PI;
-            let s = angle / std::f32::consts::TAU;
-            let surface_point = point(t, s);
-            let p = center + (surface_point - center) * (0.86 + random(n + 1) * 0.17);
-            if glade_opening
-                && ((p.xz() - Vec2::new(198., -314.)) / Vec2::new(83., 98.)).length() < 1.
-            {
-                continue;
-            }
-            let guide = ((p - center) / size / size).normalize();
-            let dt = point(t + 0.001, s) - point(t - 0.001, s);
-            let ds = point(t, s + 0.001) - point(t, s - 0.001);
-            let normal = guide
-                .lerp(ds.cross(dt).normalize_or(guide), 0.65)
-                .normalize();
-            let variation = Vec3::new(random(n + 7), random(n + 8), random(n + 9)) * 2. - Vec3::ONE;
-            self.leaf_patch(
-                p,
-                (normal + variation * 0.40).normalize(),
-                Vec2::new(4. + random(n + 2) * 3., 4. + random(n + 3) * 4.),
-                n,
-            );
-        }
-    }
-
-    fn leaf_patch(&mut self, center: Vec3, normal: Vec3, size: Vec2, seed: u32) {
-        let side = normal.cross(Vec3::Y).normalize_or(Vec3::X);
-        let up = side.cross(normal).normalize();
-        let phase = random(seed) * std::f32::consts::TAU;
-        let u = side * phase.cos() + up * phase.sin();
-        let v = -side * phase.sin() + up * phase.cos();
+    fn append_canopy(&mut self, crown: Self, transform: Transform) {
         let base = self.positions.len() as u32;
-        let uv = Vec2::new(random(seed + 4), 0.);
-        self.vertex(
-            center + normal * size.x * 0.08,
-            normal,
-            normal_colour(normal),
-            uv,
+        let normal = |n: Vec3| (transform.rotation * (n / transform.scale)).normalize();
+        self.positions.extend(
+            crown
+                .positions
+                .into_iter()
+                .map(|p| transform.transform_point(Vec3::from_array(p)).to_array()),
         );
-        const EDGES: u32 = 24;
-        for edge in 0..EDGES {
-            let angle = edge as f32 / EDGES as f32 * std::f32::consts::TAU;
-            let outline =
-                0.87 + (angle * 3. + phase).sin() * 0.13 + (angle * 7. - phase).cos() * 0.06;
-            let p = center + (u * angle.cos() * size.x + v * angle.sin() * size.y) * outline;
-            self.vertex(p, normal, normal_colour(normal), uv);
-            self.indices
-                .extend([base, base + 1 + (edge + 1) % EDGES, base + 1 + edge]);
-        }
+        self.normals.extend(
+            crown
+                .normals
+                .into_iter()
+                .map(|n| normal(Vec3::from_array(n)).to_array()),
+        );
+        // The artistic normals in RGB need the same inverse scale as the
+        // geometric normals; otherwise differently shaped trees light wrongly.
+        self.colors.extend(crown.colors.into_iter().map(|c| {
+            normal_colour(normal(Vec3::new(c[0], c[1], c[2]) * 2. - Vec3::ONE))
+                .to_linear()
+                .to_f32_array()
+        }));
+        self.uv.extend(crown.uv);
+        self.indices
+            .extend(crown.indices.into_iter().map(|i| base + i));
     }
 
     // Transfer the parent volume's normals to small foliage masses so their
@@ -252,7 +176,9 @@ impl Forest_Mesh {
         local_weight: f32,
     ) {
         let phase = random(seed) * std::f32::consts::TAU;
-        let (rows, columns) = if paint_normals && size.max_element() > 15. {
+        let (rows, columns) = if let Some(resolution) = self.tuft_resolution {
+            resolution
+        } else if paint_normals && size.max_element() > 15. {
             (16, 32)
         } else if local_weight < 0.5 {
             (10, 24)
@@ -505,7 +431,16 @@ fn study_crown_normal(radial: Vec3, parameters: &Tree_Parameters) -> Vec3 {
 }
 
 fn study_joined_crown(leaves: &mut Forest_Mesh, parameters: &Tree_Parameters) {
-    leaves.grid(64, 128, |t, s| {
+    joined_crown(leaves, parameters, 3800, (64, 128));
+}
+
+fn joined_crown(
+    leaves: &mut Forest_Mesh,
+    parameters: &Tree_Parameters,
+    leaf_count: u32,
+    surface: (u32, u32),
+) {
+    leaves.grid(surface.0, surface.1, |t, s| {
         let latitude = t * std::f32::consts::PI;
         let longitude = s * std::f32::consts::TAU;
         let radial = Vec3::new(
@@ -518,7 +453,7 @@ fn study_joined_crown(leaves: &mut Forest_Mesh, parameters: &Tree_Parameters) {
         let shade = radial.lerp(normal, parameters.local_shading).normalize();
         (point, normal, normal_colour(shade), Vec2::new(0.4, t))
     });
-    let count = (3800. * parameters.leaf_density) as u32;
+    let count = (leaf_count as f32 * parameters.leaf_density) as u32;
     for leaf in 0..count {
         let seed = parameters.seed + leaf * 37;
         let y = 1. - 2. * (leaf as f32 + 0.5) / count as f32;
@@ -550,7 +485,7 @@ pub(super) fn build() -> Forest_Geometry {
         (-245., -100., 260., 19.),
         (270., -160., 290., 23.),
         (-95., -210., 220., 15.),
-        (195., -325., 250., 17.),
+        (380., -325., 250., 17.),
     ];
     for row in 0..8 {
         for column in 0..10 {
@@ -558,6 +493,11 @@ pub(super) fn build() -> Forest_Geometry {
             let x = column as f32 * 100. - 480. + random(seed) * 65.;
             let z = -140. - row as f32 * 105. - random(seed + 1) * 65.;
             if Vec2::new(x - 45., (z + 180.) * 0.8).length() < 175. {
+                continue;
+            }
+            // Whole crowns frame the sun shaft rather than cutting holes in
+            // their foliage. Keep the source opening free of nearby branches.
+            if ((Vec2::new(x, z) - Vec2::new(198., -314.)) / Vec2::new(175., 180.)).length() < 1. {
                 continue;
             }
             trees.push((
@@ -612,11 +552,37 @@ pub(super) fn build() -> Forest_Geometry {
             wood.branch(start, elbow, radius * 0.45, radius * 0.22, bark);
             wood.branch(elbow, crown, radius * 0.22, 0.5, bark);
         }
-        canopy.crown(
-            base + Vec3::Y * height * 0.86 + lean,
-            Vec3::new(height * 0.28 + 18., height * 0.31, height * 0.27 + 18.),
-            seed + 1103,
-            true,
+        let (leaf_count, surface, tuft_resolution) = if z > -200. {
+            (1400, (32, 64), (6, 12))
+        } else if z > -450. {
+            (550, (20, 40), (5, 10))
+        } else {
+            (220, (12, 24), (4, 8))
+        };
+        let parameters = Tree_Parameters {
+            seed: seed + 1103,
+            irregularity: 0.45 + random(seed + 60) * 0.4,
+            lobes: 0.5 + random(seed + 61) * 0.35,
+            ..default()
+        };
+        let mut crown = Forest_Mesh {
+            tuft_resolution: Some(tuft_resolution),
+            ..default()
+        };
+        joined_crown(&mut crown, &parameters, leaf_count, surface);
+        let scale = Vec3::new(
+            (height * 0.28 + 18.) / 105.,
+            height * 0.31 / 108.,
+            (height * 0.27 + 18.) / 105.,
+        );
+        let rotation = Quat::from_rotation_y(random(seed + 62) * std::f32::consts::TAU);
+        canopy.append_canopy(
+            crown,
+            Transform {
+                translation: base + Vec3::Y * height * 0.86 + lean - Vec3::Y * 150. * scale,
+                rotation,
+                scale,
+            },
         );
     }
     // Low, rounded shrubs and small flowers gather along the clearing's edge.
